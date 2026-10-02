@@ -1,0 +1,33 @@
+{
+  "projectId": "c958684f-de06-477e-8ce4-9f7604d0ddb7",
+  "shape": "package",
+  "pkg": "@trip-globe/paper-atlas",
+  "globalName": "PaperAtlas",
+  "entry": "design-system/paper-atlas/index.mjs",
+  "buildCmd": "node design-system/paper-atlas/build.mjs",
+  "cssEntry": "dist/paper-atlas.css",
+  "extraFonts": [
+    "fonts/fonts.css"
+  ],
+  "docsMap": {
+    "Button": "components/Button/README.md",
+    "RoundButton": "components/RoundButton/README.md",
+    "Panel": "components/Panel/README.md",
+    "PlaceHeader": "components/PlaceHeader/README.md",
+    "Ticket": "components/Ticket/README.md",
+    "Route": "components/Route/README.md",
+    "Tag": "components/Tag/README.md",
+    "Sticker": "components/Sticker/README.md",
+    "Cursor": "components/Cursor/README.md"
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Cursor": {
+      "cardMode": "column"
+    },
+    "Ticket": {
+      "cardMode": "column"
+    }
+  },
+  "guidelinesGlob": "../guidelines/*.md"
+}

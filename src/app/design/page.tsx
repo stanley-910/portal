@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import tokens from "@/design/tokens.json";
 
-import { ComponentGallery, ThemeSwitch } from "./gallery";
+import { ComponentGallery, CursorGallery, ThemeSwitch } from "./gallery";
 
 export const metadata: Metadata = { title: "Paper Atlas · Trip Globe" };
 
@@ -33,6 +33,10 @@ export default function DesignPage() {
 
       <Section title="Components">
         <ComponentGallery />
+      </Section>
+
+      <Section title="Cursors">
+        <CursorGallery />
       </Section>
 
       <Section title="Colour">

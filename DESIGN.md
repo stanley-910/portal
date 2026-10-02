@@ -18,7 +18,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - Set all text and borders in `ink`. Use `ink-muted` for secondary text, on `paper` or `paper-raised` only.
 - Use `rule` for faint marks that are not text: the graticule, ground tracks, the hover ring.
 - Keep `sea`, `sea-deep`, `sage` and `moss` for the globe and for maps. They are print inks, not UI colours: never use them for buttons or text.
-- Stickers keep the same paper colours in both themes (`sticker`, `sticker-fill`, `sticker-ink`). A sticker is a real piece of paper laid on the page, so it does not change at night. Everything printed on the page (text, route, tags, ticket) follows the theme.
+- Stickers keep the same paper colours in both themes (`sticker-fill`, `sticker-ink`, the `member-*` colours). A sticker is a real piece of paper laid on the page, so it does not change at night. Everything printed on the page (text, route, tags, ticket) follows the theme.
 - There is no accent colour. Emphasis comes from size, the sticker treatment, or motion.
 
 ## Type
@@ -39,9 +39,18 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 
 ## Stickers and the route
 
-- Two stickers exist: the **plane** (the cursor while flying) and the **star pin** (origin and destination). Draw each with a `line-sticker` border in `sticker`, then the face, then a `sticker-ink` outline at `line-ink`, with a `sticker-shadow` drop shadow.
+- Two stickers exist: the **plane** (the cursor while flying) and the **star pin** (origin and destination). Draw each as its face with a `sticker-ink` outline at `line-ink`, and no cut border. Set it off the page with the cast shadow below.
+- **Cast shadow.** A sticker casts its shadow in `sticker-shadow`, down and to the right along the light. How far off and how soft it falls depends on altitude, from 0 (on the page) to 1 (high): about `1.5px 2px`, blurred 1px, at 0, out to `10.5px 14px`, blurred 3.5px, at 1. Star pins sit at 0, the plane sticker at 0.5 and cursors at 0.5. On a textured globe, lower the altitude over high terrain so the shadow closes in on mountain tops.
 - While flying, the plane casts a soft shadow offset down and to the right. On landing, the shadow slides in under the plane and the plane shrinks to about 70%: a touchdown.
 - Draw a route as a great-circle arc that rises off the surface, dashed in `ink` at `line-route` with `dash-route`. Under it, draw the surface path dotted in `rule` with `dash-ground`. Hide any part that passes behind the globe.
+
+## Cursors and members
+
+- Each trip member gets a colour of sticker paper, `member-1` to `member-6`, handed out in that order (`memberColor(slot)`; a seventh member starts again at `member-1`). These are the only colours that tell people apart. Never use them for anything but a member's cursor and name label.
+- A member's cursor is a sticker in their colour, with the tip as the hotspot: `arrow` (plain pointer), `compass` (needle with a coloured north half) or `map` (the arrow folded like a road map). Use one shape for everyone in a room.
+- Beside the cursor sits their name on a label in the `tag` style, `sticker-ink` on their colour, tilted −1.2°. Cursor and label cast one shadow together (`altitude`, default 0.5). Jade, cornflower and orchid have the same lightness, so the name, not the hue, is what tells members apart.
+- Other members' cursors are DOM stickers (`<Cursor>`). To turn the viewer's own pointer into one, use `cursorUrl(shape, colour, theme)` as the CSS `cursor`.
+- Remote cursors ease between updates over 90ms. Under reduced motion they jump.
 
 ## Motion
 
@@ -64,7 +73,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - **Tokens:** `src/design/tokens.json` is the source of truth. `pnpm tokens` writes `src/design/tokens.css` (CSS variables for Day under `:root` and Night under `html.dark`, plus Tailwind utilities). `pnpm build` fails if the CSS is stale.
 - **Tailwind:** colours as `bg-paper`, `bg-paper-raised`, `text-ink`, `text-ink-muted`, `border-ink`, `border-rule`. Type styles as `type-code`, `type-title`, `type-body`, `type-city`, `type-stamp`, `type-meta`, `type-tag`. Also `font-fell-sc`, `font-fell`, `font-typewriter`, `rounded-tag`, `rounded-ticket`, `shadow-ticket`, `shadow-tag`. Spacing tokens as `p-(--space-3)`.
 - **shadcn/ui:** its variables (`--background`, `--primary`, `--border`, ...) are mapped onto these tokens in `src/app/globals.css`, so `src/components/ui/*` render in ink on paper.
-- **Components:** `src/components/paper-atlas` (`Ticket`, `Tag`, `Sticker`, `Route`, `RoundButton`), styled by `paper-atlas.css` in the same folder.
+- **Components:** `src/components/paper-atlas` (`Ticket`, `Tag`, `Sticker`, `Route`, `RoundButton`, `Cursor`), styled by `paper-atlas.css` in the same folder.
 - **Globe:** `src/components/trip-globe` (`<TripGlobe theme onTakeoff onLand onCancel />`). Its WebGL and canvas colours are read from `tokens.json`. The earth data texture is `public/textures/earth.png`.
 - **Fonts:** self-hosted with `next/font` in `src/app/fonts.ts`, not the Google Fonts link above.
 - **Gallery:** `/design` renders every token and component in both themes.

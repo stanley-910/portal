@@ -1,0 +1,98 @@
+/* Paper Atlas tokens, generated from tokens.json by build.mjs. Day is the default; Night applies under [data-theme="dark"] or .dark. */
+:root {
+  --paper: #f0e8d5;
+  --paper-raised: #fbf6ea;
+  --ink: #283020;
+  --ink-muted: #555c4a;
+  --ink-hover: #3b4630;
+  --on-ink: #fbf6ea;
+  --control-hover: #ece2cb;
+  --control-border: #7d7966;
+  --line: #d6cbb2;
+  --rule: rgba(40, 48, 32, 0.3);
+  --sea: #8099d4;
+  --sea-deep: #4f69b0;
+  --sage: #8fad73;
+  --moss: #4a6e47;
+  --sticker-fill: #f2e7cb;
+  --sticker-ink: #283020;
+  --star-light: #f6f0de;
+  --star-edge: #c9bf9f;
+  --roundel: #7f96cc;
+  --member-1: #ec8a6c;
+  --member-2: #9cb2ea;
+  --member-3: #edc157;
+  --member-4: #7cc0a2;
+  --member-5: #cfa3dc;
+  --member-6: #f2a7b8;
+  --sticker-shadow: rgba(40, 48, 32, 0.28);
+  --focus: var(--ink);
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-gap: 10px;
+  --space-control: 16px;
+  --space-3: 18px;
+  --space-4: 20px;
+  --space-5: 26px;
+  --space-6: 32px;
+  --radius-tag: 4px;
+  --radius-ticket: 8px;
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --radius-round: 50%;
+  --shadow-ticket: 4px 5px 0 rgba(40, 48, 32, 0.18);
+  --shadow-tag: 2px 2px 0 rgba(40, 48, 32, 0.18);
+  --shadow-control: 0 1px 2px rgba(40, 48, 32, 0.12);
+  --shadow-float: 0 1px 2px rgba(40, 48, 32, 0.08), 0 10px 28px rgba(40, 48, 32, 0.14);
+  --line-hair: 1.2px;
+  --line-control: 1px;
+  --line-ink: 1.5px;
+  --line-route: 2px;
+  --dash-route: 7 6;
+  --dash-ground: 0.1 6;
+  --halftone-pitch: 4.5px;
+  --screen-sea: 15deg;
+  --screen-land: 45deg;
+  --screen-moss: 75deg;
+  --misregister: 1.2px -0.8px;
+  --graticule-step: 30deg;
+  --font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-fell-sc: "IM Fell English SC", Georgia, serif;
+  --font-fell: "IM Fell English", Georgia, serif;
+  --font-typewriter: "Courier Prime", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+[data-theme="dark"], .dark {
+  --paper: #16191f;
+  --paper-raised: #20242c;
+  --ink: #e7dcc2;
+  --ink-muted: #a49e8b;
+  --ink-hover: #f4ecd8;
+  --on-ink: #16191f;
+  --control-hover: #2a2f38;
+  --control-border: #7a7e88;
+  --line: #363b45;
+  --rule: rgba(231, 220, 194, 0.25);
+  --sea: #5c73bd;
+  --sea-deep: #94abeb;
+  --sage: #739463;
+  --moss: #b8cc94;
+  --sticker-shadow: rgba(0, 0, 0, 0.5);
+  --shadow-ticket: 4px 5px 0 rgba(0, 0, 0, 0.45);
+  --shadow-tag: 2px 2px 0 rgba(0, 0, 0, 0.45);
+  --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+.type-title { font-family: var(--font-sans); font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em; }
+.type-heading { font-family: var(--font-sans); font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.005em; }
+.type-body { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+.type-label { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+.type-button { font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 600; }
+.type-caption { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.type-code { font-family: var(--font-fell-sc); font-size: 42px; line-height: 1; font-weight: 400; }
+.type-destination { font-family: var(--font-fell-sc); font-size: 32px; line-height: 36px; font-weight: 400; }
+.type-city { font-family: var(--font-fell); font-size: 15px; line-height: 20px; font-weight: 400; font-style: italic; }
+.type-stamp { font-family: var(--font-typewriter); font-size: 14px; line-height: 18px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.type-meta { font-family: var(--font-typewriter); font-size: 13px; line-height: 18px; font-weight: 400; }
+.type-tag { font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; }

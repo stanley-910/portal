@@ -35,3 +35,9 @@ Adapter is generic so buses `B04` only adds `bus-routes.json`.
 
 ## Notes
 
+- 2026-10-02: Implemented generic `12go` provider, nearest-stop matching within 30 km,
+  timezone-aware timetable offers, reverse-direction matching, and static JSON imports.
+- 2026-10-02: Added ten ferry route rows covering Thailand, Hong Kong–Macau, Bali/Nusa
+  Penida, and Bali–Gili, each with an operator/public timetable source.
+- 2026-10-02: Focused verification passes: `pnpm lint`, `pnpm exec tsc --noEmit`,
+  `pnpm test -- 12go` (8 passed).

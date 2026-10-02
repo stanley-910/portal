@@ -1,0 +1,152 @@
+[
+  {
+    "code": "HKG",
+    "name": "Hong Kong",
+    "govukSlug": "hong-kong",
+    "links": [
+      {
+        "label": "Hong Kong Immigration Department",
+        "url": "https://www.immd.gov.hk/eng/services/visas/visit-transit/visit-visa-entry-permit.html",
+        "role": "info"
+      }
+    ]
+  },
+  {
+    "code": "MAC",
+    "name": "Macao",
+    "govukSlug": "macao",
+    "links": [
+      {
+        "label": "Macao Public Security Police",
+        "url": "https://www.fsm.gov.mo/psp/eng/",
+        "role": "info"
+      }
+    ]
+  },
+  {
+    "code": "CHN",
+    "name": "Mainland China",
+    "govukSlug": "china",
+    "links": [
+      {
+        "label": "National Immigration Administration",
+        "url": "https://en.nia.gov.cn/",
+        "role": "info"
+      },
+      {
+        "label": "China online visa application",
+        "url": "https://consular.mfa.gov.cn/VISA/",
+        "role": "apply",
+        "for": [
+          "visa_required",
+          "e_visa"
+        ]
+      }
+    ]
+  },
+  {
+    "code": "KOR",
+    "name": "South Korea",
+    "govukSlug": "south-korea",
+    "links": [
+      {
+        "label": "Korea Immigration Service",
+        "url": "https://www.immigration.go.kr/",
+        "role": "info"
+      },
+      {
+        "label": "K-ETA",
+        "url": "https://www.k-eta.go.kr/",
+        "role": "apply",
+        "for": [
+          "eta"
+        ]
+      },
+      {
+        "label": "Korea Visa Portal",
+        "url": "https://www.visa.go.kr/",
+        "role": "apply",
+        "for": [
+          "e_visa",
+          "visa_required"
+        ]
+      }
+    ]
+  },
+  {
+    "code": "JPN",
+    "name": "Japan",
+    "govukSlug": "japan",
+    "links": [
+      {
+        "label": "Ministry of Foreign Affairs of Japan",
+        "url": "https://www.mofa.go.jp/j_info/visit/visa/index.html",
+        "role": "info"
+      },
+      {
+        "label": "Japan eVISA",
+        "url": "https://www.evisa.mofa.go.jp/",
+        "role": "apply",
+        "for": [
+          "e_visa",
+          "visa_required"
+        ]
+      }
+    ]
+  },
+  {
+    "code": "TWN",
+    "name": "Taiwan",
+    "govukSlug": "taiwan",
+    "links": [
+      {
+        "label": "Bureau of Consular Affairs",
+        "url": "https://www.boca.gov.tw/",
+        "role": "info"
+      },
+      {
+        "label": "National Immigration Agency",
+        "url": "https://www.immigration.gov.tw/",
+        "role": "apply",
+        "for": [
+          "visa_on_arrival",
+          "entry_permit",
+          "visa_required"
+        ]
+      }
+    ]
+  },
+  {
+    "code": "SGP",
+    "name": "Singapore",
+    "govukSlug": "singapore",
+    "links": [
+      {
+        "label": "Immigration & Checkpoints Authority",
+        "url": "https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa_requirements",
+        "role": "info"
+      }
+    ]
+  },
+  {
+    "code": "THA",
+    "name": "Thailand",
+    "govukSlug": "thailand",
+    "links": [
+      {
+        "label": "Ministry of Foreign Affairs of Thailand",
+        "url": "https://www.mfa.go.th/en/page/visa-exemption",
+        "role": "info"
+      },
+      {
+        "label": "Thai e-Visa",
+        "url": "https://www.thaievisa.go.th/",
+        "role": "apply",
+        "for": [
+          "e_visa",
+          "visa_required"
+        ]
+      }
+    ]
+  }
+]

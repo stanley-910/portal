@@ -13,6 +13,10 @@ const schema = z.object({
   TRAVELPAYOUTS_TOKEN: optional,
   TRAVELPAYOUTS_MARKER: optional,
   TRAVELPAYOUTS_TRS: optional,
+  TRAVELPAYOUTS_MARKET: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().trim().default("us"),
+  ),
   // 12go.md, china-12306.md
   TWELVEGO_AFFILIATE_ID: optional,
   // taiwan-tdx.md

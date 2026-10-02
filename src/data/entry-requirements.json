@@ -1,0 +1,811 @@
+{
+  "version": 1,
+  "dataset": {
+    "name": "Passport Index dataset (visualpharm fork)",
+    "repo": "https://github.com/visualpharm/visa-free-dataset",
+    "commit": "1ed37004913093900eba15eb7845cbd8067d93df",
+    "snapshotDate": "2026-06-14",
+    "licence": "MIT (repository). Underlying data from passportindex.org; attribute, and ask before commercial use."
+  },
+  "destinations": {
+    "HKG": {
+      "code": "HKG",
+      "name": "Hong Kong",
+      "govukSlug": "hong-kong",
+      "links": [
+        {
+          "label": "Hong Kong Immigration Department",
+          "url": "https://www.immd.gov.hk/eng/services/visas/visit-transit/visit-visa-entry-permit.html",
+          "role": "info"
+        }
+      ]
+    },
+    "MAC": {
+      "code": "MAC",
+      "name": "Macao",
+      "govukSlug": "macao",
+      "links": [
+        {
+          "label": "Macao Public Security Police",
+          "url": "https://www.fsm.gov.mo/psp/eng/",
+          "role": "info"
+        }
+      ]
+    },
+    "CHN": {
+      "code": "CHN",
+      "name": "Mainland China",
+      "govukSlug": "china",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/",
+          "role": "info"
+        },
+        {
+          "label": "China online visa application",
+          "url": "https://consular.mfa.gov.cn/VISA/",
+          "role": "apply",
+          "for": [
+            "visa_required",
+            "e_visa"
+          ]
+        }
+      ]
+    },
+    "KOR": {
+      "code": "KOR",
+      "name": "South Korea",
+      "govukSlug": "south-korea",
+      "links": [
+        {
+          "label": "Korea Immigration Service",
+          "url": "https://www.immigration.go.kr/",
+          "role": "info"
+        },
+        {
+          "label": "K-ETA",
+          "url": "https://www.k-eta.go.kr/",
+          "role": "apply",
+          "for": [
+            "eta"
+          ]
+        },
+        {
+          "label": "Korea Visa Portal",
+          "url": "https://www.visa.go.kr/",
+          "role": "apply",
+          "for": [
+            "e_visa",
+            "visa_required"
+          ]
+        }
+      ]
+    },
+    "JPN": {
+      "code": "JPN",
+      "name": "Japan",
+      "govukSlug": "japan",
+      "links": [
+        {
+          "label": "Ministry of Foreign Affairs of Japan",
+          "url": "https://www.mofa.go.jp/j_info/visit/visa/index.html",
+          "role": "info"
+        },
+        {
+          "label": "Japan eVISA",
+          "url": "https://www.evisa.mofa.go.jp/",
+          "role": "apply",
+          "for": [
+            "e_visa",
+            "visa_required"
+          ]
+        }
+      ]
+    },
+    "TWN": {
+      "code": "TWN",
+      "name": "Taiwan",
+      "govukSlug": "taiwan",
+      "links": [
+        {
+          "label": "Bureau of Consular Affairs",
+          "url": "https://www.boca.gov.tw/",
+          "role": "info"
+        },
+        {
+          "label": "National Immigration Agency",
+          "url": "https://www.immigration.gov.tw/",
+          "role": "apply",
+          "for": [
+            "visa_on_arrival",
+            "entry_permit",
+            "visa_required"
+          ]
+        }
+      ]
+    },
+    "SGP": {
+      "code": "SGP",
+      "name": "Singapore",
+      "govukSlug": "singapore",
+      "links": [
+        {
+          "label": "Immigration & Checkpoints Authority",
+          "url": "https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa_requirements",
+          "role": "info"
+        }
+      ]
+    },
+    "THA": {
+      "code": "THA",
+      "name": "Thailand",
+      "govukSlug": "thailand",
+      "links": [
+        {
+          "label": "Ministry of Foreign Affairs of Thailand",
+          "url": "https://www.mfa.go.th/en/page/visa-exemption",
+          "role": "info"
+        },
+        {
+          "label": "Thai e-Visa",
+          "url": "https://www.thaievisa.go.th/",
+          "role": "apply",
+          "for": [
+            "e_visa",
+            "visa_required"
+          ]
+        }
+      ]
+    }
+  },
+  "rules": [
+    {
+      "passport": "CHN",
+      "destination": "HKG",
+      "context": "entry",
+      "kind": "entry_permit",
+      "allowedDays": 7,
+      "conditions": [
+        "Exit-entry Permit for Travelling to and from Hong Kong and Macao, with an endorsement",
+        "Individual visit endorsement allows up to 7 days"
+      ],
+      "links": [
+        {
+          "label": "Hong Kong Immigration Department",
+          "url": "https://www.immd.gov.hk/eng/services/visas/overseas-chinese-entry-arrangement.html",
+          "role": "source"
+        },
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/",
+          "role": "apply"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "CHN",
+      "destination": "JPN",
+      "context": "entry",
+      "kind": "e_visa",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
+      "destination": "KOR",
+      "context": "entry",
+      "kind": "e_visa",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_required",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_required",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "CHN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "until": "2026-12-31",
+      "conditions": [
+        "Business, tourism, visits or transit only",
+        "6 months passport validity"
+      ],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/china/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02",
+      "sourceUpdatedAt": "2026-08-27"
+    },
+    {
+      "passport": "GBR",
+      "destination": "HKG",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 180,
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/hong-kong/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2026-04-01",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "JPN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/japan/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2026-08-28",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "KOR",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/south-korea/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2026-05-14",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 180,
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/macao/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2025-12-11",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/singapore/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2026-03-19",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/thailand/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2026-09-28",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/taiwan/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "sourceUpdatedAt": "2026-08-28",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "CHN",
+      "context": "entry",
+      "kind": "entry_permit",
+      "conditions": [
+        "Mainland Travel Permit (Home Return Permit), not the HKSAR passport"
+      ],
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c156118/content.html",
+          "role": "source"
+        },
+        {
+          "label": "China Travel Service (Hong Kong)",
+          "url": "https://www.ctshk.com/",
+          "role": "apply"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "HKG",
+      "destination": "JPN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "KOR",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_free",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_on_arrival",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
+      "destination": "CHN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "until": "2026-12-31",
+      "conditions": [
+        "Business, tourism, visits, exchange or transit only"
+      ],
+      "links": [
+        {
+          "label": "Embassy of China in Korea",
+          "url": "https://kr.china-embassy.gov.cn/lsfw/hzlxzyw/zgqz/202511/t20251104_11746485.htm",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "KOR",
+      "destination": "HKG",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
+      "destination": "JPN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "CHN",
+      "context": "entry",
+      "kind": "visa_required",
+      "conditions": [
+        "6 months passport validity",
+        "2 blank pages"
+      ],
+      "note": "Not on China's unilateral visa-free list. The dataset's e-visa entry is wrong.",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+          "role": "source"
+        },
+        {
+          "label": "US State Department",
+          "url": "https://travel.state.gov/content/travel/en/international-travel/International-Travel-Country-Information-Pages/China.html",
+          "role": "info"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "USA",
+      "destination": "HKG",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "JPN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "KOR",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "CHN",
+      "context": "transit",
+      "kind": "transit_exempt",
+      "allowedDays": 10,
+      "conditions": [
+        "Onward ticket to a third country or region within 240 hours",
+        "Ordinary passport",
+        "Enter and leave through an eligible port, including HK West Kowloon Station",
+        "Stay inside the permitted area"
+      ],
+      "ports": [
+        "PEK",
+        "PKX",
+        "PVG",
+        "SHA",
+        "CAN",
+        "SZX",
+        "CTU",
+        "TFU"
+      ],
+      "note": "240-hour visa-free transit. 57 nationalities, 65 ports.",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "KOR",
+      "destination": "CHN",
+      "context": "transit",
+      "kind": "transit_exempt",
+      "allowedDays": 10,
+      "conditions": [
+        "Onward ticket to a third country or region within 240 hours",
+        "Ordinary passport",
+        "Enter and leave through an eligible port, including HK West Kowloon Station",
+        "Stay inside the permitted area"
+      ],
+      "ports": [
+        "PEK",
+        "PKX",
+        "PVG",
+        "SHA",
+        "CAN",
+        "SZX",
+        "CTU",
+        "TFU"
+      ],
+      "note": "240-hour visa-free transit. 57 nationalities, 65 ports.",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "USA",
+      "destination": "CHN",
+      "context": "transit",
+      "kind": "transit_exempt",
+      "allowedDays": 10,
+      "conditions": [
+        "Onward ticket to a third country or region within 240 hours",
+        "Ordinary passport",
+        "Enter and leave through an eligible port, including HK West Kowloon Station",
+        "Stay inside the permitted area"
+      ],
+      "ports": [
+        "PEK",
+        "PKX",
+        "PVG",
+        "SHA",
+        "CAN",
+        "SZX",
+        "CTU",
+        "TFU"
+      ],
+      "note": "240-hour visa-free transit. 57 nationalities, 65 ports.",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    }
+  ]
+}

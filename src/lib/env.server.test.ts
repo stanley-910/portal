@@ -3,7 +3,7 @@ import { parseEnv } from "./env.server";
 
 describe("parseEnv", () => {
   it("accepts an empty environment", () => {
-    expect(parseEnv({})).toEqual({});
+    expect(parseEnv({})).toEqual({ TRAVELPAYOUTS_MARKET: "us" });
   });
 
   it("treats empty strings as unset", () => {

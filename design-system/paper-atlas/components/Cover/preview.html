@@ -1,0 +1,56 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paper Atlas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--paper); color: var(--ink); overflow: hidden; }
+  .cover { position: relative; height: 288px; overflow: hidden; }
+  .art { position: absolute; top: 0; left: 480px; width: 480px; height: 288px; overflow: hidden; }
+  .art svg { display: block; width: 480px; height: 288px; }
+  .sea { fill: var(--sea); }
+  .sage { fill: var(--sage); }
+  .moss { fill: var(--moss); }
+  .deep { fill: var(--ink); }
+  .cut { fill: var(--paper); }
+  .blk { rx: var(--radius-ticket); }
+  .chip { rx: var(--radius-tag); }
+  .words { position: absolute; left: var(--space-6); bottom: var(--space-6); max-width: 440px; }
+  .name { margin: 0; font-family: var(--font-fell-sc); font-weight: 400; font-size: 104px; line-height: 0.92; color: var(--ink); }
+  .tag { margin: var(--space-2) 0 0 4px; font-family: var(--font-fell); font-style: italic; font-size: 14px; line-height: 20px; color: var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      sea 168x248 bled off the top (the globe's ocean, largest) · sage 136x160 (land) · ink 144x192 bleeding off the right edge (the ink everything is printed in) · moss 64x24 once (the second land pass) — about 30% of 960x288
+  arrangement one tall sea slab with satellites, bottoms on one line 56px above the edge, 16px gutters
+  pattern     halftone dots, from "Print the sea and land as halftone dots": paper-coloured dots cut into the sea, growing toward the shadow side (lower left), and a sparse lit corner on the ink block
+  scales      dot pitch space-3 (18px), dot radii 2 to 6, corners radius-ticket on blocks and radius-tag on the moss chip
+-->
+<rect class="sea blk" x="16" y="-16" width="168" height="248" rx="8"/>
+<rect class="moss chip" x="16" y="248" width="64" height="24" rx="4"/>
+<rect class="sage blk" x="200" y="72" width="136" height="160" rx="8"/>
+<rect class="deep blk" x="352" y="40" width="144" height="192" rx="8"/>
+<circle class="cut" cx="34" cy="142" r="2"/><circle class="cut" cx="52" cy="142" r="2"/><circle class="cut" cx="70" cy="142" r="2"/>
+<circle class="cut" cx="34" cy="160" r="3"/><circle class="cut" cx="52" cy="160" r="3"/><circle class="cut" cx="70" cy="160" r="3"/><circle class="cut" cx="88" cy="160" r="3"/>
+<circle class="cut" cx="34" cy="178" r="4"/><circle class="cut" cx="52" cy="178" r="4"/><circle class="cut" cx="70" cy="178" r="4"/><circle class="cut" cx="88" cy="178" r="4"/><circle class="cut" cx="106" cy="178" r="4"/>
+<circle class="cut" cx="34" cy="196" r="5"/><circle class="cut" cx="52" cy="196" r="5"/><circle class="cut" cx="70" cy="196" r="5"/><circle class="cut" cx="88" cy="196" r="5"/><circle class="cut" cx="106" cy="196" r="5"/><circle class="cut" cx="124" cy="196" r="5"/>
+<circle class="cut" cx="34" cy="214" r="6"/><circle class="cut" cx="52" cy="214" r="6"/><circle class="cut" cx="70" cy="214" r="6"/><circle class="cut" cx="88" cy="214" r="6"/><circle class="cut" cx="106" cy="214" r="6"/><circle class="cut" cx="124" cy="214" r="6"/><circle class="cut" cx="142" cy="214" r="6"/>
+<circle class="cut" cx="470" cy="58" r="5"/><circle class="cut" cx="452" cy="58" r="5"/><circle class="cut" cx="434" cy="58" r="5"/><circle class="cut" cx="416" cy="58" r="5"/>
+<circle class="cut" cx="470" cy="76" r="4"/><circle class="cut" cx="452" cy="76" r="4"/><circle class="cut" cx="434" cy="76" r="4"/>
+<circle class="cut" cx="470" cy="94" r="3"/><circle class="cut" cx="452" cy="94" r="3"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Paper<br>Atlas</h1>
+<p class="tag">Ink on paper, by day and by night.</p>
+</div>
+</div>
+</body>
+</html>

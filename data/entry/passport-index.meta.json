@@ -1,0 +1,7 @@
+{
+  "name": "Passport Index dataset (visualpharm fork)",
+  "repo": "https://github.com/visualpharm/visa-free-dataset",
+  "commit": "1ed37004913093900eba15eb7845cbd8067d93df",
+  "snapshotDate": "2026-06-14",
+  "licence": "MIT (repository). Underlying data from passportindex.org; attribute, and ask before commercial use."
+}

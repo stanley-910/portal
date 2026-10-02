@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "tokens": "node scripts/tokens.mts",
+    "entry": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts",
     "dev": "node scripts/tokens.mts && next dev",
-    "build": "node scripts/tokens.mts --check && next build",
+    "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -15,6 +16,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@liveblocks/client": "3.24.2",
+    "@liveblocks/node": "3.24.2",
+    "@liveblocks/react": "3.24.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "d3-geo": "^3.1.1",

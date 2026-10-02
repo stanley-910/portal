@@ -11,12 +11,17 @@
   --sea-deep: #4f69b0;
   --sage: #8fad73;
   --moss: #4a6e47;
-  --sticker: #fffcf2;
   --sticker-fill: #f2e7cb;
   --sticker-ink: #283020;
   --star-light: #f6f0de;
   --star-edge: #c9bf9f;
   --roundel: #7f96cc;
+  --member-1: #ec8a6c;
+  --member-2: #9cb2ea;
+  --member-3: #edc157;
+  --member-4: #7cc0a2;
+  --member-5: #cfa3dc;
+  --member-6: #f2a7b8;
   --sticker-shadow: rgba(40, 48, 32, 0.28);
   --focus: var(--ink);
   --space-1: 4px;
@@ -33,7 +38,6 @@
   --line-hair: 1.2px;
   --line-ink: 1.5px;
   --line-route: 2px;
-  --line-sticker: 6.5px;
   --dash-route: 7 6;
   --dash-ground: 0.1 6;
   --halftone-pitch: 4.5px;
@@ -77,12 +81,17 @@
   --color-sea-deep: var(--sea-deep);
   --color-sage: var(--sage);
   --color-moss: var(--moss);
-  --color-sticker: var(--sticker);
   --color-sticker-fill: var(--sticker-fill);
   --color-sticker-ink: var(--sticker-ink);
   --color-star-light: var(--star-light);
   --color-star-edge: var(--star-edge);
   --color-roundel: var(--roundel);
+  --color-member-1: var(--member-1);
+  --color-member-2: var(--member-2);
+  --color-member-3: var(--member-3);
+  --color-member-4: var(--member-4);
+  --color-member-5: var(--member-5);
+  --color-member-6: var(--member-6);
   --color-sticker-shadow: var(--sticker-shadow);
   --color-focus: var(--focus);
 }

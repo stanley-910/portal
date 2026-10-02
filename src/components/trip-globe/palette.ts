@@ -46,9 +46,9 @@ export interface Palette {
   muted: string;
   tagShadow: string;
   stickerShadow: string;
-  sticker: { border: string; fill: string; ink: string; starLight: string; starEdge: string };
+  sticker: { fill: string; ink: string; starLight: string; starEdge: string };
   gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
-  stickerGL: { fill: RGB; ink: RGB; roundel: RGB; border: RGB };
+  stickerGL: { fill: RGB; ink: RGB; roundel: RGB };
 }
 
 // The cut-out shadow tint under the globe. Not a token: it only exists inside the shader.
@@ -66,7 +66,6 @@ function build(theme: ThemeId): Palette {
     tagShadow: shadowColor("shadow-tag", theme),
     stickerShadow: token("sticker-shadow", theme),
     sticker: {
-      border: token("sticker", theme),
       fill: token("sticker-fill", theme),
       ink: token("sticker-ink", theme),
       starLight: token("star-light", theme),
@@ -85,7 +84,6 @@ function build(theme: ThemeId): Palette {
       fill: rgb("sticker-fill", theme),
       ink: rgb("sticker-ink", theme),
       roundel: rgb("roundel", theme),
-      border: rgb("sticker", theme),
     },
   };
 }
