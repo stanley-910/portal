@@ -1,0 +1,800 @@
+{
+  "checked": "2026-10-02",
+  "stations": {
+    "beijing-south": {
+      "city": "beijing",
+      "name": "Beijing South",
+      "nameLocal": "北京南",
+      "country": "CN",
+      "lat": 39.8658,
+      "lng": 116.3764,
+      "telecode": "VNP",
+      "source": "https://en.wikipedia.org/wiki/Beijing_South_railway_station"
+    },
+    "beijing-west": {
+      "city": "beijing",
+      "name": "Beijing West",
+      "nameLocal": "北京西",
+      "country": "CN",
+      "lat": 39.8949,
+      "lng": 116.3221,
+      "telecode": "BXP",
+      "source": "https://en.wikipedia.org/wiki/Beijing_West_railway_station"
+    },
+    "shanghai-hongqiao": {
+      "city": "shanghai",
+      "name": "Shanghai Hongqiao",
+      "nameLocal": "上海虹桥",
+      "country": "CN",
+      "lat": 31.1963,
+      "lng": 121.3161,
+      "telecode": "AOH",
+      "source": "https://en.wikipedia.org/wiki/Shanghai_Hongqiao_railway_station"
+    },
+    "hangzhou-east": {
+      "city": "hangzhou",
+      "name": "Hangzhou East",
+      "nameLocal": "杭州东",
+      "country": "CN",
+      "lat": 30.2935,
+      "lng": 120.2084,
+      "telecode": "HGH",
+      "source": "https://en.wikipedia.org/wiki/Hangzhou_East_railway_station"
+    },
+    "guangzhou-south": {
+      "city": "guangzhou",
+      "name": "Guangzhou South",
+      "nameLocal": "广州南",
+      "country": "CN",
+      "lat": 22.9875,
+      "lng": 113.2686,
+      "telecode": "IZQ",
+      "source": "https://en.wikipedia.org/wiki/Guangzhou_South_railway_station"
+    },
+    "shenzhen-north": {
+      "city": "shenzhen",
+      "name": "Shenzhen North",
+      "nameLocal": "深圳北",
+      "country": "CN",
+      "lat": 22.6119,
+      "lng": 114.0239,
+      "telecode": "IOQ",
+      "source": "https://en.wikipedia.org/wiki/Shenzhen_North_railway_station"
+    },
+    "shenzhen-futian": {
+      "city": "shenzhen",
+      "name": "Futian",
+      "nameLocal": "福田",
+      "country": "CN",
+      "lat": 22.5383,
+      "lng": 114.0567,
+      "telecode": "NZQ",
+      "source": "https://en.wikipedia.org/wiki/Futian_railway_station"
+    },
+    "hong-kong-west-kowloon": {
+      "city": "hong-kong",
+      "name": "Hong Kong West Kowloon",
+      "nameLocal": "香港西九龙",
+      "country": "HK",
+      "lat": 22.3036,
+      "lng": 114.165,
+      "source": "https://en.wikipedia.org/wiki/Hong_Kong_West_Kowloon_station"
+    },
+    "xian-north": {
+      "city": "xian",
+      "name": "Xi'an North",
+      "nameLocal": "西安北",
+      "country": "CN",
+      "lat": 34.3776,
+      "lng": 108.9341,
+      "telecode": "EAY",
+      "source": "https://en.wikipedia.org/wiki/Xi%27an_North_railway_station"
+    }
+  },
+  "trains": [
+    {
+      "from": "beijing-south",
+      "to": "shanghai-hongqiao",
+      "number": "G633",
+      "departures": [
+        "08:37"
+      ],
+      "durationMin": 384,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "beijing-south",
+      "to": "shanghai-hongqiao",
+      "number": "G7",
+      "departures": [
+        "09:00"
+      ],
+      "durationMin": 277,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "beijing-south",
+      "to": "shanghai-hongqiao",
+      "number": "G9",
+      "departures": [
+        "10:00"
+      ],
+      "durationMin": 275,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "beijing-south",
+      "to": "shanghai-hongqiao",
+      "number": "G23",
+      "departures": [
+        "11:00"
+      ],
+      "durationMin": 277,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "beijing-south",
+      "to": "shanghai-hongqiao",
+      "number": "G31",
+      "departures": [
+        "18:04"
+      ],
+      "durationMin": 294,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "beijing-south",
+      "number": "G548",
+      "departures": [
+        "06:32"
+      ],
+      "durationMin": 367,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "beijing-south",
+      "number": "G8",
+      "departures": [
+        "08:00"
+      ],
+      "durationMin": 266,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "beijing-south",
+      "number": "G10",
+      "departures": [
+        "09:00"
+      ],
+      "durationMin": 266,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "beijing-south",
+      "number": "G12",
+      "departures": [
+        "10:00"
+      ],
+      "durationMin": 264,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "beijing-south",
+      "number": "G14",
+      "departures": [
+        "11:00"
+      ],
+      "durationMin": 271,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "beijing-south",
+      "number": "G22",
+      "departures": [
+        "15:00"
+      ],
+      "durationMin": 273,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/beijing-shanghai-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G7541",
+      "departures": [
+        "05:52"
+      ],
+      "durationMin": 59,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G7505",
+      "departures": [
+        "08:49"
+      ],
+      "durationMin": 69,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G7599",
+      "departures": [
+        "10:54"
+      ],
+      "durationMin": 66,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G7517",
+      "departures": [
+        "14:55"
+      ],
+      "durationMin": 49,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G7521",
+      "departures": [
+        "16:40"
+      ],
+      "durationMin": 69,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G1455",
+      "departures": [
+        "17:43"
+      ],
+      "durationMin": 59,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hangzhou-east",
+      "number": "G7447",
+      "departures": [
+        "22:50"
+      ],
+      "durationMin": 45,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/shanghai-to-hangzhou/"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G7552",
+      "departures": [
+        "07:16"
+      ],
+      "durationMin": 69,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/hangzhou-shanghai.htm"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G7382",
+      "departures": [
+        "08:53"
+      ],
+      "durationMin": 60,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/hangzhou-shanghai.htm"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G1228",
+      "departures": [
+        "10:02"
+      ],
+      "durationMin": 66,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/hangzhou-to-shanghai/"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G7540",
+      "departures": [
+        "12:04"
+      ],
+      "durationMin": 52,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/hangzhou-to-shanghai/"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G246",
+      "departures": [
+        "14:18"
+      ],
+      "durationMin": 45,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/hangzhou-to-shanghai/"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G7432",
+      "departures": [
+        "18:07"
+      ],
+      "durationMin": 66,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinaairlinetravel.com/trains/hangzhou-to-shanghai/"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G7526",
+      "departures": [
+        "22:51"
+      ],
+      "durationMin": 45,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/hangzhou-to-shanghai/"
+    },
+    {
+      "from": "hangzhou-east",
+      "to": "shanghai-hongqiao",
+      "number": "G4918",
+      "departures": [
+        "23:22"
+      ],
+      "durationMin": 45,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/hangzhou-to-shanghai/"
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shenzhen-north",
+      "number": "G3017",
+      "departures": [
+        "06:18"
+      ],
+      "durationMin": 29,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/12146-guangzhou/23301-shenzhen/"
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shenzhen-north",
+      "number": "G2925",
+      "departures": [
+        "22:49"
+      ],
+      "durationMin": 36,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/guangzhou-to-shenzhen/"
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shenzhen-north",
+      "number": "G6213",
+      "departures": [
+        "23:19"
+      ],
+      "durationMin": 29,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/guangzhou-to-shenzhen/"
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shenzhen-north",
+      "number": "G5219",
+      "departures": [
+        "23:48"
+      ],
+      "durationMin": 29,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/guangzhou-to-shenzhen/"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "guangzhou-south",
+      "number": "G1102",
+      "departures": [
+        "06:08"
+      ],
+      "durationMin": 29,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/23301-shenzhen/12146-guangzhou/"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "guangzhou-south",
+      "number": "G6202",
+      "departures": [
+        "06:17"
+      ],
+      "durationMin": 41,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/23301-shenzhen/12146-guangzhou/"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "guangzhou-south",
+      "number": "G934",
+      "departures": [
+        "07:08"
+      ],
+      "durationMin": 36,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/shenzhen-guangzhou.htm"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "guangzhou-south",
+      "number": "G3018",
+      "departures": [
+        "22:49"
+      ],
+      "durationMin": 29,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/"
+    },
+    {
+      "from": "shenzhen-futian",
+      "to": "guangzhou-south",
+      "number": "G6504",
+      "departures": [
+        "22:53"
+      ],
+      "durationMin": 43,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "guangzhou-south",
+      "number": "G9708",
+      "departures": [
+        "23:30"
+      ],
+      "durationMin": 29,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-north",
+      "number": "G5624",
+      "departures": [
+        "07:01"
+      ],
+      "durationMin": 18,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-futian",
+      "number": "G5820",
+      "departures": [
+        "07:07"
+      ],
+      "durationMin": 14,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-north",
+      "number": "G5638",
+      "departures": [
+        "08:56"
+      ],
+      "durationMin": 20,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-north",
+      "number": "G5640",
+      "departures": [
+        "10:13"
+      ],
+      "durationMin": 18,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-north",
+      "number": "G5632",
+      "departures": [
+        "12:13"
+      ],
+      "durationMin": 18,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-futian",
+      "number": "G5806",
+      "departures": [
+        "15:27"
+      ],
+      "durationMin": 14,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-north",
+      "number": "G5634",
+      "departures": [
+        "15:46"
+      ],
+      "durationMin": 18,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-north",
+      "number": "G5670",
+      "departures": [
+        "20:52"
+      ],
+      "durationMin": 20,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shenzhen-futian",
+      "number": "G5608",
+      "departures": [
+        "23:00"
+      ],
+      "durationMin": 14,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5669",
+      "departures": [
+        "06:35"
+      ],
+      "durationMin": 25,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-futian",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5801",
+      "departures": [
+        "06:52"
+      ],
+      "durationMin": 14,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5609",
+      "departures": [
+        "07:55"
+      ],
+      "durationMin": 24,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5629",
+      "departures": [
+        "10:10"
+      ],
+      "durationMin": 18,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5643",
+      "departures": [
+        "12:09"
+      ],
+      "durationMin": 18,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-futian",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5807",
+      "departures": [
+        "13:54"
+      ],
+      "durationMin": 14,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5623",
+      "departures": [
+        "15:44"
+      ],
+      "durationMin": 25,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G5653",
+      "departures": [
+        "19:55"
+      ],
+      "durationMin": 24,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "hong-kong-west-kowloon",
+      "number": "G6563",
+      "departures": [
+        "22:03"
+      ],
+      "durationMin": 24,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-futian",
+      "to": "hong-kong-west-kowloon",
+      "number": "G6587",
+      "departures": [
+        "22:19"
+      ],
+      "durationMin": 14,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+    },
+    {
+      "from": "beijing-west",
+      "to": "xian-north",
+      "number": "G321",
+      "departures": [
+        "07:00"
+      ],
+      "durationMin": 260,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/57-beijing/60-xian/"
+    },
+    {
+      "from": "beijing-west",
+      "to": "xian-north",
+      "number": "G351",
+      "departures": [
+        "07:55"
+      ],
+      "durationMin": 250,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/57-beijing/60-xian/"
+    },
+    {
+      "from": "beijing-west",
+      "to": "xian-north",
+      "number": "G655",
+      "departures": [
+        "09:40"
+      ],
+      "durationMin": 347,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trainspread.com/china-trains/beijing-xian-trains"
+    },
+    {
+      "from": "beijing-west",
+      "to": "xian-north",
+      "number": "G59",
+      "departures": [
+        "19:00"
+      ],
+      "durationMin": 251,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.trainspread.com/china-trains/beijing-xian-trains"
+    },
+    {
+      "from": "xian-north",
+      "to": "beijing-west",
+      "number": "G652",
+      "departures": [
+        "07:07"
+      ],
+      "durationMin": 306,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/xian-beijing.htm"
+    },
+    {
+      "from": "xian-north",
+      "to": "beijing-west",
+      "number": "G366",
+      "departures": [
+        "09:10"
+      ],
+      "durationMin": 260,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/xian-beijing.htm"
+    },
+    {
+      "from": "xian-north",
+      "to": "beijing-west",
+      "number": "G354",
+      "departures": [
+        "12:04"
+      ],
+      "durationMin": 268,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/xian-beijing.htm"
+    },
+    {
+      "from": "xian-north",
+      "to": "beijing-west",
+      "number": "G362",
+      "departures": [
+        "16:10"
+      ],
+      "durationMin": 275,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/xian-beijing.htm"
+    },
+    {
+      "from": "xian-north",
+      "to": "beijing-west",
+      "number": "G324",
+      "departures": [
+        "18:22"
+      ],
+      "durationMin": 250,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/xian-beijing.htm"
+    }
+  ]
+}
