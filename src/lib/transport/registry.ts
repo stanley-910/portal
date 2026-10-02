@@ -4,6 +4,7 @@ import busonlineticket from "./providers/busonlineticket";
 import chinaRail from "./providers/china-rail";
 import gtfs from "./providers/gtfs";
 import koreaTago from "./providers/korea-tago";
+import srt from "./providers/srt";
 import tdx from "./providers/tdx";
 import travelpayouts from "./providers/travelpayouts";
 import twelveGo from "./providers/12go";
@@ -17,4 +18,5 @@ export const providers: readonly TransportProvider[] = [
   chinaRail,
   busonlineticket,
   gtfs,
+  srt,
 ];
