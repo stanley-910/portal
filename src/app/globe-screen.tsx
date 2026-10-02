@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 
 import { DEMO_PARTY, EntryPanel } from "@/components/entry";
+import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
 import { Ticket } from "@/components/paper-atlas";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import type { Offer } from "@/lib/transport/types";
@@ -87,14 +88,11 @@ export function GlobeScreen() {
           setSearching(false);
         }}
       />
-      <form action={createTrip} className="absolute top-(--space-4) left-(--space-4)">
-        <button
-          type="submit"
-          className="type-tag h-9 rounded-tag border-(length:--line-hair) border-ink bg-paper-raised px-(--space-3) shadow-tag"
-        >
-          Plan with friends
-        </button>
-      </form>
+      <NavBar globe={globe}>
+        <form action={createTrip}>
+          <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
+        </form>
+      </NavBar>
       {trip ? (
         <div
           key={`${trip.from.code}-${trip.to.code}-${trip.destination.lat}`}

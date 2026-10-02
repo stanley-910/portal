@@ -8,6 +8,8 @@ type Token = { name: string; value: Themed; usage?: string };
 type Family = { tokens: Token[] };
 type TypeStyle = {
   name: string;
+  /** Overrides the group's family, e.g. the italic `city` in the fell-sc group. */
+  family?: string;
   fontSize: string;
   lineHeight: string | number;
   fontWeight: number | string;
@@ -56,7 +58,7 @@ const typeUtilities = tokens.type.groups
   .flatMap((g) =>
     g.styles.map((s) => {
       const decls = [
-        `font-family: var(--font-${g.family});`,
+        `font-family: var(--font-${s.family ?? g.family});`,
         `font-size: ${s.fontSize};`,
         `line-height: ${length(s.lineHeight)};`,
         `font-weight: ${s.fontWeight};`,

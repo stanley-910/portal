@@ -18,6 +18,8 @@ export interface TripGlobeHandle {
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
+  /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
+  zoom(): number;
 }
 
 export interface TripGlobeProps {
@@ -142,6 +144,7 @@ export function TripGlobe({
         listeners.add(cb);
         return () => listeners.delete(cb);
       },
+      zoom: () => engineRef.current?.zoom() ?? 0,
     }),
     [],
   );
@@ -168,7 +171,7 @@ export function TripGlobe({
       <canvas ref={glRef} role="img" aria-label={label} className="absolute inset-0 block size-full" />
       <canvas ref={hudRef} aria-hidden className="pointer-events-none absolute inset-0 block size-full" />
       {mode === "flying" ? (
-        <div className="absolute top-6 right-6" onPointerDown={stop} onPointerUp={stop}>
+        <div className="absolute top-24 right-6" onPointerDown={stop} onPointerUp={stop}>
           <RoundButton label="Cancel trip" onClick={() => engineRef.current?.cancel()} />
         </div>
       ) : null}
