@@ -1,0 +1,4 @@
+agency_id,agency_name,agency_url,agency_timezone
+"TC","บริษัท ขนส่ง จำกัด;The Transport Co., Ltd.","https://transport.co.th/","Asia/Bangkok"
+"BMTA","ขสมก.;Bangkok Mass Transit Authority","https://bmta.co.th/","Asia/Bangkok"
+"SRT","การรถไฟแห่งประเทศไทย;State Railway of Thailand","https://railway.co.th/","Asia/Bangkok"

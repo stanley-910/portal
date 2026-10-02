@@ -23,3 +23,10 @@ Prefix `ADR-B`. Never edit past entries.
 **Decision:** seed of MY/SG/TH coach city pairs (own data) + `/booking/{from}-to-{to}-bus-tickets?refererid=` link.
 **Why not `all_route.js` reuse:** ToS for reuse `unverified`; use only to hand-check slugs.
 **Consequences:** no fares/times from BOT; `kind: "timetable"` with typical times from operator sources, per core ADR-C05.
+
+## ADR-B04 — 2026-10-02 — Namtang frequency windows are chained departure lists (end inclusive)
+
+**Context:** Observed 2026-10-02 (feed_version 20261001): most intercity trips use `headway_secs` = `end_time − start_time`, windows chained (`10:00→21:30 h=41400`, `21:30→22:00 h=1800`, `22:00→22:20 h=1200` = 10:00, 21:30, 22:00, 22:20). ADR-B02 covered only `headway_secs=0`.
+**Decision:** expand every window `start, start+h, … ≤ end` (end inclusive), de-duplicate starts per trip. `headway ≤ 0` or `end ≤ start` = single run. `tripStarts()` in `providers/gtfs/build.ts`.
+**Why not spec end-exclusive:** drops the last departure of every chain (22:20 above).
+**Consequences:** a spec-conformant feed with exact-multiple windows may gain one extra run at `end_time`; acceptable for intercity timetables, revisit if a feed with urban headways is added.

@@ -142,7 +142,8 @@ Intercity reality check (our target routes):
 | LTA expired `Link` | S3 403 (inferred, `unverified`) → re-call endpoint |
 
 ## Gotchas
-- **Thai namtang non-standard**: trips are templates — `stop_times` relative from `00:00:00`, real departure in `frequencies.txt` with `start_time==end_time`, `headway_secs=0` (spec says positive int). Expand: dep = `start_time` + offset; treat headway 0 as single departure. Names bilingual `"ไทย;English"` → split on `;`. `timepoint=0` (approximate).
+- **Thai namtang non-standard**: trips are templates — `stop_times` relative from `00:00:00`, real departure in `frequencies.txt` with `start_time==end_time`, `headway_secs=0` (spec says positive int). Expand: dep = `start_time` + offset; treat headway 0 as single departure. Observed 2026-10-02: most intercity trips instead chain windows with `headway_secs` = window length (`07:25→20:00 h=45300` = 07:25 + 20:00) → end inclusive, dedupe (ADR-B04). Counts: 555 freq rows h=0, 9517 h>0; 32 bus trips have no frequencies (absolute times). Max time 23:45 (no >24h in namtang; KTMB has). Names bilingual `"ไทย;English"` → split on `;`. `timepoint=0` (approximate).
+- Namtang `fare_attributes.txt` has real `price` + `currency_type` THB per `fare_rules` origin/destination zone (observed 2026-10-02) — skipped for now (buses Backlog).
 - Namtang `shapes.txt` 154 MB, fares 65 MB → skip those files when unzipping (stream only needed entries).
 - myBAS zips carry 38 MB fares-v2 files; same, skip.
 - KTMB calendar ends 20261015 → rebuild before demo if past; check `end_date` at build, fail loudly.
