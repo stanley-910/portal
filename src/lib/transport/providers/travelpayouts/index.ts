@@ -34,3 +34,5 @@ export const travelpayouts: TransportProvider = {
     }
   },
 };
+
+export default travelpayouts;

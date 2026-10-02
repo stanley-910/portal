@@ -39,14 +39,14 @@ export async function getPrices(query: SearchQuery, origin: string, destination:
     market: env.TRAVELPAYOUTS_MARKET,
     limit: "30",
   });
-  const response = await fetchJson<TravelpayoutsResponse>(
+  const response = (await fetchJson(
     `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params}`,
     {
       signal,
       headers: { "X-Access-Token": env.TRAVELPAYOUTS_TOKEN, "Accept-Encoding": "gzip, deflate" },
       next: { revalidate: 86400 },
     },
-  );
+  )) as TravelpayoutsResponse;
   if (!response.success) throw new Error("BAD_RESPONSE");
   return response.data ?? [];
 }

@@ -26,7 +26,7 @@ Where the implementation differs from the draft below, this section wins.
 - **No border, no rule.** Domestic legs and a member arriving in their own passport country return `rule: null`,
   shown as "Home".
 - **Territory coverage resolved:** the CSV has HKG, MAC and TWN as passports and destinations.
-- **Fits the transport search** (`.agents/ledgers/core`, code on `dev/ahmet`). Entry is not a `TransportProvider`
+- **Fits the transport search** (`docs/transport/decisions.md`, code in `src/lib/transport`). Entry is not a `TransportProvider`
   (per-passport, static, keyless), so it stays out of the `fanOut` registry. The planner joins `Offer`s with
   `entry.getLegEntry` per rider. Lookup accepts ISO-2 or ISO-3 (`iso.ts`), so `Place.country` (ISO-2) and
   `Place.iata` pass straight through. `/api/entry` uses the ADR-C06 flat params (`passport`, `fromIata`, `toIata`,

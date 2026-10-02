@@ -1,11 +1,12 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// dev/ahmet adds the same file (core ADR-C03) plus a `server-only` alias; on merge keep both include globs.
 export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // Real export throws outside the react-server condition; tests are server-side by definition.
+      "server-only": fileURLToPath(new URL("./node_modules/server-only/empty.js", import.meta.url)),
     },
   },
   test: {

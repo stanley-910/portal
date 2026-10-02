@@ -1,0 +1,59 @@
+{
+  "seoul-gyeongbu": {
+    "name": "Seoul Express Bus Terminal (Gyeongbu)",
+    "nameLocal": "서울경부",
+    "kobusCode": "010",
+    "lat": 37.50626,
+    "lng": 127.00812,
+    "source": "https://www.openstreetmap.org/node/10313078487"
+  },
+  "central-city": {
+    "name": "Central City Terminal (Seoul Express Bus Terminal, Honam)",
+    "nameLocal": "센트럴시티(서울)",
+    "kobusCode": "021",
+    "lat": 37.50411,
+    "lng": 127.00403,
+    "source": "https://www.openstreetmap.org/way/356127040"
+  },
+  "busan": {
+    "name": "Busan Central Bus Terminal (Nopo)",
+    "nameLocal": "부산",
+    "kobusCode": "700",
+    "lat": 35.28474,
+    "lng": 129.09546,
+    "matchKm": 20,
+    "source": "https://www.openstreetmap.org/node/1430562320"
+  },
+  "seobu-busan": {
+    "name": "Seobu Busan Terminal (Sasang)",
+    "nameLocal": "서부산(사상)",
+    "kobusCode": "703",
+    "lat": 35.16316,
+    "lng": 128.98302,
+    "source": "https://www.openstreetmap.org/way/471714279"
+  },
+  "dongdaegu": {
+    "name": "Dongdaegu Terminal",
+    "nameLocal": "동대구",
+    "kobusCode": "801",
+    "lat": 35.87795,
+    "lng": 128.62999,
+    "source": "https://www.openstreetmap.org/way/468581498"
+  },
+  "gwangju": {
+    "name": "Gwangju U-Square Terminal",
+    "nameLocal": "광주(유·스퀘어)",
+    "kobusCode": "500",
+    "lat": 35.15993,
+    "lng": 126.8794,
+    "source": "https://www.openstreetmap.org/node/13659130664"
+  },
+  "daejeon": {
+    "name": "Daejeon Complex Terminal",
+    "nameLocal": "대전복합",
+    "kobusCode": "300",
+    "lat": 36.35039,
+    "lng": 127.43669,
+    "source": "https://www.openstreetmap.org/way/74275070"
+  }
+}
