@@ -1,0 +1,104 @@
+[
+  {
+    "passports": [
+      "AUT", "BEL", "CZE", "DNK", "EST", "FIN", "FRA", "DEU", "GRC", "HUN", "ISL", "ITA", "LVA", "LTU", "LUX",
+      "MLT", "NLD", "POL", "PRT", "SVK", "SVN", "ESP", "SWE", "CHE", "MCO", "RUS", "GBR", "IRL", "CYP", "BGR",
+      "ROU", "UKR", "SRB", "HRV", "BIH", "MNE", "MKD", "ALB", "BLR", "NOR",
+      "USA", "CAN", "BRA", "MEX", "ARG", "CHL",
+      "AUS", "NZL",
+      "KOR", "JPN", "SGP", "BRN", "ARE", "QAT", "IDN",
+      "KGZ", "VNM"
+    ],
+    "destination": "CHN",
+    "context": "transit",
+    "kind": "transit_exempt",
+    "allowedDays": 10,
+    "conditions": [
+      "Onward ticket to a third country or region within 240 hours",
+      "Ordinary passport",
+      "Enter and leave through an eligible port, including HK West Kowloon Station",
+      "Stay inside the permitted area"
+    ],
+    "ports": ["PEK", "PKX", "PVG", "SHA", "CAN", "SZX", "CTU", "TFU"],
+    "note": "240-hour visa-free transit. 57 nationalities, 65 ports.",
+    "links": [
+      {
+        "label": "National Immigration Administration",
+        "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+        "role": "source"
+      }
+    ],
+    "verifiedAt": "2026-10-02"
+  },
+  {
+    "passport": "GBR",
+    "destination": "CHN",
+    "kind": "visa_free",
+    "allowedDays": 30,
+    "until": "2026-12-31",
+    "conditions": ["Business, tourism, visits or transit only", "6 months passport validity"],
+    "links": [
+      {
+        "label": "GOV.UK entry requirements",
+        "url": "https://www.gov.uk/foreign-travel-advice/china/entry-requirements",
+        "role": "source"
+      }
+    ],
+    "verifiedAt": "2026-10-02"
+  },
+  {
+    "passport": "KOR",
+    "destination": "CHN",
+    "kind": "visa_free",
+    "allowedDays": 30,
+    "until": "2026-12-31",
+    "conditions": ["Business, tourism, visits, exchange or transit only"],
+    "links": [
+      {
+        "label": "Embassy of China in Korea",
+        "url": "https://kr.china-embassy.gov.cn/lsfw/hzlxzyw/zgqz/202511/t20251104_11746485.htm",
+        "role": "source"
+      }
+    ],
+    "verifiedAt": "2026-10-02"
+  },
+  {
+    "passport": "USA",
+    "destination": "CHN",
+    "kind": "visa_required",
+    "conditions": ["6 months passport validity", "2 blank pages"],
+    "note": "Not on China's unilateral visa-free list. The dataset's e-visa entry is wrong.",
+    "links": [
+      {
+        "label": "National Immigration Administration",
+        "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+        "role": "source"
+      },
+      {
+        "label": "US State Department",
+        "url": "https://travel.state.gov/content/travel/en/international-travel/International-Travel-Country-Information-Pages/China.html",
+        "role": "info"
+      }
+    ],
+    "verifiedAt": "2026-10-02"
+  },
+  {
+    "passport": "HKG",
+    "destination": "CHN",
+    "kind": "entry_permit",
+    "conditions": ["Mainland Travel Permit (Home Return Permit), not the HKSAR passport"],
+    "links": [
+      {
+        "label": "National Immigration Administration",
+        "url": "https://en.nia.gov.cn/n147418/n147463/c156118/content.html",
+        "role": "source"
+      },
+      {
+        "label": "China Travel Service (Hong Kong)",
+        "url": "https://www.ctshk.com/",
+        "role": "apply"
+      }
+    ],
+    "verifiedAt": "2026-10-02"
+  }
+]
