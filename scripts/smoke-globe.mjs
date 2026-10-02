@@ -31,7 +31,9 @@ const browser = await chromium.launch({ headless: true, args: ["--use-angle=swif
 try {
   const page = await browser.newPage({ viewport, reducedMotion: "reduce" });
   const errors = [];
+  let searchRequests = 0;
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => { if (request.url().includes("/api/transport/search?")) searchRequests++; });
   async function load() {
     await page.goto(url);
     await page.locator('canvas[aria-label="Globe"]').waitFor();
@@ -43,9 +45,25 @@ try {
     const to = screenPoint(destination);
     await page.mouse.click(from.x, from.y);
     await page.waitForTimeout(1000); // allow the 250 ms simulation-time takeoff guard on software WebGL
+    const airport = screenPoint({ lat: 22.308, lng: 113.918 });
+    const searchesBeforeHover = searchRequests;
+    await page.mouse.move(airport.x, airport.y);
+    await page.waitForFunction(() => document.querySelector('[aria-label="Nearby transport hub"]')?.textContent.includes("HKG"));
+    assert.equal(searchRequests, searchesBeforeHover, "Flying hover must not fetch routes");
+    if (process.env.HOVER_SCREENSHOT_PATH) await page.screenshot({ path: process.env.HOVER_SCREENSHOT_PATH });
     await page.mouse.click(to.x, to.y);
   }
   await load();
+  const airport = screenPoint({ lat: 22.308, lng: 113.918 });
+  await page.mouse.move(airport.x, airport.y);
+  await page.waitForFunction(() => document.querySelector('[aria-label="Nearby transport hub"]')?.textContent.includes("HKG"));
+  const city = screenPoint(origin);
+  await page.mouse.move(city.x, city.y);
+  await page.waitForFunction(() => /Rail|Ferry/.test(document.querySelector('[aria-label="Nearby transport hub"]')?.textContent ?? ""));
+  await page.mouse.move(1, 1);
+  await page.waitForFunction(() => !document.querySelector('[aria-label="Nearby transport hub"]')?.textContent.trim());
+  assert.equal(searchRequests, 0, "Idle hover must not fetch routes");
+  console.log("PASS: local airport/surface hover previews, off-globe clearing, no search requests");
   const responsePromise = page.waitForResponse((response) => response.url().includes("/api/transport/search?"));
   await plot();
   const response = await responsePromise;

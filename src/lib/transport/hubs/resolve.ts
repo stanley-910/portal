@@ -1,27 +1,15 @@
-import airports from "./airports.json";
-import surfaceHubs from "./surface-hubs.json";
+import { HUBS, HUB_LIMITS } from "./catalog";
+import { distanceKm } from "./geo";
 import connections from "./connections.json";
 import type { Mode, Place } from "../types";
 import type { Hub, HubCandidate, HubMode, HubPair, HubResolution, SeedConnection } from "./types";
 
-export const HUBS: readonly Hub[] = [...airports, ...surfaceHubs] as Hub[];
+export { HUBS, HUB_LIMITS } from "./catalog";
+export { distanceKm } from "./geo";
 export const CONNECTIONS: readonly SeedConnection[] = connections as SeedConnection[];
-export const HUB_LIMITS = {
-  radiusKm: { flight: 200, train: 100, ferry: 60 },
-  candidatesPerMode: 3,
-  flightPairs: 4,
-} as const;
 const MODES: HubMode[] = ["flight", "train", "ferry"];
 const compareId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const rounded = (value: number) => Math.round(value * 10) / 10;
-
-/** Haversine distance: safe at the date line, poles and antipodes. */
-export function distanceKm(a: Pick<Place, "lat" | "lng">, b: Pick<Place, "lat" | "lng">): number {
-  const rad = Math.PI / 180;
-  const h = Math.sin((b.lat - a.lat) * rad / 2) ** 2
-    + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin((b.lng - a.lng) * rad / 2) ** 2;
-  return 6371 * 2 * Math.asin(Math.sqrt(Math.max(0, Math.min(1, h))));
-}
 
 function assertCoordinates(place: Place) {
   if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)

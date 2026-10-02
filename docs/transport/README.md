@@ -8,7 +8,7 @@ The merged provider/ranking code was reviewed and hardened first; see
 
 1. The globe raycasts pointer positions onto its sphere and already exposes
    unsnapped `LandedTrip.origin` / `destination` in degrees. Search now uses those
-   points, **not** the renderer's old mock airport labels.
+   points, **not** the position of whichever hub is previewed locally.
 2. The server resolves each point against bundled Asia-wide airport locations
    and representative train stations/passenger ferry terminals.
 3. It ranks useful endpoint **pairs**, then queries the relevant transport
@@ -22,9 +22,37 @@ The merged provider/ranking code was reviewed and hardened first; see
    results from restoring a stale trip. Search uses the displayed local calendar
    date rather than slicing a UTC timestamp.
 
-The globe's in-flight preview labels still use `trip-globe/airports.ts`. They are
-visual hints only; the landing ticket and search results use resolved endpoints.
-This change does not rebuild the renderer or the multiplayer trip UI.
+## Hover preview
+
+Idle hover and in-flight plane movement now show the nearest bundled **airport,
+train station or ferry terminal** under the pointer. The mock airport dataset
+has been removed. Labels identify the mode for stations/ferries and show the
+airport IATA code plus city for flights; long labels are shortened to fit the
+viewport. The full label is available to assistive technology.
+
+- The preview is a local lookup over the same catalog/radii used by landing
+  resolution: airport 200 km, station 100 km, ferry terminal 60 km.
+- It chooses the nearest hub across modes, not a country, a flight offer, or a
+  guaranteed connection. The landing search can choose different hubs based on
+  the other endpoint. A nearby hub can be across a border.
+- It uses the surface point under the pointer, **not** the elevated plane or a
+  point clamped to the horizon. Camera pan/zoom under a stationary pointer also
+  updates the lookup. Off-globe, pointer-leave, drag/pinch, or uncovered locations
+  clear the moving label rather than snapping to a distant hub.
+- A small cache limits scans to once per 80 ms while moving; unchanged ground
+  coordinates require no scan. React updates only when the selected hub changes.
+  No geocoding, route search, provider request or API token is used on hover.
+- `catalog.ts`, `geo.ts` and `preview.ts` are browser-safe. Provider registries,
+  credentials and the surface connection graph are not imported into the hover
+  path. Data attribution remains visible on the globe.
+- `onTakeoff` now receives `Hub | null` and fires even outside coverage.
+  `LandedTrip.from/to` are nullable local preview hubs; `origin/destination`
+  remain the authoritative unsnapped points, and `distanceKm` is click-to-click.
+  Uncovered takeoff/landing still work without crashing or retaining old results.
+
+This is **not country-boundary lookup**: a hub's country is metadata about the
+hub, not a claim that the pointer is inside that country. Shared-room globes get
+this local visual preview too; this does not add shared search results or planning.
 
 ## Coverage and data provenance
 
@@ -131,7 +159,8 @@ ferries as buses when both modes are requested. Its bus seed is currently empty.
 
 | File | Responsibility |
 | --- | --- |
-| `src/components/trip-globe/engine.ts` | Existing screen picking and unsnapped coordinate events |
+| `src/components/trip-globe/engine.ts` | Screen picking, throttled surface-hover preview and unsnapped coordinate events |
+| `src/lib/transport/hubs/preview.ts` | Browser-only nearest-hub selection and hover cache |
 | `src/lib/transport/client-query.ts` | Click coordinates and local departure-date serialization |
 | `src/lib/transport/query.ts` | Public request validation |
 | `src/lib/transport/hubs/` | Bundled data, provenance, geographic pairing and tests |
@@ -166,10 +195,10 @@ pnpm start --port 3015 # after pnpm build, in another terminal
 BASE_URL=http://localhost:3015 node scripts/smoke-globe.mjs
 ```
 
-Observed in this worktree: **191 unit/API tests passed**, TypeScript/lint/build
-passed, dataset validation passed, and the browser test passed both real globe
-clicks through the local API and cancellation of a delayed result, without page
-errors. Local HTTP smoke checks returned HK → Shanghai rail/airport candidates,
+Observed after hover integration: **207 unit/API tests passed**, TypeScript/lint/build
+passed, and the browser test passed airport/surface previews, off-globe clearing,
+no hover-triggered searches, real globe clicks through the local API and
+cancellation of a delayed result, without page errors. Dataset validation passed. Local HTTP smoke checks returned HK → Shanghai rail/airport candidates,
 Seoul → Shanghai and Shanghai → Tokyo airport candidates, HK → Macau ferry
 results, and no origin candidates for an ocean click. The browser check also
 caught and fixed a clipped ticket close control in the new scrolling layout.

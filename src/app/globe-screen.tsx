@@ -54,7 +54,7 @@ export function GlobeScreen() {
     }
   };
   // Show provider endpoints when available, otherwise the first geographic pair.
-  // Never present the globe renderer's legacy mock snap as a search result.
+  // A local hover preview is not a connection-aware search result.
   const firstOfferPair = result?.offers[0] && result.offerPairs[result.offers[0].id]?.[0];
   const preferredPair = result?.hubs.pairs.find((pair) => pair.id === firstOfferPair) ?? result?.hubs.pairs[0];
 

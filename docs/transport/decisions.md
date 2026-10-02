@@ -51,3 +51,24 @@ contracts without fixes would make click-to-hub results misleading or brittle.
 UI cancellation and source labels. The current flight mapper deliberately handles
 direct cached summaries only. The subsequent credentialed check returned cached flight fares, not live seat
 availability; see [review](ranking-review.md) and [verification](README.md#verification).
+
+## TR4. Use the bundled catalog for local hover and in-flight previews
+
+**Status:** built in `feat/click-to-transport-hubs`, 2026-10-03
+
+**Decision:** Replace the mock airport preview with a browser-local nearest-hub
+lookup across airports, train stations and ferry terminals. Use the same per-mode
+radii as the landing resolver. Resolve the surface raycast after camera motion,
+not the elevated plane. Throttle moving lookups to 80 ms, clear off-globe, and
+never call flight/geocoding APIs while hovering.
+
+**Why:** The owner asked to include hover integration after the click-to-hub
+commit. Showing an unrelated mock airport while flying contradicted the more
+accurate landing results. Local geographic preview is enough for interaction;
+connection-aware pairing and fares still belong to the landing search.
+
+**Affects:** Extends TR1's original scope to replace renderer preview labels.
+The old `airports.ts` dataset/export is removed. `onTakeoff` and `LandedTrip.from/to`
+now use nullable `Hub` previews, so uncovered points still work. Exact coordinates
+remain the search input. This does not determine which country's polygon contains
+the cursor or guarantee that the nearest hub is reachable across a border.

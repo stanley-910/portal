@@ -5,7 +5,7 @@ export function localDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/** Legacy preview airport labels must never replace the actual clicked points. */
+/** Local preview hub locations must never replace the actual clicked points. */
 export function clickSearchParams(trip: LandedTrip): URLSearchParams {
   return new URLSearchParams({
     from: JSON.stringify({ name: "Origin", ...trip.origin }),
