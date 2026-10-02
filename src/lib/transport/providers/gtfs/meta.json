@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-02T15:32:13.705Z",
+  "builtAt": "2026-10-02T18:10:04.807Z",
   "feeds": [
     {
       "id": "namtang",
@@ -8,7 +8,7 @@
       "country": "TH",
       "licence": "CC BY 4.0",
       "attribution": "Data: Office of Transport and Traffic Policy and Planning (OTP), Thailand, CC BY 4.0",
-      "version": "20261001",
+      "version": "20261002",
       "calendarStart": "20260101",
       "calendarEnd": "20261231"
     },
@@ -20,7 +20,7 @@
       "licence": "data.gov.my open data (exact licence unverified)",
       "attribution": "Data: KTMB via data.gov.my",
       "calendarStart": "20260818",
-      "calendarEnd": "20261015"
+      "calendarEnd": "20261017"
     }
   ],
   "pairs": [
