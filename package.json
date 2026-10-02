@@ -5,6 +5,7 @@
   "scripts": {
     "tokens": "node scripts/tokens.mts",
     "entry": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts",
+    "borders": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-borders.mts",
     "dev": "node scripts/tokens.mts && next dev",
     "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && next build",
     "start": "next start",
@@ -40,13 +41,17 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/topojson-client": "^3.1.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "playwright": "1.58.2",
     "fflate": "^0.8.3",
     "tailwindcss": "^4",
+    "topojson-client": "^3.1.0",
     "typescript": "^5",
-    "vitest": "^5.0.3"
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^5.0.3",
+    "world-atlas": "^2.0.2"
   },
   "packageManager": "pnpm@11.25.0"
 }

@@ -47,6 +47,8 @@ export interface TripGlobeProps {
   skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
   earthUrl?: string;
+  /** The country borders data texture, from `pnpm borders`. */
+  bordersUrl?: string;
   className?: string;
   ref?: Ref<TripGlobeHandle>;
 }
@@ -85,6 +87,7 @@ export function TripGlobe({
   onPointerLatLng,
   onFlightChange,
   earthUrl = "/textures/earth.png",
+  bordersUrl = "/textures/borders.png",
   skySeed,
   className,
   ref,
@@ -110,7 +113,7 @@ export function TripGlobe({
   useEffect(() => {
     let lastPointer: LatLng | null = null;
     let lastFlight = "null";
-    const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, {
+    const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, bordersUrl, {
       onModeChange: (m, a) => {
         setMode(m);
         setFrom(a);
@@ -144,15 +147,15 @@ export function TripGlobe({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [earthUrl]);
+  }, [earthUrl, bordersUrl]);
 
   useEffect(() => {
     engineRef.current?.setTheme(resolved);
-  }, [resolved, earthUrl]);
+  }, [resolved, earthUrl, bordersUrl]);
 
   useEffect(() => {
     if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
-  }, [skySeed, earthUrl]);
+  }, [skySeed, earthUrl, bordersUrl]);
 
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {

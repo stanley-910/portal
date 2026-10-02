@@ -35,8 +35,8 @@ export function mapFlights(rows: readonly unknown[], query: SearchQuery, marker?
     if (row.currency && row.currency.toUpperCase() !== query.currency.toUpperCase()) {
       throw new ProviderFailure("BAD_RESPONSE");
     }
-    // A cached aggregate with transfers cannot honestly become one direct segment.
-    if (row.transfers !== 0) continue;
+    // Connecting rows are end-to-end summaries, not reconstructed individual legs.
+    // Keep their explicit transfer count so neither ranking nor UI implies nonstop.
     const fromCode = row.origin_airport ?? row.origin;
     const toCode = row.destination_airport ?? row.destination;
     const fromMatches = query.from.iata ? fromCode === origin : row.origin === origin || fromCode === origin;
@@ -62,9 +62,12 @@ export function mapFlights(rows: readonly unknown[], query: SearchQuery, marker?
         arrive: new Date(arrivalMs).toISOString(),
         durationMin,
       }],
+      // cached fares include connections but don't list the legs, so the count is all we have
+      transfers: row.transfers,
       price: { amount: row.price, currency: query.currency.toUpperCase(), asOf: row.found_at },
       kind: "cached",
-      attribution: "Travelpayouts / Aviasales — cached fare per passenger; availability unverified",
+      attribution: "Travelpayouts / Aviasales — cached fare per passenger; availability unverified"
+        + (row.transfers ? "; intermediate legs unavailable" : ""),
       bookingUrl: row.link ? aviasalesUrl(row.link, marker) : undefined,
     });
   }

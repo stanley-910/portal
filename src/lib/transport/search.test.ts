@@ -426,6 +426,20 @@ describe("fanOut", () => {
     expect(result.offers[0].mode).toBe("train");
   });
 
+  it("ranks a connecting flight below a direct one at the same price", async () => {
+    const priced = (depart: string, transfers: number): Offer => ({
+      ...offer("travelpayouts", depart),
+      price: { amount: 100, currency: "USD" },
+      transfers,
+    });
+    const result = await fanOut(query(), {
+      providers: [
+        fake("travelpayouts", ["flight"], async () => [priced("2026-10-20T08:00:00Z", 1), priced("2026-10-20T09:00:00Z", 0)]),
+      ],
+    });
+    expect(result.offers.map((o) => o.transfers)).toEqual([0, 1]);
+  });
+
   it("aborts every provider when the caller signal aborts", async () => {
     const ctrl = new AbortController();
     const p = fanOut(query(), { timeoutMs: 5_000, signal: ctrl.signal, providers: [fake("gtfs", ["bus"], hang)] });

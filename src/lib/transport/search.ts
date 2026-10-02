@@ -4,6 +4,7 @@ import { z } from "zod";
 import { providers } from "./registry";
 import {
   ProviderFailure,
+  transfersOf,
   type Offer,
   type ProviderError,
   type ProviderId,
@@ -39,6 +40,7 @@ const offerSchema = z.object({
   provider: z.string(),
   mode,
   kind: z.enum(["live", "cached", "timetable"]),
+  transfers: z.number().int().nonnegative().optional(),
   segments: z.array(z.object({
     mode,
     from: place,
@@ -111,7 +113,7 @@ function convenienceScore(offer: Offer): number {
   const priceUsd = validPrice ? (rate === undefined ? Infinity : offer.price!.amount * rate) : 100;
   const durationPenalty = offer.segments.reduce((sum, segment) => sum + segment.durationMin, 0) * 0.03;
   const modePenalty = { flight: 0, train: 4, bus: 12, ferry: 16 }[offer.mode];
-  const layoverPenalty = Math.max(0, offer.segments.length - 1) * 30;
+  const layoverPenalty = transfersOf(offer) * 30;
   return priceUsd * 0.75 + durationPenalty + modePenalty + layoverPenalty;
 }
 

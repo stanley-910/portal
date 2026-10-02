@@ -1,18 +1,22 @@
 "use client";
 
-import { shallow, useOther, useOthers, useRoom } from "@liveblocks/react";
+import { shallow, useOther, useOthers, useRoom, useStorage } from "@liveblocks/react";
 import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 
 import { memberColor as paperMemberColor } from "@/components/paper-atlas";
-import type { RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
+import type { LatLng, RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
 
 /**
- * Everyone else's trip on the globe (M14 step 2): the globe draws their plane, route and pins; this adds their name
- * label beside the plane while it flies. Flights go straight from presence to the globe engine, and labels are positioned after
- * every frame, so a moving plane never re-renders React. React only re-renders when someone takes off or stops.
+ * Everyone else's trips on the globe (M14 step 2) and every stored leg (M8): the globe draws each plane, route and
+ * pins; this adds a member's name label beside their plane while it flies. Flights go straight from presence to the
+ * globe engine, and labels are positioned after every frame, so a moving plane never re-renders React. React only
+ * re-renders when someone takes off or stops, or the plan changes.
+ *
+ * `hideLeg` is the leg you just landed, which your own plane is still showing.
  */
-export function RemotePlanes({ globe }: { globe: RefObject<TripGlobeHandle | null> }) {
+export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHandle | null>; hideLeg: string | null }) {
   const room = useRoom();
+  const legs = useStorage((root) => storedFlights(root), shallowFlights);
   // only while in the air: once they land, their cursor and its label come back
   const flying = useOthers(
     (list) => list.filter((o) => o.presence.flight && !o.presence.flight.landed).map((o) => o.connectionId),
@@ -24,8 +28,12 @@ export function RemotePlanes({ globe }: { globe: RefObject<TripGlobeHandle | nul
     const handle = globe.current;
     if (!handle) return;
     const push = () => {
-      const flights: RemoteFlight[] = [];
-      for (const o of room.getOthers()) if (o.presence.flight) flights.push({ id: String(o.connectionId), ...o.presence.flight });
+      const flights: RemoteFlight[] = (legs ?? []).filter((l) => l.id !== `leg:${hideLeg}`);
+      // a landed trip is stored as a leg straight away, so only trips still in the air come from presence
+      for (const o of room.getOthers()) {
+        const f = o.presence.flight;
+        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f });
+      }
       handle.setRemoteFlights(flights);
     };
     push();
@@ -42,7 +50,7 @@ export function RemotePlanes({ globe }: { globe: RefObject<TripGlobeHandle | nul
       stopFrames();
       handle.setRemoteFlights([]);
     };
-  }, [globe, room]);
+  }, [globe, room, legs, hideLeg]);
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -73,3 +81,26 @@ function PlaneLabel({ connectionId, ref }: { connectionId: number; ref: (el: HTM
     </div>
   );
 }
+
+type Plan = {
+  readonly legs: { readonly [id: string]: { readonly from: string; readonly to: string } };
+  readonly stops: { readonly [id: string]: LatLng };
+};
+
+/** Each stored leg as a landed flight: the plane parked at its end, facing along the route. */
+function storedFlights(root: Plan): RemoteFlight[] {
+  const flights: RemoteFlight[] = [];
+  for (const [id, leg] of Object.entries(root.legs)) {
+    const from = root.stops[leg.from];
+    const to = root.stops[leg.to];
+    if (!from || !to) continue;
+    const o = { lat: from.lat, lng: from.lng };
+    const at = { lat: to.lat, lng: to.lng };
+    // a hair past the end gives the heading; near enough on a great circle for a parked plane
+    const ahead = { lat: at.lat + (at.lat - o.lat) * 0.01, lng: at.lng + (at.lng - o.lng) * 0.01 };
+    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true });
+  }
+  return flights;
+}
+
+const shallowFlights = (a: RemoteFlight[] | null, b: RemoteFlight[] | null) => JSON.stringify(a) === JSON.stringify(b);

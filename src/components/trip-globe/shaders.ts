@@ -55,6 +55,8 @@ uniform float uShift;
 uniform vec3 uL;
 uniform float uPer;
 uniform sampler2D uEarth;
+uniform sampler2D uBorders;
+uniform bool uSurface;
 uniform vec3 uPaper;
 uniform vec3 uInk;
 uniform vec3 uSea;
@@ -105,49 +107,63 @@ void main() {
   float hd = abs(fract(px.y / hp) - 0.5) * hp;
   col = mix(col, uSea, lineAA(hd, atm * 0.9 * uDpr, uDpr) * 0.55 * atm);
 
-  // the surface, computed for every pixel so derivatives stay valid
-  float tHit = disc > 0.0 ? -b - sqrt(disc) : -b;
-  vec3 n = normalize(uC + d * tHit);
-  float lon = atan(n.x, n.z);
-  float lat = asin(clamp(n.y, -1.0, 1.0));
-  vec3 e = texture(uEarth, vec2(lon / (2.0 * PI) + 0.5, 0.5 - lat / PI)).rgb;
-  float dif = max(dot(n, uL), 0.0);
-
-  vec3 ocean = mix(paper, uSea, halftone(px, mix(mix(0.95, 0.36, dif), mix(0.28, 0.8, dif), uDark), 0.2618, uPer));
-  float wg = e.g * 7.0;
-  float wfw = fwidth(wg);
-  float wl = lineAA(abs(fract(wg) - 0.5), 0.3 * wfw, wfw) * (1.0 - smoothstep(1.5, 3.6, wg)) * step(0.004, e.g);
-  ocean = mix(ocean, uSeaDeep, wl * 0.8);
-
-  vec3 land = mix(paper, uSage, halftone(px, mix(mix(1.0, 0.6, dif), mix(0.5, 0.95, dif), uDark), 0.7854, uPer));
-  float kS = mix(clamp((1.0 - dif) * 0.75 + e.b * 0.35 - 0.12, 0.0, 1.0), clamp(dif * 0.6 + e.b * 0.25 - 0.25, 0.0, 1.0), uDark);
-  land = mix(land, uMoss, halftone(px + vec2(1.2, -0.8) * uDpr, kS, 1.309, uPer * 0.92) * 0.9);
-
-  float lf = e.r;
-  float lfw = fwidth(lf);
-  vec3 g = mix(ocean, land, smoothstep(0.5 - lfw, 0.5 + lfw, lf));
-  g = mix(g, ink, lineAA(abs(lf - 0.5), 0.0, lfw * 1.6) * mix(0.85, 0.65, uDark));
-
-  float lonD = lon / PI * 180.0;
-  float latD = lat / PI * 180.0;
-  float fwLon = min(fwidth(lonD), fwidth(mod(lonD + 180.0, 360.0)));
-  float fwLat = fwidth(latD);
-  float dLon = abs(fract(lonD / 30.0 + 0.5) - 0.5) * 30.0;
-  float dLat = abs(fract(latD / 30.0 + 0.5) - 0.5) * 30.0;
-  float grat = max(lineAA(dLon, 0.25 * fwLon, fwLon), lineAA(dLat, 0.25 * fwLat, fwLat));
-  g = mix(g, ink, grat * mix(0.3, 0.2, uDark));
-  g = mix(g, ink, lineAA(abs(latD), 0.6 * fwLat, fwLat) * mix(0.2, 0.14, uDark));
-
-  // the plane's shadow on the ground
-  float sa = acos(clamp(dot(n, uShP), -1.0, 1.0));
-  g = mix(g, g * uShade * 0.8, (1.0 - smoothstep(uShR * 0.45, uShR, sa)) * uShA);
-
-  float facing = max(dot(n, -d), 0.0);
-  g *= mix(0.8, 1.0, smoothstep(0.0, 0.45, facing));
-  g += vec3(0.05) * pow(dif, 10.0);
-
   float front = step(b, 0.0);
-  col = mix(col, g, (1.0 - smoothstep(1.0 - fw, 1.0, dmin)) * front);
+  // Sky-only scissor rectangles skip the surface. The branch is uniform for the whole draw,
+  // so texture derivatives stay valid, including helper fragments at the globe rectangle's edges.
+  if (uSurface) {
+    float tHit = disc > 0.0 ? -b - sqrt(disc) : -b;
+    vec3 n = normalize(uC + d * tHit);
+    float lon = atan(n.x, n.z);
+    float lat = asin(clamp(n.y, -1.0, 1.0));
+    vec2 uv = vec2(lon / (2.0 * PI) + 0.5, 0.5 - lat / PI);
+    vec3 e = texture(uEarth, uv).rgb;
+    float dif = max(dot(n, uL), 0.0);
+
+    vec3 ocean = mix(paper, uSea, halftone(px, mix(mix(0.95, 0.36, dif), mix(0.28, 0.8, dif), uDark), 0.2618, uPer));
+    float wg = e.g * 7.0;
+    float wfw = fwidth(wg);
+    float wl = lineAA(abs(fract(wg) - 0.5), 0.3 * wfw, wfw) * (1.0 - smoothstep(1.5, 3.6, wg)) * step(0.004, e.g);
+    ocean = mix(ocean, uSeaDeep, wl * 0.8);
+
+    vec3 land = mix(paper, uSage, halftone(px, mix(mix(1.0, 0.6, dif), mix(0.5, 0.95, dif), uDark), 0.7854, uPer));
+    float kS = mix(clamp((1.0 - dif) * 0.75 + e.b * 0.35 - 0.12, 0.0, 1.0), clamp(dif * 0.6 + e.b * 0.25 - 0.25, 0.0, 1.0), uDark);
+    land = mix(land, uMoss, halftone(px + vec2(1.2, -0.8) * uDpr, kS, 1.309, uPer * 0.92) * 0.9);
+
+    float lf = e.r;
+    float lfw = fwidth(lf);
+    vec3 g = mix(ocean, land, smoothstep(0.5 - lfw, 0.5 + lfw, lf));
+    g = mix(g, ink, lineAA(abs(lf - 0.5), 0.0, lfw * 1.6) * mix(0.85, 0.65, uDark));
+
+    // country borders: each country is filled with a 3-bit code, and a border is wherever a channel crosses 0.5.
+    // A finer, fainter line than the coast, kept off the sea and faded toward the limb where the texture minifies.
+    vec3 bc = texture(uBorders, uv).rgb;
+    vec3 b3 = 1.0 - smoothstep(vec3(0.0), (fwidth(bc) + 1e-5) * 1.5, abs(bc - 0.5));
+    float onLand = smoothstep(0.5 + lfw, 0.5 + 2.5 * lfw + 1e-3, lf);
+    float bLimb = smoothstep(0.08, 0.3, max(dot(n, -d), 0.0));
+    g = mix(g, ink, max(b3.r, max(b3.g, b3.b)) * onLand * bLimb * mix(0.55, 0.75, uDark));
+
+    float lonD = lon / PI * 180.0;
+    float latD = lat / PI * 180.0;
+    float fwLon = min(fwidth(lonD), fwidth(mod(lonD + 180.0, 360.0)));
+    float fwLat = fwidth(latD);
+    float dLon = abs(fract(lonD / 30.0 + 0.5) - 0.5) * 30.0;
+    float dLat = abs(fract(latD / 30.0 + 0.5) - 0.5) * 30.0;
+    float grat = max(lineAA(dLon, 0.25 * fwLon, fwLon), lineAA(dLat, 0.25 * fwLat, fwLat));
+    g = mix(g, ink, grat * mix(0.3, 0.2, uDark));
+    g = mix(g, ink, lineAA(abs(latD), 0.6 * fwLat, fwLat) * mix(0.2, 0.14, uDark));
+
+    // the plane's shadow on the ground
+    if (uShA > 0.0) {
+      float sa = acos(clamp(dot(n, uShP), -1.0, 1.0));
+      g = mix(g, g * uShade * 0.8, (1.0 - smoothstep(uShR * 0.45, uShR, sa)) * uShA);
+    }
+
+    float facing = max(dot(n, -d), 0.0);
+    g *= mix(0.8, 1.0, smoothstep(0.0, 0.45, facing));
+    g += vec3(0.05) * pow(dif, 10.0);
+
+    col = mix(col, g, (1.0 - smoothstep(1.0 - fw, 1.0, dmin)) * front);
+  }
   col = mix(col, ink, lineAA(abs(dmin - 1.0), 0.7 * fw, fw) * front);
 
   col += (hash(floor(px)) - 0.5) * 0.045 + (hash(floor(px / (3.0 * uDpr))) - 0.5) * 0.02;

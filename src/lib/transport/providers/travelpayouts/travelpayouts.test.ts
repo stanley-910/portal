@@ -39,6 +39,7 @@ describe("Travelpayouts mapper", () => {
       id: "travelpayouts:HKG-BKK-2026-11-15T09:00:00+08:00-HX-765",
       provider: "travelpayouts", kind: "cached", price: { amount: 120, currency: "USD" },
       attribution: expect.stringContaining("availability unverified"),
+      transfers: 0,
       segments: [{
         carrier: "HX", number: "HX765", durationMin: 165,
         arrive: "2026-11-15T03:45:00.000Z",
@@ -46,6 +47,12 @@ describe("Travelpayouts mapper", () => {
       }],
     });
     expect(offers[0].price?.asOf).toBeUndefined();
+  });
+
+  it("keeps the transfer count of a connecting fare", () => {
+    const [offer] = mapFlights([{ ...fixture.data[0], transfers: 1 }], query);
+    expect(offer.transfers).toBe(1);
+    expect(offer.segments).toHaveLength(1);
   });
 
   it("accepts an empty array as normal cache sparsity, not invented availability", () => {
@@ -85,8 +92,11 @@ describe("Travelpayouts mapper", () => {
     expect(() => mapFlights([bad], query)).toThrow("BAD_RESPONSE");
   });
 
-  it("does not turn a connecting summary into a direct segment", () => {
-    expect(mapFlights([{ ...row, transfers: 1 }], query)).toEqual([]);
+  it("labels a connecting summary without inventing intermediate legs", () => {
+    const [offer] = mapFlights([{ ...row, transfers: 2 }], query);
+    expect(offer.transfers).toBe(2);
+    expect(offer.segments).toHaveLength(1);
+    expect(offer.attribution).toContain("intermediate legs unavailable");
   });
 
   it("does not include wrong dates or routes from an upstream response", () => {
@@ -147,7 +157,7 @@ describe("Travelpayouts place and link boundaries", () => {
 });
 
 describe("Travelpayouts client and adapter (offline fetch stubs)", () => {
-  it("requests explicit airports, market, currency, one-way/direct fares and header-only auth", async () => {
+  it("requests explicit airports, market, currency, one-way fares and header-only auth", async () => {
     const fetch = vi.fn(async () => Response.json(fixture));
     vi.stubGlobal("fetch", fetch);
     const result = await getPrices(query, "HKG", "BKK", signal());
@@ -156,7 +166,7 @@ describe("Travelpayouts client and adapter (offline fetch stubs)", () => {
     const params = new URL(url).searchParams;
     expect(Object.fromEntries(params)).toMatchObject({
       origin: "HKG", destination: "BKK", currency: "usd", market: "us",
-      departure_at: query.date, one_way: "true", direct: "true", limit: "30",
+      departure_at: query.date, one_way: "true", limit: "30",
     });
     expect(url).not.toContain("offline-test-token");
     expect(options.headers).toMatchObject({ "X-Access-Token": "offline-test-token" });

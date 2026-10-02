@@ -7,6 +7,8 @@ import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import { Ticket } from "@/components/paper-atlas";
 import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
 import { DatePicker } from "@/components/transport/date-picker";
+import { CurrencySelector } from "@/components/transport/currency-selector";
+import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 import { TransportResults } from "@/components/transport/results";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { clickSearchParams, localDate } from "@/lib/transport/client-query";
@@ -26,6 +28,24 @@ export function GlobeScreen() {
   const [result, setResult] = useState<HubSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
+  const [currency, setCurrency] = useState<Currency>("USD");
+  const [rates, setRates] = useState<ExchangeRates | null>(null);
+  const [rateError, setRateError] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/exchange-rates", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Exchange rates unavailable");
+        const result = await response.json() as { rates: ExchangeRates };
+        if (CURRENCIES.some((option) => !Number.isFinite(result.rates?.[option]) || result.rates[option] <= 0)) {
+          throw new Error("Invalid exchange rates");
+        }
+        if (!controller.signal.aborted) setRates(result.rates);
+      })
+      .catch(() => { if (!controller.signal.aborted) setRateError(true); });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => () => { pending.current?.abort(); }, []);
 
@@ -79,6 +99,7 @@ export function GlobeScreen() {
       onCancel={clear}
     />
     <NavBar globe={globe}>
+      <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
       <form action={createTrip}>
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
@@ -98,7 +119,7 @@ export function GlobeScreen() {
         {searching ? <p className="type-body rounded-tag bg-paper-raised p-(--space-3) text-ink-muted">Finding hubs and routes…</p> : null}
         {searchError ? <p className="type-body rounded-tag bg-paper-raised p-(--space-3) text-ink-muted">Route search failed. Please try again.</p> : null}
       </div>
-      {result ? <TransportResults result={result} /> : null}
+      {result ? <TransportResults result={result} currency={currency} rates={rates} /> : null}
     </div> : null}
     {trip ? <DatePicker value={localDate(trip.departDate)} min={localDate(new Date())}
       onChange={(date) => void search(trip, date)} /> : null}

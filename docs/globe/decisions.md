@@ -122,3 +122,49 @@ still performs connection-aware pair selection. See [TR4](../transport/decisions
 **Decision:** the trip's start is a small `ink` ring, filled with `paper-raised`, at the foot of the route. The star-pin sticker no longer pops in at takeoff, though the ink ripple stays. The origin's airport tag sits just under the ring.
 
 **Why:** the user found the starburst too loud for a starting point. The star pin is still in `paper-atlas` (`Sticker`), but the globe doesn't use it.
+
+## G8. Country borders printed into the globe, and names set like an atlas
+
+**Status:** built, 2026-10-03
+
+**Decision:**
+
+**Borders** are part of the print, drawn in the globe shader like the coastline, not on the overlay canvas.
+- `pnpm borders` (`scripts/build-borders.mts`) rasterises Natural Earth 50m countries (the `world-atlas` package) into `public/textures/borders.png`: 4096×2048, about 170 KB.
+- Each country is filled with a 3-bit code, one bit per RGB channel, picked so no two touching countries share one. A border is wherever a channel crosses 0.5, so the shader inks it with the same `fwidth` trick as the coastline. It stays one line wide at every zoom.
+- Each texel averages 4×4 samples, so the crossing lands between texels.
+- The sea takes the code of the nearest country, so channels only cross on land. The shader also masks borders to land.
+- Somaliland is folded into Somalia and Northern Cyprus into Cyprus. Hong Kong and Macao keep their own outlines.
+
+**Names** are drawn on the overlay canvas, under the route, pins and tags.
+- The same script writes `countries.ts`. For each country it gives an anchor (the pole of inaccessibility of its largest piece), its long axis and span (principal components of its texels near the main landmass), and its area.
+- A name shows once its country has room for it on screen, so more names appear as you zoom in. It fades in as it gains room. Bigger countries are placed first, and a name that would collide is skipped.
+- A long thin country runs its name along its axis when that axis is within 60° of level. Other names run along their parallel, so they curve with the globe toward the edge.
+- Names step around planes and airport tags, and print at 70% while a trip is on the globe.
+- Names don't pop. Names already on screen are placed first, so a newcomer never displaces one. A new name needs 10% spare room to appear, and keeps its place until it is 5% short. A name that loses its place waits 0.6s before trying again. Each name fades in or out over about 0.2s, and switches at once under reduced motion. A long country flips to its axis below 60° and back above 66°. Measured: no visible name flipped back within 0.5s over an 8s spin and a 5s zoom.
+- The type is a new `country` token: Courier Prime bold, 11px, in capitals with 0.16em tracking, set in `ink` with a soft 70% `paper` halo. It grows up to 1.25×.
+- Each name is drawn once into a cached canvas, halo included, and frames only copy it, rotated and scaled. The cache clears on a theme or font change. Names facing away are rejected before any projection.
+- Revised after review. The first cut used Fell SC: at 14px with a thin halo, halftone dots showed through the letters. Fell with an opaque halo was legible but heavy. A small mono in capitals reads cleanly and matches the tags. Drawing text every frame (font parse, letter spacing, three text passes per name) also cost CPU on large windows, hence the sprites.
+
+**Why:**
+- Borders on the overlay canvas would draw on top of the plane. Printing them keeps the plane a sticker over the map, and the borders pick up the paper grain and shading for free.
+- A distance field can't hold a sharp line when magnified, because its zero sits between texels. Codes that cross 0.5 have the same signed-edge behaviour as the land mask.
+- Small tracked capitals read over the halftone at any size and sit with the airport tags. `ink-muted` was too weak over the halftone land.
+
+**Limits:**
+- The border texture is about 10 km per texel. Hong Kong's border with Shenzhen is only a few texels long, and the coastline (`earth.png`, 2048 wide) is coarser still.
+- Natural Earth's lines are de facto boundaries. Disputed areas (Kashmir, Western Sahara) follow its defaults.
+
+## G9. Draw only what changed, and shade the surface only where the globe can be
+
+**Status:** built, 2026-10-03 (by a Codex agent, reviewed and measured here)
+
+**Decision:**
+- When the view, the trip and the planes haven't changed, the GL canvas isn't redrawn, and the overlay is redrawn only for hover, fades and animation. Anything that changes the picture without moving the camera marks the canvases dirty: theme, sky seed, a texture arriving, fonts loading, a resize. Frame callbacks still run every frame, for remote cursors.
+- `preserveDrawingBuffer` is off. A canvas with no new draw keeps showing its last frame.
+- The globe pass is scissored. Rectangles outside the globe's projected bounds run the shader with `uSurface` off, which skips the surface. The branch is uniform per draw, so derivatives stay valid at the rectangle edges. Close, tilted views fall back to one full draw.
+- The plane-shadow maths is skipped when there is no shadow.
+- Route arcs, projected points and remote flights' airport lookups reuse buffers instead of allocating per frame.
+- `engine.test.ts` covers the redraw skipping, the surface bounds and the arc buffers.
+
+**Measured** (3200×2000 device px, median of 60 synced draws): the globe pass went from 6.6ms to 5.2ms per frame zoomed out or mid zoom, about 20% less. The overlay is 0.1–0.2ms either way. Settled frames now cost nothing.
