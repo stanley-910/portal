@@ -869,6 +869,11 @@ export class GlobeEngine {
     return p ? { x: p.x, y: p.y, visible: p.vis } : null;
   }
 
+  /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range, even in log steps. */
+  zoom(): number {
+    return Math.log(RANGE_MAX / this.range) / Math.log(RANGE_MAX / RANGE_MIN);
+  }
+
   // ---------- simulation ----------
 
   private sim(dt: number, t: number) {

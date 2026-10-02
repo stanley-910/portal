@@ -90,11 +90,9 @@ export const PALETTES: Record<ThemeId, Palette> = { light: build("light"), dark:
 
 /** The `country` type style: country names printed on the globe. */
 export const COUNTRY_TYPE = (() => {
-  const s = tokens.type.groups.flatMap((g) => g.styles).find((st) => st.name === "country");
+  type Style = { name: string; fontSize: string; fontWeight: number; letterSpacing?: string };
+  const styles = tokens.type.groups.flatMap((g) => g.styles as Style[]);
+  const s = styles.find((st) => st.name === "country");
   if (!s) throw new Error("Missing design token: type country");
-  return {
-    size: parseFloat(s.fontSize),
-    weight: s.fontWeight,
-    spacing: parseFloat(String(("letterSpacing" in s && s.letterSpacing) || 0)),
-  };
+  return { size: parseFloat(s.fontSize), weight: s.fontWeight, spacing: parseFloat(s.letterSpacing ?? "0") };
 })();

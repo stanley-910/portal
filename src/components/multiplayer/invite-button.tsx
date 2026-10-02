@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 
+import { NAV_ICONS, NavButton } from "@/components/nav-bar";
+
 /** Copies the trip's URL, which is its invite (M7). */
 export function InviteButton() {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
+    <NavButton
+      icon={copied ? NAV_ICONS.check : NAV_ICONS.link}
+      label={copied ? "Link copied" : "Copy invite link"}
+      aria-live="polite"
       onClick={async () => {
         await navigator.clipboard.writeText(window.location.href);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="type-tag h-9 rounded-tag border-(length:--line-hair) border-ink bg-paper-raised px-(--space-3) shadow-tag"
-    >
-      <span aria-live="polite">{copied ? "Link copied" : "Copy invite link"}</span>
-    </button>
+    />
   );
 }

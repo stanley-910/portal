@@ -35,6 +35,7 @@ export interface Offer {
   provider: ProviderId;
   mode: Mode;
   segments: Segment[];        // ≥ 1
+  transfers?: number;         // connections, when the provider counts them but doesn't list each segment
   price?: Price;              // absent = timetable only
   kind: "live" | "cached" | "timetable"; // honesty about freshness
   bookingUrl?: string;        // deep link incl. affiliate marker where ToS requires
@@ -57,3 +58,6 @@ export interface TransportProvider {
 export class ProviderFailure extends Error {
   constructor(readonly code: ProviderErrorCode, readonly retryable = false) { super(code) }
 }
+
+/** How many times you change: the provider's count, or the gaps between listed segments. */
+export const transfersOf = (o: Offer): number => Math.max(o.transfers ?? 0, o.segments.length - 1);

@@ -1,6 +1,6 @@
 # Multiplayer decisions
 
-These were agreed in a grilling session on 2026-10-02. M4, M7 and steps 1 and 2 of M14 are built; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
+These were agreed in a grilling session on 2026-10-02. M4, M7, M13 and steps 1 and 2 of M14 are built, and M8, M10 and M12 partly; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
 
 Liveblocks facts behind these decisions were checked against the docs on 2026-10-02. We pin `@liveblocks/*` to 3.24.2, which supports React 19: 3.24.3 is newer than pnpm's minimum release age. Free-tier limits are in `free-tiers.md` (next to this file).
 
@@ -120,7 +120,13 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M8. A trip is a graph of shared stops
 
-**Status:** decided
+**Status:** partly built (2026-10-03). Landing stores a leg, snapping each end onto a stop at the same hub; legs can be removed. Moving a stop isn't built yet.
+
+**Code:**
+- `src/lib/liveblocks/types.ts`: the Storage schema (`members`, `stops`, `legs`).
+- `src/lib/trip/plan.ts`: hooks that read the plan and make every edit.
+- `src/components/multiplayer/trip-plan.tsx`: the plan panel, a placeholder until the UI redesign.
+- `searchLeg` in `src/app/t/actions.ts`: runs a leg's search on the server and writes the results with `mutateStorage`.
 
 **Decision:**
 - **Stops** are points: lat/lng, hub and name.
@@ -140,7 +146,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M10. Riders per leg
 
-**Status:** decided
+**Status:** built, with riders toggled from the plan panel rather than the ticket.
 
 **Decision:** each leg has a list of riders, defaulting to whoever drew it. You toggle riders by clicking avatars on the leg's ticket.
 
@@ -160,7 +166,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M12. Editing a leg resets its search
 
-**Status:** decided
+**Status:** partly built. Changing a leg's date starts a new search and clears its votes and pick; each search carries an id, so a slow one can't overwrite a newer one. Moving stops and locking paid legs aren't built.
 
 **Decision:**
 - Moving a stop re-runs the search for each affected leg.
@@ -171,7 +177,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M13. Planner results are shared
 
-**Status:** decided
+**Status:** built. Each leg keeps up to 20 options (trimmed to `StoredOffer`), one vote per member, and one pick that anyone can set.
 
 **Decision:** route options are written into Storage, so everyone sees the same option cards, votes on them, and sees which one is chosen.
 
@@ -187,7 +193,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 - Each member's trip (`origin`, `at`, `ahead`, `landed`) is sent as `flight` in presence.
 - Other members' planes are paper stickers like your own, eased toward each update, with ink routes and origin pins.
 - Their name label sits beside the plane while it flies, in place of their cursor.
-- A landed trip stays in presence until the trip model (M8) stores legs.
+- Once a trip lands it's stored as a leg (M8), so others ignore landed trips in presence and draw stored legs instead, each as a plane parked at its end.
 
 **Decision:** build these in order:
 1. Avatar stack and lat/lng cursors.

@@ -22,6 +22,8 @@ export function mapFlights(rows: TravelpayoutsFlight[], query: SearchQuery, mark
         arrive,
         durationMin,
       }],
+      // cached fares include connections but don't list the legs, so the count is all we have
+      transfers: row.transfers ?? 0,
       price: { amount: row.price, currency: query.currency.toUpperCase(), asOf: row.found_at },
       kind: "cached",
       bookingUrl: row.link ? aviasalesUrl(row.link, marker) : undefined,

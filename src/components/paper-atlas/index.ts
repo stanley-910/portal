@@ -1,4 +1,5 @@
 // Paper Atlas components. Rules for using them: DESIGN.md. Styles: ./paper-atlas.css (imported by globals.css).
+export { Button, type ButtonProps } from "./button";
 export {
   Cursor,
   cursorUrl,

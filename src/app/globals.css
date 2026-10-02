@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "../design/tokens.css";
 @import "../components/paper-atlas/paper-atlas.css";
+@import "../components/nav-bar/nav-bar.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -10,7 +11,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-fell);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-typewriter);
   --font-heading: var(--font-fell-sc);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -101,4 +102,9 @@
     outline: 2px solid var(--focus);
     outline-offset: 3px;
   }
+}
+
+/* Demo build: Liveblocks injects its "Powered by" badge with inline styles, so only !important removes it. */
+#liveblocks-badge {
+  display: none !important;
 }
