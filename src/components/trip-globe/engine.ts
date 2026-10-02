@@ -101,6 +101,8 @@ interface NameSpot {
   size: number;
   box: number[];
   fits: boolean;
+  /** Set on two lines, which a long name falls back to when one line won't fit. */
+  wrapped: boolean;
   facing: number;
   p: ScreenPoint;
   q: ScreenPoint;
@@ -120,6 +122,21 @@ const toLatLng = (v: Vec3): LatLng => {
   return { lat: lat / D2R, lng: lon / D2R };
 };
 
+/** A long name broken at the space that best balances its two lines ("Papua New" over "Guinea"), or null. */
+function wrapName(name: string): string | null {
+  if (name.length < 10 || !name.includes(" ")) return null;
+  let best: string | null = null;
+  let longest = Infinity;
+  for (let i = name.indexOf(" "); i >= 0; i = name.indexOf(" ", i + 1)) {
+    const l = Math.max(i, name.length - i - 1);
+    if (l < longest) {
+      longest = l;
+      best = `${name.slice(0, i)}\n${name.slice(i + 1)}`;
+    }
+  }
+  return best;
+}
+
 /** Country names on the globe, with each anchor and long axis as world vectors. Biggest country first. */
 const NAMES = COUNTRY_LABELS.map((l) => {
   const lat = l.lat * D2R;
@@ -135,13 +152,15 @@ const NAMES = COUNTRY_LABELS.map((l) => {
   const axis = add(mul(east, Math.cos(a)), mul(north, Math.sin(a)));
   return {
     name: l.name,
+    wrap: wrapName(l.name),
     v,
     eastStep: norm(add(v, mul(east, 0.01))),
     axisStep: norm(add(v, mul(axis, 0.01))),
     long,
-    // room for the name along the axis, or across the parallel, in radians of arc
+    // room for the name along the axis, or along the parallel, in radians of arc. Along the parallel, the country is
+    // taken as an ellipse on its axis: a wide country tilted a little (Papua New Guinea) still has most of its length
     along: Math.min(l.span, cap) * D2R,
-    across: Math.min(long ? l.width : (l.span + l.width) / 2, cap) * D2R,
+    across: Math.min(Math.hypot(l.span * Math.cos(a), l.width * Math.sin(a)), cap) * D2R,
   };
 });
 
@@ -172,11 +191,12 @@ export class GlobeEngine {
   private nameFade = new Float32Array(COUNTRY_LABELS.length);
   private namePlaced = new Uint8Array(COUNTRY_LABELS.length);
   private nameOnAxis = new Uint8Array(COUNTRY_LABELS.length);
+  private nameWrapped = new Uint8Array(COUNTRY_LABELS.length);
   /** When a name that lost its place may try again, so two names drifting past each other don't flicker. */
   private nameHold = new Float64Array(COUNTRY_LABELS.length);
   private nameT = 0;
   private nameSpots: NameSpot[] = NAMES.map((_, i) => ({
-    i, x: 0, y: 0, a: 0, size: 0, box: [0, 0, 0, 0], fits: false, facing: 0,
+    i, x: 0, y: 0, a: 0, size: 0, box: [0, 0, 0, 0], fits: false, wrapped: false, facing: 0,
     p: screenPoint(), q: screenPoint(),
   }));
   private visibleNames: NameSpot[] = [];
@@ -1216,8 +1236,13 @@ export class GlobeEngine {
   }
 
   /** A name's width at a 1px font size, with the token's letter spacing. Names are set in capitals. */
-  private nameWidth(ctx: CanvasRenderingContext2D, name: string) {
+  private nameWidth(ctx: CanvasRenderingContext2D, name: string): number {
     let w = this.nameWidths.get(name);
+    if (w === undefined && name.includes("\n")) {
+      // a wrapped name is as wide as its longer line
+      w = Math.max(...name.split("\n").map((line) => this.nameWidth(ctx, line)));
+      this.nameWidths.set(name, w);
+    }
     if (w === undefined) {
       ctx.font = `${COUNTRY_TYPE.weight} 100px ${this.nameFamily}`;
       ctx.letterSpacing = "0px";
@@ -1237,7 +1262,9 @@ export class GlobeEngine {
     const pad = Math.ceil(px * 0.3);
     c = document.createElement("canvas");
     c.width = Math.ceil(this.nameWidth(this.hud, name) * px) + pad * 2;
-    c.height = Math.ceil(px * 1.2) + pad * 2;
+    const lines = name.toUpperCase().split("\n");
+    const lh = px * 1.15;
+    c.height = Math.ceil(px * 1.2 + lh * (lines.length - 1)) + pad * 2;
     const g = c.getContext("2d")!;
     g.font = `${COUNTRY_TYPE.weight} ${px}px ${this.nameFamily}`;
     g.letterSpacing = `${ls}px`;
@@ -1246,16 +1273,15 @@ export class GlobeEngine {
     g.lineJoin = "round";
     // canvas adds the spacing after the last letter too; shift back by half of it to stay centred
     const x = c.width / 2 + ls / 2;
-    const y = c.height / 2 + px * 0.05;
-    const text = name.toUpperCase();
+    const y = c.height / 2 + px * 0.05 - (lh * (lines.length - 1)) / 2;
     // a soft paper halo lifts the letters off the halftone without boxing them in
     g.strokeStyle = P.paper;
     g.globalAlpha = 0.7;
     g.lineWidth = px * 0.22;
-    g.strokeText(text, x, y);
+    lines.forEach((line, i) => g.strokeText(line, x, y + i * lh));
     g.globalAlpha = 1;
     g.fillStyle = P.ink;
-    g.fillText(text, x, y);
+    lines.forEach((line, i) => g.fillText(line, x, y + i * lh));
     this.nameSprites.set(name, c);
     return c;
   }
@@ -1313,14 +1339,20 @@ export class GlobeEngine {
       }
       if (!s) continue;
       const size = clamp(room * 0.05, base, base * NAME_MAX);
-      const w = this.nameWidth(ctx, n.name) * size;
       // names may run a little past a small country's edges, as on a printed map.
       // A name on screen keeps its place until it is clearly out of room; a new one waits until it clearly has room
-      const fit = (room * 0.9 + 28) / w;
+      const need = this.namePlaced[i] ? 0.95 : 1.1;
+      const fitOf = (text: string) => (room * 0.9 + 28) / (this.nameWidth(ctx, text) * size);
+      let fit = fitOf(n.name);
+      // a long name that won't fit on one line goes on two; it comes back to one line only with room to spare
+      const wrapped = !!n.wrap && fit < (this.nameWrapped[i] ? 1.25 : need);
+      this.nameWrapped[i] = wrapped ? 1 : 0;
+      if (wrapped) fit = fitOf(n.wrap!);
+      const w = this.nameWidth(ctx, wrapped ? n.wrap! : n.name) * size;
       const cos = Math.abs(Math.cos(s.a));
       const sin = Math.abs(Math.sin(s.a));
       const hw = w / 2 + 6;
-      const hh = size * 0.75;
+      const hh = size * (wrapped ? 1.35 : 0.75);
       const ex = cos * hw + sin * hh;
       const ey = sin * hw + cos * hh;
       sp.x = p.x;
@@ -1332,7 +1364,8 @@ export class GlobeEngine {
       sp.box[1] = p.y - ey;
       sp.box[2] = p.x + ex;
       sp.box[3] = p.y + ey;
-      sp.fits = fit >= (this.namePlaced[i] ? 0.95 : 1.1);
+      sp.wrapped = wrapped;
+      sp.fits = fit >= need;
       spots.push(sp);
     }
 
@@ -1369,7 +1402,7 @@ export class GlobeEngine {
       const alpha = f * smooth(0.22, 0.4, sp.facing) * this.nameInk;
       if (alpha < 0.01) continue;
       const n = NAMES[sp.i];
-      const img = this.nameSprite(n.name, dpr);
+      const img = this.nameSprite(sp.wrapped && n.wrap ? n.wrap : n.name, dpr);
       const k = sp.size / (base * NAME_MAX * dpr);
       const c = Math.cos(sp.a) * k;
       const si = Math.sin(sp.a) * k;
