@@ -138,6 +138,13 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+@utility type-country {
+  font-family: var(--font-typewriter);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
 @utility type-meta {
   font-family: var(--font-typewriter);
   font-size: 13px;

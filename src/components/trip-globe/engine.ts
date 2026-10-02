@@ -1,7 +1,8 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { nearestAirport, type Airport } from "./airports";
-import { HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
+import { COUNTRY_LABELS } from "./countries";
+import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { buildPlane } from "./plane-model";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
@@ -92,11 +93,57 @@ interface Snap {
   airport: Airport;
   v: Vec3;
 }
+interface NameSpot {
+  i: number;
+  x: number;
+  y: number;
+  a: number;
+  size: number;
+  box: number[];
+  fits: boolean;
+  facing: number;
+  p: ScreenPoint;
+  q: ScreenPoint;
+}
+interface ArcBuffer {
+  points: (ScreenPoint | null)[];
+  pool: ScreenPoint[];
+}
+
+const screenPoint = (): ScreenPoint => ({ x: 0, y: 0, z: 0, vis: false });
+
+/** How much bigger than the `country` token a name grows as its country fills the screen. */
+const NAME_MAX = 1.25;
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
   return { lat: lat / D2R, lng: lon / D2R };
 };
+
+/** Country names on the globe, with each anchor and long axis as world vectors. Biggest country first. */
+const NAMES = COUNTRY_LABELS.map((l) => {
+  const lat = l.lat * D2R;
+  const lon = l.lng * D2R;
+  const v = vecOf(lat, lon);
+  const east: Vec3 = [Math.cos(lon), 0, -Math.sin(lon)];
+  const north = cross(v, east);
+  const a = l.axis * D2R;
+  // a long thin country (Japan, Chile) runs its name along its axis; others along the parallel
+  const long = l.span > 2 * l.width;
+  // a scattered archipelago (Micronesia) spans far more sea than land, so its room is capped by its area
+  const cap = 3 * Math.sqrt(l.area);
+  const axis = add(mul(east, Math.cos(a)), mul(north, Math.sin(a)));
+  return {
+    name: l.name,
+    v,
+    eastStep: norm(add(v, mul(east, 0.01))),
+    axisStep: norm(add(v, mul(axis, 0.01))),
+    long,
+    // room for the name along the axis, or across the parallel, in radians of arc
+    along: Math.min(l.span, cap) * D2R,
+    across: Math.min(long ? l.width : (l.span + l.width) / 2, cap) * D2R,
+  };
+});
 
 export class GlobeEngine {
   private gl: WebGL2RenderingContext | null = null;
@@ -108,11 +155,44 @@ export class GlobeEngine {
   private vaoPlane: WebGLVertexArrayObject | null = null;
   private planeCount = 0;
   private texEarth: WebGLTexture | null = null;
+  private texBorders: WebGLTexture | null = null;
   private sky: Sky | null = null;
   private skySeed: string | number = randomSeed();
   private cam: Camera | null = null;
   private P: Palette = PALETTES.light;
   private tagFont = '700 12px "Courier Prime", ui-monospace, monospace';
+  private nameFamily = '"Courier Prime", ui-monospace, monospace';
+  /** Each name's width at a 1px font size, letter spacing included. Cleared when fonts load. */
+  private nameWidths = new Map<string, number>();
+  /** Each name drawn once, halo and all, at its largest size; frames only copy these. Cleared on theme or font change. */
+  private nameSprites = new Map<string, HTMLCanvasElement>();
+  /** How strongly names print: full while idle, dimmed while a trip is on the globe. */
+  private nameInk = 1;
+  /** Per name: how far it has faded in (0–1), whether it held a place last frame, and whether it ran along its axis. */
+  private nameFade = new Float32Array(COUNTRY_LABELS.length);
+  private namePlaced = new Uint8Array(COUNTRY_LABELS.length);
+  private nameOnAxis = new Uint8Array(COUNTRY_LABELS.length);
+  /** When a name that lost its place may try again, so two names drifting past each other don't flicker. */
+  private nameHold = new Float64Array(COUNTRY_LABELS.length);
+  private nameT = 0;
+  private nameSpots: NameSpot[] = NAMES.map((_, i) => ({
+    i, x: 0, y: 0, a: 0, size: 0, box: [0, 0, 0, 0], fits: false, facing: 0,
+    p: screenPoint(), q: screenPoint(),
+  }));
+  private visibleNames: NameSpot[] = [];
+  private placedNames: number[][] = [];
+  private nameWon = new Uint8Array(NAMES.length);
+  private namesMoving = true;
+  private groundArc: ArcBuffer = { points: [], pool: [] };
+  private airArc: ArcBuffer = { points: [], pool: [] };
+  private glDirty = true;
+  private hudDirty = true;
+  private scene: number[] = [];
+  private lastScene: number[] = [];
+  private hudX = NaN;
+  private hudY = NaN;
+  private hudHover = false;
+  private hudAnimated = false;
   private reduceMotion = false;
   private motionQuery: MediaQueryList | null = null;
 
@@ -149,7 +229,10 @@ export class GlobeEngine {
   private curAir: Snap | null = null;
   private pl: Plane | null = null;
   // other members' flights: where presence says they are, and where we draw them (eased toward that)
-  private remotes = new Map<string, { o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane }>();
+  private remotes = new Map<string, {
+    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane;
+    oAir: Snap; airAt: Vec3 | null; dAir: Snap | null;
+  }>();
 
   // input and time
   private mx = -9999;
@@ -172,6 +255,7 @@ export class GlobeEngine {
     private glEl: HTMLCanvasElement,
     private hudEl: HTMLCanvasElement,
     private earthUrl: string,
+    private bordersUrl: string,
     private events: GlobeEvents = {},
   ) {
     this.hud = hudEl.getContext("2d")!;
@@ -179,7 +263,7 @@ export class GlobeEngine {
 
   /** Starts rendering. Returns false when WebGL2 is unavailable. */
   start(): boolean {
-    const gl = this.glEl.getContext("webgl2", { antialias: true, alpha: false, depth: true, preserveDrawingBuffer: true });
+    const gl = this.glEl.getContext("webgl2", { antialias: true, alpha: false, depth: true });
     if (!gl) return false;
     this.gl = gl;
     this.pGlobe = this.program(gl, VS_QUAD, FS_GLOBE, ["aPos"]);
@@ -202,15 +286,10 @@ export class GlobeEngine {
     gl.bindVertexArray(null);
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    this.texEarth = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.texEarth);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     // all sea until the texture arrives
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 255, 255, 255]));
-    this.loadEarth();
+    this.texEarth = this.dataTexture(gl, this.earthUrl, [0, 255, 255, 255]);
+    // one country, so no borders, until the texture arrives
+    this.texBorders = this.dataTexture(gl, this.bordersUrl, [0, 0, 0, 255]);
 
     this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     this.reduceMotion = this.motionQuery.matches;
@@ -219,6 +298,7 @@ export class GlobeEngine {
     this.root.addEventListener("wheel", this.onWheel, { passive: false });
     this.root.addEventListener("gesturestart", this.onGesture as EventListener);
     this.root.addEventListener("gesturechange", this.onGesture as EventListener);
+    document.fonts?.addEventListener("loadingdone", this.onFontsLoaded);
 
     this.raf = requestAnimationFrame(this.tick);
     return true;
@@ -231,6 +311,7 @@ export class GlobeEngine {
     this.root.removeEventListener("wheel", this.onWheel);
     this.root.removeEventListener("gesturestart", this.onGesture as EventListener);
     this.root.removeEventListener("gesturechange", this.onGesture as EventListener);
+    document.fonts?.removeEventListener("loadingdone", this.onFontsLoaded);
     this.sky?.dispose();
     this.sky = null;
     // Not loseContext(): React Strict Mode remounts onto the same canvas, which would hand back the lost context.
@@ -239,15 +320,30 @@ export class GlobeEngine {
 
   setTheme(theme: ThemeId) {
     this.P = PALETTES[theme];
+    this.glDirty = this.hudDirty = true;
+    this.nameSprites.clear();
     const stack = getComputedStyle(this.root).getPropertyValue("--font-typewriter").trim();
     if (stack) this.tagFont = `700 12px ${stack}`;
+    if (stack && stack !== this.nameFamily) {
+      this.nameFamily = stack;
+      this.onFontsLoaded();
+      // canvas text doesn't wait for a web font, so ask for it; loadingdone redraws
+      document.fonts?.load(`${COUNTRY_TYPE.weight} ${COUNTRY_TYPE.size}px ${stack}`).catch(() => {});
+    }
   }
+
+  private onFontsLoaded = () => {
+    this.nameWidths.clear();
+    this.nameSprites.clear();
+    this.hudDirty = true;
+  };
 
   /** Regenerates the sky from a seed. Give everyone on a trip the same seed and they all see the same sky. */
   setSkySeed(seed: string | number) {
     if (seed === this.skySeed) return;
     this.skySeed = seed;
     this.sky?.setSeed(seed, this.vaoQuad);
+    this.glDirty = true;
   }
 
   getMode() {
@@ -562,33 +658,46 @@ export class GlobeEngine {
     return { p, u };
   }
 
-  // The texture is data, not a picture: r = land mask, g = distance from the coast, b = relief.
-  // It must be uploaded without colour-space conversion or premultiplication.
-  private loadEarth() {
-    const gl = this.gl!;
+  // The textures are data, not pictures. Earth: r = land mask, g = distance from the coast, b = relief.
+  // Borders: each country's 3-bit code, one bit per channel (see scripts/build-borders.mts).
+  // They must be uploaded without colour-space conversion or premultiplication.
+  private dataTexture(gl: WebGL2RenderingContext, url: string, until: number[]) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(until));
     const put = (src: TexImageSource) => {
       if (this.gl !== gl) return;
-      gl.bindTexture(gl.TEXTURE_2D, this.texEarth);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      this.glDirty = true;
     };
     const viaImg = () => {
       const im = new Image();
       im.onload = () => put(im);
-      im.src = this.earthUrl;
+      im.src = url;
     };
     if (typeof createImageBitmap === "function") {
-      fetch(this.earthUrl)
+      fetch(url)
         .then((r) => r.blob())
         .then((b) => createImageBitmap(b, { colorSpaceConversion: "none", premultiplyAlpha: "none" }))
-        .then(put)
+        .then((bitmap) => {
+          put(bitmap);
+          bitmap.close();
+        })
         .catch(viaImg);
     } else viaImg();
+    return tex;
   }
 
   private onMotionChange = (e: MediaQueryListEvent) => {
     this.reduceMotion = e.matches;
+    this.hudDirty = true;
   };
 
   private resize() {
@@ -596,6 +705,8 @@ export class GlobeEngine {
     const H = this.root.clientHeight || 1;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     if (W !== this.W || H !== this.H || dpr !== this.dpr) {
+      if (dpr !== this.dpr) this.nameSprites.clear();
+      this.glDirty = this.hudDirty = true;
       this.W = W;
       this.H = H;
       this.dpr = dpr;
@@ -675,23 +786,27 @@ export class GlobeEngine {
   }
 
   /** Screen position of a world point, and whether the globe hides it. */
-  private proj(p: Vec3): ScreenPoint | null {
+  private proj(p: Vec3, out = screenPoint()): ScreenPoint | null {
     const c = this.cam!;
-    const q = sub(p, c.C);
-    const vz = dot(q, c.F);
+    const x = p[0] - c.C[0], y = p[1] - c.C[1], z = p[2] - c.C[2];
+    const vz = x * c.F[0] + y * c.F[1] + z * c.F[2];
     if (vz < 0.003) return null;
-    const nx = dot(q, c.R) / (vz * c.tan * this.asp);
-    const ny = dot(q, c.U) / (vz * c.tan) - c.shift;
-    const L = len(q);
-    const d = mul(q, 1 / L);
-    const b = dot(c.C, d);
+    const nx = (x * c.R[0] + y * c.R[1] + z * c.R[2]) / (vz * c.tan * this.asp);
+    const ny = (x * c.U[0] + y * c.U[1] + z * c.U[2]) / (vz * c.tan) - c.shift;
+    const L = Math.hypot(x, y, z);
+    const inv = 1 / L;
+    const b = c.C[0] * (x * inv) + c.C[1] * (y * inv) + c.C[2] * (z * inv);
     const disc = b * b - (dot(c.C, c.C) - 1);
     let vis = true;
     if (disc > 0) {
       const t1 = -b - Math.sqrt(disc);
       if (t1 > 0 && t1 < L - 1e-3) vis = false;
     }
-    return { x: (nx * 0.5 + 0.5) * this.W, y: (0.5 - ny * 0.5) * this.H, vis, z: vz };
+    out.x = (nx * 0.5 + 0.5) * this.W;
+    out.y = (0.5 - ny * 0.5) * this.H;
+    out.vis = vis;
+    out.z = vz;
+    return out;
   }
 
   private pos(e: { clientX: number; clientY: number }): [number, number] {
@@ -729,8 +844,13 @@ export class GlobeEngine {
       const ft = tangent(sub(ahead, target), target);
       const o = vecOf(f.origin.lat * D2R, f.origin.lng * D2R);
       const r = this.remotes.get(f.id);
-      if (r) Object.assign(r, { o, target, ft, landed: f.landed });
-      else this.remotes.set(f.id, { o, target, ft, landed: f.landed, pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 } });
+      if (r) {
+        if (o.some((v, i) => v !== r.o[i])) r.oAir = nearestAirport(o);
+        Object.assign(r, { o, target, ft, landed: f.landed });
+      } else this.remotes.set(f.id, {
+        o, target, ft, landed: f.landed, pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 },
+        oAir: nearestAirport(o), airAt: null, dAir: null,
+      });
     }
     for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
   }
@@ -753,6 +873,7 @@ export class GlobeEngine {
 
   private sim(dt: number, t: number) {
     const k = (r: number) => 1 - Math.exp(-dt * r);
+    this.nameInk += ((this.mode === "idle" ? 1 : 0.7) - this.nameInk) * (this.reduceMotion ? 1 : k(6));
     for (const r of this.remotes.values()) {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
@@ -832,6 +953,24 @@ export class GlobeEngine {
 
   // ---------- loop ----------
 
+  /** Compare the scene using reusable buffers. Time alone doesn't change the globe or a settled HUD. */
+  private sceneChanged() {
+    const state = this.scene;
+    state.length = 0;
+    state.push(this.lon0, this.lat0, this.range, this.mode === "idle" ? 0 : this.mode === "flying" ? 1 : 2);
+    const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch);
+    if (this.pl) plane(this.pl);
+    if (this.origin) state.push(...this.origin);
+    for (const r of this.remotes.values()) {
+      state.push(...r.o, Number(r.landed));
+      plane(r.pl);
+    }
+    const changed = state.length !== this.lastScene.length || state.some((v, i) => v !== this.lastScene[i]);
+    this.scene = this.lastScene;
+    this.lastScene = state;
+    return changed;
+  }
+
   private tick = (ts: number) => {
     if (!this.gl) return;
     this.raf = requestAnimationFrame(this.tick);
@@ -839,11 +978,29 @@ export class GlobeEngine {
     const dt = this.t ? clamp(t - this.t, 0, 0.05) : 0.016;
     this.t = t;
     this.resize();
+    const nameInk = this.nameInk;
     this.sim(dt, t);
     this.cam = this.camera();
     this.hover = this.hasPointer && !this.down?.drag ? this.pick(this.mx, this.my) : null;
-    this.drawGL();
-    this.drawHud(t);
+    if (this.sceneChanged()) this.glDirty = true;
+    const hover = !!this.hover && this.mode !== "flying";
+    const animated = !this.reduceMotion && (hover || this.mode === "landed" ||
+      (this.mode === "flying" && t - this.tTake <= 0.7));
+    if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated ||
+        hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
+    if (this.glDirty) {
+      this.drawGL();
+      this.glDirty = false;
+    }
+    if (this.hudDirty) {
+      this.drawHud(t);
+      this.hudDirty = false;
+      this.hudHover = hover;
+      this.hudAnimated = animated;
+      this.hudX = this.mx;
+      this.hudY = this.my;
+    } else this.nameT = t;
+    // Remote DOM cursors ease independently of the canvases, so keep their frame callbacks running.
     this.events.onFrame?.();
   };
 
@@ -861,6 +1018,25 @@ export class GlobeEngine {
     const up3 = add(mul(up, cb), mul(right, sb));
     const right3 = sub(mul(right, cb), mul(up, sb));
     return { X: mul(right3, S), Y: mul(up3, S), Z: mul(fwd, S) };
+  }
+
+  /** Device-pixel bounds of the sphere's tangent rays, in GL's bottom-up coordinates. */
+  private surfaceBounds(): [number, number, number, number] {
+    const c = this.cam!;
+    const w = this.glEl.width, h = this.glEl.height;
+    const z = -dot(c.C, c.F);
+    // Close, tilted views can cross the sphere's tangent plane: keep the full draw in that case.
+    if (z <= 1) return [0, 0, w, h];
+    const bounds = (v: number, scale: number, shift: number, size: number) => {
+      const r = Math.sqrt(v * v + z * z - 1);
+      const lo = ((v * z - r) / (z * z - 1) / scale - shift) * 0.5 + 0.5;
+      const hi = ((v * z + r) / (z * z - 1) / scale - shift) * 0.5 + 0.5;
+      // Round outwards with room for float precision and derivative helpers.
+      return [clamp(Math.floor(lo * size) - 2, 0, size), clamp(Math.ceil(hi * size) + 2, 0, size)];
+    };
+    const [x0, x1] = bounds(-dot(c.C, c.R), c.tan * this.asp, 0, w);
+    const [y0, y1] = bounds(-dot(c.C, c.U), c.tan, c.shift, h);
+    return [x0, y0, x1 - x0, y1 - y0];
   }
 
   private drawGL() {
@@ -913,6 +1089,9 @@ export class GlobeEngine {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texEarth);
     gl.uniform1i(u.uEarth, 0);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.texBorders);
+    gl.uniform1i(u.uBorders, 2);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.sky?.texture ?? null);
     gl.uniform1i(u.uSky, 1);
@@ -925,7 +1104,26 @@ export class GlobeEngine {
     gl.uniform3fv(u.uShP, shP);
     gl.uniform1f(u.uShR, S * 0.42);
     gl.uniform1f(u.uShA, pl && shadow ? 0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt) : 0);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const [x, y, w, h] = this.surfaceBounds();
+    if (w === cw && h === ch) {
+      gl.uniform1i(u.uSurface, 1);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    } else {
+      const rect = (x: number, y: number, w: number, h: number) => {
+        if (w <= 0 || h <= 0) return;
+        gl.scissor(x, y, w, h);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+      gl.enable(gl.SCISSOR_TEST);
+      gl.uniform1i(u.uSurface, 0);
+      rect(0, 0, x, ch);
+      rect(x + w, 0, cw - x - w, ch);
+      rect(x, 0, w, y);
+      rect(x, y + h, w, ch - y - h);
+      gl.uniform1i(u.uSurface, 1);
+      rect(x, y, w, h);
+      gl.disable(gl.SCISSOR_TEST);
+    }
     this.sky?.draw(setCam, [cw, ch], dpr, th.gl.uInk, th.skyInk, 1);
 
     // other members' planes first, so this viewer's own plane sits on top
@@ -1012,6 +1210,171 @@ export class GlobeEngine {
     ctx.restore();
   }
 
+  /** A name's width at a 1px font size, with the token's letter spacing. Names are set in capitals. */
+  private nameWidth(ctx: CanvasRenderingContext2D, name: string) {
+    let w = this.nameWidths.get(name);
+    if (w === undefined) {
+      ctx.font = `${COUNTRY_TYPE.weight} 100px ${this.nameFamily}`;
+      ctx.letterSpacing = "0px";
+      w = ctx.measureText(name.toUpperCase()).width / 100 + COUNTRY_TYPE.spacing * (name.length - 1);
+      this.nameWidths.set(name, w);
+    }
+    return w;
+  }
+
+  /** A name drawn at NAME_MAX × the token size and the screen's pixel ratio, with its halo, centred. */
+  private nameSprite(name: string, dpr: number) {
+    let c = this.nameSprites.get(name);
+    if (c) return c;
+    const P = this.P;
+    const px = COUNTRY_TYPE.size * NAME_MAX * dpr;
+    const ls = COUNTRY_TYPE.spacing * px;
+    const pad = Math.ceil(px * 0.3);
+    c = document.createElement("canvas");
+    c.width = Math.ceil(this.nameWidth(this.hud, name) * px) + pad * 2;
+    c.height = Math.ceil(px * 1.2) + pad * 2;
+    const g = c.getContext("2d")!;
+    g.font = `${COUNTRY_TYPE.weight} ${px}px ${this.nameFamily}`;
+    g.letterSpacing = `${ls}px`;
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.lineJoin = "round";
+    // canvas adds the spacing after the last letter too; shift back by half of it to stay centred
+    const x = c.width / 2 + ls / 2;
+    const y = c.height / 2 + px * 0.05;
+    const text = name.toUpperCase();
+    // a soft paper halo lifts the letters off the halftone without boxing them in
+    g.strokeStyle = P.paper;
+    g.globalAlpha = 0.7;
+    g.lineWidth = px * 0.22;
+    g.strokeText(text, x, y);
+    g.globalAlpha = 1;
+    g.fillStyle = P.ink;
+    g.fillText(text, x, y);
+    this.nameSprites.set(name, c);
+    return c;
+  }
+
+  /**
+   * Country names, set in capitals in the typewriter face. A name shows once the country is big enough on screen to
+   * hold it, fading in as it gets room; long thin countries run their name along their axis. Bigger countries win
+   * when names collide, and none sits on a plane or an airport tag.
+   */
+  private countryNames(ctx: CanvasRenderingContext2D, keepClear: { x: number; y: number }[], t: number) {
+    const C = this.cam!.C;
+    const dpr = this.hudEl.width / this.W;
+    const base = COUNTRY_TYPE.size;
+    const dt = this.nameT ? clamp(t - this.nameT, 0, 0.1) : 0;
+    this.nameT = t;
+    // names fade over about 0.2s rather than popping; under reduced motion they switch
+    const ease = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 14);
+    this.namesMoving = false;
+
+    // 1. where each name would go this frame, and whether it has room there
+    const spots = this.visibleNames;
+    spots.length = 0;
+    for (let i = 0; i < NAMES.length; i++) {
+      const n = NAMES[i];
+      const sp = this.nameSpots[i];
+      // most names are on the far side or near the limb: reject them before any projection
+      const x = C[0] - n.v[0], y = C[1] - n.v[1], z = C[2] - n.v[2];
+      const facing = (n.v[0] * x + n.v[1] * y + n.v[2] * z) / Math.hypot(x, y, z);
+      const p = facing > 0.22 ? this.proj(n.v, sp.p) : null;
+      if (!p || !p.vis) {
+        this.nameFade[i] = 0;
+        this.namePlaced[i] = 0;
+        continue;
+      }
+      // which way the axis (or the parallel) runs on screen, and how many px a radian of it covers there
+      const step = (point: Vec3) => {
+        const q = this.proj(point, sp.q);
+        if (!q) return null;
+        let a = Math.atan2(q.y - p.y, q.x - p.x);
+        if (a > Math.PI / 2) a -= Math.PI;
+        else if (a < -Math.PI / 2) a += Math.PI;
+        return { a, px: Math.hypot(q.x - p.x, q.y - p.y) / 0.01 };
+      };
+      let s = n.long ? step(n.axisStep) : null;
+      let room = 0;
+      // keep text within 60° of level (66° once it runs that way, so it doesn't flip back and forth);
+      // steeper countries (Vietnam, Chile) are named across instead
+      const steep = ((this.nameOnAxis[i] ? 66 : 60) * Math.PI) / 180;
+      if (s && Math.abs(s.a) < steep) {
+        room = n.along * s.px;
+        this.nameOnAxis[i] = 1;
+      } else {
+        this.nameOnAxis[i] = 0;
+        if ((s = step(n.eastStep))) room = n.across * s.px;
+      }
+      if (!s) continue;
+      const size = clamp(room * 0.05, base, base * NAME_MAX);
+      const w = this.nameWidth(ctx, n.name) * size;
+      // names may run a little past a small country's edges, as on a printed map.
+      // A name on screen keeps its place until it is clearly out of room; a new one waits until it clearly has room
+      const fit = (room * 0.9 + 28) / w;
+      const cos = Math.abs(Math.cos(s.a));
+      const sin = Math.abs(Math.sin(s.a));
+      const hw = w / 2 + 6;
+      const hh = size * 0.75;
+      const ex = cos * hw + sin * hh;
+      const ey = sin * hw + cos * hh;
+      sp.x = p.x;
+      sp.y = p.y;
+      sp.a = s.a;
+      sp.size = size;
+      sp.facing = facing;
+      sp.box[0] = p.x - ex;
+      sp.box[1] = p.y - ey;
+      sp.box[2] = p.x + ex;
+      sp.box[3] = p.y + ey;
+      sp.fits = fit >= (this.namePlaced[i] ? 0.95 : 1.1);
+      spots.push(sp);
+    }
+
+    // 2. place them: names already showing first, so a newcomer never knocks one off; then biggest country first
+    const placed = this.placedNames;
+    placed.length = 0;
+    const won = this.nameWon;
+    won.fill(0);
+    // Spots are already in country-size order; two passes preserve the priority without sorting.
+    for (let priority = 1; priority >= 0; priority--) {
+      for (const sp of spots) {
+        if (!sp.fits || this.namePlaced[sp.i] !== priority || (!priority && t < this.nameHold[sp.i])) continue;
+        const box = sp.box;
+        // a name already showing gets a few px of slack before a neighbour counts as a collision
+        const slack = priority ? 4 : 0;
+        if (placed.some((b) => box[0] + slack < b[2] && box[2] - slack > b[0] && box[1] + slack < b[3] && box[3] - slack > b[1])) continue;
+        if (keepClear.some((c) => c.x > box[0] - 30 && c.x < box[2] + 30 && c.y > box[1] - 22 && c.y < box[3] + 34)) continue;
+        placed.push(box);
+        won[sp.i] = 1;
+      }
+    }
+
+    // 3. fade toward the outcome, and draw anything still visible (a losing name fades out where it was)
+    ctx.save();
+    ctx.imageSmoothingQuality = "high";
+    for (const sp of spots) {
+      const on = !!won[sp.i];
+      if (!on && this.namePlaced[sp.i]) this.nameHold[sp.i] = t + 0.6;
+      this.namePlaced[sp.i] = on ? 1 : 0;
+      const prev = this.nameFade[sp.i];
+      const f = (this.nameFade[sp.i] += ((on ? 1 : 0) - prev) * ease);
+      if (t < this.nameHold[sp.i] || (!dt && f !== Number(on)) ||
+          (this.nameFade[sp.i] !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
+      const alpha = f * smooth(0.22, 0.4, sp.facing) * this.nameInk;
+      if (alpha < 0.01) continue;
+      const n = NAMES[sp.i];
+      const img = this.nameSprite(n.name, dpr);
+      const k = sp.size / (base * NAME_MAX * dpr);
+      const c = Math.cos(sp.a) * k;
+      const si = Math.sin(sp.a) * k;
+      ctx.globalAlpha = alpha;
+      ctx.setTransform(dpr * c, dpr * si, -dpr * si, dpr * c, dpr * sp.x, dpr * sp.y);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    }
+    ctx.restore();
+  }
+
   /** The route's start: a small ring at the foot of the line. */
   private startMark(ctx: CanvasRenderingContext2D, x: number, y: number) {
     const P = this.P;
@@ -1043,18 +1406,38 @@ export class GlobeEngine {
   }
 
   /** Points along the great circle from a to b, lifted into an arc (lift 1) or on the ground (lift 0). */
-  private arc(a: Vec3, b: Vec3, lift: number, endAlt: number) {
+  private arc(a: Vec3, b: Vec3, lift: number, endAlt: number, buffer: ArcBuffer) {
     const w = angle(a, b);
+    const sin = Math.sin(w);
     // short hops still get a visible arc; that minimum lift shrinks with zoom so it stays on screen
     const h = Math.min(0.32, 0.03 * this.zoomScale + w * 0.11) * lift;
     const n = Math.max(12, Math.ceil(w / 0.015));
-    const out: (ScreenPoint | null)[] = [];
+    const out = buffer.points;
+    out.length = n + 1;
     for (let i = 0; i <= n; i++) {
       const t = i / n;
-      const p = mul(slerp(a, b, t), 1 + h * Math.sin(Math.PI * t) + endAlt * t);
-      const q = this.proj(p);
-      if (q) q.w = p;
-      out.push(q);
+      const q = buffer.pool[i] ?? (buffer.pool[i] = { ...screenPoint(), w: [0, 0, 0] });
+      const p = q.w!;
+      if (sin < 1e-5) {
+        p[0] = a[0] + (b[0] - a[0]) * t;
+        p[1] = a[1] + (b[1] - a[1]) * t;
+        p[2] = a[2] + (b[2] - a[2]) * t;
+        const l = len(p) || 1;
+        p[0] /= l;
+        p[1] /= l;
+        p[2] /= l;
+      } else {
+        const ka = Math.sin((1 - t) * w) / sin;
+        const kb = Math.sin(t * w) / sin;
+        p[0] = a[0] * ka + b[0] * kb;
+        p[1] = a[1] * ka + b[1] * kb;
+        p[2] = a[2] * ka + b[2] * kb;
+      }
+      const r = 1 + h * Math.sin(Math.PI * t) + endAlt * t;
+      p[0] *= r;
+      p[1] *= r;
+      p[2] *= r;
+      out[i] = this.proj(p, q);
     }
     return out;
   }
@@ -1063,14 +1446,14 @@ export class GlobeEngine {
   private route(ctx: CanvasRenderingContext2D, origin: Vec3, pl: Plane, marching: boolean, t = 0) {
     const P = this.P;
     const end = pl.n;
-    const ground = this.arc(origin, end, 0, 0);
-    const air = this.arc(origin, end, 1, pl.alt);
+    const ground = this.arc(origin, end, 0, 0, this.groundArc);
+    const air = this.arc(origin, end, 1, pl.alt, this.airArc);
     // stop the dashes just short of the plane
     const cut = S_PLANE * this.planeScale * 0.45;
     const tip = mul(end, 1 + pl.alt);
     for (let i = air.length - 1; i >= 0; i--) {
       const w = air[i]?.w;
-      if (!w || len(sub(w, tip)) >= cut) break;
+      if (!w || Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]) >= cut) break;
       air[i] = null;
     }
     ctx.save();
@@ -1095,6 +1478,22 @@ export class GlobeEngine {
     ctx.clearRect(0, 0, this.hudEl.width, this.hudEl.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+    // names go under everything else on the overlay, and keep clear of planes and airport tags
+    const clear: { x: number; y: number }[] = [];
+    const mark = (v: Vec3 | null | undefined) => {
+      const q = v && this.proj(v);
+      if (q && q.vis) clear.push({ x: q.x, y: q.y });
+    };
+    for (const r of this.remotes.values()) {
+      mark(r.o);
+      mark(mul(r.pl.n, 1 + r.pl.alt));
+    }
+    if (this.mode !== "idle" && this.pl) {
+      mark(this.origin);
+      mark(mul(this.pl.n, 1 + this.pl.alt));
+    }
+    this.countryNames(ctx, clear, t);
+
     if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
 
     // other members' trips, under this viewer's own: their route, start ring and airport codes
@@ -1103,10 +1502,16 @@ export class GlobeEngine {
       const op = this.proj(r.o);
       if (op && op.vis) {
         this.startMark(ctx, op.x, op.y);
-        this.tag(ctx, op.x, op.y + 20, nearestAirport(r.o).airport.code);
+        this.tag(ctx, op.x, op.y + 20, r.oAir.airport.code);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
-      if (rp && rp.vis) this.tag(ctx, rp.x + 24, rp.y + 20, nearestAirport(r.pl.n).airport.code);
+      if (rp && rp.vis) {
+        if (!r.airAt || r.pl.n.some((v, i) => v !== r.airAt![i])) {
+          r.airAt = r.pl.n;
+          r.dAir = nearestAirport(r.pl.n);
+        }
+        this.tag(ctx, rp.x + 24, rp.y + 20, r.dAir!.airport.code);
+      }
     }
 
     const pl = this.pl;

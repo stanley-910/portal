@@ -87,3 +87,14 @@ function build(theme: ThemeId): Palette {
 export const HALFTONE_PITCH = parseFloat(token("halftone-pitch", "light"));
 
 export const PALETTES: Record<ThemeId, Palette> = { light: build("light"), dark: build("dark") };
+
+/** The `country` type style: country names printed on the globe. */
+export const COUNTRY_TYPE = (() => {
+  const s = tokens.type.groups.flatMap((g) => g.styles).find((st) => st.name === "country");
+  if (!s) throw new Error("Missing design token: type country");
+  return {
+    size: parseFloat(s.fontSize),
+    weight: s.fontWeight,
+    spacing: parseFloat(String(("letterSpacing" in s && s.letterSpacing) || 0)),
+  };
+})();

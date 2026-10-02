@@ -6,9 +6,10 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 
 ## Content
 
-- Let the globe speak. Put no instructions, hints or captions on the globe screen. The only words there are airport codes, city names, a date and a distance.
+- Let the globe speak. Put no instructions, hints or captions on the globe screen. The only words there are airport codes, city names, country names, a date and a distance.
 - Write airport codes as three capitals (`HKG`), set in the `code` or `tag` style.
 - Write city names in their own spelling, accents included (`Montréal`, `São Paulo`), in the `city` style.
+- Write country names in their short English form (`Japan`, `South Korea`, `DR Congo`), in capitals in the `country` style.
 - Write dates as weekday, day, month: `Sat 3 Oct`, shown in capitals in the `stamp` style. Distances use a thousands comma and a space before the unit: `9,624 km`.
 - Never use exclamation marks, emoji or marketing words. When something needs a sentence, write one short plain sentence in `body`.
 
@@ -23,9 +24,9 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 
 ## Type
 
-- Three faces, all from Google Fonts: **IM Fell English SC** (`fell-sc`) for codes and titles, **IM Fell English** (`fell`) for city names and running text, **Courier Prime** (`typewriter`) for dates, distances and tags.
+- Three faces, all from Google Fonts: **IM Fell English SC** (`fell-sc`) for codes and titles, **IM Fell English** (`fell`) for city names and running text, **Courier Prime** (`typewriter`) for dates, distances, tags and country names.
 - Load them with one link: `https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap`.
-- Styles: `code`, `title`, `body`, `city`, `stamp`, `meta`, `tag`. Do not mix them inside one line.
+- Styles: `code`, `title`, `country`, `body`, `city`, `stamp`, `meta`, `tag`. Do not mix them inside one line.
 
 ## Print textures (the globe)
 
@@ -34,6 +35,8 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - By day, ink gathers on the shadow side. By night, the inks are light, so they gather on the lit side instead.
 - Draw coastlines in `ink` at about one device pixel. Add three or four water-lining ripples in `sea-deep` off each coast, fading out from the shore.
 - Draw the graticule every `graticule-step` in `ink` at 30% (20% at night), with the equator slightly stronger.
+- Draw country borders on land only, in `ink` at about 55% (75% at night): finer and fainter than the coastline, and fading toward the globe's edge. They are part of the print, so they sit under the plane and its shadow.
+- Print country names in the `country` style: tracked capitals in `ink`, with a soft `paper` halo that lifts them off the halftone without boxing them in. Set each name level along its parallel, or along a long thin country's axis (Japan, Norway) when that axis is within 60° of level. A name shows only once its country has room for it on screen, bigger countries win where names collide, and no name sits on a plane or an airport tag. While a trip is on the globe, names print at 70% so the route leads.
 - Outline the globe in solid `ink`. It hangs in a stippled night sky, so it casts no shadow on the page.
 - Lay a fine paper grain over everything.
 
@@ -74,6 +77,6 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - **Tailwind:** colours as `bg-paper`, `bg-paper-raised`, `text-ink`, `text-ink-muted`, `border-ink`, `border-rule`. Type styles as `type-code`, `type-title`, `type-body`, `type-city`, `type-stamp`, `type-meta`, `type-tag`. Also `font-fell-sc`, `font-fell`, `font-typewriter`, `rounded-tag`, `rounded-ticket`, `shadow-ticket`, `shadow-tag`. Spacing tokens as `p-(--space-3)`.
 - **shadcn/ui:** its variables (`--background`, `--primary`, `--border`, ...) are mapped onto these tokens in `src/app/globals.css`, so `src/components/ui/*` render in ink on paper.
 - **Components:** `src/components/paper-atlas` (`Ticket`, `Tag`, `Sticker`, `Route`, `RoundButton`, `Cursor`), styled by `paper-atlas.css` in the same folder.
-- **Globe:** `src/components/trip-globe` (`<TripGlobe theme onTakeoff onLand onCancel />`). Its WebGL and canvas colours are read from `tokens.json`. The earth data texture is `public/textures/earth.png`.
+- **Globe:** `src/components/trip-globe` (`<TripGlobe theme onTakeoff onLand onCancel />`). Its WebGL and canvas colours are read from `tokens.json`. The earth data texture is `public/textures/earth.png`. Borders (`public/textures/borders.png`) and name placement (`countries.ts`) come from Natural Earth 50m through `pnpm borders`.
 - **Fonts:** self-hosted with `next/font` in `src/app/fonts.ts`, not the Google Fonts link above.
 - **Gallery:** `/design` renders every token and component in both themes.
