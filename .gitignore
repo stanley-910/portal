@@ -59,3 +59,6 @@ design-system/paper-atlas/SETUP.md
 
 # agent ledgers, devlogs: local only (owner, 2026-10-03)
 .agents/
+
+# nested git worktrees, one per ledger: local only (owner, 2026-10-03)
+.worktrees/
