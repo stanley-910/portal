@@ -1,0 +1,1385 @@
+{
+  "checked": "2026-10-02",
+  "cities": {
+    "kuala-lumpur": {
+      "name": "Kuala Lumpur",
+      "botSlug": "kuala-lumpur",
+      "country": "MY",
+      "lat": 3.1478,
+      "lng": 101.6953,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://en.wikipedia.org/wiki/Kuala_Lumpur"
+    },
+    "singapore": {
+      "name": "Singapore",
+      "botSlug": "singapore",
+      "country": "SG",
+      "lat": 1.2833,
+      "lng": 103.8333,
+      "tz": "Asia/Singapore",
+      "source": "https://en.wikipedia.org/wiki/Singapore"
+    },
+    "penang": {
+      "name": "Penang",
+      "botSlug": "penang",
+      "country": "MY",
+      "lat": 5.4144,
+      "lng": 100.3292,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://en.wikipedia.org/wiki/George_Town,_Penang"
+    },
+    "ipoh": {
+      "name": "Ipoh",
+      "botSlug": "ipoh",
+      "country": "MY",
+      "lat": 4.5972,
+      "lng": 101.075,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://en.wikipedia.org/wiki/Ipoh"
+    },
+    "malacca": {
+      "name": "Malacca",
+      "botSlug": "malacca",
+      "country": "MY",
+      "lat": 2.1944,
+      "lng": 102.2486,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://en.wikipedia.org/wiki/Malacca_City"
+    },
+    "johor-bahru": {
+      "name": "Johor Bahru",
+      "botSlug": "johor-bahru",
+      "country": "MY",
+      "lat": 1.4556,
+      "lng": 103.7611,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://en.wikipedia.org/wiki/Johor_Bahru"
+    },
+    "hat-yai": {
+      "name": "Hat Yai",
+      "botSlug": "hatyai",
+      "country": "TH",
+      "lat": 7.0167,
+      "lng": 100.4667,
+      "tz": "Asia/Bangkok",
+      "source": "https://en.wikipedia.org/wiki/Hat_Yai"
+    },
+    "kuantan": {
+      "name": "Kuantan",
+      "botSlug": "kuantan",
+      "country": "MY",
+      "lat": 3.8167,
+      "lng": 103.3333,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://en.wikipedia.org/wiki/Kuantan"
+    }
+  },
+  "routes": [
+    {
+      "from": "hat-yai",
+      "to": "kuala-lumpur",
+      "carrier": "Suasana Tony Coach",
+      "departures": [
+        "09:00",
+        "18:30"
+      ],
+      "durationMin": 510,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "kuala-lumpur",
+      "carrier": "Alisan Golden Coach",
+      "departures": [
+        "08:45",
+        "18:30"
+      ],
+      "durationMin": 510,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "kuala-lumpur",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "09:45",
+        "18:05"
+      ],
+      "durationMin": 510,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "kuala-lumpur",
+      "carrier": "Lucky Express",
+      "departures": [
+        "10:00",
+        "11:30"
+      ],
+      "durationMin": 510,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "kuala-lumpur",
+      "carrier": "Alibaba Express",
+      "departures": [
+        "11:00",
+        "18:30"
+      ],
+      "durationMin": 510,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "penang",
+      "carrier": "New Asian Travel",
+      "departures": [
+        "08:45",
+        "15:05"
+      ],
+      "durationMin": 237,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-penang-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "penang",
+      "carrier": "Komtar Gunung Raya (Hatyai)",
+      "departures": [
+        "12:00",
+        "15:00"
+      ],
+      "durationMin": 237,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-penang-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "penang",
+      "carrier": "Beh Travel & Tours Sdn Bhd",
+      "departures": [
+        "09:00",
+        "15:00"
+      ],
+      "durationMin": 237,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-penang-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "penang",
+      "carrier": "AhLin Tour",
+      "departures": [
+        "09:00",
+        "15:00"
+      ],
+      "durationMin": 237,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-penang-bus-tickets"
+    },
+    {
+      "from": "hat-yai",
+      "to": "penang",
+      "carrier": "KST Travel",
+      "departures": [
+        "09:30",
+        "15:30"
+      ],
+      "durationMin": 237,
+      "tz": "Asia/Bangkok",
+      "source": "https://www.busonlineticket.com/booking/hatyai-to-penang-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "kuala-lumpur",
+      "carrier": "Plusliner",
+      "departures": [
+        "04:15",
+        "20:30"
+      ],
+      "durationMin": 200,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "kuala-lumpur",
+      "carrier": "Aerobus",
+      "departures": [
+        "04:30",
+        "23:30"
+      ],
+      "durationMin": 200,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "kuala-lumpur",
+      "carrier": "KPB Ekspress",
+      "departures": [
+        "10:00",
+        "23:15"
+      ],
+      "durationMin": 200,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "kuala-lumpur",
+      "carrier": "Naik Selalu Ekspress",
+      "departures": [
+        "00:30",
+        "23:15"
+      ],
+      "durationMin": 200,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "kuala-lumpur",
+      "carrier": "Kejora Masyhur Sdn Bhd",
+      "departures": [
+        "11:45",
+        "23:45"
+      ],
+      "durationMin": 200,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "singapore",
+      "carrier": "Grassland - Transtar",
+      "departures": [
+        "09:10",
+        "21:30"
+      ],
+      "durationMin": 474,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-singapore-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "singapore",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "09:15",
+        "23:15"
+      ],
+      "durationMin": 474,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-singapore-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "singapore",
+      "carrier": "Starmart Express",
+      "departures": [
+        "10:45",
+        "23:45"
+      ],
+      "durationMin": 474,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-singapore-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "singapore",
+      "carrier": "Sri Maju Group",
+      "departures": [
+        "09:00",
+        "21:30"
+      ],
+      "durationMin": 474,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-singapore-bus-tickets"
+    },
+    {
+      "from": "ipoh",
+      "to": "singapore",
+      "carrier": "Star Coach Express Sdn Bhd",
+      "departures": [
+        "10:30",
+        "21:15"
+      ],
+      "durationMin": 474,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/ipoh-to-singapore-bus-tickets"
+    },
+    {
+      "from": "johor-bahru",
+      "to": "kuala-lumpur",
+      "carrier": "Billion Stars",
+      "departures": [
+        "00:00",
+        "23:59"
+      ],
+      "durationMin": 270,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/johor-bahru-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "johor-bahru",
+      "to": "kuala-lumpur",
+      "carrier": "City Express",
+      "departures": [
+        "06:00",
+        "23:59"
+      ],
+      "durationMin": 270,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/johor-bahru-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "johor-bahru",
+      "to": "kuala-lumpur",
+      "carrier": "Neoliner Express",
+      "departures": [
+        "04:30",
+        "21:30"
+      ],
+      "durationMin": 270,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/johor-bahru-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "johor-bahru",
+      "to": "kuala-lumpur",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "06:00",
+        "23:59"
+      ],
+      "durationMin": 270,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/johor-bahru-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "johor-bahru",
+      "to": "kuala-lumpur",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "07:00",
+        "23:30"
+      ],
+      "durationMin": 270,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/johor-bahru-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "hat-yai",
+      "carrier": "Alisan Golden Coach",
+      "departures": [
+        "00:30",
+        "23:55"
+      ],
+      "durationMin": 516,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "hat-yai",
+      "carrier": "Suasana Tony Coach",
+      "departures": [
+        "08:00",
+        "23:59"
+      ],
+      "durationMin": 516,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "hat-yai",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "08:30",
+        "23:00"
+      ],
+      "durationMin": 516,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "hat-yai",
+      "carrier": "Alibaba Express",
+      "departures": [
+        "08:00",
+        "23:30"
+      ],
+      "durationMin": 516,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "hat-yai",
+      "carrier": "Lucky Express",
+      "departures": [
+        "23:00",
+        "23:55"
+      ],
+      "durationMin": 516,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "ipoh",
+      "carrier": "Plusliner",
+      "departures": [
+        "08:30",
+        "23:30"
+      ],
+      "durationMin": 190,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "ipoh",
+      "carrier": "Aerobus",
+      "departures": [
+        "07:45",
+        "23:15"
+      ],
+      "durationMin": 190,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "ipoh",
+      "carrier": "KPB Ekspress",
+      "departures": [
+        "00:30",
+        "22:30"
+      ],
+      "durationMin": 190,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "ipoh",
+      "carrier": "Alisan Golden Coach",
+      "departures": [
+        "00:30",
+        "23:55"
+      ],
+      "durationMin": 190,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "ipoh",
+      "carrier": "Starmart Express",
+      "departures": [
+        "09:45",
+        "23:59"
+      ],
+      "durationMin": 190,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "johor-bahru",
+      "carrier": "Neoliner Express",
+      "departures": [
+        "04:15",
+        "21:30"
+      ],
+      "durationMin": 285,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-johor-bahru-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "johor-bahru",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "00:30",
+        "23:45"
+      ],
+      "durationMin": 285,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-johor-bahru-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "johor-bahru",
+      "carrier": "Eltabina Jaya Sdn Bhd",
+      "departures": [
+        "00:00",
+        "23:45"
+      ],
+      "durationMin": 285,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-johor-bahru-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "johor-bahru",
+      "carrier": "LA Holidays",
+      "departures": [
+        "00:00",
+        "23:45"
+      ],
+      "durationMin": 285,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-johor-bahru-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "johor-bahru",
+      "carrier": "SC Southern Express",
+      "departures": [
+        "00:45",
+        "22:45"
+      ],
+      "durationMin": 285,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-johor-bahru-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "kuantan",
+      "carrier": "LA Holidays",
+      "departures": [
+        "07:00",
+        "21:30"
+      ],
+      "durationMin": 241,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-kuantan-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "kuantan",
+      "carrier": "Quick Liner Express",
+      "departures": [
+        "10:15",
+        "16:15"
+      ],
+      "durationMin": 241,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-kuantan-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "kuantan",
+      "carrier": "Mayang Sari Express",
+      "departures": [
+        "07:30",
+        "23:30"
+      ],
+      "durationMin": 241,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-kuantan-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "kuantan",
+      "carrier": "Sani Express (Sani United)",
+      "departures": [
+        "00:00",
+        "23:30"
+      ],
+      "durationMin": 241,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-kuantan-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "kuantan",
+      "carrier": "Kesatuan Express",
+      "departures": [
+        "10:30",
+        "21:00"
+      ],
+      "durationMin": 241,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-kuantan-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "malacca",
+      "carrier": "Melor Interline Express",
+      "departures": [
+        "08:30",
+        "23:00"
+      ],
+      "durationMin": 132,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-malacca-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "malacca",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "07:00",
+        "22:30"
+      ],
+      "durationMin": 132,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-malacca-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "malacca",
+      "carrier": "Mayang Sari Express",
+      "departures": [
+        "04:30",
+        "19:30"
+      ],
+      "durationMin": 132,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-malacca-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "malacca",
+      "carrier": "Delima Vision",
+      "departures": [
+        "08:00",
+        "20:00"
+      ],
+      "durationMin": 132,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-malacca-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "malacca",
+      "carrier": "Maraliner",
+      "departures": [
+        "04:15",
+        "18:30"
+      ],
+      "durationMin": 132,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-malacca-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "penang",
+      "carrier": "Billion Stars",
+      "departures": [
+        "00:15",
+        "23:30"
+      ],
+      "durationMin": 300,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-penang-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "penang",
+      "carrier": "KPB Ekspress",
+      "departures": [
+        "00:30",
+        "22:30"
+      ],
+      "durationMin": 300,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-penang-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "penang",
+      "carrier": "Alya Express",
+      "departures": [
+        "00:30",
+        "23:30"
+      ],
+      "durationMin": 300,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-penang-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "penang",
+      "carrier": "Plusliner",
+      "departures": [
+        "08:45",
+        "23:59"
+      ],
+      "durationMin": 300,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-penang-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "penang",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "00:30",
+        "23:45"
+      ],
+      "durationMin": 300,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-penang-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "singapore",
+      "carrier": "Eltabina Jaya Sdn Bhd",
+      "departures": [
+        "00:00",
+        "23:45"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-singapore-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "singapore",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "08:00",
+        "23:45"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-singapore-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "singapore",
+      "carrier": "Starmart Express",
+      "departures": [
+        "01:30",
+        "23:59"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-singapore-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "singapore",
+      "carrier": "LA Holidays",
+      "departures": [
+        "07:00",
+        "23:45"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-singapore-bus-tickets"
+    },
+    {
+      "from": "kuala-lumpur",
+      "to": "singapore",
+      "carrier": "The One Tours & Travel (Five Stars Express)",
+      "departures": [
+        "06:30",
+        "20:30"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuala-lumpur-to-singapore-bus-tickets"
+    },
+    {
+      "from": "kuantan",
+      "to": "kuala-lumpur",
+      "carrier": "LA Holidays",
+      "departures": [
+        "07:15",
+        "21:00"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuantan-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "kuantan",
+      "to": "kuala-lumpur",
+      "carrier": "Mayang Sari Express",
+      "departures": [
+        "07:30",
+        "23:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuantan-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "kuantan",
+      "to": "kuala-lumpur",
+      "carrier": "Airport Express",
+      "departures": [
+        "09:00",
+        "22:00"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuantan-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "kuantan",
+      "to": "kuala-lumpur",
+      "carrier": "Kesatuan Express",
+      "departures": [
+        "01:15",
+        "21:00"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuantan-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "kuantan",
+      "to": "kuala-lumpur",
+      "carrier": "Quick Liner Express",
+      "departures": [
+        "09:15",
+        "17:15"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/kuantan-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "kuala-lumpur",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "06:45",
+        "22:30"
+      ],
+      "durationMin": 150,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "kuala-lumpur",
+      "carrier": "Melor Interline Express",
+      "departures": [
+        "05:00",
+        "20:45"
+      ],
+      "durationMin": 150,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "kuala-lumpur",
+      "carrier": "Mayang Sari Express",
+      "departures": [
+        "05:00",
+        "23:45"
+      ],
+      "durationMin": 150,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "kuala-lumpur",
+      "carrier": "Delima Vision",
+      "departures": [
+        "05:00",
+        "19:00"
+      ],
+      "durationMin": 150,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "kuala-lumpur",
+      "carrier": "KPB Ekspress",
+      "departures": [
+        "07:30",
+        "22:00"
+      ],
+      "durationMin": 150,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "singapore",
+      "carrier": "707 Inc",
+      "departures": [
+        "05:30",
+        "19:05"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-singapore-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "singapore",
+      "carrier": "Cityline-Nice To U Express",
+      "departures": [
+        "12:15",
+        "15:25"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-singapore-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "singapore",
+      "carrier": "Luxury Coach Service",
+      "departures": [
+        "13:30",
+        "15:40"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-singapore-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "singapore",
+      "carrier": "KKKL Express Singapore",
+      "departures": [
+        "10:45",
+        "15:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-singapore-bus-tickets"
+    },
+    {
+      "from": "malacca",
+      "to": "singapore",
+      "carrier": "Santai (KKKL Travel)",
+      "departures": [
+        "13:15",
+        "14:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/malacca-to-singapore-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "hat-yai",
+      "carrier": "New Asian Travel",
+      "departures": [
+        "04:40",
+        "15:25"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "hat-yai",
+      "carrier": "Komtar Gunung Raya (Hatyai)",
+      "departures": [
+        "05:00",
+        "12:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "hat-yai",
+      "carrier": "Beh Travel & Tours Sdn Bhd",
+      "departures": [
+        "05:00",
+        "12:15"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "hat-yai",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "04:15",
+        "14:00"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "hat-yai",
+      "carrier": "POH HAI TRAVEL",
+      "departures": [
+        "04:45",
+        "08:15"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-hatyai-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "kuala-lumpur",
+      "carrier": "Billion Stars",
+      "departures": [
+        "00:15",
+        "23:59"
+      ],
+      "durationMin": 310,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "kuala-lumpur",
+      "carrier": "KPB Ekspress",
+      "departures": [
+        "07:30",
+        "23:58"
+      ],
+      "durationMin": 310,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "kuala-lumpur",
+      "carrier": "Kejora Masyhur Sdn Bhd",
+      "departures": [
+        "09:29",
+        "23:58"
+      ],
+      "durationMin": 310,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "kuala-lumpur",
+      "carrier": "Alya Express",
+      "departures": [
+        "00:30",
+        "23:59"
+      ],
+      "durationMin": 310,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "kuala-lumpur",
+      "carrier": "Plusliner",
+      "departures": [
+        "08:00",
+        "23:59"
+      ],
+      "durationMin": 310,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "singapore",
+      "carrier": "Billion Stars",
+      "departures": [
+        "00:30",
+        "22:00"
+      ],
+      "durationMin": 598,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-singapore-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "singapore",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "19:00",
+        "23:45"
+      ],
+      "durationMin": 598,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-singapore-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "singapore",
+      "carrier": "KKKL Express (Terus Nanti)",
+      "departures": [
+        "21:00",
+        "21:30"
+      ],
+      "durationMin": 598,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-singapore-bus-tickets"
+    },
+    {
+      "from": "penang",
+      "to": "singapore",
+      "carrier": "Sri Maju Group",
+      "departures": [
+        "22:00"
+      ],
+      "durationMin": 598,
+      "tz": "Asia/Kuala_Lumpur",
+      "source": "https://www.busonlineticket.com/booking/penang-to-singapore-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "ipoh",
+      "carrier": "Grassland - Transtar",
+      "departures": [
+        "08:40",
+        "23:00"
+      ],
+      "durationMin": 480,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "ipoh",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "21:00",
+        "23:00"
+      ],
+      "durationMin": 480,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "ipoh",
+      "carrier": "Starmart Express",
+      "departures": [
+        "09:00",
+        "23:59"
+      ],
+      "durationMin": 480,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "ipoh",
+      "carrier": "Sri Maju Group",
+      "departures": [
+        "09:30",
+        "22:15"
+      ],
+      "durationMin": 480,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "ipoh",
+      "carrier": "Eltabina Jaya Pte Ltd",
+      "departures": [
+        "21:15",
+        "21:50"
+      ],
+      "durationMin": 480,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-ipoh-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "kuala-lumpur",
+      "carrier": "Cityline-Nice To U Express",
+      "departures": [
+        "00:40",
+        "23:59"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "kuala-lumpur",
+      "carrier": "Starmart Express",
+      "departures": [
+        "00:15",
+        "23:59"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "kuala-lumpur",
+      "carrier": "Transtar Express Xtras",
+      "departures": [
+        "06:44",
+        "23:09"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "kuala-lumpur",
+      "carrier": "The One Tours & Travel (Five Stars Express)",
+      "departures": [
+        "06:45",
+        "22:00"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "kuala-lumpur",
+      "carrier": "Transtar Express",
+      "departures": [
+        "06:44",
+        "15:44"
+      ],
+      "durationMin": 390,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-kuala-lumpur-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "malacca",
+      "carrier": "707 Inc",
+      "departures": [
+        "07:15",
+        "22:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-malacca-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "malacca",
+      "carrier": "Cityline-Nice To U Express",
+      "departures": [
+        "06:00",
+        "19:45"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-malacca-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "malacca",
+      "carrier": "Luxury Coach Service",
+      "departures": [
+        "06:00",
+        "09:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-malacca-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "malacca",
+      "carrier": "KKKL Express Singapore",
+      "departures": [
+        "06:45",
+        "09:15"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-malacca-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "malacca",
+      "carrier": "Transtar Express Xtras",
+      "departures": [
+        "08:00",
+        "08:30"
+      ],
+      "durationMin": 240,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-malacca-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "penang",
+      "carrier": "Super Nice Express",
+      "departures": [
+        "20:30",
+        "23:00"
+      ],
+      "durationMin": 584,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-penang-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "penang",
+      "carrier": "Billion Stars",
+      "departures": [
+        "22:20",
+        "23:20"
+      ],
+      "durationMin": 584,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-penang-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "penang",
+      "carrier": "Grassland - Transtar",
+      "departures": [
+        "21:00",
+        "21:30"
+      ],
+      "durationMin": 584,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-penang-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "penang",
+      "carrier": "KKKL Express Singapore",
+      "departures": [
+        "21:30"
+      ],
+      "durationMin": 584,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-penang-bus-tickets"
+    },
+    {
+      "from": "singapore",
+      "to": "penang",
+      "carrier": "Starmart Express",
+      "departures": [
+        "18:00",
+        "22:15"
+      ],
+      "durationMin": 584,
+      "tz": "Asia/Singapore",
+      "source": "https://www.busonlineticket.com/booking/singapore-to-penang-bus-tickets"
+    }
+  ]
+}

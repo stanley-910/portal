@@ -1,9 +1,10 @@
 # Buses — State
 
 Last updated: 2026-10-02
-Last session ended: **B03 done (2026-10-02, Ahmet).** GTFS pipeline + `gtfs` adapter on `dev/ahmet`;
-namtang → 18 pairs / 241 departures; BKK→CNX 27 offers live. ADR-B04 (chained frequency windows).
-Hand-off: B03 `## Notes`. Next eligible here: B05.
+Last session ended: **B05 done (2026-10-02, Ahmet).** `busonlineticket` adapter on `buses` (not yet merged to
+`dev/ahmet`): 22 MY/SG/TH pairs, first/last bus of top-5 operators per pair (ADR-B06), route-page
+links, `refererid` only if `BOT_REFERER_ID`. KL→SG 10 offers live. Hand-off: B05 `## Notes`.
+Next here: B02 (needs T03 + Korean account), B04 (needs S02).
 
 ## Execution protocol (follow exactly)
 
@@ -13,7 +14,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 
 ## Current task
 
-**B05 — BusOnlineTicket seed** (Ahmet, sonnet) is next eligible bus task; § 4 order may hand T-tasks first.
+None eligible in buses: B02 waits on T03, B04 on S02 (Cata). § 4 decides.
 
 ## Environment
 
@@ -24,7 +25,7 @@ pnpm gtfs:build          # cached zip < 24 h reused; --fresh re-downloads; write
 ## Open blockers / decisions for the user
 
 - Korean account blocks B02 live. (B01 retired — no TDX key, trains ADR-T04.)
-- Ahmet: apply to BusOnlineTicket affiliate (needs live website URL — use Vercel deploy). Commission only; B05 ships untagged otherwise.
+- Ahmet: apply to BusOnlineTicket affiliate (needs live website URL — use Vercel deploy). Commission only; B05 shipped untagged — set `BOT_REFERER_ID` once approved, no code change.
 - Team: city list for GTFS pairs. Default: Bangkok, Chiang Mai, Phuket, Krabi, Surat Thani, Hat Yai, Pattaya, KL, Penang/Butterworth, Ipoh, JB, Singapore(Woodlands).
 
 ## Task ledger (B01–B05)
@@ -35,7 +36,7 @@ pnpm gtfs:build          # cached zip < 24 h reused; --fresh re-downloads; write
 | B02 | Korea express + intercity bus | | todo | T03 |
 | B03 | GTFS build pipeline + gtfs adapter | | done | C01 |
 | B04 | 12Go bus route seed | | todo | S02 |
-| B05 | BusOnlineTicket seed + deep links | | todo | C01 |
+| B05 | BusOnlineTicket seed + deep links | | done | C01 |
 
 ## Critical path
 
