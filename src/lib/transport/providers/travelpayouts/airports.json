@@ -1,0 +1,9 @@
+[
+  {"code":"HKG","city_code":"HKG","country_code":"HK","coordinates":{"lat":22.308,"lon":113.918},"flightable":true,"iata_type":"airport"},
+  {"code":"BKK","city_code":"BKK","country_code":"TH","coordinates":{"lat":13.69,"lon":100.75},"flightable":true,"iata_type":"airport"},
+  {"code":"DMK","city_code":"BKK","country_code":"TH","coordinates":{"lat":13.912,"lon":100.607},"flightable":true,"iata_type":"airport"},
+  {"code":"TPE","city_code":"TPE","country_code":"TW","coordinates":{"lat":25.08,"lon":121.23},"flightable":true,"iata_type":"airport"},
+  {"code":"ICN","city_code":"SEL","country_code":"KR","coordinates":{"lat":37.46,"lon":126.44},"flightable":true,"iata_type":"airport"},
+  {"code":"NRT","city_code":"TYO","country_code":"JP","coordinates":{"lat":35.765,"lon":140.386},"flightable":true,"iata_type":"airport"},
+  {"code":"SIN","city_code":"SIN","country_code":"SG","coordinates":{"lat":1.364,"lon":103.991},"flightable":true,"iata_type":"airport"}
+]

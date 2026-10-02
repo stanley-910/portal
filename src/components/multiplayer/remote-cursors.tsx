@@ -23,7 +23,9 @@ export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | nu
       const shown = new Set<number>();
       for (const other of room.getOthers()) {
         const el = els.current.get(other.connectionId);
-        const cursor = other.presence.cursor;
+        // while their plane is in the air it is their pointer, so the plane's label stands in for the cursor
+        const flying = other.presence.flight && !other.presence.flight.landed;
+        const cursor = flying ? null : other.presence.cursor;
         const p = el && cursor ? handle.project(cursor) : null;
         if (!el || !p || !p.visible) continue;
         el.style.transform = `translate(${p.x}px, ${p.y}px)`;

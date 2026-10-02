@@ -38,8 +38,33 @@ function place(name: string, lat: number, lng: number, iata?: string, country?: 
   return { name, lat, lng, ...(iata && { iata }), ...(country && { country }) };
 }
 
+// The globe UI sends `from`/`to` as JSON Place objects; expand them into the flat ADR-C06 params.
+function expandJsonPlaces(params: URLSearchParams): Record<string, string> | null {
+  const flat = Object.fromEntries(params);
+  for (const side of ["from", "to"] as const) {
+    const raw = flat[side];
+    if (raw === undefined) continue;
+    delete flat[side];
+    let p: unknown;
+    try {
+      p = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    if (typeof p !== "object" || p === null) return null;
+    const o = p as Record<string, unknown>;
+    for (const key of ["name", "lat", "lng", "iata", "country"] as const) {
+      const v = o[key];
+      if (v !== undefined && v !== null) flat[`${side}${key[0].toUpperCase()}${key.slice(1)}`] = String(v);
+    }
+  }
+  return flat;
+}
+
 export function parseSearchQuery(params: URLSearchParams): ParsedQuery {
-  const r = schema.safeParse(Object.fromEntries(params));
+  const flat = expandJsonPlaces(params);
+  if (!flat) return { success: false, fields: ["from", "to"].filter((k) => params.has(k)) };
+  const r = schema.safeParse(flat);
   if (!r.success) {
     return { success: false, fields: [...new Set(r.error.issues.map((i) => String(i.path[0] ?? "")))] };
   }

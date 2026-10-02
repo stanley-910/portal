@@ -34,12 +34,12 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - By day, ink gathers on the shadow side. By night, the inks are light, so they gather on the lit side instead.
 - Draw coastlines in `ink` at about one device pixel. Add three or four water-lining ripples in `sea-deep` off each coast, fading out from the shore.
 - Draw the graticule every `graticule-step` in `ink` at 30% (20% at night), with the equator slightly stronger.
-- Ring the globe with a solid `ink` outline plus two thin rings just outside it, and give the whole globe a hard offset shadow, like a paper cut-out.
+- Outline the globe in solid `ink`. It hangs in a stippled night sky, so it casts no shadow on the page.
 - Lay a fine paper grain over everything.
 
 ## Stickers and the route
 
-- Two stickers exist: the **plane** (the cursor while flying) and the **star pin** (origin and destination). Draw each as its face with a `sticker-ink` outline at `line-ink`, and no cut border. Set it off the page with the cast shadow below.
+- Two stickers exist: the **plane** (the cursor while flying) and the **star pin**. On the globe, only the plane is used; a trip's start is marked with a small `ink` ring at the foot of the route. Draw each sticker as its face with a `sticker-ink` outline at `line-ink`, and no cut border. Set it off the page with the cast shadow below.
 - **Cast shadow.** A sticker casts its shadow in `sticker-shadow`, down and to the right along the light. How far off and how soft it falls depends on altitude, from 0 (on the page) to 1 (high): about `1.5px 2px`, blurred 1px, at 0, out to `10.5px 14px`, blurred 3.5px, at 1. Star pins sit at 0, the plane sticker at 0.5 and cursors at 0.5. On a textured globe, lower the altitude over high terrain so the shadow closes in on mountain tops.
 - While flying, the plane casts a soft shadow offset down and to the right. On landing, the shadow slides in under the plane and the plane shrinks to about 70%: a touchdown.
 - Draw a route as a great-circle arc that rises off the surface, dashed in `ink` at `line-route` with `dash-route`. Under it, draw the surface path dotted in `rule` with `dash-ground`. Hide any part that passes behind the globe.
@@ -54,7 +54,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 
 ## Motion
 
-- Keep three moments only. **Takeoff:** an ink ripple from the origin, and the star pin pops in. **Landing:** the touchdown, and the globe turns to frame the whole route. **Searching:** the route dashes march forward and the ticket's three dots bob.
+- Keep three moments only. **Takeoff:** an ink ripple from the origin. **Landing:** the touchdown, and the globe turns to frame the whole route. **Searching:** the route dashes march forward and the ticket's three dots bob.
 - When the viewer prefers reduced motion, keep the end states and drop the movement.
 
 ## Layout and controls
