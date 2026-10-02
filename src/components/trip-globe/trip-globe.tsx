@@ -2,7 +2,7 @@
 
 import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type PointerEvent, type Ref } from "react";
 
-import { RoundButton } from "@/components/paper-atlas";
+import { cursorUrl, memberColor, RoundButton } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
 import type { Airport } from "./airports";
@@ -102,6 +102,12 @@ export function TripGlobe({
     engineRef.current?.setTheme(resolved);
   }, [resolved]);
 
+  // set after hydration: the cursor image depends on the client's theme
+  useEffect(() => {
+    if (rootRef.current)
+      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(0), resolved);
+  }, [mode, resolved]);
+
   useImperativeHandle(ref, () => ({ cancel: () => engineRef.current?.cancel() }), []);
 
   const label =
@@ -117,7 +123,6 @@ export function TripGlobe({
     <div
       ref={rootRef}
       className={cn("relative h-full w-full touch-none overflow-hidden bg-paper select-none", className)}
-      style={{ cursor: mode === "flying" ? "none" : "crosshair" }}
       onPointerDown={(e) => engineRef.current?.pointerDown(e.nativeEvent)}
       onPointerMove={(e) => engineRef.current?.pointerMove(e.nativeEvent)}
       onPointerUp={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
