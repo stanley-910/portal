@@ -1,0 +1,59 @@
+/* NavBar: the Portal logo and the controls over the globe. Shrinks once the globe zooms in (data-compact).
+   Every size comes from four registered properties, so they ease as numbers; the logo's shadow DOM
+   inherits each step, and nothing jumps when the bar folds. */
+@property --logo-h { syntax: "<length>"; inherits: true; initial-value: 44px; }
+@property --mark-scale { syntax: "<number>"; inherits: true; initial-value: 1; }
+@property --ctrl-h { syntax: "<length>"; inherits: true; initial-value: 44px; }
+@property --fold { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+.pn-bar {
+  --logo-h: 44px; /* the word's height */
+  --mark-scale: 0.62; /* the globe beside it, drawn a little taller than the P */
+  --mark-h: calc(var(--logo-h) * var(--mark-scale));
+  --ctrl-h: 44px; /* buttons; zoomed in they match the globe */
+  --fold: 0; /* 0 open, 1 folded down to the globe and icon discs */
+  --ease-fold: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-settle: cubic-bezier(0.2, 0.9, 0.25, 1.15);
+  position: absolute; inset-inline: 0; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  pointer-events: none;
+  transition: padding 320ms var(--ease-fold), --logo-h 320ms var(--ease-fold), --mark-scale 320ms var(--ease-fold), --ctrl-h 320ms var(--ease-fold), --fold 320ms var(--ease-fold);
+}
+.pn-bar > * { pointer-events: auto; }
+.pn-bar[data-compact] { --logo-h: 28px; --mark-scale: 1; --ctrl-h: 28px; --fold: 1; padding: var(--space-3) var(--space-4); }
+
+/* Logo: the horizontal lockup (181.1 x 56), drawn on by <portal-logo-reveal>, with the globe scaled by
+   --portal-mark-scale. The mark sits at the left; folding clips the lockup down to it. */
+.pn-logo { position: relative; display: block; flex: none; height: var(--logo-h); width: calc(var(--logo-h) * 2.234 * (1 - var(--fold)) + var(--mark-h)); }
+.pn-logo:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-tag); }
+.pn-lockup { position: absolute; top: 0; left: 0; display: flex; align-items: center; width: calc(var(--logo-h) * 3.234); height: var(--logo-h); clip-path: inset(-8px calc((100% - var(--mark-h) + 8px) * var(--fold) - 8px) -8px -8px); pointer-events: none; --portal-mark-scale: var(--mark-scale); }
+.pn-lockup portal-logo-reveal { width: 100%; user-select: none; -webkit-user-drag: none; }
+.pn-lockup:not([data-ready]), .pn-bar:not(:has([data-ready])) .pn-controls { visibility: hidden; }
+
+/* As the logo draws on, the controls drop in after it. `backwards` hands the properties back to the
+   hover and compact transitions once the animation ends. */
+.pn-bar:has([data-ready]) .pn-controls > * { animation: pn-drop 480ms var(--ease-settle) backwards; }
+.pn-bar:has([data-ready]) .pn-controls > :nth-child(1) { animation-delay: 450ms; }
+.pn-bar:has([data-ready]) .pn-controls > :nth-child(2) { animation-delay: 510ms; }
+.pn-bar:has([data-ready]) .pn-controls > :nth-child(3) { animation-delay: 570ms; }
+.pn-bar:has([data-ready]) .pn-controls > :nth-child(n + 4) { animation-delay: 630ms; }
+
+@keyframes pn-drop {
+  from { transform: translateY(-12px) rotate(-2deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Controls: Paper Atlas Buttons and RoundButtons, --ctrl-h tall. Folded, a Button's label closes and it
+   rounds into a disc the size of the globe. Each keeps a 44px tap area. */
+.pn-controls { display: flex; align-items: center; gap: calc(var(--space-gap) - (var(--space-gap) - var(--space-2)) * var(--fold)); }
+.pn-controls .pa-btn, .pn-controls .pa-round { position: relative; height: var(--ctrl-h); }
+.pn-controls .pa-round { width: var(--ctrl-h); }
+.pn-controls .pa-btn::after, .pn-controls .pa-round::after { content: ""; position: absolute; inset: calc(min(0px, (var(--ctrl-h) - 44px) / 2)); }
+.pn-btn { min-width: var(--ctrl-h); padding-inline: calc(var(--space-control) * (1 - var(--fold))); gap: calc(var(--space-gap) * (1 - var(--fold))); border-radius: calc(var(--radius-control) + (var(--ctrl-h) / 2 - var(--radius-control)) * var(--fold)); }
+.pn-controls .pa-btn svg, .pn-controls .pa-round svg { width: calc(16px - 2px * var(--fold)); height: calc(16px - 2px * var(--fold)); }
+.pn-btn-label { display: inline-block; overflow: hidden; vertical-align: bottom; max-width: calc(14em * (1 - var(--fold))); opacity: calc(1 - var(--fold) * 2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-bar, .pn-bar * { animation: none !important; transition: none !important; }
+}

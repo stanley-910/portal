@@ -4,6 +4,7 @@ import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdat
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 
+import { NavBar } from "@/components/nav-bar";
 import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
@@ -57,12 +58,12 @@ function TripScreen() {
       />
       <RemotePlanes globe={globe} />
       <RemoteCursors globe={globe} />
-      <div className="absolute top-(--space-4) left-(--space-4) flex items-center gap-(--space-3)">
+      <NavBar globe={globe}>
         <AvatarStack />
         <InviteButton />
-      </div>
+      </NavBar>
       {status === "reconnecting" || status === "connecting" ? (
-        <p role="status" className="type-meta absolute top-(--space-4) left-1/2 -translate-x-1/2 text-ink-muted">
+        <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">
           {status === "connecting" ? "Connecting" : "Reconnecting"}
         </p>
       ) : null}

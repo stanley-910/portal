@@ -56,7 +56,7 @@ It was ported from the design prototype (`Flight.dc.html`). react-globe.gl and t
 
 ## F5. The design system lives in the published artifact
 
-**Status:** on hold, 2026-10-02
+**Status:** partly done, 2026-10-03
 
 **Decision:** the published Paper Atlas system (https://claude.ai/artifact/8jz9oTWn1hxuQ1C2GScXPm) is the source. The repo copies from it; we don't push the repo up to it.
 
@@ -68,11 +68,12 @@ The published system is now at version 2, which adds:
 
 The repo is still on version 1.
 
-**On hold:** we'll pull version 2 into the repo once the pending design lands. When we do:
-- replace `tokens.json`;
-- add Instrument Sans;
-- port the three new components and RoundButton's restyle;
-- rebuild `DESIGN.md`;
-- copy the logo SVGs.
+**Partly pulled, 2026-10-03:** the navbar needed version 2's Button kinds, so these are in:
+- `tokens.json` replaced with version 2 (`pnpm tokens` now honours a type style's own `family`, which `city` uses);
+- Instrument Sans added as `--font-sans`, which `title`, `body` and the other interface styles now use;
+- Button ported, and RoundButton restyled (it also takes an `icon` now);
+- the logo SVGs and `<portal-logo-reveal>` copied.
+
+Still to pull: Panel, PlaceHeader, and rebuilding `DESIGN.md`.
 
 **Why:** pushing the repo up would have deleted the version 2 work.
