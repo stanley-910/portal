@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+
+import type { Mode, Offer, Segment } from "@/lib/transport/types";
+
+import { rowPrice, rowsFor, timeline, visibleTabs } from "./options";
+
+const place = (name: string) => ({ name, lat: 0, lng: 0 });
+const seg = (mode: Mode, from: string, to: string, depart: string, arrive: string, durationMin: number): Segment => ({
+  mode,
+  from: place(from),
+  to: place(to),
+  depart,
+  arrive,
+  durationMin,
+});
+const offer = (id: string, mode: Mode, amount: number | null, segments: Segment[], extra: Partial<Offer> = {}): Offer => ({
+  id,
+  provider: "travelpayouts",
+  mode,
+  segments,
+  price: amount === null ? undefined : { amount, currency: "USD" },
+  kind: "cached",
+  ...extra,
+});
+
+const direct = (id: string, mode: Mode, amount: number | null) =>
+  offer(id, mode, amount, [seg(mode, "Hong Kong", "Shanghai", "2026-10-04T08:00:00+08:00", "2026-10-04T16:00:00+08:00", 480)]);
+
+describe("ticket search options", () => {
+  it("puts the best option first and the cheapest second, with badges", () => {
+    const rows = rowsFor([direct("a", "flight", 200), direct("b", "train", 150), direct("c", "bus", 40), direct("d", "flight", 300)], "best", null);
+    expect(rows.map((r) => [r.offer.id, r.badge])).toEqual([
+      ["a", "Best"],
+      ["c", "Lowest"],
+      ["b", undefined],
+    ]);
+  });
+
+  it("shows only Best and the modes with results", () => {
+    expect(visibleTabs([direct("a", "flight", 1), direct("b", "train", 1)])).toEqual(["best", "flight", "train"]);
+  });
+
+  it("draws a layover between listed segments", () => {
+    const legs = timeline(
+      offer("x", "flight", 905, [
+        seg("flight", "São Paulo", "Addis Ababa", "2026-10-04T23:10:00-03:00", "2026-10-05T15:20:00+03:00", 610),
+        seg("flight", "Addis Ababa", "Lagos", "2026-10-05T17:05:00+03:00", "2026-10-05T18:50:00+01:00", 225),
+      ]),
+    );
+    expect(legs.map((l) => [l.kind, l.minutes])).toEqual([
+      ["flight", 610],
+      ["wait", 105],
+      ["flight", 225],
+    ]);
+    expect(legs[1].label).toBe("Layover 1h 45m in Addis Ababa");
+  });
+
+  it("names unlisted connections and doesn't trust UTC arrivals for the time headline", () => {
+    const o = offer("y", "flight", 120, [seg("flight", "Hong Kong", "Bangkok", "2026-10-04T09:00:00+08:00", "2026-10-04T03:45:00.000Z", 165)], { transfers: 1 });
+    const [row] = rowsFor([o], "flight", null);
+    expect(row.headline).toBe("Leaves 09:00");
+    expect(row.description).toBe("Flight to Bangkok, 1 stop, 2h 45m");
+  });
+
+  it("adds the cheapest same-mode return for a round trip", () => {
+    const out = direct("a", "train", 100);
+    expect(rowPrice(out, null, "USD", null)).toBe(100);
+    expect(rowPrice(out, [direct("r1", "train", 90), direct("r2", "train", 70), direct("r3", "flight", 10)], "USD", null)).toBe(170);
+    expect(rowPrice(out, [direct("r3", "flight", 10)], "USD", null)).toBeNull();
+  });
+});

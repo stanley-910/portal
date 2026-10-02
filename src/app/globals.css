@@ -4,6 +4,7 @@
 @import "../design/tokens.css";
 @import "../components/paper-atlas/paper-atlas.css";
 @import "../components/nav-bar/nav-bar.css";
+@import "../components/ticket-search/ticket-search.css";
 
 @custom-variant dark (&:is(.dark *));
 

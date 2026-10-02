@@ -1,0 +1,80 @@
+/* Ticket search popover. Spec: the "Ticket search popover" design handoff, turn 3. Sans throughout; only the hub
+   codes use Fell SC. The dashed rule between the two halves is the only ticket-like detail. */
+
+.ts-anchor { position: absolute; top: 0; left: 0; z-index: 5; will-change: transform; }
+
+.ts { width: 320px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-float); font-family: var(--font-sans); }
+.ts button:not(.pa-btn) { font-family: var(--font-sans); color: var(--ink); cursor: pointer; }
+.ts button:not(.pa-btn):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.ts-top { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.ts-rule { border-top: var(--line-ink) dashed var(--control-border); }
+.ts-bottom { display: flex; flex-direction: column; gap: 6px; padding: 2px 12px 12px; }
+
+/* Route header */
+.ts-route { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); align-items: start; gap: 12px; padding: 2px 2px 4px; }
+.ts-place { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ts-place-end { align-items: flex-end; text-align: right; }
+.ts-city { font-family: var(--font-fell-sc); font-size: 22px; line-height: 24px; overflow-wrap: anywhere; }
+.ts-code { font-family: var(--font-fell-sc); font-size: 13px; line-height: 16px; color: var(--ink-muted); }
+.ts-distance { display: flex; flex-direction: column; align-items: center; gap: 3px; padding-top: 3px; font-size: 11px; line-height: 10px; color: var(--ink-muted); white-space: nowrap; }
+.ts-line { display: flex; align-items: center; width: 100%; }
+.ts-line > span:nth-child(odd) { flex: none; width: 5px; height: 5px; border-radius: var(--radius-round); background: var(--ink); }
+.ts-line > span:nth-child(2) { flex: 1; height: var(--line-ink); background: var(--ink); }
+
+/* Date fields */
+.ts-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ts-field { height: 52px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 7px 10px; text-align: left; background: transparent; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); }
+.ts-field[aria-expanded="true"] { border-color: var(--ink); }
+.ts-field-label { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-muted); }
+.ts-field-value { font-size: 14px; line-height: 18px; font-weight: 600; }
+.ts-field-value[data-empty] { font-weight: 400; color: var(--ink-muted); }
+
+/* Day strip */
+.ts-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.ts-day { height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0; border: none; border-radius: var(--radius-tag); background: transparent; }
+.ts-day:hover { background: var(--control-hover); }
+.ts-day-weekday { font-size: 10.5px; line-height: 13px; color: var(--ink-muted); }
+.ts-day-number { font-size: 15px; line-height: 18px; font-weight: 600; }
+.ts .ts-day[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.ts-day[aria-pressed="true"] .ts-day-weekday { color: var(--on-ink); }
+.ts-oneway { align-self: flex-end; padding: 0; border: none; background: none; font-size: 13px; line-height: 18px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Mode tabs */
+.ts-tabs { display: flex; gap: 16px; border-bottom: var(--line-control) solid var(--line); }
+.ts .ts-tab { height: 36px; padding: 0; margin-bottom: -1px; border: none; border-bottom: 2px solid transparent; background: none; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--ink-muted); }
+.ts .ts-tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* Result rows: the list bleeds 6px each side so the text lines up with the tabs */
+.ts-rows { display: flex; flex-direction: column; margin: 0 -6px; }
+.ts-row { width: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 6px; text-align: left; border: none; border-radius: var(--radius-tag); background: transparent; }
+.ts-row:hover, .ts-row[aria-pressed="true"] { background: var(--control-hover); }
+.ts-head { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 14px; line-height: 18px; font-weight: 600; }
+.ts-badge { flex: none; padding: 1px 4px; border-radius: calc(var(--radius-tag) / 2); background: var(--ink); color: var(--on-ink); font-size: 10px; line-height: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.ts-badge-quiet { padding: 0 3px; background: transparent; color: var(--ink-muted); border: var(--line-control) solid var(--control-border); }
+.ts-price { text-align: right; font-size: 14px; line-height: 18px; font-weight: 600; white-space: nowrap; }
+.ts-price[data-none] { font-weight: 400; color: var(--ink-muted); }
+.ts-desc { grid-column: 1 / -1; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.ts-empty { margin: 0; padding: 8px 6px; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+
+/* Leg timeline: each segment grows with its minutes */
+.ts-timeline { grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; height: 20px; margin-top: 4px; }
+.ts-seg { flex: 1 1 0px; min-width: 30px; display: flex; align-items: center; gap: 4px; }
+.ts-seg-wait { min-width: 8px; }
+.ts-icon { flex: none; fill: none; stroke: var(--ink); stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.ts-bar { flex: 1; min-width: 6px; height: 3px; border-radius: calc(var(--radius-tag) / 2); background: var(--ink); }
+.ts-dots { flex: 1; border-top: var(--line-ink) dotted var(--ink-muted); }
+
+/* Loading: three muted placeholder rows the size of real ones */
+.ts-row-ghost { cursor: default; }
+.ts-row-ghost:hover { background: transparent; }
+.ts-ghost { display: block; height: 12px; margin: 3px 0; border-radius: var(--radius-tag); background: var(--control-hover); animation: ts-pulse 1.4s ease-in-out infinite; }
+.ts-ghost-head { width: 72px; }
+.ts-ghost-price { width: 40px; margin-left: auto; }
+.ts-ghost-desc { grid-column: 1 / -1; width: 80%; height: 10px; }
+.ts-ghost-line { grid-column: 1 / -1; height: 3px; margin-top: 12px; }
+@keyframes ts-pulse { 50% { opacity: 0.5; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-ghost { animation: none; }
+}

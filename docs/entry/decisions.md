@@ -51,3 +51,11 @@ What each party member's passport needs at each leg's destination (POR-20). The 
 **Decision:** the rule kinds include `entry_permit` and `transit_exempt`. Each rule has a `context` of `entry` or `transit`. `resolveLeg` uses the transit rule when the rider's onward country is a third country and the arrival hub is an eligible port. Otherwise it offers transit as a hint.
 
 **Why:** HK, Macao and mainland travel uses permits, not visas, and China's 240-hour transit decides whether a US member can do the demo route without a visa.
+
+## E7. The entry panel only shows for a real party
+
+**Status:** decided, 2026-10-03
+
+**Decision:** the globe screen no longer shows `EntryPanel` with the hard-coded `DEMO_PARTY`. It comes back once a trip has members with a nationality, from a listed citizenship or an account with a linked nationality. Until then it only appears in the `/design` gallery.
+
+**Why:** with made-up travellers, the panel showed rows of "Estimated" and "No data" for most destinations, which said nothing about the people actually travelling.

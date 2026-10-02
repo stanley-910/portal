@@ -6,7 +6,7 @@ export function localDate(date: Date): string {
 }
 
 /** Local preview hub locations must never replace the actual clicked points. */
-export function clickSearchParams(trip: LandedTrip): URLSearchParams {
+export function clickSearchParams<T extends Pick<LandedTrip, "origin" | "destination" | "departDate">>(trip: T): URLSearchParams {
   return new URLSearchParams({
     from: JSON.stringify({ name: "Origin", ...trip.origin }),
     to: JSON.stringify({ name: "Destination", ...trip.destination }),
