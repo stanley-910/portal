@@ -1,8 +1,8 @@
 # Core — State
 
 Last updated: 2026-10-02
-Last session ended: **Ledger written (meta session).** No code yet. Provider docs in
-`.agents/docs/api/`. Next: C01.
+Last session ended: **C01 done (2026-10-02, Ahmet).** Contract, 7 stubs, `http.ts`, `env.server.ts`,
+vitest (34 tests) landed on `dev/ahmet`. Every `F/S/T/B` task + C02 now eligible. Hand-off: C01 `## Notes`.
 
 ## Execution protocol (follow exactly)
 
@@ -13,7 +13,7 @@ verbatim → `## Notes` → update row, "Current task", "Last session ended" →
 
 ## Current task
 
-**C01 — Contract, stub registry, vitest, env schema** (Ahmet, opus). Unblocks everything.
+**C02 — `/api/transport/search` fan-out route** (Cata, sonnet). Adapters parallel alongside.
 
 ## Environment
 
@@ -32,7 +32,7 @@ Statuses: todo → in_progress → done → (blocked) · retired = dropped, ID k
 
 | ID | Title | Repo | Status | Depends on |
 |----|-------|------|--------|------------|
-| C01 | Contract, stub registry, vitest, env schema | | todo | — |
+| C01 | Contract, stub registry, vitest, env schema | | done | — |
 | C02 | `/api/transport/search` fan-out route | | todo | C01 |
 
 ## Critical path

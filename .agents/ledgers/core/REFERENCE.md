@@ -9,9 +9,9 @@ add only provider specifics. Reality diverges → trust code, patch this file.
 |---|---|
 | Framework | Next.js `16.3.8`, App Router, `src/` dir. **Not the Next you know** — read `node_modules/next/dist/docs/` first (AGENTS.md) |
 | React | 19.2.8 |
-| Package manager | pnpm 11 (`packageManager` in `package.json`) |
+| Package manager | pnpm 11 (`packageManager` in `package.json`); needs Node ≥ 22.13 |
 | Validation | zod 4 (already a dep) |
-| Tests | none until C01 adds vitest |
+| Tests | vitest 5, `vitest.config.mts`, `src/**/*.test.ts`, node env |
 | Deploy | Vercel Hobby (limits: `docs/research/free-tiers.md`) |
 | Branch | `main` |
 

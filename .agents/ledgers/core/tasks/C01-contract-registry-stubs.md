@@ -1,5 +1,5 @@
 # C01 — Contract, stub registry, vitest, env schema
-REPO: (this repo) · Depends: — · Status: todo
+REPO: (this repo) · Depends: — · Status: done
 Read first: STATE.md, REFERENCE.md, then this.
 **Model: opus** — contract both seats freeze against; a wrong shape costs eight adapters.
 
@@ -25,14 +25,14 @@ runner and the env schema so `F/S/T/B` tasks touch only their own `providers/<id
 - Env var names: each `.agents/docs/api/*.md` § Access lists them. Collect all into schema + `.env.example`.
 
 ## Steps
-- [ ] `pnpm add server-only` · `pnpm add -D vitest` · add `"test": "vitest run"`.
-- [ ] `vitest.config.ts` with `@` alias.
-- [ ] `src/lib/transport/types.ts` from PLAN § Contract.
-- [ ] `src/lib/transport/http.ts`: `fetchJson`/`fetchText` mapping 401/403→`AUTH_FAILED`, 429→`RATE_LIMITED` (retryable), 5xx→`UPSTREAM_ERROR` (retryable), abort→`TIMEOUT`, parse fail→`BAD_RESPONSE`.
-- [ ] `src/lib/env.server.ts` zod schema, every var from docs optional; export `env`.
-- [ ] `.env.example` with every var, empty. `.gitignore` `!.env.example`.
-- [ ] `src/lib/transport/providers/<id>/index.ts` stub for every `ProviderId` (7); `registry.ts` exports them.
-- [ ] Tests: `http.test.ts` (each status → code, abort → TIMEOUT, using mocked `fetch`); `registry.test.ts` (every `ProviderId` registered once; stub `search` rejects `NOT_CONFIGURED`).
+- [x] `pnpm add server-only` · `pnpm add -D vitest` · add `"test": "vitest run"`.
+- [x] `vitest.config.ts` with `@` alias.
+- [x] `src/lib/transport/types.ts` from PLAN § Contract.
+- [x] `src/lib/transport/http.ts`: `fetchJson`/`fetchText` mapping 401/403→`AUTH_FAILED`, 429→`RATE_LIMITED` (retryable), 5xx→`UPSTREAM_ERROR` (retryable), abort→`TIMEOUT`, parse fail→`BAD_RESPONSE`.
+- [x] `src/lib/env.server.ts` zod schema, every var from docs optional; export `env`.
+- [x] `.env.example` with every var, empty. `.gitignore` `!.env.example`.
+- [x] `src/lib/transport/providers/<id>/index.ts` stub for every `ProviderId` (7); `registry.ts` exports them.
+- [x] Tests: `http.test.ts` (each status → code, abort → TIMEOUT, using mocked `fetch`); `registry.test.ts` (every `ProviderId` registered once; stub `search` rejects `NOT_CONFIGURED`).
 
 ## Definition of done
 - `pnpm test` green; `pnpm lint && pnpm exec tsc --noEmit` clean.
@@ -43,3 +43,11 @@ runner and the env schema so `F/S/T/B` tasks touch only their own `providers/<id
 
 ## Notes
 
+- `http.ts`: `fetchJson(url, init)` / `fetchText(url, init)`; `init` = `RequestInit` + required `signal` (POST ok, e.g. TDX token). `fetchJson` returns `unknown` — zod-parse in adapter.
+- Status map: 401/403 `AUTH_FAILED`; 429 `RATE_LIMITED`↻; ≥500 `UPSTREAM_ERROR`↻; other non-2xx `UPSTREAM_ERROR`; abort/timeout `TIMEOUT`↻; network `UPSTREAM_ERROR`↻; bad JSON `BAD_RESPONSE`. ↻ = retryable. No retries inside — retry policy is C02's one place.
+- Stubs: `providers/stub.ts` → `stubProvider(id, modes)`; `covers` = mode match only (so C02 curl shows each stub as `NOT_CONFIGURED`, proves wiring). Adapter replaces `providers/<id>/index.ts` with its own `export default` provider; may reuse `servesModes` from `../stub`.
+- Stub modes: travelpayouts flight · 12go ferry,bus · tdx train,bus · korea-tago train,bus · china-rail train · busonlineticket bus · gtfs train,bus.
+- `env.server.ts`: `env` (parsed once), `parseEnv(source)` for tests. Blank strings = unset. Append vars here + `.env.example`.
+- `server-only` aliased to its `empty.js` in `vitest.config.mts`; tests import server modules freely.
+- Fresh worktree: `pnpm exec next typegen` before `tsc` (`LayoutProps` lives in `.next/types`).
+- Not in schema: `GOOGLE_MAPS_API_KEY` (Rome2Rio fallback, backlog only per ADR-T03).
