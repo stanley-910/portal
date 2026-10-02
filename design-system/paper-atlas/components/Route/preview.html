@@ -1,0 +1,21 @@
+<!-- @dsCard group="Trip" height=88 subtitle="Still, and marching while a search runs" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Route preview</title>
+</head>
+<body>
+<div id="root" class="pa-row" style="gap: 48px"></div>
+<script>
+  var P = window.PaperAtlas, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h(React.Fragment, null,
+      h(P.Route, { width: 160, height: 40 }),
+      h(P.Route, { width: 160, height: 40, marching: true }),
+      h(P.Route, { width: 160, height: 40, lift: 0.4 })
+    )
+  );
+</script>
+</body>
+</html>

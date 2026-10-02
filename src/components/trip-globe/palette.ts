@@ -48,7 +48,7 @@ export interface Palette {
   /** Opacity of the sky's stippled ink. Light paper takes it a touch softer. */
   skyInk: number;
   gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
-  stickerGL: { fill: RGB; ink: RGB; roundel: RGB; border: RGB };
+  stickerGL: { fill: RGB; ink: RGB; roundel: RGB };
 }
 
 // The tint of the plane's shadow on the ground. Not a token: it only exists inside the shader.
@@ -79,7 +79,6 @@ function build(theme: ThemeId): Palette {
       fill: rgb("sticker-fill", theme),
       ink: rgb("sticker-ink", theme),
       roundel: rgb("roundel", theme),
-      border: rgb("sticker", theme),
     },
   };
 }

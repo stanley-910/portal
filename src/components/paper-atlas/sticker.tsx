@@ -12,6 +12,8 @@ export interface StickerProps {
   rotate?: number;
   /** Accessible name; omit for a decorative sticker. */
   title?: string;
+  /** How high it flies, 0 (on the page) to 1. Sets how far off and soft its shadow falls. Default 0.5 for plane, 0 for star. */
+  altitude?: number;
   className?: string;
   style?: CSSProperties;
 }
@@ -34,24 +36,25 @@ export function starPath(R: number) {
 const STAR_PATH = starPath(20);
 
 /** A paper cut-out laid on the page: the plane (the traveller) or the star pin (a trip end point). */
-export function Sticker({ shape, size, rotate = 0, title, className, style }: StickerProps) {
+export function Sticker({ shape, size, rotate = 0, title, altitude, className, style }: StickerProps) {
   const gradientId = "pa-star-" + useId().replace(/[^A-Za-z0-9_-]/g, "");
   const px = size ?? (shape === "plane" ? 44 : 28);
 
   return (
     <svg
-      className={cn("pa-sticker", className)}
+      className={cn("pa-sticker pa-cast", className)}
       width={px}
       height={px}
       viewBox="-26 -26 52 52"
       role={title ? "img" : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
-      style={{ transform: rotate ? `rotate(${rotate}deg)` : undefined, ...style }}
+      style={{ "--alt": altitude ?? (shape === "plane" ? 0.5 : 0), ...style } as CSSProperties}
     >
+      {/* rotated inside the SVG, so the shadow keeps falling along the light */}
+      <g transform={rotate ? `rotate(${rotate})` : undefined}>
       {shape === "plane" ? (
         <>
-          <path className="pa-sticker-border" d={PLANE_PATH} />
           <path className="pa-sticker-face" d={PLANE_PATH} />
           <path className="pa-sticker-detail" d="M-2.3 -13.5 Q0 -16.2 2.3 -13.5" />
           <circle className="pa-roundel" cx={-12} cy={3.4} r={1.8} />
@@ -65,10 +68,10 @@ export function Sticker({ shape, size, rotate = 0, title, className, style }: St
               <stop offset="1" className="pa-star-edge" />
             </radialGradient>
           </defs>
-          <path className="pa-sticker-border" d={STAR_PATH} />
           <path className="pa-sticker-face" d={STAR_PATH} style={{ fill: `url(#${gradientId})` }} />
         </>
       )}
+      </g>
     </svg>
   );
 }

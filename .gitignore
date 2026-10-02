@@ -42,3 +42,15 @@ next-env.d.ts
 
 # entry requirements provider cache (raw API responses)
 /data/entry/.cache/
+
+# design-sync build state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+design-system/paper-atlas/dist/
+design-system/guidelines/
+design-system/paper-atlas-design-system.zip
+design-system/paper-atlas/reference/
+design-system/paper-atlas/SETUP.md

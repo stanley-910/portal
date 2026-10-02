@@ -29,10 +29,28 @@ export interface LandedTrip {
   departDate: Date;
 }
 
+/** A trip being flown or landed, as other people in the room see it. All places as lat/lng. */
+export interface FlightState {
+  /** Where the trip took off. */
+  origin: LatLng;
+  /** Where the plane is now. */
+  at: LatLng;
+  /** A point just ahead of the plane, which gives its heading. */
+  ahead: LatLng;
+  landed: boolean;
+}
+
+/** Another member's flight. `id` is stable while they stay in the room. */
+export interface RemoteFlight extends FlightState {
+  id: string;
+}
+
 export interface GlobeEvents {
   onModeChange?: (mode: GlobeMode, from: Airport | null) => void;
   onLand?: (trip: LandedTrip) => void;
   onCancel?: () => void;
+  /** After every frame is drawn. Overlays that track places on the globe reposition here. */
+  onFrame?: () => void;
 }
 
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
@@ -130,6 +148,8 @@ export class GlobeEngine {
   private dAir: Snap | null = null;
   private curAir: Snap | null = null;
   private pl: Plane | null = null;
+  // other members' flights: where presence says they are, and where we draw them (eased toward that)
+  private remotes = new Map<string, { o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane }>();
 
   // input and time
   private mx = -9999;
@@ -679,10 +699,67 @@ export class GlobeEngine {
     return [(e.clientX - r.left) * (this.W / (r.width || 1)), (e.clientY - r.top) * (this.H / (r.height || 1))];
   }
 
+  // ---------- places on screen ----------
+
+  /** The place under the pointer, or null when the pointer is off the globe or has left it. */
+  pointerLatLng(): LatLng | null {
+    const p = this.hasPointer && this.cam ? this.pick(this.mx, this.my) : null;
+    return p ? toLatLng(p) : null;
+  }
+
+  /** This viewer's trip, for sharing with the room. Null while idle. */
+  flight(): FlightState | null {
+    const pl = this.pl;
+    if (this.mode === "idle" || !pl || !this.origin) return null;
+    return {
+      origin: toLatLng(this.origin),
+      at: toLatLng(pl.n),
+      ahead: toLatLng(norm(add(pl.n, mul(pl.f, 0.02)))),
+      landed: this.mode === "landed",
+    };
+  }
+
+  /** Replaces the other members' flights. Planes ease toward each update rather than jumping. */
+  setRemoteFlights(flights: RemoteFlight[]) {
+    const seen = new Set<string>();
+    for (const f of flights) {
+      seen.add(f.id);
+      const target = vecOf(f.at.lat * D2R, f.at.lng * D2R);
+      const ahead = vecOf(f.ahead.lat * D2R, f.ahead.lng * D2R);
+      const ft = tangent(sub(ahead, target), target);
+      const o = vecOf(f.origin.lat * D2R, f.origin.lng * D2R);
+      const r = this.remotes.get(f.id);
+      if (r) Object.assign(r, { o, target, ft, landed: f.landed });
+      else this.remotes.set(f.id, { o, target, ft, landed: f.landed, pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 } });
+    }
+    for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
+  }
+
+  /** Where another member's plane is on screen, for their name label. Null if they aren't flying or it's hidden. */
+  remotePlane(id: string): { x: number; y: number } | null {
+    const r = this.remotes.get(id);
+    const p = r && this.cam ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
+    return p && p.vis ? { x: p.x, y: p.y } : null;
+  }
+
+  /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
+  project(ll: LatLng): { x: number; y: number; visible: boolean } | null {
+    if (!this.cam) return null;
+    const p = this.proj(vecOf(ll.lat * D2R, ll.lng * D2R));
+    return p ? { x: p.x, y: p.y, visible: p.vis } : null;
+  }
+
   // ---------- simulation ----------
 
   private sim(dt: number, t: number) {
     const k = (r: number) => 1 - Math.exp(-dt * r);
+    for (const r of this.remotes.values()) {
+      const pl = r.pl;
+      const a = this.reduceMotion ? 1 : k(14);
+      pl.n = norm(slerp(pl.n, r.target, a));
+      pl.f = tangent(lerp(pl.f, r.ft, a), pl.n);
+      pl.alt += ((r.landed ? 0 : ALT * this.planeScale) - pl.alt) * k(8);
+    }
     if (this.turn) {
       // fly the view to frame a finished route
       const tr = this.turn;
@@ -767,10 +844,10 @@ export class GlobeEngine {
     this.hover = this.hasPointer && !this.down?.drag ? this.pick(this.mx, this.my) : null;
     this.drawGL();
     this.drawHud(t);
+    this.events.onFrame?.();
   };
 
-  private planeBasis(S: number) {
-    const pl = this.pl!;
+  private planeBasis(pl: Plane, S: number) {
     let up = pl.n;
     let fwd = pl.f;
     const right = cross(fwd, up);
@@ -851,37 +928,43 @@ export class GlobeEngine {
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     this.sky?.draw(setCam, [cw, ch], dpr, th.gl.uInk, th.skyInk, 1);
 
-    if (!pp) return;
-    const pv = this.proj(pp);
-    if (!pv || !pv.vis) return;
-    const B = this.planeBasis(S);
+    // other members' planes first, so this viewer's own plane sits on top
+    const planes: { pl: Plane; pp: Vec3 }[] = [];
+    for (const r of this.remotes.values()) planes.push({ pl: r.pl, pp: mul(r.pl.n, 1 + r.pl.alt + 0.09 * S) });
+    if (pl && pp) planes.push({ pl, pp });
+    const shown = planes.filter(({ pp }) => this.proj(pp)?.vis);
+    if (!shown.length) return;
+
     P = this.pPlane;
     u = P.u;
     gl.useProgram(P.p);
     gl.bindVertexArray(this.vaoPlane);
     setCam(u);
-    gl.uniform3fv(u.uPP, pp);
-    gl.uniform3fv(u.uPX, B.X);
-    gl.uniform3fv(u.uPY, B.Y);
-    gl.uniform3fv(u.uPZ, B.Z);
     gl.uniform2f(u.uRes, cw, ch);
     gl.uniform3fv(u.uFill, th.stickerGL.fill);
     gl.uniform3fv(u.uInkS, th.stickerGL.ink);
     gl.uniform3fv(u.uRoundel, th.stickerGL.roundel);
-    gl.uniform3fv(u.uBorder, th.stickerGL.border);
     gl.depthMask(true);
     gl.clearDepth(1);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-    // 1: the ink outline, which also draws inner edges
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-    gl.uniform1f(u.uMode, 2);
-    gl.uniform1f(u.uHull, 1.1 * dpr);
-    gl.drawArrays(gl.TRIANGLES, 0, this.planeCount);
-    // 2: the paper body
-    gl.uniform1f(u.uMode, 0);
-    gl.uniform1f(u.uHull, 0);
-    gl.drawArrays(gl.TRIANGLES, 0, this.planeCount);
+    for (const { pl, pp } of shown) {
+      const B = this.planeBasis(pl, S);
+      gl.uniform3fv(u.uPP, pp);
+      gl.uniform3fv(u.uPX, B.X);
+      gl.uniform3fv(u.uPY, B.Y);
+      gl.uniform3fv(u.uPZ, B.Z);
+      // each plane is its own sticker: a later one covers an earlier one wholly
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+      // 1: the ink outline, which also draws inner edges
+      gl.uniform1f(u.uMode, 2);
+      gl.uniform1f(u.uHull, 1.1 * dpr);
+      gl.drawArrays(gl.TRIANGLES, 0, this.planeCount);
+      // 2: the paper body
+      gl.uniform1f(u.uMode, 0);
+      gl.uniform1f(u.uHull, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, this.planeCount);
+    }
     gl.disable(gl.DEPTH_TEST);
     gl.bindVertexArray(null);
   }
@@ -976,20 +1059,9 @@ export class GlobeEngine {
     return out;
   }
 
-  private drawHud(t: number) {
-    const ctx = this.hud;
+  /** A trip's route: a great-circle arc that lifts off the surface, and its dotted ground track. */
+  private route(ctx: CanvasRenderingContext2D, origin: Vec3, pl: Plane, marching: boolean, t = 0) {
     const P = this.P;
-    const dpr = this.hudEl.width / this.W;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, this.hudEl.width, this.hudEl.height);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
-    const pl = this.pl;
-    const origin = this.origin;
-    if (!origin || !pl || this.mode === "idle") return;
-
-    // the route: a great-circle arc that lifts off the surface, and its dotted ground track
     const end = pl.n;
     const ground = this.arc(origin, end, 0, 0);
     const air = this.arc(origin, end, 1, pl.alt);
@@ -1008,11 +1080,39 @@ export class GlobeEngine {
     ctx.strokeStyle = `rgba(${P.inkRGB},0.3)`;
     this.strokePts(ctx, ground);
     ctx.setLineDash([7, 6]); // dash-route; marches while the search runs
-    ctx.lineDashOffset = this.mode === "landed" && !this.reduceMotion ? -t * 22 : 0;
+    ctx.lineDashOffset = marching ? -t * 22 : 0;
     ctx.lineWidth = 2; // line-route
     ctx.strokeStyle = P.ink;
     this.strokePts(ctx, air);
     ctx.restore();
+  }
+
+  private drawHud(t: number) {
+    const ctx = this.hud;
+    const P = this.P;
+    const dpr = this.hudEl.width / this.W;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, this.hudEl.width, this.hudEl.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
+
+    // other members' trips, under this viewer's own: their route, start ring and airport codes
+    for (const r of this.remotes.values()) {
+      this.route(ctx, r.o, r.pl, false);
+      const op = this.proj(r.o);
+      if (op && op.vis) {
+        this.startMark(ctx, op.x, op.y);
+        this.tag(ctx, op.x, op.y + 20, nearestAirport(r.o).airport.code);
+      }
+      const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
+      if (rp && rp.vis) this.tag(ctx, rp.x + 24, rp.y + 20, nearestAirport(r.pl.n).airport.code);
+    }
+
+    const pl = this.pl;
+    const origin = this.origin;
+    if (!origin || !pl || this.mode === "idle") return;
+    this.route(ctx, origin, pl, this.mode === "landed" && !this.reduceMotion, t);
 
     const ripple = (p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;

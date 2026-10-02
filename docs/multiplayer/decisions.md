@@ -1,8 +1,8 @@
 # Multiplayer decisions
 
-These were agreed in a grilling session on 2026-10-02. **None of them are built yet**, and the Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
+These were agreed in a grilling session on 2026-10-02. M4, M7 and steps 1 and 2 of M14 are built; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
 
-Liveblocks facts behind these decisions were checked against the docs on 2026-10-02 (`@liveblocks/*` 3.24.3, which supports React 19). Free-tier limits are in `free-tiers.md` (next to this file).
+Liveblocks facts behind these decisions were checked against the docs on 2026-10-02. We pin `@liveblocks/*` to 3.24.2, which supports React 19: 3.24.3 is newer than pnpm's minimum release age. Free-tier limits are in `free-tiers.md` (next to this file).
 
 ## Scope
 
@@ -52,7 +52,12 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M4. Who you are: a guest cookie and a Liveblocks ID token
 
-**Status:** decided. This replaces Supabase auth (POR-12).
+**Status:** built. This replaces Supabase auth (POR-12).
+
+**Code:**
+- `src/lib/guest.ts`: guest cookies.
+- `src/app/api/liveblocks-auth/route.ts`: the auth route.
+- `src/app/t/actions.ts`: the name form.
 
 **Decision:**
 - On first visit, set a random guest id in a cookie.
@@ -93,7 +98,13 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M7. Getting into a trip
 
-**Status:** decided. This simplifies POR-29.
+**Status:** built. This simplifies POR-29.
+
+**Code:**
+- `createTrip` in `src/app/t/actions.ts`.
+- The `/t/[id]` page.
+- `InviteButton`, which copies the URL.
+- The auth route, which adds you to the room and gives you the next member colour the first time you connect.
 
 **Decision:**
 - `/` stays a solo globe. "Plan with friends" creates a trip and gives you an unguessable URL.
@@ -167,7 +178,15 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M14. Presence features, in build order
 
-**Status:** decided
+**Status:** steps 1 and 2 built. Step 3 is decided.
+- **Step 1:** `src/components/multiplayer/avatar-stack.tsx` and `remote-cursors.tsx`.
+- **Step 2:** `remote-planes.tsx`, plus `setRemoteFlights` in the engine.
+
+**How step 2 works:**
+- Each member's trip (`origin`, `at`, `ahead`, `landed`) is sent as `flight` in presence.
+- Other members' planes are paper stickers like your own, eased toward each update, with ink routes and origin pins.
+- Their name label sits beside the plane while it flies, in place of their cursor.
+- A landed trip stays in presence until the trip model (M8) stores legs.
 
 **Decision:** build these in order:
 1. Avatar stack and lat/lng cursors.

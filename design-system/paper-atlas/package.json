@@ -1,0 +1,17 @@
+{
+  "name": "@trip-globe/paper-atlas",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Paper Atlas, the design system of Portal (Trip Globe): ink on paper, by day and by night.",
+  "type": "module",
+  "module": "index.mjs",
+  "types": "components/index.d.ts",
+  "style": "dist/paper-atlas.css",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

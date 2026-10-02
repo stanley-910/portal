@@ -214,14 +214,13 @@ uniform float uMode;
 uniform vec3 uFill;
 uniform vec3 uInkS;
 uniform vec3 uRoundel;
-uniform vec3 uBorder;
 out vec4 outColor;
 ` + GLSL_COMMON + `
 void main() {
   float facing = dot(vFN, vW - uC);
   if (uMode > 0.5) {
     if (facing < 0.0) discard;
-    outColor = vec4(uMode > 1.5 ? uInkS : uBorder, 1.0);
+    outColor = vec4(uInkS, 1.0);
     return;
   }
   if (facing > 0.0) discard;

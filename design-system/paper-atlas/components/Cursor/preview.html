@@ -1,0 +1,24 @@
+<!-- @dsCard group="Live" height=200 subtitle="Arrow, compass and map, in member colours" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cursor preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap">
+</head>
+<body>
+<div id="root" style="position: relative; height: 200px"></div>
+<script>
+  var P = window.PaperAtlas, h = React.createElement;
+  var shapes = ['arrow', 'compass', 'map'];
+  var names = ['Mei', 'Joon', 'Aiko', 'Ravi', 'Lena', 'Tomás'];
+  var items = [];
+  shapes.forEach(function (s, row) {
+    names.forEach(function (n, i) {
+      items.push(h(P.Cursor, { key: s + i, shape: s, color: P.memberColor(i), name: row === 0 ? n : undefined, x: 32 + i * 96, y: 20 + row * 60 }));
+    });
+  });
+  ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null, items));
+</script>
+</body>
+</html>

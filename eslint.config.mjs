@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // design-sync build output and staged scripts
+    "ds-bundle/**",
+    ".ds-sync/**",
+    "design-system/paper-atlas/dist/**",
   ]),
 ]);
 
