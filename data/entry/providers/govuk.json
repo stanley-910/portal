@@ -1,0 +1,110 @@
+{
+  "provider": "govuk",
+  "fetchedAt": "2026-10-02",
+  "results": [
+    {
+      "passport": "GBR",
+      "destination": "HKG",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/hong-kong/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-04-01"
+    },
+    {
+      "passport": "GBR",
+      "destination": "MAC",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/macao/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2025-12-11"
+    },
+    {
+      "passport": "GBR",
+      "destination": "CHN",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/china/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-08-27"
+    },
+    {
+      "passport": "GBR",
+      "destination": "KOR",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/south-korea/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-05-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "JPN",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/japan/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-08-28"
+    },
+    {
+      "passport": "GBR",
+      "destination": "TWN",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/taiwan/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-08-28"
+    },
+    {
+      "passport": "GBR",
+      "destination": "SGP",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/singapore/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-03-19"
+    },
+    {
+      "passport": "GBR",
+      "destination": "THA",
+      "conditions": [],
+      "links": [
+        {
+          "label": "GOV.UK entry requirements",
+          "url": "https://www.gov.uk/foreign-travel-advice/thailand/entry-requirements",
+          "role": "source"
+        }
+      ],
+      "sourceUpdatedAt": "2026-09-28"
+    }
+  ]
+}
