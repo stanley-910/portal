@@ -51,10 +51,19 @@ describe("china-rail provider", () => {
         },
       ],
     });
-    expect(g10?.price).toBeUndefined();
+
+    expect(g10?.price).toMatchObject({ amount: 505, currency: "CNY", asOf: "2026-10-02" });
     expect(offers.every((o) => o.segments[0].number?.startsWith("G"))).toBe(true);
     const departs = offers.map((o) => Date.parse(o.segments[0].depart));
     expect(departs).toEqual([...departs].sort((a, b) => a - b));
+  });
+
+  it("matches globe airport points to the Beijing–Shanghai rail corridor", () => {
+    expect(provider.covers(q(
+      city("Beijing", 40.08, 116.58),
+      city("Shanghai", 31.14, 121.81),
+      { modes: ["train"] },
+    ))).toBe(true);
   });
 
   it("Shenzhen → Hong Kong matches both Shenzhen North and Futian, links out to Trip.com", async () => {

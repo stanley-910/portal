@@ -41,7 +41,37 @@ function toError(p: TransportProvider, e: unknown, signal: AbortSignal): Provide
   return { provider: p.id, code: "UPSTREAM_ERROR", retryable: false };
 }
 
+const priceRank = (o: Offer) => o.price?.amount ?? Number.POSITIVE_INFINITY;
 const departMs = (o: Offer) => Date.parse(o.segments[0]?.depart ?? "") || Number.POSITIVE_INFINITY;
+
+const USD_RATES: Record<string, number> = {
+  USD: 1,
+  CNY: 0.138,
+  HKD: 0.128,
+  THB: 0.028,
+  MYR: 0.21,
+  SGD: 0.74,
+  EUR: 1.08,
+};
+
+function convenienceScore(offer: Offer): number {
+  const segment = offer.segments[0];
+  const priceUsd = offer.price
+    ? offer.price.amount * (USD_RATES[offer.price.currency] ?? 1)
+    : 100;
+  const durationPenalty = segment.durationMin * 0.03;
+  const modePenalty = { flight: 0, train: 4, bus: 12, ferry: 16 }[offer.mode];
+  const layoverPenalty = Math.max(0, offer.segments.length - 1) * 30;
+  return priceUsd * 0.75 + durationPenalty + modePenalty + layoverPenalty;
+}
+
+function compareOffers(a: Offer, b: Offer): number {
+  return convenienceScore(a) - convenienceScore(b) ||
+    priceRank(a) - priceRank(b) ||
+    departMs(a) - departMs(b) ||
+    a.provider.localeCompare(b.provider) ||
+    a.id.localeCompare(b.id);
+}
 
 // No retries here yet: retryable failures go back to the client in `errors[]`.
 export async function fanOut(q: SearchQuery, opts: FanOutOptions = {}): Promise<SearchResult> {
@@ -68,7 +98,7 @@ export async function fanOut(q: SearchQuery, opts: FanOutOptions = {}): Promise<
   );
 
   return {
-    offers: settled.flatMap((s) => s.offers).sort((a, b) => departMs(a) - departMs(b)),
+    offers: settled.flatMap((s) => s.offers).sort(compareOffers),
     errors: settled.flatMap((s) => (s.error ? [s.error] : [])),
     tookMs: Math.round(performance.now() - started),
   };
