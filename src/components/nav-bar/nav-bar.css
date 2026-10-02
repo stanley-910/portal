@@ -28,7 +28,10 @@
 .pn-logo { position: relative; display: block; flex: none; height: var(--logo-h); width: calc(var(--logo-h) * 2.234 * (1 - var(--fold)) + var(--mark-h)); }
 .pn-logo:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-tag); }
 .pn-lockup { position: absolute; top: 0; left: 0; display: flex; align-items: center; width: calc(var(--logo-h) * 3.234); height: var(--logo-h); clip-path: inset(-8px calc((100% - var(--mark-h) + 8px) * var(--fold) - 8px) -8px -8px); pointer-events: none; --portal-mark-scale: var(--mark-scale); }
-.pn-lockup portal-logo-reveal { width: 100%; user-select: none; -webkit-user-drag: none; }
+.pn-lockup portal-logo-reveal { position: relative; width: 100%; user-select: none; -webkit-user-drag: none; }
+/* The globe's stippled top half is open, so the map would show through it. Back it with paper cut to
+   the globe's own disc (portal-mark: circle r 86 at 100.6, 99.4 in a 190 box from 6, 6). */
+.pn-lockup::before { content: ""; position: absolute; left: calc(var(--mark-h) * 0.0453); top: calc((var(--logo-h) - var(--mark-h)) / 2 + var(--mark-h) * 0.0389); width: calc(var(--mark-h) * 0.9053); height: calc(var(--mark-h) * 0.9053); border-radius: var(--radius-round); background: var(--paper); }
 .pn-lockup:not([data-ready]), .pn-bar:not(:has([data-ready])) .pn-controls { visibility: hidden; }
 
 /* As the logo draws on, the controls drop in after it. `backwards` hands the properties back to the
