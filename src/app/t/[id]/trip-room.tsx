@@ -9,8 +9,10 @@ import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
 import { RemotePlanes } from "@/components/multiplayer/remote-planes";
+import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
+import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
@@ -22,7 +24,7 @@ export function TripRoom({ tripId }: { tripId: string }) {
       throttle={32}
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
-      <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }}>
+      <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
         <TripScreen />
       </RoomProvider>
     </LiveblocksProvider>
@@ -35,6 +37,11 @@ function TripScreen() {
   const updateMyPresence = useUpdateMyPresence();
   const status = useStatus();
   const [full, setFull] = useState(false);
+  const { addLeg } = usePlanActions();
+  const planReady = usePlanReady();
+  // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
+  const [landedLeg, setLandedLeg] = useState<string | null>(null);
+  useRecordMember();
 
   useErrorListener((error) => {
     if (error.context.type === "ROOM_CONNECTION_ERROR" && error.context.code === 4005) setFull(true);
@@ -55,13 +62,20 @@ function TripScreen() {
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
+        onLand={(trip) => planReady && setLandedLeg(addLeg(trip))}
+        onTakeoff={() => setLandedLeg(null)}
+        onCancel={() => setLandedLeg(null)}
       />
-      <RemotePlanes globe={globe} />
+      <RemotePlanes globe={globe} hideLeg={landedLeg} />
       <RemoteCursors globe={globe} />
       <NavBar globe={globe}>
         <AvatarStack />
         <InviteButton />
       </NavBar>
+      {/* below the navbar and the globe's cancel button */}
+      <div className="absolute top-40 right-(--space-4)">
+        <TripPlan />
+      </div>
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">
           {status === "connecting" ? "Connecting" : "Reconnecting"}
