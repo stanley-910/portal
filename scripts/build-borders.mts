@@ -1,9 +1,10 @@
 // Builds the globe's country borders and name labels from Natural Earth 50m (via world-atlas).
 // Run with `pnpm borders`. Writes:
-//   public/textures/borders.png: 4096×2048 equirectangular RGB. Each country is filled with a 3-bit code
+//   public/textures/borders.png: 4096×2048 equirectangular RGBA. In RGB, each country is filled with a 3-bit code
 //     (one bit per channel), chosen so no two touching countries share a code. A border is wherever a channel
 //     crosses 0.5, which the shader inks the same way it inks the coastline. The sea takes the code of the
 //     nearest country, so channels only cross on land. Supersampled 4×4, so the crossing is sub-texel accurate.
+//     A holds the country itself (1–255, sea included, by nearest country), so the shader can pick one out.
 //   src/components/trip-globe/countries.ts: where each country's name sits, its long axis and its size.
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -187,7 +188,7 @@ for (const ci of countries.map((_, i) => i).sort((a, b) => adj[b].size - adj[a].
 
 // pass 2: supersample the land, average each channel over the land samples in a texel;
 // texels with no land take the code of their nearest country
-const px = new Uint8Array(W * H * 3);
+const px = new Uint8Array(W * H * 4);
 const landN = new Uint16Array(W);
 const bitN = new Uint16Array(W * 3);
 for (let y = 0; y < H; y++) {
@@ -207,10 +208,11 @@ for (let y = 0; y < H; y++) {
     });
   }
   for (let x = 0; x < W; x++) {
-    const o = (y * W + x) * 3;
+    const o = (y * W + x) * 4;
     const k = code[id[y * W + x] - 1];
     for (let b = 0; b < 3; b++)
       px[o + b] = landN[x] ? Math.round((255 * bitN[x * 3 + b]) / landN[x]) : k & (1 << b) ? 255 : 0;
+    px[o + 3] = id[y * W + x];
   }
 }
 writeFileSync(PNG_OUT, png(px, W, H));
@@ -387,13 +389,13 @@ console.log(`Wrote ${countries.length} countries to borders.png and ${labels.len
 
 // ---------- PNG ----------
 
-function png(rgb: Uint8Array, w: number, h: number): Buffer {
+function png(rgba: Uint8Array, w: number, h: number): Buffer {
   // filter 1 (Sub) per row: flat fills become runs of zeros
-  const raw = new Uint8Array(h * (w * 3 + 1));
+  const raw = new Uint8Array(h * (w * 4 + 1));
   for (let y = 0; y < h; y++) {
-    const o = y * (w * 3 + 1);
+    const o = y * (w * 4 + 1);
     raw[o] = 1;
-    for (let i = 0; i < w * 3; i++) raw[o + 1 + i] = (rgb[y * w * 3 + i] - (i >= 3 ? rgb[y * w * 3 + i - 3] : 0)) & 255;
+    for (let i = 0; i < w * 4; i++) raw[o + 1 + i] = (rgba[y * w * 4 + i] - (i >= 4 ? rgba[y * w * 4 + i - 4] : 0)) & 255;
   }
   const chunk = (type: string, data: Uint8Array) => {
     const b = Buffer.alloc(12 + data.length);
@@ -406,7 +408,7 @@ function png(rgb: Uint8Array, w: number, h: number): Buffer {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(w, 0);
   ihdr.writeUInt32BE(h, 4);
-  ihdr.set([8, 2, 0, 0, 0], 8); // 8-bit RGB
+  ihdr.set([8, 6, 0, 0, 0], 8); // 8-bit RGBA
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     chunk("IHDR", ihdr),

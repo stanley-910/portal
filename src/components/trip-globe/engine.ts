@@ -246,6 +246,9 @@ export class GlobeEngine {
   private dest: Vec3 | null = null;
   private oAir: Snap | null = null;
   private dAir: Snap | null = null;
+  /** How lit up the landed country's outline is (0–1), and where it was landed, kept while it fades out. */
+  private hi = 0;
+  private hiP: Vec3 = [0, 1, 0];
   private curAir: Snap | null = null;
   private pl: Plane | null = null;
   // other members' flights: where presence says they are, and where we draw them (eased toward that)
@@ -620,6 +623,7 @@ export class GlobeEngine {
     pl.n = v;
     pl.f = tangent(pl.f, v);
     this.dAir = nearestAirport(v);
+    this.hiP = this.dAir.v;
     // turn the globe to frame the whole route
     // and back out if the whole route doesn't fit, rising mid-way like a fly-to
     const mid = llOf(slerp(origin, v, 0.5));
@@ -899,6 +903,9 @@ export class GlobeEngine {
   private sim(dt: number, t: number) {
     const k = (r: number) => 1 - Math.exp(-dt * r);
     this.nameInk += ((this.mode === "idle" ? 1 : 0.7) - this.nameInk) * (this.reduceMotion ? 1 : k(6));
+    // the landed country lights up as the plane touches down, and goes dark with the trip
+    const hiTo = this.mode === "landed" && t - this.tLand > 0.3 ? 1 : 0;
+    this.hi = this.reduceMotion || Math.abs(hiTo - this.hi) < 0.002 ? hiTo : this.hi + (hiTo - this.hi) * k(5);
     for (const r of this.remotes.values()) {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
@@ -982,7 +989,7 @@ export class GlobeEngine {
   private sceneChanged() {
     const state = this.scene;
     state.length = 0;
-    state.push(this.lon0, this.lat0, this.range, this.mode === "idle" ? 0 : this.mode === "flying" ? 1 : 2);
+    state.push(this.lon0, this.lat0, this.range, this.mode === "idle" ? 0 : this.mode === "flying" ? 1 : 2, this.hi);
     const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch);
     if (this.pl) plane(this.pl);
     if (this.origin) state.push(...this.origin);
@@ -1127,6 +1134,8 @@ export class GlobeEngine {
     gl.uniform1f(u.uDark, th.dark);
     for (const [key, value] of Object.entries(th.gl)) gl.uniform3fv(u[key], value);
     gl.uniform3fv(u.uShP, shP);
+    gl.uniform3fv(u.uHiP, this.hiP);
+    gl.uniform1f(u.uHi, this.hi);
     gl.uniform1f(u.uShR, S * 0.42);
     gl.uniform1f(u.uShA, pl && shadow ? 0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt) : 0);
     const [x, y, w, h] = this.surfaceBounds();

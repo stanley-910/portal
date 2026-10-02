@@ -36,6 +36,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - Draw coastlines in `ink` at about one device pixel. Add three or four water-lining ripples in `sea-deep` off each coast, fading out from the shore.
 - Draw the graticule every `graticule-step` in `ink` at 30% (20% at night), with the equator slightly stronger.
 - Draw country borders on land only, in `ink` at about 55% (75% at night): finer and fainter than the coastline, and fading toward the globe's edge. They are part of the print, so they sit under the plane and its shadow.
+- When a trip lands, light up the destination country's outline (its borders and coast): full-strength `ink`, a little wider, over a soft halo of whichever of `paper` and `ink` is lighter. It comes up just after touchdown and goes with the trip.
 - Print country names in the `country` style: tracked capitals in `ink`, with a soft `paper` halo that lifts them off the halftone without boxing them in. Set each name level along its parallel, or along a long thin country's axis (Japan, Norway) when that axis is within 60° of level. The whole globe, fully zoomed out, carries no names: they print in as you zoom in. A name shows only once its country has room for it on screen, bigger countries win where names collide, and no name sits on a plane or an airport tag. While a trip is on the globe, names print at 70% so the route leads.
 - Outline the globe in solid `ink`. It hangs in a stippled night sky, so it casts no shadow on the page.
 - Lay a fine paper grain over everything.

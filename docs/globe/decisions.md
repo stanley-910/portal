@@ -161,3 +161,15 @@ All the code is in `src/components/trip-globe/engine.ts` unless noted.
 - `engine.test.ts` covers the redraw skipping, the surface bounds and the arc buffers.
 
 **Measured** (3200×2000 device px, median of 60 synced draws): the globe pass went from 6.6ms to 5.2ms per frame zoomed out or mid zoom, about 20% less. The overlay is 0.1–0.2ms either way. Settled frames now cost nothing.
+
+## G10. The country a trip lands in lights up
+
+**Status:** built, 2026-10-03
+
+**Decision:**
+- Once the plane touches down, the destination country's borders and coastline print in full-strength `ink`, a little wider than usual, over a soft halo. The halo is `paper` by day and `ink` by night, so it reads as light in both themes. It eases in about 0.3s after touchdown, goes out when the trip is cancelled, and switches instantly under reduced motion.
+- The country is the one at the destination airport, not the raw click, so a landing just offshore still lights the right country.
+- `borders.png` gained an alpha channel holding each country's index (sea texels take the nearest country), and grew from 170 KB to 203 KB. The shader reads the index at the airport, then builds a smooth in-or-out mask of that country by filtering the four nearest texels by hand. Its 0.5 crossing gives the land borders. The coastline is the existing coast line, kept where the mask says "inside".
+- It costs five texel fetches per globe pixel, and only while a landed trip is shown. The branch is uniform, so derivatives stay valid.
+
+**Why:** the user asked for the landed country to be lit up slightly. A per-country mask in the shader avoids shipping vector outlines, and keeps the highlight part of the print, under the plane.

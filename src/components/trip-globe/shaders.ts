@@ -57,6 +57,8 @@ uniform float uPer;
 uniform sampler2D uEarth;
 uniform sampler2D uBorders;
 uniform bool uSurface;
+uniform vec3 uHiP;
+uniform float uHi;
 uniform vec3 uPaper;
 uniform vec3 uInk;
 uniform vec3 uSea;
@@ -73,6 +75,11 @@ uniform float uSkyInk;
 out vec4 outColor;
 const float PI = 3.14159265;
 ` + GLSL_COMMON + GLSL_SKY + `
+/** 1 if texel t of the borders texture belongs to country id, else 0. x wraps round the globe. */
+float inCountry(ivec2 t, ivec2 sz, float id) {
+  t = ivec2((t.x + sz.x) % sz.x, clamp(t.y, 0, sz.y - 1));
+  return step(abs(texelFetch(uBorders, t, 0).a - id), 0.5 / 255.0);
+}
 vec3 rayDir(vec2 px) {
   vec2 ndc = px / uRes * 2.0 - 1.0;
   return normalize(uFf + uRr * (ndc.x * uTan * uAsp) + uUu * ((ndc.y + uShift) * uTan));
@@ -141,6 +148,29 @@ void main() {
     float onLand = smoothstep(0.5 + lfw, 0.5 + 2.5 * lfw + 1e-3, lf);
     float bLimb = smoothstep(0.08, 0.3, max(dot(n, -d), 0.0));
     g = mix(g, ink, max(b3.r, max(b3.g, b3.b)) * onLand * bLimb * mix(0.55, 0.75, uDark));
+
+    // the country a trip lands in: its borders and coast lit up, in full ink a little wider, over a soft halo of
+    // whichever of paper and ink is lighter. The country is read from the borders texture's alpha at the airport.
+    if (uHi > 0.0) {
+      ivec2 sz = textureSize(uBorders, 0);
+      vec2 tuv = vec2(atan(uHiP.x, uHiP.z) / (2.0 * PI) + 0.5, 0.5 - asin(clamp(uHiP.y, -1.0, 1.0)) / PI);
+      float target = texelFetch(uBorders, clamp(ivec2(tuv * vec2(sz)), ivec2(0), sz - 1), 0).a;
+      // a smooth in/out mask of that country, filtering the four nearest texels by hand
+      vec2 f = uv * vec2(sz) - 0.5;
+      ivec2 i0 = ivec2(floor(f));
+      vec2 fr = f - floor(f);
+      float m00 = inCountry(i0, sz, target);
+      float m10 = inCountry(i0 + ivec2(1, 0), sz, target);
+      float m01 = inCountry(i0 + ivec2(0, 1), sz, target);
+      float m11 = inCountry(i0 + ivec2(1, 1), sz, target);
+      float m = mix(mix(m00, m10, fr.x), mix(m01, m11, fr.x), fr.y);
+      float mfw = fwidth(m) + 1e-5;
+      float inside = smoothstep(0.3, 0.7, m);
+      float line = max(lineAA(abs(m - 0.5), 0.0, mfw * 2.0) * onLand, lineAA(abs(lf - 0.5), 0.0, lfw * 2.2) * inside);
+      float halo = max(lineAA(abs(m - 0.5), 0.0, mfw * 5.0) * onLand, lineAA(abs(lf - 0.5), 0.0, lfw * 5.0) * inside);
+      g = mix(g, mix(paper, ink, uDark), halo * 0.55 * uHi * bLimb);
+      g = mix(g, ink, line * 0.95 * uHi * bLimb);
+    }
 
     float lonD = lon / PI * 180.0;
     float latD = lat / PI * 180.0;
