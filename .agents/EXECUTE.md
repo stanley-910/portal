@@ -14,6 +14,43 @@ First-time machine setup: `.agents/SETUP.md`. API ground truth: `.agents/docs/ap
 
 # Part 1 — the prompt
 
+## 0. One-time task: move decisions and API docs into `docs/<area>/`
+
+Added by Stanley on 2026-10-02.
+
+Project docs now live in one folder per area, `docs/<area>/`. Each folder has a `decisions.md`, plus that area's research. `docs/README.md` explains the layout and the format of a decision entry. The ledgers' `STATE.md`, `PLAN.md`, `tasks/`, the devlogs and the skills stay in `.agents/`: they're your execution tooling, and they don't move.
+
+**Who does it:** Ahmet's agent, as its first task.
+- **Skip** if `.agents/ledgers/*/DECISIONS.md` no longer exist. That means the migration is done.
+- **Cata's agent:** skip this section entirely.
+
+**Steps:**
+1. **Move each ledger's decisions to `docs/<area>/decisions.md`:**
+
+   | Ledger | Area folder |
+   |---|---|
+   | `core` | `transport` |
+   | `flights` | `flights` |
+   | `trains` | `trains` |
+   | `buses` | `buses` |
+   | `ferries` | `ferries` |
+
+   - Keep the ADR IDs (`ADR-F01` and so on), so existing references still resolve.
+   - Add a `Status:` line to each entry, using the values in `docs/README.md`.
+   - Then delete the ledger's `DECISIONS.md`.
+2. **Move `.agents/docs/api/<provider>.md` to the area that uses it:**
+   - A provider used by one mode goes to `docs/<area>/api/<provider>.md`.
+   - A provider shared across modes (12Go, GTFS, Rome2Rio) and the API `README.md` go to `docs/transport/api/`.
+3. **Fix every reference to the old paths:**
+   - Search `.agents/`, `src/`, `scripts/`, `AGENTS.md` and `README.md` for `ledgers/*/DECISIONS.md`, `.agents/docs/api/` and `docs/research/free-tiers.md`.
+   - The free-tiers note is now `docs/multiplayer/free-tiers.md`.
+   - Update the API ground-truth pointer at the top of this file.
+4. **Add a row to the table in `docs/README.md`** for each new area folder.
+5. **Check for conflicts with the multiplayer decisions** (`docs/multiplayer/decisions.md`). M5 drops Supabase entirely, so the app has no database. Where a transport doc or decision assumes Supabase (for example, the response cache, or caching TDX in Supabase):
+   - change it to committed fixtures or an in-memory or edge cache;
+   - in your report, list each one you changed.
+6. **Delete this § 0,** then commit everything as one commit: `docs: move transport decisions and API docs into docs/<area>/`. Merge it through the normal flow (§ 10 or § 10b).
+
 ## 1. Who you are
 
 Invocation names you: Ahmet or Cata. **If it does not, stop and ask.** Never guess — guessing

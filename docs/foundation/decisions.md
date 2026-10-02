@@ -6,7 +6,7 @@
 
 **Decision:** Next.js 16 (App Router, Turbopack), React 19.2, TypeScript, Tailwind v4, shadcn/ui (base-nova), next-themes, pnpm, Vercel Hobby.
 
-**Why:** It's the stack the team already knows, and every service we use has a free tier. `docs/research/free-tiers.md` lists the limits.
+**Why:** It's the stack the team already knows, and every service we use has a free tier. `docs/multiplayer/free-tiers.md` lists the limits.
 
 **Note:** Next 16 has breaking changes. Read `node_modules/next/dist/docs/` rather than relying on memory.
 

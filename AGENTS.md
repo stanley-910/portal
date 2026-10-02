@@ -18,11 +18,11 @@ We solve how to get between places. We are not a trip guide or an event planner,
 
 - `/` is the globe screen: a custom WebGL2 globe (`src/components/trip-globe`) running on mock airports (`airports.ts`). Taking off, flying, landing, pan, Google Earth-style zoom and a landing ticket work. It's single-player, and there's no backend yet.
 - `/design` is the Paper Atlas design system gallery. The rules are in `DESIGN.md` and the tokens are in `src/design/tokens.json`.
-- `docs/research` holds research notes, such as free-tier limits for Liveblocks, Supabase and Vercel.
+- `docs/<area>/` holds each area's decisions and research, for example `docs/multiplayer/decisions.md`. See `docs/README.md`.
 
 ## Planned
 
-All work is tracked in Linear: project "Hackathon MVP", team POR. Decisions made so far, and why, are in `docs/decisions/`. Where a ticket disagrees with them, the decisions win.
+All work is tracked in Linear: project "Hackathon MVP", team POR. Decisions made so far, and why, are in `docs/<area>/decisions.md`. Where a ticket disagrees with them, the decisions win.
 
 | Area | Plan | Tickets |
 |---|---|---|

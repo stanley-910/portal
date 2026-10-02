@@ -2,7 +2,7 @@
 
 These were agreed in a grilling session on 2026-10-02. **None of them are built yet**, and the Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
 
-Liveblocks facts behind these decisions were checked against the docs on 2026-10-02 (`@liveblocks/*` 3.24.3, which supports React 19). Free-tier limits are in `docs/research/free-tiers.md`.
+Liveblocks facts behind these decisions were checked against the docs on 2026-10-02 (`@liveblocks/*` 3.24.3, which supports React 19). Free-tier limits are in `free-tiers.md` (next to this file).
 
 ## Scope
 
