@@ -151,7 +151,7 @@ function ResultCard({ offer, best, currency, rates }: { offer: Offer; best?: boo
           {best ? "BEST" : offer.mode.toUpperCase()} · {offer.segments[0].carrier ?? offer.provider}
         </span>
         <span className="type-body block truncate">
-          {new Date(offer.segments[0].depart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {offer.segments[0].durationMin} min{stopsLabel(offer)}
+          {offer.kind === "estimated" ? "Estimated" : new Date(offer.segments[0].depart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {offer.segments[0].durationMin} min{stopsLabel(offer)}
         </span>
       </span>
       <span className="type-body shrink-0 text-right">{formatMoney(offer, currency, rates)}</span>

@@ -43,7 +43,7 @@ stripped) and a mapper test. Live calls only in task Verification smoke steps.
 the seat whose key is pending.
 **Decision:** `env.server.ts` zod schema, every provider var optional. `covers()` may be true,
 `search()` throws `NOT_CONFIGURED` when var absent. Fan-out reports it in `errors[]`.
-**Consequences:** demo must check `errors[]` is empty of `NOT_CONFIGURED` (`.agents/SETUP.md` checklist, kept locally).
+**Consequences:** demo must check `errors[]` is empty of `NOT_CONFIGURED` (`.agents/SETUP.md` checklist, kept locally). Exception since 2026-10-03: travelpayouts returns an estimate instead (flights ADR-F03).
 
 ## ADR-C05 — 2026-10-02 — Seeded (link-out) routes carry typical departure times
 
@@ -79,3 +79,14 @@ the seat whose key is pending.
 **Decision:** add `"srt"` to `ProviderId` in `types.ts`, a `providers/srt/` folder, and one line in `registry.ts`. Additive only; no other contract change. Done inside trains T07 (exception to ADR-C02's "never this list" for this one id).
 **Why not inject rows into `gtfs` output:** mixes hand seed into a regenerated artifact; cross-ledger file ownership.
 **Consequences:** `ProviderId` union has 8 members. Clients switching on `provider` must accept `"srt"`.
+
+## ADR-C09 — 2026-10-03 — `Offer.transfers` and `kind: "estimated"`
+
+**Status:** built
+
+**Context:** Travelpayouts cached fares include connecting flights but list one segment, so every flight read as direct and the ranking's layover penalty never applied (flights ADR-F04). Thin flight routes returned nothing, and AGENTS.md requires a mock fallback for every provider (flights ADR-F03).
+**Decision:** two additive fields on the contract in `types.ts`:
+- `transfers?: number`: connections the provider counts but doesn't list. `transfersOf(offer)` is the larger of it and `segments.length - 1`; ranking and every UI use that.
+- `kind` gains `"estimated"`: modelled, not quoted. It has no real departure time, so UIs show "estimated" in place of the time.
+**Consequences:** clients switching on `kind` must accept `"estimated"`. The trip plan's `StoredOffer` (multiplayer M13) mirrors both.
+

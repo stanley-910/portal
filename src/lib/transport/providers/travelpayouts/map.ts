@@ -1,13 +1,16 @@
 import { aviasalesUrl } from "./links";
+import { localIso, zoneOf } from "./timezones";
 import type { TravelpayoutsFlight } from "./client";
 import type { Offer, Place, SearchQuery } from "../../types";
 
 export function mapFlights(rows: TravelpayoutsFlight[], query: SearchQuery, marker?: string): Offer[] {
   return rows.map((row) => {
     const durationMin = row.duration_to ?? row.duration ?? 0;
-    const arrive = new Date(new Date(row.departure_at).getTime() + durationMin * 60_000).toISOString();
+    // in the destination's local time, like every other provider's arrivals
+    const destination = row.destination_airport ?? row.destination;
+    const arrive = localIso(new Date(row.departure_at).getTime() + durationMin * 60_000, zoneOf(destination));
     const from: Place = { ...query.from, iata: row.origin_airport ?? row.origin };
-    const to: Place = { ...query.to, iata: row.destination_airport ?? row.destination };
+    const to: Place = { ...query.to, iata: destination };
     return {
       id: `travelpayouts:${row.origin}-${row.destination}-${row.departure_at}-${row.flight_number}`,
       provider: "travelpayouts",

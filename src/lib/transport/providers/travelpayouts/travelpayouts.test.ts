@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import fixture from "./__fixtures__/prices_for_dates.json";
+import { estimateFlight } from "./estimate";
 import { aviasalesUrl } from "./links";
 import { mapFlights } from "./map";
 import { toIata } from "./places";
+import { localIso, zoneOf } from "./timezones";
 import type { SearchQuery } from "../../types";
 
 const query: SearchQuery = {
@@ -28,7 +30,7 @@ describe("Travelpayouts adapter", () => {
         carrier: "HX",
         number: "HX765",
         durationMin: 165,
-        arrive: "2026-11-15T03:45:00.000Z",
+        arrive: "2026-11-15T10:45:00+07:00",
       }],
     });
   });
@@ -54,5 +56,32 @@ describe("Travelpayouts adapter", () => {
     expect(url).toBe("https://www.aviasales.com/search/HKG1511BKK15111?marker=generic");
     expect(aviasalesUrl(`${url}&marker=generic`, "generic")).toBe(url);
     expect(aviasalesUrl("/search/HKG1511BKK15111")).toBe("https://www.aviasales.com/search/HKG1511BKK15111");
+  });
+
+  it("writes arrivals in the destination's local time, or UTC for an airport it doesn't know", () => {
+    const ms = Date.parse("2026-11-15T03:45:00Z");
+    expect(localIso(ms, zoneOf("BKK"))).toBe("2026-11-15T10:45:00+07:00");
+    expect(localIso(ms, zoneOf("HND"))).toBe("2026-11-15T12:45:00+09:00");
+    expect(localIso(ms, zoneOf("KTM"))).toBe("2026-11-15T09:30:00+05:45");
+    expect(zoneOf("XXX")).toBeNull();
+    expect(localIso(ms, null)).toBe("2026-11-15T03:45:00.000Z");
+  });
+
+  it("estimates a flight from distance, marked estimated, with a search link", () => {
+    const [offer] = estimateFlight(query, "HKG", "BKK", "generic");
+    expect(offer).toMatchObject({
+      kind: "estimated",
+      mode: "flight",
+      price: { currency: "USD" },
+      bookingUrl: "https://www.aviasales.com/search/HKG1511BKK1?marker=generic",
+    });
+    // HKG–BKK is about 1,700 km: roughly 2 h 50 in the air plus overhead
+    expect(offer.segments[0].durationMin).toBeGreaterThan(150);
+    expect(offer.segments[0].durationMin).toBeLessThan(200);
+  });
+
+  it("doesn't estimate a flight for a short hop", () => {
+    const near = { ...query, to: { name: "Shenzhen", lat: 22.64, lng: 113.81 } };
+    expect(estimateFlight(near, "HKG", "SZX")).toEqual([]);
   });
 });
