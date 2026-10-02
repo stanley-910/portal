@@ -39,3 +39,10 @@ hundreds of `StopOfRoute` calls; guest mode (20/day/IP) cannot build it.
 **Decision:** No Taiwan bus coverage. B01 retired. No seed replacement (too many routes to hand-curate).
 **Consequences:** Taiwan bus queries → `tdx` reports `covers` false (T06 limits `tdx` to trains).
 Re-open via a new task when a TDX key exists (trains backlog).
+
+## ADR-B06 — 2026-10-02 — BOT seed times = route-page first/last bus per operator
+
+**Context:** ADR-B03/C05 want cited typical departures. ~110 operator/pair rows; operator sites are many, inconsistent, mostly without timetables. BOT route pages publish a per-operator schedule table (busonlineticket.md § Coverage, observed 2026-10-02).
+**Decision:** per pair the top 5 operators by "No. of Trip"; `departures` = that operator's First Bus + Last Bus; `durationMin` = pair "Est. Duration" (range → midpoint). `source` = the route page. Read by hand-run script, no fares stored, not in repo.
+**Why not full timetables:** BOT shows only first/last; per-departure lists need the POST search (no permission, doc § Gotchas).
+**Consequences:** 2 offers per operator, not every run; times "typical" via `kind: "timetable"`. Re-curate when pages change.

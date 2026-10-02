@@ -21,4 +21,4 @@ TDX bus: `/v2/Bus/Route/InterCity`, `/v2/Bus/StopOfRoute/InterCity/{RouteName}`,
 
 Korea bus: `ExpBusInfo/GetStrtpntAlocFndExpbusInfo` (`depTerminalId`, `arrTerminalId`, `depPlandTime`), `SuburbsBusInfo/GetStrtpntAlocFndSuberbsBusInfo` (today only; "Suberbs" spelling real). Terminal lists: `GetExpBusTrminlList`, `GetSuberbsBusTrminlList`. Each service = separate data.go.kr application + quota.
 
-BOT deep link: `https://www.busonlineticket.com/booking/{from}-to-{to}-bus-tickets?refererid=…`, slugs lowercase, spaces→`-`; unknown pair 404. GET cannot prefill date.
+BOT deep link: `https://www.busonlineticket.com/booking/{from}-to-{to}-bus-tickets?refererid=…`, slugs = BOT city names lowercased, spaces→`-` (`malacca`, `hatyai`); unknown pair 404. GET cannot prefill date.

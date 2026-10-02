@@ -82,6 +82,8 @@ Sizes: `265_424`, `315_291`, `570_294`. jQuery-based, injects own CSS → clashe
 - Vendor claim (affiliate page): express bus Singapore + Malaysia; site nav: bus, bus+hotel, ferry, train (KTM ETS). TH site (`.co.th`) Thailand; footer links Indonesia. Cambodia/Vietnam per third-party summaries only → `unverified`.
 - Currency selector: RM, S$, Rp (observed homepage).
 - Route pages exist for many city pairs; existence check = 200 vs 404 on slug (observed).
+- Route page body = "Bus Schedule and Bus Fare" table: per operator First Bus, Last Bus, No. of Trip, Depart Day, Fare From; plus Distance, Est. Duration, No. of Operator. First/last also in one JSON-LD `@type: Table` per operator (`text` = first, `name` = last). Observed 2026-10-02. Basis of B05 seed (ADR-B06).
+- 22 seeded pairs (B05 `seed.json`) all 200, plain and `?refererid=test` — observed 2026-10-02.
 
 ## Errors
 | Case | Observed |
@@ -92,6 +94,7 @@ Sizes: `265_424`, `315_291`, `570_294`. jQuery-based, injects own CSS → clashe
 
 ## Gotchas
 - City names must match BOT naming (e.g. `Bandar Tasik Selatan (TBS)`, `JB Larkin Sentral`); slug of parentheses/odd names untested → link city-level (`kuala-lumpur`, `singapore`, `penang`) not terminal-level.
+- City-level slugs are BOT's names, not ours: `malacca` (not `melaka`), `hatyai` (not `hat-yai`) — the other spellings 404 (observed 2026-10-02).
 - Train suffix is `-ktm-ets` (KTM only), not `-train-tickets`.
 - `refererid` only credits commission if ID is an approved affiliate; random value still 200 (observed `refererid=test`).
 - Affiliate needs a public website URL at signup — Vercel preview URL may or may not pass review (`unverified`).
