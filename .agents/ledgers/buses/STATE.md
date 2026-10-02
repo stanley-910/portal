@@ -23,7 +23,7 @@ pnpm gtfs:build          # cached zip < 24 h reused; --fresh re-downloads; write
 
 ## Open blockers / decisions for the user
 
-- TDX key (see trains STATE) blocks B01 live. Korean account blocks B02 live.
+- Korean account blocks B02 live. (B01 retired — no TDX key, trains ADR-T04.)
 - Ahmet: apply to BusOnlineTicket affiliate (needs live website URL — use Vercel deploy). Commission only; B05 ships untagged otherwise.
 - Team: city list for GTFS pairs. Default: Bangkok, Chiang Mai, Phuket, Krabi, Surat Thani, Hat Yai, Pattaya, KL, Penang/Butterworth, Ipoh, JB, Singapore(Woodlands).
 
@@ -31,7 +31,7 @@ pnpm gtfs:build          # cached zip < 24 h reused; --fresh re-downloads; write
 
 | ID | Title | Repo | Status | Depends on |
 |----|-------|------|--------|------------|
-| B01 | TDX intercity bus via stop-pair index | | todo | T01 |
+| B01 | TDX intercity bus via stop-pair index | | retired (trains ADR-T04) | T01 |
 | B02 | Korea express + intercity bus | | todo | T03 |
 | B03 | GTFS build pipeline + gtfs adapter | | done | C01 |
 | B04 | 12Go bus route seed | | todo | S02 |
@@ -39,14 +39,13 @@ pnpm gtfs:build          # cached zip < 24 h reused; --fresh re-downloads; write
 
 ## Critical path
 
-C01 → B03 → T05 · T01 → B01 · T03 → B02 · S02 (Cata) → B04.
+C01 → B03 → T05 · T03 → B02 · S02 (Cata) → B04.
 
 ## Cross-ledger
 
 | Task | Provides | Consumed by |
 |---|---|---|
 | B03 | `scripts/gtfs-build.mts`, `providers/gtfs/` | trains T05 (rail), ferries backlog (namtang `route_type` 4) |
-| ← T01 | TDX client | B01 |
 | ← T03 | TAGO client | B02 |
 | ← S02 | 12Go adapter + `SeedRoute` | B04 |
 

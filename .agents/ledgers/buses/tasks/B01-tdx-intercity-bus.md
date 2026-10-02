@@ -1,5 +1,6 @@
 # B01 — TDX intercity bus via stop-pair index
-REPO: (this repo) · Depends: T01 · Status: todo
+REPO: (this repo) · Depends: T01 · Status: retired
+**Retired 2026-10-02 by trains ADR-T04** (no TDX key; dropped, not replaced).
 Read first: STATE.md, REFERENCE.md, `.agents/docs/api/taiwan-tdx.md`, then this.
 **Model: opus** — cross-route join under 5 req/min.
 

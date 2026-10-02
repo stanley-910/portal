@@ -20,7 +20,6 @@ Run agents: `.agents/EXECUTE.md` (paste prompt at top, say who you are).
 |---|---|---|---|---|---|
 | Travelpayouts | Cata | Sign up app.travelpayouts.com; Profile → API token; copy marker (dashboard lower-left) + project id | token, marker, trs | `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER`, `TRAVELPAYOUTS_TRS` | none |
 | 12Go affiliate | Cata | In Travelpayouts → Programs → join 12Go (or agent.12go.asia) | affiliate tag | `TRAVELPAYOUTS_MARKER` or `TWELVEGO_AFFILIATE_ID` | review; low-traffic sites may be declined. Untagged links still work |
-| TDX (Taiwan) | Ahmet | Register tdx.transportdata.tw. **Needs Taiwan mobile SMS.** No number → email tdx@motc.gov.tw (identity statement + app description) | client id/secret | `TDX_CLIENT_ID`, `TDX_CLIENT_SECRET` | SMS: minutes. Manual: unknown |
 | data.go.kr (Korea) | Ahmet | **Needs Korean national + 본인인증.** Find someone with Korean phone/i-PIN; apply for TrainInfo, ExpBusInfo, SuburbsBusInfo (3 applications) | serviceKey | `DATA_GO_KR_SERVICE_KEY` — use the **Decoding** key | auto-approve once account exists |
 | BusOnlineTicket affiliate | Ahmet | Apply with live site URL (Vercel deploy) | `refererid` | `BOT_REFERER_ID` | manual |
 | Trip.com affiliate | Ahmet | Optional, for China rail link-out | affiliate id | `TRIPCOM_AFFILIATE_ID` | unknown |
@@ -35,6 +34,7 @@ Keys go in `.env.local` (dev) and Vercel → Project → Settings → Environmen
 - **Rome2Rio API** — closed to new applications (ADR-T03).
 - **12306** — no official API; no request-time calls (ADR-T02).
 - **12Go API, BusOnlineTicket XML API** — partner-only; link-out instead (ADR-S01, ADR-B03).
+- **TDX (Taiwan)** — signup needs Taiwan phone or manual review; THSR is seeded instead (ADR-T04).
 - **Travelpayouts real-time Search API** — needs 50k MAU (ADR-F01).
 
 ## 4. Demo-day checklist
@@ -42,5 +42,4 @@ Keys go in `.env.local` (dev) and Vercel → Project → Settings → Environmen
 - [ ] Every key set in Vercel prod env.
 - [ ] Search sample routes: `errors[]` has no `NOT_CONFIGURED` / `AUTH_FAILED`.
 - [ ] `pnpm gtfs:build` run within 7 days; KTMB calendar not expired (ADR-B01).
-- [ ] TDX monthly points left (member dashboard) > demo needs.
 - [ ] Supabase project woken, Liveblocks minutes left (`docs/research/free-tiers.md`).

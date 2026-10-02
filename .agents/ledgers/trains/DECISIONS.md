@@ -27,3 +27,20 @@ automated high-frequency querying; no-cookie call → 302.
 **Context:** Listed as free train source. Doc `rome2rio.md`: not accepting new applications, `/documentation/` 404, `free.rome2rio.com` NXDOMAIN, site Cloudflare-blocked.
 **Decision:** No `rome2rio` provider. Removed from core `ProviderId` before C01 landed.
 **Consequences:** multimodal gaps covered per country (TDX, TAGO, GTFS). Google Routes `TRANSIT` (paid) in backlog only.
+
+## ADR-T04 — 2026-10-02 — Taiwan: THSR seed + link-out, no TDX key (supersedes ADR-T01)
+
+**Context:** ADR-T01 assumed a TDX member key. Ahmet started signup on 2026-10-02: the form
+requires a Taiwan mobile number for SMS; the only other path is "Manual Verification" (email
+identity statement to tdx@motc.gov.tw, human review, no stated turnaround). Owner declined that
+path. Guest mode (20 calls/day/IP) still cannot serve Vercel traffic (doc `taiwan-tdx.md` § Verdict).
+**Decision:** No TDX calls at request time. THSR becomes a seeded provider per core ADR-C05:
+committed station list (12 stations) + typical timetable (train number + stop times per
+direction), `kind: "timetable"`, link-out to THSR booking. TRA (T02) and TDX intercity bus
+(buses B01) are dropped — ~240 TRA stations and the bus stop-pair index are not hand-seedable.
+Provider id stays `tdx` and folder `providers/tdx/` — no contract (`ProviderId`) change.
+**Why not keep TDX behind `NOT_CONFIGURED`:** a dead adapter costs build time and always shows
+up in `errors[]` at demo.
+**Consequences:** ADR-T01 no longer governs; older task Notes quoting it were true when written.
+`TDX_CLIENT_ID`/`TDX_CLIENT_SECRET` stay optional in the env schema (unused). Taiwan east coast
+(TRA) and buses: no coverage. Re-opening = new task once a key exists (backlog).

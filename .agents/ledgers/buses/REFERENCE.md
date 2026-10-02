@@ -5,7 +5,7 @@ Codebase: core `REFERENCE.md`. Provider truth in `.agents/docs/api/`.
 | Provider id | Folder | Env | Doc |
 |---|---|---|---|
 | `gtfs` | `src/lib/transport/providers/gtfs/` | `LTA_DATAMALL_ACCOUNT_KEY` (optional, SG train only), `MOBILITYDB_REFRESH_TOKEN` (build-time, optional) | `gtfs.md` |
-| `tdx` | `providers/tdx/` (T01 client) | `TDX_CLIENT_ID`, `TDX_CLIENT_SECRET` | `taiwan-tdx.md` |
+| `tdx` | `providers/tdx/` — trains-only seed; Taiwan bus dropped (ADR-B05, 2026-10-02) | — | `taiwan-tdx.md` |
 | `korea-tago` | `providers/korea-tago/` (T03 client) | `DATA_GO_KR_SERVICE_KEY` | `korea-data-go-kr.md` |
 | `12go` | `providers/12go/` (S02 adapter) | `TWELVEGO_AFFILIATE_ID`, `TRAVELPAYOUTS_MARKER` | `12go.md` |
 | `busonlineticket` | `providers/busonlineticket/` | `BOT_REFERER_ID` (optional) | `busonlineticket.md` |

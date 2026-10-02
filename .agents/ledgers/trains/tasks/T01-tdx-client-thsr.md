@@ -1,5 +1,6 @@
 # T01 — TDX OAuth client + THSR adapter
-REPO: (this repo) · Depends: C01 · Status: todo
+REPO: (this repo) · Depends: C01 · Status: retired
+**Retired 2026-10-02 by trains ADR-T04** (no TDX key; replaced by T06 (THSR seed)).
 Read first: STATE.md, REFERENCE.md, `.agents/docs/api/taiwan-tdx.md`, then this.
 **Model: opus** — token + quota discipline shared with buses B01.
 

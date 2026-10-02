@@ -33,7 +33,7 @@ fanOut ─▶ providers/tdx/         client.ts (OAuth token cache 24h, shared w/
 
 | # | Decision | Chosen | Reason |
 |---|---|---|---|
-| D1 | Taiwan | TDX member key, server-side, hard cache | official; guest 20/day/IP dies on Vercel |
+| D1 | Taiwan | THSR seed + link-out, no TDX key (ADR-T04; was TDX key, ADR-T01) | signup needs Taiwan phone or manual review; owner declined |
 | D2 | Korea | data.go.kr TAGO `TrainInfo` (Pascal ops) | official, free, 10k/day dev |
 | D3 | China | own seed + affiliate link-out | 12306 has no API; scraping legally risky (ADR-T02) |
 | D4 | Rome2Rio | dropped | not accepting applications; docs 404 (ADR-T03) |
@@ -41,7 +41,7 @@ fanOut ─▶ providers/tdx/         client.ts (OAuth token cache 24h, shared w/
 
 ## Phasing
 
-T01 TDX client + THSR → T02 TRA → T03 Korea KTX → T04 China seed → T05 GTFS rail.
+T06 THSR seed (replaces T01/T02, ADR-T04) → T03 Korea KTX → T04 China seed → T05 GTFS rail.
 
 ## Out of scope
 

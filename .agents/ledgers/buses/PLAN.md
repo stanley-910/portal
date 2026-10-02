@@ -33,14 +33,14 @@ build time (pnpm gtfs:build, local or CI)          request time
 | # | Decision | Chosen | Reason |
 |---|---|---|---|
 | D1 | GTFS processing | build-time → committed per-pair JSON | Thai zip 42 MB / 230 MB unzipped; data.gov.my 4 req/min |
-| D2 | TDX bus A→B | precomputed stop-pair index from `StopOfRoute` | API has no OD search; 5 req/min |
+| D2 | TDX bus A→B | dropped — no TDX key (trains ADR-T04, buses ADR-B05) | signup needs Taiwan phone; was stop-pair index |
 | D3 | Korea | `ExpBusInfo` + `SuburbsBusInfo` (today-only) | official, free |
 | D4 | MY/SG coaches | BusOnlineTicket seed + deep link | no feed, no public API |
 | D5 | 12Go buses | reuse ferries S02 adapter + `bus-routes.json` | ADR-S02 |
 
 ## Phasing
 
-B03 GTFS pipeline (no key needed — start here) → B05 BOT seed → B01 TDX bus → B02 Korea bus → B04 12Go bus seed.
+B03 GTFS pipeline (no key needed — start here) → B05 BOT seed → B02 Korea bus → B04 12Go bus seed.
 
 ## Out of scope
 

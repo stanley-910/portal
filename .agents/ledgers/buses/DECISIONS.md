@@ -30,3 +30,12 @@ Prefix `ADR-B`. Never edit past entries.
 **Decision:** expand every window `start, start+h, … ≤ end` (end inclusive), de-duplicate starts per trip. `headway ≤ 0` or `end ≤ start` = single run. `tripStarts()` in `providers/gtfs/build.ts`.
 **Why not spec end-exclusive:** drops the last departure of every chain (22:20 above).
 **Consequences:** a spec-conformant feed with exact-multiple windows may gain one extra run at `end_time`; acceptable for intercity timetables, revisit if a feed with urban headways is added.
+
+## ADR-B05 — 2026-10-02 — Taiwan intercity bus dropped
+
+**Context:** B01 depended on a TDX member key (trains T01 client). Trains ADR-T04: no key —
+signup needs a Taiwan phone or manual review, owner declined. The stop-pair index needs
+hundreds of `StopOfRoute` calls; guest mode (20/day/IP) cannot build it.
+**Decision:** No Taiwan bus coverage. B01 retired. No seed replacement (too many routes to hand-curate).
+**Consequences:** Taiwan bus queries → `tdx` reports `covers` false (T06 limits `tdx` to trains).
+Re-open via a new task when a TDX key exists (trains backlog).
