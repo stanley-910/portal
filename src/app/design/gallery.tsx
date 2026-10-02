@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
+import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import {
   Cursor,
   cursorUrl,
@@ -62,6 +63,11 @@ export function ComponentGallery() {
         <Route marching />
         <Route lift={0.4} />
         <RoundButton label="Close" />
+      </div>
+      <div className="flex flex-wrap items-start gap-8">
+        <EntryPanel leg={{ fromHub: "HKG", toHub: "PVG" }} members={DEMO_PARTY} />
+        <EntryPanel leg={{ fromHub: "ICN", toHub: "PVG", onwardCountry: "JPN" }} members={DEMO_PARTY} />
+        <EntryPanel leg={{ fromHub: "PVG", toHub: "HND" }} members={DEMO_PARTY} />
       </div>
     </div>
   );

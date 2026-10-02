@@ -32,6 +32,8 @@ export interface GlobeEvents {
   onModeChange?: (mode: GlobeMode, from: Airport | null) => void;
   onLand?: (trip: LandedTrip) => void;
   onCancel?: () => void;
+  /** After every frame is drawn. Overlays that track places on the globe reposition here. */
+  onFrame?: () => void;
 }
 
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
@@ -674,6 +676,21 @@ export class GlobeEngine {
     return [(e.clientX - r.left) * (this.W / (r.width || 1)), (e.clientY - r.top) * (this.H / (r.height || 1))];
   }
 
+  // ---------- places on screen ----------
+
+  /** The place under the pointer, or null when the pointer is off the globe or has left it. */
+  pointerLatLng(): LatLng | null {
+    const p = this.hasPointer && this.cam ? this.pick(this.mx, this.my) : null;
+    return p ? toLatLng(p) : null;
+  }
+
+  /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
+  project(ll: LatLng): { x: number; y: number; visible: boolean } | null {
+    if (!this.cam) return null;
+    const p = this.proj(vecOf(ll.lat * D2R, ll.lng * D2R));
+    return p ? { x: p.x, y: p.y, visible: p.vis } : null;
+  }
+
   // ---------- simulation ----------
 
   private sim(dt: number, t: number) {
@@ -762,6 +779,7 @@ export class GlobeEngine {
     this.hover = this.hasPointer && !this.down?.drag ? this.pick(this.mx, this.my) : null;
     this.drawGL();
     this.drawHud(t);
+    this.events.onFrame?.();
   };
 
   private planeBasis(S: number) {

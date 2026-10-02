@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# entry requirements provider cache (raw API responses)
+/data/entry/.cache/
+
 # design-sync build state
 .ds-sync/
 ds-bundle/

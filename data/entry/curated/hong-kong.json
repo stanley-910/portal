@@ -1,0 +1,25 @@
+[
+  {
+    "passport": "CHN",
+    "destination": "HKG",
+    "kind": "entry_permit",
+    "allowedDays": 7,
+    "conditions": [
+      "Exit-entry Permit for Travelling to and from Hong Kong and Macao, with an endorsement",
+      "Individual visit endorsement allows up to 7 days"
+    ],
+    "links": [
+      {
+        "label": "Hong Kong Immigration Department",
+        "url": "https://www.immd.gov.hk/eng/services/visas/overseas-chinese-entry-arrangement.html",
+        "role": "source"
+      },
+      {
+        "label": "National Immigration Administration",
+        "url": "https://en.nia.gov.cn/",
+        "role": "apply"
+      }
+    ],
+    "verifiedAt": "2026-10-02"
+  }
+]

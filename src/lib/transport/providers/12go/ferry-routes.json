@@ -1,0 +1,92 @@
+[
+  {
+    "from": { "name": "Surat Thani Airport", "lat": 9.1325, "lng": 99.1356, "country": "Thailand", "slug": "surat-thani-airport" },
+    "to": { "name": "Koh Samui", "lat": 9.512, "lng": 100.0136, "country": "Thailand", "slug": "koh-samui" },
+    "operators": ["Lomprayah", "Raja Ferry"],
+    "departures": ["08:00", "13:30"],
+    "tz": "Asia/Bangkok",
+    "durationMin": 150,
+    "source": "https://www.lomprayah.com/"
+  },
+  {
+    "from": { "name": "Donsak Pier", "lat": 9.3156, "lng": 99.6919, "country": "Thailand", "slug": "donsak" },
+    "to": { "name": "Koh Samui", "lat": 9.512, "lng": 100.0136, "country": "Thailand", "slug": "koh-samui" },
+    "operators": ["Raja Ferry"],
+    "departures": ["06:00", "09:00", "12:00", "15:00", "18:00"],
+    "tz": "Asia/Bangkok",
+    "durationMin": 90,
+    "source": "https://rajaferryport.com/"
+  },
+  {
+    "from": { "name": "Donsak Pier", "lat": 9.3156, "lng": 99.6919, "country": "Thailand", "slug": "donsak" },
+    "to": { "name": "Koh Phangan", "lat": 9.735, "lng": 100.023, "country": "Thailand", "slug": "koh-phangan" },
+    "operators": ["Lomprayah"],
+    "departures": ["08:30", "14:30"],
+    "tz": "Asia/Bangkok",
+    "durationMin": 165,
+    "source": "https://www.lomprayah.com/"
+  },
+  {
+    "from": { "name": "Phuket Rassada Pier", "lat": 7.88, "lng": 98.407, "country": "Thailand", "slug": "phuket" },
+    "to": { "name": "Koh Phi Phi", "lat": 7.7407, "lng": 98.7784, "country": "Thailand", "slug": "koh-phi-phi" },
+    "operators": ["Andaman Wave Master", "Phi Phi Cruiser"],
+    "departures": ["08:30", "10:30", "13:45"],
+    "tz": "Asia/Bangkok",
+    "durationMin": 120,
+    "source": "https://www.andamanwavemaster.com/"
+  },
+  {
+    "from": { "name": "Koh Phi Phi", "lat": 7.7407, "lng": 98.7784, "country": "Thailand", "slug": "koh-phi-phi" },
+    "to": { "name": "Railay", "lat": 8.011, "lng": 98.837, "country": "Thailand", "slug": "railay" },
+    "operators": ["Ao Nang Travel and Tour"],
+    "departures": ["09:00", "13:30"],
+    "tz": "Asia/Bangkok",
+    "durationMin": 90,
+    "source": "https://www.aonangtravel.co.th/"
+  },
+  {
+    "from": { "name": "Koh Lanta", "lat": 7.65, "lng": 99.04, "country": "Thailand", "slug": "koh-lanta" },
+    "to": { "name": "Koh Lipe", "lat": 6.488, "lng": 99.305, "country": "Thailand", "slug": "koh-lipe" },
+    "operators": ["Bundhaya Speed Boat"],
+    "departures": ["10:30"],
+    "tz": "Asia/Bangkok",
+    "durationMin": 180,
+    "source": "https://www.bundhayaspeedboat.com/"
+  },
+  {
+    "from": { "name": "Hong Kong Central", "lat": 22.286, "lng": 114.159, "country": "Hong Kong", "slug": "hong-kong" },
+    "to": { "name": "Macau Outer Harbour", "lat": 22.197, "lng": 113.558, "country": "Macau", "slug": "macau" },
+    "operators": ["TurboJET"],
+    "departures": ["07:30", "09:00", "11:00", "13:00", "15:00", "17:00"],
+    "tz": "Asia/Hong_Kong",
+    "durationMin": 60,
+    "source": "https://www.turbojet.com.hk/"
+  },
+  {
+    "from": { "name": "Hong Kong SkyPier", "lat": 22.315, "lng": 113.936, "country": "Hong Kong", "slug": "hong-kong-airport" },
+    "to": { "name": "Macau Taipa", "lat": 22.161, "lng": 113.56, "country": "Macau", "slug": "macau-taipa" },
+    "operators": ["Cotai Water Jet"],
+    "departures": ["10:00", "12:00", "14:00", "16:00"],
+    "tz": "Asia/Hong_Kong",
+    "durationMin": 60,
+    "source": "https://www.cotaiwaterjet.com/"
+  },
+  {
+    "from": { "name": "Sanur", "lat": -8.71, "lng": 115.263, "country": "Indonesia", "slug": "sanur" },
+    "to": { "name": "Nusa Penida", "lat": -8.727, "lng": 115.544, "country": "Indonesia", "slug": "nusa-penida" },
+    "operators": ["Maruti Express", "Sanur Port"],
+    "departures": ["07:30", "09:00", "10:30", "13:00"],
+    "tz": "Asia/Makassar",
+    "durationMin": 45,
+    "source": "https://marutifastboats.com/"
+  },
+  {
+    "from": { "name": "Padang Bai", "lat": -8.53, "lng": 115.51, "country": "Indonesia", "slug": "padang-bai" },
+    "to": { "name": "Gili Trawangan", "lat": -8.351, "lng": 116.044, "country": "Indonesia", "slug": "gili-trawangan" },
+    "operators": ["Eka Jaya Fast Boat"],
+    "departures": ["09:00", "12:30"],
+    "tz": "Asia/Makassar",
+    "durationMin": 120,
+    "source": "https://ekajayafastboat.com/"
+  }
+]
