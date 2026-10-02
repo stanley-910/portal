@@ -1,0 +1,4441 @@
+{
+  "checked": "2026-10-03",
+  "tz": "Asia/Bangkok",
+  "stations": {
+    "hua-lamphong": {
+      "city": "bangkok",
+      "name": "Bangkok (Hua Lamphong)",
+      "nameLocal": "กรุงเทพ",
+      "tts": "Bangkok (Hua Lamphong)",
+      "lat": 13.7392,
+      "lng": 100.51689,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "krung-thep-aphiwat": {
+      "city": "bangkok",
+      "name": "Bangkok (Krung Thep Aphiwat)",
+      "nameLocal": "กรุงเทพอภิวัฒน์",
+      "tts": "Bangkok (Krung Thep Aphiwat)",
+      "lat": 13.80559,
+      "lng": 100.54229,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "ayutthaya": {
+      "city": "ayutthaya",
+      "name": "Ayutthaya",
+      "nameLocal": "อยุธยา",
+      "tts": "Ayutthaya",
+      "lat": 14.35661,
+      "lng": 100.58319,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "lop-buri": {
+      "city": "lop-buri",
+      "name": "Lop Buri",
+      "nameLocal": "ลพบุรี",
+      "tts": "Lop Buri",
+      "lat": 14.79855,
+      "lng": 100.61534,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "nakhon-sawan": {
+      "city": "nakhon-sawan",
+      "name": "Nakhon Sawan",
+      "nameLocal": "นครสวรรค์",
+      "tts": "Nakhon Sawan",
+      "lat": 15.66316,
+      "lng": 100.1585,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "phitsanulok": {
+      "city": "phitsanulok",
+      "name": "Phitsanulok",
+      "nameLocal": "พิษณุโลก",
+      "tts": "Phitsanulok",
+      "lat": 16.81501,
+      "lng": 100.26567,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "uttaradit": {
+      "city": "uttaradit",
+      "name": "Uttaradit",
+      "nameLocal": "อุตรดิตถ์",
+      "tts": "Uttaradit",
+      "lat": 17.62041,
+      "lng": 100.09732,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "den-chai": {
+      "city": "den-chai",
+      "name": "Den Chai",
+      "nameLocal": "เด่นชัย",
+      "tts": "Den Chai",
+      "lat": 17.98069,
+      "lng": 100.04601,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "nakhon-lampang": {
+      "city": "lampang",
+      "name": "Nakhon Lampang",
+      "nameLocal": "นครลำปาง",
+      "tts": "Nakhon Lampang",
+      "lat": 18.27961,
+      "lng": 99.47261,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "lamphun": {
+      "city": "lamphun",
+      "name": "Lamphun",
+      "nameLocal": "ลำพูน",
+      "tts": "Lamphun",
+      "lat": 18.59369,
+      "lng": 99.02101,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "chiang-mai": {
+      "city": "chiang-mai",
+      "name": "Chiang Mai",
+      "nameLocal": "เชียงใหม่",
+      "tts": "Chiang Mai",
+      "lat": 18.78299,
+      "lng": 99.01662,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "saraburi": {
+      "city": "saraburi",
+      "name": "Saraburi",
+      "nameLocal": "สระบุรี",
+      "tts": "Saraburi",
+      "lat": 14.52746,
+      "lng": 100.91627,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "pak-chong": {
+      "city": "pak-chong",
+      "name": "Pak Chong",
+      "nameLocal": "ปากช่อง",
+      "tts": "Pak Chong",
+      "lat": 14.705,
+      "lng": 101.4104,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "nakhon-ratchasima": {
+      "city": "nakhon-ratchasima",
+      "name": "Nakhon Ratchasima",
+      "nameLocal": "นครราชสีมา",
+      "tts": "Nakhon Ratchasima",
+      "lat": 14.97225,
+      "lng": 102.07891,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "khon-kaen": {
+      "city": "khon-kaen",
+      "name": "Khon Kaen",
+      "nameLocal": "ขอนแก่น",
+      "tts": "Khon Kaen",
+      "lat": 16.42696,
+      "lng": 102.82557,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "udon-thani": {
+      "city": "udon-thani",
+      "name": "Udon Thani",
+      "nameLocal": "อุดรธานี",
+      "tts": "Udon Thani",
+      "lat": 17.40442,
+      "lng": 102.80558,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "nong-khai": {
+      "city": "nong-khai",
+      "name": "Nong Khai",
+      "nameLocal": "หนองคาย",
+      "tts": "Nong Khai",
+      "lat": 17.8646,
+      "lng": 102.73096,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "buri-ram": {
+      "city": "buri-ram",
+      "name": "Buri Ram",
+      "nameLocal": "บุรีรัมย์",
+      "tts": "Buri Ram",
+      "lat": 15.00351,
+      "lng": 103.1079,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "surin": {
+      "city": "surin",
+      "name": "Surin",
+      "nameLocal": "สุรินทร์",
+      "tts": "Surin",
+      "lat": 14.89181,
+      "lng": 103.49411,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "si-sa-ket": {
+      "city": "si-sa-ket",
+      "name": "Si Sa Ket",
+      "nameLocal": "ศรีสะเกษ",
+      "tts": "Si Sa Ket",
+      "lat": 15.11638,
+      "lng": 104.3274,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "ubon-ratchathani": {
+      "city": "ubon-ratchathani",
+      "name": "Ubon Ratchathani",
+      "nameLocal": "อุบลราชธานี",
+      "tts": "Ubon Ratchathani",
+      "lat": 15.20148,
+      "lng": 104.85849,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "nakhon-pathom": {
+      "city": "nakhon-pathom",
+      "name": "Nakhon Pathom",
+      "nameLocal": "นครปฐม",
+      "tts": "Nakhon Pathom",
+      "lat": 13.82441,
+      "lng": 100.05938,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "ratchaburi": {
+      "city": "ratchaburi",
+      "name": "Ratchaburi",
+      "nameLocal": "ราชบุรี",
+      "tts": "Rachaburi",
+      "lat": 13.53054,
+      "lng": 99.82391,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "phetchaburi": {
+      "city": "phetchaburi",
+      "name": "Phetchaburi",
+      "nameLocal": "เพชรบุรี",
+      "tts": "Phetchaburi",
+      "lat": 13.11646,
+      "lng": 99.94103,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "hua-hin": {
+      "city": "hua-hin",
+      "name": "Hua Hin",
+      "nameLocal": "หัวหิน",
+      "tts": "Hua Hin",
+      "lat": 12.56714,
+      "lng": 99.95474,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "prachuap-khiri-khan": {
+      "city": "prachuap-khiri-khan",
+      "name": "Prachuap Khiri Khan",
+      "nameLocal": "ประจวบคีรีขันธ์",
+      "tts": "Prachuap Khiri Khan",
+      "lat": 11.80771,
+      "lng": 99.79378,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "chumphon": {
+      "city": "chumphon",
+      "name": "Chumphon",
+      "nameLocal": "ชุมพร",
+      "tts": "Chumphon",
+      "lat": 10.50305,
+      "lng": 99.17585,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "surat-thani": {
+      "city": "surat-thani",
+      "name": "Surat Thani",
+      "nameLocal": "สุราษฎร์ธานี",
+      "tts": "Surat Thani",
+      "lat": 9.10416,
+      "lng": 99.23037,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "thung-song": {
+      "city": "thung-song",
+      "name": "Thung Song Junction",
+      "nameLocal": "ชุมทางทุ่งสง",
+      "tts": "Thung Song Junction",
+      "lat": 8.17111,
+      "lng": 99.67925,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "trang": {
+      "city": "trang",
+      "name": "Trang",
+      "nameLocal": "ตรัง",
+      "tts": "Trang",
+      "lat": 7.5544,
+      "lng": 99.6046,
+      "source": "https://en.wikipedia.org/wiki/Trang_railway_station"
+    },
+    "nakhon-si-thammarat": {
+      "city": "nakhon-si-thammarat",
+      "name": "Nakhon Si Thammarat",
+      "nameLocal": "นครศรีธรรมราช",
+      "tts": "Nakhon Si Thammarat",
+      "lat": 8.4397,
+      "lng": 99.9597,
+      "source": "https://en.wikipedia.org/wiki/Nakhon_Si_Thammarat_railway_station"
+    },
+    "phatthalung": {
+      "city": "phatthalung",
+      "name": "Phatthalung",
+      "nameLocal": "พัทลุง",
+      "tts": "Phatthalung",
+      "lat": 7.621,
+      "lng": 100.08578,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "hat-yai": {
+      "city": "hat-yai",
+      "name": "Hat Yai Junction",
+      "nameLocal": "ชุมทางหาดใหญ่",
+      "tts": "Hat Yai Junction",
+      "lat": 7.00377,
+      "lng": 100.46728,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "padang-besar": {
+      "city": "padang-besar",
+      "name": "Padang Besar",
+      "nameLocal": "ปาดังเบซาร์",
+      "tts": "Padang Besar",
+      "lat": 6.6689,
+      "lng": 100.3244,
+      "source": "https://en.wikipedia.org/wiki/Padang_Besar_(Thai)_railway_station"
+    },
+    "yala": {
+      "city": "yala",
+      "name": "Yala",
+      "nameLocal": "ยะลา",
+      "tts": "Yala",
+      "lat": 6.5599,
+      "lng": 101.29341,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    },
+    "su-ngai-kolok": {
+      "city": "su-ngai-kolok",
+      "name": "Su-Ngai Kolok",
+      "nameLocal": "สุไหงโก-ลก",
+      "tts": "Su-Ngai Kolok",
+      "lat": 6.02576,
+      "lng": 101.96338,
+      "source": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip"
+    }
+  },
+  "trains": [
+    {
+      "number": "303",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "04:15"
+        ],
+        [
+          "ayutthaya",
+          "05:50"
+        ],
+        [
+          "lop-buri",
+          "07:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "407",
+      "type": "local",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-sawan",
+          "05:00"
+        ],
+        [
+          "phitsanulok",
+          "07:27"
+        ],
+        [
+          "uttaradit",
+          "09:03"
+        ],
+        [
+          "den-chai",
+          "10:12"
+        ],
+        [
+          "nakhon-lampang",
+          "12:43"
+        ],
+        [
+          "lamphun",
+          "14:22"
+        ],
+        [
+          "chiang-mai",
+          "14:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "9001",
+      "type": "feeder_dm",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "05:15"
+        ],
+        [
+          "ayutthaya",
+          "06:30"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "403",
+      "type": "local",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "phitsanulok",
+          "05:55"
+        ],
+        [
+          "uttaradit",
+          "07:37"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "401",
+      "type": "local",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "lop-buri",
+          "06:00"
+        ],
+        [
+          "nakhon-sawan",
+          "08:05"
+        ],
+        [
+          "phitsanulok",
+          "10:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "7",
+      "type": "special",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "07:30"
+        ],
+        [
+          "ayutthaya",
+          "08:23"
+        ],
+        [
+          "nakhon-sawan",
+          "10:19"
+        ],
+        [
+          "phitsanulok",
+          "11:58"
+        ],
+        [
+          "uttaradit",
+          "13:02"
+        ],
+        [
+          "den-chai",
+          "13:54"
+        ],
+        [
+          "nakhon-lampang",
+          "15:59"
+        ],
+        [
+          "lamphun",
+          "17:32"
+        ],
+        [
+          "chiang-mai",
+          "17:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "111",
+      "type": "rapid",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "07:50"
+        ],
+        [
+          "ayutthaya",
+          "08:59"
+        ],
+        [
+          "nakhon-sawan",
+          "11:50"
+        ],
+        [
+          "phitsanulok",
+          "14:10"
+        ],
+        [
+          "uttaradit",
+          "15:43"
+        ],
+        [
+          "den-chai",
+          "16:34"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "9003",
+      "type": "feeder_dm",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "09:05"
+        ],
+        [
+          "ayutthaya",
+          "10:20"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "201",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "10:15"
+        ],
+        [
+          "ayutthaya",
+          "12:15"
+        ],
+        [
+          "lop-buri",
+          "13:24"
+        ],
+        [
+          "nakhon-sawan",
+          "15:25"
+        ],
+        [
+          "phitsanulok",
+          "17:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "209",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "11:15"
+        ],
+        [
+          "ayutthaya",
+          "12:58"
+        ],
+        [
+          "lop-buri",
+          "14:17"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "211",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "12:55"
+        ],
+        [
+          "ayutthaya",
+          "14:35"
+        ],
+        [
+          "lop-buri",
+          "15:40"
+        ],
+        [
+          "nakhon-sawan",
+          "17:41"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "109",
+      "type": "rapid",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "14:15"
+        ],
+        [
+          "ayutthaya",
+          "15:20"
+        ],
+        [
+          "nakhon-sawan",
+          "18:22"
+        ],
+        [
+          "phitsanulok",
+          "20:36"
+        ],
+        [
+          "uttaradit",
+          "22:23"
+        ],
+        [
+          "den-chai",
+          "23:43"
+        ],
+        [
+          "nakhon-lampang",
+          "01:57"
+        ],
+        [
+          "lamphun",
+          "03:36"
+        ],
+        [
+          "chiang-mai",
+          "04:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "207",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "14:20"
+        ],
+        [
+          "ayutthaya",
+          "16:08"
+        ],
+        [
+          "lop-buri",
+          "17:23"
+        ],
+        [
+          "nakhon-sawan",
+          "19:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "301",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "16:45"
+        ],
+        [
+          "ayutthaya",
+          "18:39"
+        ],
+        [
+          "lop-buri",
+          "19:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "317",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "17:30"
+        ],
+        [
+          "ayutthaya",
+          "19:14"
+        ],
+        [
+          "lop-buri",
+          "20:20"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "9005",
+      "type": "feeder_dm",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "18:15"
+        ],
+        [
+          "ayutthaya",
+          "19:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "313",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "18:20"
+        ],
+        [
+          "ayutthaya",
+          "20:09"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "9",
+      "type": "special",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "18:40"
+        ],
+        [
+          "ayutthaya",
+          "19:45"
+        ],
+        [
+          "nakhon-sawan",
+          "22:20"
+        ],
+        [
+          "phitsanulok",
+          "00:17"
+        ],
+        [
+          "den-chai",
+          "02:48"
+        ],
+        [
+          "nakhon-lampang",
+          "05:00"
+        ],
+        [
+          "lamphun",
+          "06:50"
+        ],
+        [
+          "chiang-mai",
+          "07:15"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "13",
+      "type": "special",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "20:05"
+        ],
+        [
+          "ayutthaya",
+          "21:09"
+        ],
+        [
+          "nakhon-sawan",
+          "23:47"
+        ],
+        [
+          "phitsanulok",
+          "01:59"
+        ],
+        [
+          "uttaradit",
+          "03:18"
+        ],
+        [
+          "den-chai",
+          "04:26"
+        ],
+        [
+          "nakhon-lampang",
+          "06:38"
+        ],
+        [
+          "lamphun",
+          "08:21"
+        ],
+        [
+          "chiang-mai",
+          "08:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "107",
+      "type": "rapid",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "20:45"
+        ],
+        [
+          "ayutthaya",
+          "21:50"
+        ],
+        [
+          "nakhon-sawan",
+          "00:24"
+        ],
+        [
+          "phitsanulok",
+          "02:46"
+        ],
+        [
+          "uttaradit",
+          "04:16"
+        ],
+        [
+          "den-chai",
+          "05:25"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "51",
+      "type": "express",
+      "line": "northern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "22:30"
+        ],
+        [
+          "ayutthaya",
+          "23:38"
+        ],
+        [
+          "nakhon-sawan",
+          "02:20"
+        ],
+        [
+          "phitsanulok",
+          "04:30"
+        ],
+        [
+          "uttaradit",
+          "05:51"
+        ],
+        [
+          "den-chai",
+          "07:04"
+        ],
+        [
+          "nakhon-lampang",
+          "09:31"
+        ],
+        [
+          "lamphun",
+          "11:16"
+        ],
+        [
+          "chiang-mai",
+          "11:40"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1"
+    },
+    {
+      "number": "302",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "lop-buri",
+          "04:30"
+        ],
+        [
+          "ayutthaya",
+          "05:46"
+        ],
+        [
+          "hua-lamphong",
+          "07:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "314",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "ayutthaya",
+          "05:07"
+        ],
+        [
+          "hua-lamphong",
+          "06:50"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "208",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "nakhon-sawan",
+          "05:00"
+        ],
+        [
+          "lop-buri",
+          "07:06"
+        ],
+        [
+          "ayutthaya",
+          "08:18"
+        ],
+        [
+          "hua-lamphong",
+          "10:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "212",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "nakhon-sawan",
+          "07:01"
+        ],
+        [
+          "lop-buri",
+          "09:18"
+        ],
+        [
+          "ayutthaya",
+          "10:27"
+        ],
+        [
+          "hua-lamphong",
+          "12:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "318",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "lop-buri",
+          "06:00"
+        ],
+        [
+          "ayutthaya",
+          "07:10"
+        ],
+        [
+          "hua-lamphong",
+          "08:50"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "202",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "phitsanulok",
+          "06:05"
+        ],
+        [
+          "nakhon-sawan",
+          "08:35"
+        ],
+        [
+          "lop-buri",
+          "10:56"
+        ],
+        [
+          "ayutthaya",
+          "12:14"
+        ],
+        [
+          "hua-lamphong",
+          "14:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "102",
+      "type": "rapid",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "chiang-mai",
+          "06:25"
+        ],
+        [
+          "lamphun",
+          "06:51"
+        ],
+        [
+          "nakhon-lampang",
+          "08:32"
+        ],
+        [
+          "den-chai",
+          "10:46"
+        ],
+        [
+          "uttaradit",
+          "11:54"
+        ],
+        [
+          "phitsanulok",
+          "13:42"
+        ],
+        [
+          "nakhon-sawan",
+          "15:54"
+        ],
+        [
+          "ayutthaya",
+          "18:59"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "20:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "9002",
+      "type": "feeder_dm",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "ayutthaya",
+          "06:50"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "08:05"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "8",
+      "type": "special",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "chiang-mai",
+          "07:30"
+        ],
+        [
+          "lamphun",
+          "07:49"
+        ],
+        [
+          "nakhon-lampang",
+          "09:30"
+        ],
+        [
+          "den-chai",
+          "11:28"
+        ],
+        [
+          "uttaradit",
+          "12:20"
+        ],
+        [
+          "phitsanulok",
+          "13:26"
+        ],
+        [
+          "nakhon-sawan",
+          "14:55"
+        ],
+        [
+          "ayutthaya",
+          "16:50"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "17:40"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "112",
+      "type": "rapid",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "den-chai",
+          "08:00"
+        ],
+        [
+          "uttaradit",
+          "09:05"
+        ],
+        [
+          "phitsanulok",
+          "10:43"
+        ],
+        [
+          "nakhon-sawan",
+          "13:03"
+        ],
+        [
+          "ayutthaya",
+          "16:04"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "17:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "304",
+      "type": "suburban",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "lop-buri",
+          "08:00"
+        ],
+        [
+          "ayutthaya",
+          "09:00"
+        ],
+        [
+          "hua-lamphong",
+          "10:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "408",
+      "type": "local",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "chiang-mai",
+          "09:35"
+        ],
+        [
+          "lamphun",
+          "10:02"
+        ],
+        [
+          "nakhon-lampang",
+          "11:54"
+        ],
+        [
+          "den-chai",
+          "14:27"
+        ],
+        [
+          "uttaradit",
+          "15:41"
+        ],
+        [
+          "phitsanulok",
+          "17:12"
+        ],
+        [
+          "nakhon-sawan",
+          "19:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "402",
+      "type": "local",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "phitsanulok",
+          "14:10"
+        ],
+        [
+          "nakhon-sawan",
+          "16:46"
+        ],
+        [
+          "lop-buri",
+          "18:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "9004",
+      "type": "feeder_dm",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "ayutthaya",
+          "14:40"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "15:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "52",
+      "type": "express",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "chiang-mai",
+          "15:30"
+        ],
+        [
+          "lamphun",
+          "15:55"
+        ],
+        [
+          "nakhon-lampang",
+          "18:04"
+        ],
+        [
+          "den-chai",
+          "20:26"
+        ],
+        [
+          "uttaradit",
+          "21:37"
+        ],
+        [
+          "phitsanulok",
+          "23:03"
+        ],
+        [
+          "nakhon-sawan",
+          "01:14"
+        ],
+        [
+          "ayutthaya",
+          "04:01"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "05:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "210",
+      "type": "ordinary",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "lop-buri",
+          "17:32"
+        ],
+        [
+          "ayutthaya",
+          "18:48"
+        ],
+        [
+          "hua-lamphong",
+          "20:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "410",
+      "type": "local",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "uttaradit",
+          "16:33"
+        ],
+        [
+          "phitsanulok",
+          "18:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "14",
+      "type": "special",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "chiang-mai",
+          "17:05"
+        ],
+        [
+          "lamphun",
+          "17:33"
+        ],
+        [
+          "nakhon-lampang",
+          "19:19"
+        ],
+        [
+          "den-chai",
+          "21:35"
+        ],
+        [
+          "uttaradit",
+          "22:36"
+        ],
+        [
+          "phitsanulok",
+          "00:01"
+        ],
+        [
+          "nakhon-sawan",
+          "02:02"
+        ],
+        [
+          "ayutthaya",
+          "04:48"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "05:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "10",
+      "type": "special",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "chiang-mai",
+          "18:20"
+        ],
+        [
+          "lamphun",
+          "18:43"
+        ],
+        [
+          "nakhon-lampang",
+          "20:24"
+        ],
+        [
+          "den-chai",
+          "22:37"
+        ],
+        [
+          "phitsanulok",
+          "01:01"
+        ],
+        [
+          "nakhon-sawan",
+          "02:52"
+        ],
+        [
+          "ayutthaya",
+          "05:25"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "06:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "108",
+      "type": "rapid",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "den-chai",
+          "19:10"
+        ],
+        [
+          "uttaradit",
+          "20:18"
+        ],
+        [
+          "phitsanulok",
+          "22:05"
+        ],
+        [
+          "nakhon-sawan",
+          "00:38"
+        ],
+        [
+          "ayutthaya",
+          "03:25"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "04:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "9006",
+      "type": "feeder_dm",
+      "line": "northern",
+      "direction": "in",
+      "stops": [
+        [
+          "ayutthaya",
+          "19:45"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "21:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2"
+    },
+    {
+      "number": "431",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "pak-chong",
+          "06:12"
+        ],
+        [
+          "nakhon-ratchasima",
+          "08:29"
+        ],
+        [
+          "khon-kaen",
+          "11:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "339",
+      "type": "suburban",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "05:05"
+        ],
+        [
+          "ayutthaya",
+          "06:45"
+        ],
+        [
+          "saraburi",
+          "07:52"
+        ]
+      ],
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "425",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "surin",
+          "05:38"
+        ],
+        [
+          "si-sa-ket",
+          "07:18"
+        ],
+        [
+          "ubon-ratchathani",
+          "08:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "421",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-ratchasima",
+          "06:10"
+        ],
+        [
+          "buri-ram",
+          "08:10"
+        ],
+        [
+          "surin",
+          "09:10"
+        ],
+        [
+          "si-sa-ket",
+          "11:07"
+        ],
+        [
+          "ubon-ratchathani",
+          "12:15"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "21",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "06:10"
+        ],
+        [
+          "ayutthaya",
+          "06:59"
+        ],
+        [
+          "saraburi",
+          "07:34"
+        ],
+        [
+          "pak-chong",
+          "08:44"
+        ],
+        [
+          "nakhon-ratchasima",
+          "10:11"
+        ],
+        [
+          "buri-ram",
+          "11:37"
+        ],
+        [
+          "surin",
+          "12:11"
+        ],
+        [
+          "si-sa-ket",
+          "13:20"
+        ],
+        [
+          "ubon-ratchathani",
+          "14:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "415",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-ratchasima",
+          "06:20"
+        ],
+        [
+          "khon-kaen",
+          "09:30"
+        ],
+        [
+          "udon-thani",
+          "11:22"
+        ],
+        [
+          "nong-khai",
+          "12:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "135",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "07:10"
+        ],
+        [
+          "ayutthaya",
+          "08:28"
+        ],
+        [
+          "saraburi",
+          "09:18"
+        ],
+        [
+          "pak-chong",
+          "10:47"
+        ],
+        [
+          "nakhon-ratchasima",
+          "12:24"
+        ],
+        [
+          "buri-ram",
+          "14:22"
+        ],
+        [
+          "surin",
+          "15:10"
+        ],
+        [
+          "si-sa-ket",
+          "17:03"
+        ],
+        [
+          "ubon-ratchathani",
+          "18:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "75",
+      "type": "express",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "08:45"
+        ],
+        [
+          "ayutthaya",
+          "09:42"
+        ],
+        [
+          "saraburi",
+          "10:18"
+        ],
+        [
+          "khon-kaen",
+          "15:32"
+        ],
+        [
+          "udon-thani",
+          "16:58"
+        ],
+        [
+          "nong-khai",
+          "17:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "71",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "10:35"
+        ],
+        [
+          "ayutthaya",
+          "11:31"
+        ],
+        [
+          "saraburi",
+          "12:06"
+        ],
+        [
+          "pak-chong",
+          "13:19"
+        ],
+        [
+          "nakhon-ratchasima",
+          "14:40"
+        ],
+        [
+          "buri-ram",
+          "16:17"
+        ],
+        [
+          "surin",
+          "17:11"
+        ],
+        [
+          "si-sa-ket",
+          "18:43"
+        ],
+        [
+          "ubon-ratchathani",
+          "19:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "419",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-ratchasima",
+          "11:15"
+        ],
+        [
+          "buri-ram",
+          "13:17"
+        ],
+        [
+          "surin",
+          "14:03"
+        ],
+        [
+          "si-sa-ket",
+          "15:50"
+        ],
+        [
+          "ubon-ratchathani",
+          "16:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "233",
+      "type": "ordinary",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "12:00"
+        ],
+        [
+          "ayutthaya",
+          "13:39"
+        ],
+        [
+          "saraburi",
+          "14:26"
+        ],
+        [
+          "pak-chong",
+          "15:51"
+        ],
+        [
+          "nakhon-ratchasima",
+          "17:34"
+        ],
+        [
+          "buri-ram",
+          "19:45"
+        ],
+        [
+          "surin",
+          "20:40"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "427",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-ratchasima",
+          "14:20"
+        ],
+        [
+          "buri-ram",
+          "16:35"
+        ],
+        [
+          "surin",
+          "17:23"
+        ],
+        [
+          "si-sa-ket",
+          "19:06"
+        ],
+        [
+          "ubon-ratchathani",
+          "20:15"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "417",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-ratchasima",
+          "15:55"
+        ],
+        [
+          "khon-kaen",
+          "19:04"
+        ],
+        [
+          "udon-thani",
+          "20:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "147",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "udon-thani",
+          "16:00"
+        ],
+        [
+          "nong-khai",
+          "17:25"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "341",
+      "type": "suburban",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "17:00"
+        ],
+        [
+          "ayutthaya",
+          "18:53"
+        ],
+        [
+          "saraburi",
+          "19:48"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "139",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "19:40"
+        ],
+        [
+          "ayutthaya",
+          "20:47"
+        ],
+        [
+          "saraburi",
+          "21:31"
+        ],
+        [
+          "pak-chong",
+          "22:36"
+        ],
+        [
+          "nakhon-ratchasima",
+          "00:39"
+        ],
+        [
+          "buri-ram",
+          "02:33"
+        ],
+        [
+          "surin",
+          "03:17"
+        ],
+        [
+          "si-sa-ket",
+          "04:47"
+        ],
+        [
+          "ubon-ratchathani",
+          "05:40"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "25",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "20:25"
+        ],
+        [
+          "ayutthaya",
+          "21:39"
+        ],
+        [
+          "saraburi",
+          "22:23"
+        ],
+        [
+          "khon-kaen",
+          "04:12"
+        ],
+        [
+          "udon-thani",
+          "05:44"
+        ],
+        [
+          "nong-khai",
+          "06:25"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "23",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "21:05"
+        ],
+        [
+          "ayutthaya",
+          "22:02"
+        ],
+        [
+          "saraburi",
+          "22:36"
+        ],
+        [
+          "pak-chong",
+          "00:01"
+        ],
+        [
+          "nakhon-ratchasima",
+          "01:35"
+        ],
+        [
+          "buri-ram",
+          "03:12"
+        ],
+        [
+          "si-sa-ket",
+          "05:10"
+        ],
+        [
+          "ubon-ratchathani",
+          "06:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "133",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "21:25"
+        ],
+        [
+          "ayutthaya",
+          "22:30"
+        ],
+        [
+          "saraburi",
+          "23:12"
+        ],
+        [
+          "khon-kaen",
+          "05:13"
+        ],
+        [
+          "udon-thani",
+          "07:09"
+        ],
+        [
+          "nong-khai",
+          "08:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "141",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "23:05"
+        ],
+        [
+          "ayutthaya",
+          "00:17"
+        ],
+        [
+          "saraburi",
+          "00:59"
+        ],
+        [
+          "pak-chong",
+          "02:36"
+        ],
+        [
+          "nakhon-ratchasima",
+          "04:23"
+        ],
+        [
+          "buri-ram",
+          "06:32"
+        ],
+        [
+          "surin",
+          "07:25"
+        ],
+        [
+          "si-sa-ket",
+          "09:14"
+        ],
+        [
+          "ubon-ratchathani",
+          "10:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1"
+    },
+    {
+      "number": "234",
+      "type": "ordinary",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "surin",
+          "05:40"
+        ],
+        [
+          "buri-ram",
+          "06:30"
+        ],
+        [
+          "nakhon-ratchasima",
+          "08:37"
+        ],
+        [
+          "pak-chong",
+          "10:30"
+        ],
+        [
+          "saraburi",
+          "11:56"
+        ],
+        [
+          "ayutthaya",
+          "12:52"
+        ],
+        [
+          "hua-lamphong",
+          "14:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "424",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "surin",
+          "06:59"
+        ],
+        [
+          "buri-ram",
+          "07:52"
+        ],
+        [
+          "nakhon-ratchasima",
+          "09:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "416",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "udon-thani",
+          "05:55"
+        ],
+        [
+          "khon-kaen",
+          "07:50"
+        ],
+        [
+          "nakhon-ratchasima",
+          "10:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "72",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "06:10"
+        ],
+        [
+          "si-sa-ket",
+          "06:56"
+        ],
+        [
+          "surin",
+          "08:14"
+        ],
+        [
+          "buri-ram",
+          "08:58"
+        ],
+        [
+          "nakhon-ratchasima",
+          "10:52"
+        ],
+        [
+          "pak-chong",
+          "12:08"
+        ],
+        [
+          "saraburi",
+          "13:23"
+        ],
+        [
+          "ayutthaya",
+          "13:57"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "14:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "428",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "06:20"
+        ],
+        [
+          "si-sa-ket",
+          "07:16"
+        ],
+        [
+          "surin",
+          "09:05"
+        ],
+        [
+          "buri-ram",
+          "09:53"
+        ],
+        [
+          "nakhon-ratchasima",
+          "11:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "76",
+      "type": "express",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "nong-khai",
+          "06:30"
+        ],
+        [
+          "udon-thani",
+          "07:08"
+        ],
+        [
+          "khon-kaen",
+          "08:42"
+        ],
+        [
+          "saraburi",
+          "13:51"
+        ],
+        [
+          "ayutthaya",
+          "14:24"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "15:20"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "136",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "07:30"
+        ],
+        [
+          "si-sa-ket",
+          "08:25"
+        ],
+        [
+          "surin",
+          "09:59"
+        ],
+        [
+          "buri-ram",
+          "10:43"
+        ],
+        [
+          "nakhon-ratchasima",
+          "12:52"
+        ],
+        [
+          "pak-chong",
+          "14:32"
+        ],
+        [
+          "saraburi",
+          "16:04"
+        ],
+        [
+          "ayutthaya",
+          "16:55"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "18:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "148",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "nong-khai",
+          "10:45"
+        ],
+        [
+          "udon-thani",
+          "11:25"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "426",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "12:35"
+        ],
+        [
+          "si-sa-ket",
+          "13:44"
+        ],
+        [
+          "surin",
+          "15:28"
+        ],
+        [
+          "buri-ram",
+          "16:15"
+        ],
+        [
+          "nakhon-ratchasima",
+          "18:25"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "418",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "nong-khai",
+          "12:55"
+        ],
+        [
+          "udon-thani",
+          "13:40"
+        ],
+        [
+          "khon-kaen",
+          "15:33"
+        ],
+        [
+          "nakhon-ratchasima",
+          "18:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "432",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "khon-kaen",
+          "14:30"
+        ],
+        [
+          "nakhon-ratchasima",
+          "17:40"
+        ],
+        [
+          "pak-chong",
+          "19:14"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "22",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "14:50"
+        ],
+        [
+          "si-sa-ket",
+          "15:31"
+        ],
+        [
+          "surin",
+          "16:41"
+        ],
+        [
+          "buri-ram",
+          "17:15"
+        ],
+        [
+          "nakhon-ratchasima",
+          "18:47"
+        ],
+        [
+          "pak-chong",
+          "19:48"
+        ],
+        [
+          "saraburi",
+          "20:50"
+        ],
+        [
+          "ayutthaya",
+          "21:22"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "22:15"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "422",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "15:15"
+        ],
+        [
+          "si-sa-ket",
+          "16:14"
+        ],
+        [
+          "surin",
+          "18:04"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "142",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "17:35"
+        ],
+        [
+          "si-sa-ket",
+          "18:41"
+        ],
+        [
+          "surin",
+          "20:22"
+        ],
+        [
+          "buri-ram",
+          "21:17"
+        ],
+        [
+          "nakhon-ratchasima",
+          "23:25"
+        ],
+        [
+          "pak-chong",
+          "01:06"
+        ],
+        [
+          "saraburi",
+          "02:30"
+        ],
+        [
+          "ayutthaya",
+          "03:07"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "04:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "420",
+      "type": "local",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "18:10"
+        ],
+        [
+          "si-sa-ket",
+          "19:30"
+        ],
+        [
+          "surin",
+          "21:00"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "24",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "19:15"
+        ],
+        [
+          "si-sa-ket",
+          "20:11"
+        ],
+        [
+          "surin",
+          "21:38"
+        ],
+        [
+          "buri-ram",
+          "22:19"
+        ],
+        [
+          "nakhon-ratchasima",
+          "00:14"
+        ],
+        [
+          "pak-chong",
+          "01:41"
+        ],
+        [
+          "saraburi",
+          "03:00"
+        ],
+        [
+          "ayutthaya",
+          "03:42"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "04:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "26",
+      "type": "special",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "nong-khai",
+          "19:40"
+        ],
+        [
+          "udon-thani",
+          "20:20"
+        ],
+        [
+          "khon-kaen",
+          "21:49"
+        ],
+        [
+          "saraburi",
+          "03:38"
+        ],
+        [
+          "ayutthaya",
+          "04:24"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "05:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "134",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "nong-khai",
+          "20:15"
+        ],
+        [
+          "udon-thani",
+          "20:59"
+        ],
+        [
+          "khon-kaen",
+          "22:51"
+        ],
+        [
+          "saraburi",
+          "05:29"
+        ],
+        [
+          "ayutthaya",
+          "06:14"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "07:20"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "140",
+      "type": "rapid",
+      "line": "northeastern",
+      "direction": "in",
+      "stops": [
+        [
+          "ubon-ratchathani",
+          "20:30"
+        ],
+        [
+          "si-sa-ket",
+          "21:24"
+        ],
+        [
+          "surin",
+          "22:56"
+        ],
+        [
+          "buri-ram",
+          "23:44"
+        ],
+        [
+          "nakhon-ratchasima",
+          "01:42"
+        ],
+        [
+          "pak-chong",
+          "03:12"
+        ],
+        [
+          "saraburi",
+          "04:42"
+        ],
+        [
+          "ayutthaya",
+          "05:36"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "06:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2"
+    },
+    {
+      "number": "451",
+      "type": "local",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-si-thammarat",
+          "06:00"
+        ],
+        [
+          "phatthalung",
+          "08:24"
+        ],
+        [
+          "hat-yai",
+          "10:09"
+        ],
+        [
+          "yala",
+          "12:20"
+        ],
+        [
+          "su-ngai-kolok",
+          "14:40"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "463",
+      "type": "local",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "phatthalung",
+          "06:10"
+        ],
+        [
+          "hat-yai",
+          "07:58"
+        ],
+        [
+          "yala",
+          "10:09"
+        ],
+        [
+          "su-ngai-kolok",
+          "12:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "447",
+      "type": "local",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "surat-thani",
+          "06:10"
+        ],
+        [
+          "thung-song",
+          "08:56"
+        ],
+        [
+          "phatthalung",
+          "10:51"
+        ],
+        [
+          "hat-yai",
+          "12:45"
+        ],
+        [
+          "yala",
+          "15:27"
+        ],
+        [
+          "su-ngai-kolok",
+          "17:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "445",
+      "type": "local",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "chumphon",
+          "06:15"
+        ],
+        [
+          "surat-thani",
+          "09:38"
+        ],
+        [
+          "thung-song",
+          "12:42"
+        ],
+        [
+          "phatthalung",
+          "14:49"
+        ],
+        [
+          "hat-yai",
+          "16:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "453",
+      "type": "local",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "yala",
+          "06:30"
+        ],
+        [
+          "su-ngai-kolok",
+          "08:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "909",
+      "type": "tourist",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "06:30"
+        ],
+        [
+          "nakhon-pathom",
+          "08:30"
+        ]
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "911",
+      "type": "tourist",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "06:30"
+        ],
+        [
+          "nakhon-pathom",
+          "08:30"
+        ],
+        [
+          "ratchaburi",
+          "09:22"
+        ],
+        [
+          "phetchaburi",
+          "10:04"
+        ],
+        [
+          "hua-hin",
+          "10:57"
+        ]
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "255",
+      "type": "ordinary",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-pathom",
+          "08:37"
+        ],
+        [
+          "ratchaburi",
+          "09:51"
+        ],
+        [
+          "phetchaburi",
+          "10:41"
+        ],
+        [
+          "hua-hin",
+          "11:49"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "13:28"
+        ],
+        [
+          "chumphon",
+          "16:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "43",
+      "type": "special",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "07:30"
+        ],
+        [
+          "nakhon-pathom",
+          "08:23"
+        ],
+        [
+          "ratchaburi",
+          "09:08"
+        ],
+        [
+          "phetchaburi",
+          "09:46"
+        ],
+        [
+          "hua-hin",
+          "10:36"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "11:41"
+        ],
+        [
+          "chumphon",
+          "14:05"
+        ],
+        [
+          "surat-thani",
+          "16:20"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "261",
+      "type": "ordinary",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "hua-lamphong",
+          "09:20"
+        ],
+        [
+          "nakhon-pathom",
+          "10:57"
+        ],
+        [
+          "ratchaburi",
+          "12:03"
+        ],
+        [
+          "phetchaburi",
+          "12:48"
+        ],
+        [
+          "hua-hin",
+          "13:53"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "455",
+      "type": "local",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-si-thammarat",
+          "10:25"
+        ],
+        [
+          "phatthalung",
+          "12:55"
+        ],
+        [
+          "hat-yai",
+          "14:36"
+        ],
+        [
+          "yala",
+          "16:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "251",
+      "type": "ordinary",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-pathom",
+          "14:18"
+        ],
+        [
+          "ratchaburi",
+          "15:26"
+        ],
+        [
+          "phetchaburi",
+          "16:27"
+        ],
+        [
+          "hua-hin",
+          "17:32"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "19:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "171",
+      "type": "rapid",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "15:10"
+        ],
+        [
+          "nakhon-pathom",
+          "16:06"
+        ],
+        [
+          "ratchaburi",
+          "17:07"
+        ],
+        [
+          "phetchaburi",
+          "17:55"
+        ],
+        [
+          "hua-hin",
+          "18:49"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "20:04"
+        ],
+        [
+          "chumphon",
+          "22:27"
+        ],
+        [
+          "surat-thani",
+          "01:14"
+        ],
+        [
+          "thung-song",
+          "03:09"
+        ],
+        [
+          "phatthalung",
+          "04:41"
+        ],
+        [
+          "hat-yai",
+          "06:30"
+        ],
+        [
+          "yala",
+          "08:25"
+        ],
+        [
+          "su-ngai-kolok",
+          "10:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "37",
+      "type": "special",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "16:10"
+        ],
+        [
+          "nakhon-pathom",
+          "17:12"
+        ],
+        [
+          "ratchaburi",
+          "18:10"
+        ],
+        [
+          "phetchaburi",
+          "18:56"
+        ],
+        [
+          "hua-hin",
+          "19:50"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "21:05"
+        ],
+        [
+          "chumphon",
+          "23:26"
+        ],
+        [
+          "surat-thani",
+          "01:52"
+        ],
+        [
+          "thung-song",
+          "03:48"
+        ],
+        [
+          "phatthalung",
+          "05:23"
+        ],
+        [
+          "hat-yai",
+          "07:10"
+        ],
+        [
+          "yala",
+          "08:57"
+        ],
+        [
+          "su-ngai-kolok",
+          "10:35"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "45",
+      "type": "special",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "16:10"
+        ],
+        [
+          "nakhon-pathom",
+          "17:12"
+        ],
+        [
+          "ratchaburi",
+          "18:10"
+        ],
+        [
+          "phetchaburi",
+          "18:56"
+        ],
+        [
+          "hua-hin",
+          "19:50"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "21:05"
+        ],
+        [
+          "chumphon",
+          "23:26"
+        ],
+        [
+          "surat-thani",
+          "01:52"
+        ],
+        [
+          "thung-song",
+          "03:48"
+        ],
+        [
+          "phatthalung",
+          "05:23"
+        ],
+        [
+          "hat-yai",
+          "07:20"
+        ],
+        [
+          "padang-besar",
+          "08:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "31",
+      "type": "special",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "16:50"
+        ],
+        [
+          "nakhon-pathom",
+          "17:50"
+        ],
+        [
+          "ratchaburi",
+          "18:47"
+        ],
+        [
+          "phetchaburi",
+          "19:31"
+        ],
+        [
+          "hua-hin",
+          "20:25"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "21:41"
+        ],
+        [
+          "chumphon",
+          "00:05"
+        ],
+        [
+          "surat-thani",
+          "02:23"
+        ],
+        [
+          "thung-song",
+          "04:18"
+        ],
+        [
+          "phatthalung",
+          "05:53"
+        ],
+        [
+          "hat-yai",
+          "07:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "169",
+      "type": "rapid",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "17:30"
+        ],
+        [
+          "nakhon-pathom",
+          "18:31"
+        ],
+        [
+          "ratchaburi",
+          "19:33"
+        ],
+        [
+          "phetchaburi",
+          "20:25"
+        ],
+        [
+          "hua-hin",
+          "21:25"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "22:48"
+        ],
+        [
+          "chumphon",
+          "01:35"
+        ],
+        [
+          "surat-thani",
+          "04:09"
+        ],
+        [
+          "thung-song",
+          "06:09"
+        ],
+        [
+          "phatthalung",
+          "07:55"
+        ],
+        [
+          "hat-yai",
+          "09:28"
+        ],
+        [
+          "yala",
+          "11:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "351",
+      "type": "suburban",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "nakhon-pathom",
+          "19:23"
+        ],
+        [
+          "ratchaburi",
+          "20:25"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "83",
+      "type": "express",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "18:50"
+        ],
+        [
+          "nakhon-pathom",
+          "19:50"
+        ],
+        [
+          "ratchaburi",
+          "20:48"
+        ],
+        [
+          "phetchaburi",
+          "21:37"
+        ],
+        [
+          "hua-hin",
+          "22:34"
+        ],
+        [
+          "chumphon",
+          "02:28"
+        ],
+        [
+          "surat-thani",
+          "05:01"
+        ],
+        [
+          "thung-song",
+          "07:09"
+        ],
+        [
+          "trang",
+          "08:15"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "85",
+      "type": "express",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "19:50"
+        ],
+        [
+          "nakhon-pathom",
+          "20:52"
+        ],
+        [
+          "ratchaburi",
+          "21:57"
+        ],
+        [
+          "phetchaburi",
+          "22:46"
+        ],
+        [
+          "hua-hin",
+          "23:47"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "01:08"
+        ],
+        [
+          "chumphon",
+          "03:53"
+        ],
+        [
+          "surat-thani",
+          "06:33"
+        ],
+        [
+          "thung-song",
+          "08:45"
+        ],
+        [
+          "nakhon-si-thammarat",
+          "09:55"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "167",
+      "type": "rapid",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "20:30"
+        ],
+        [
+          "nakhon-pathom",
+          "21:32"
+        ],
+        [
+          "ratchaburi",
+          "22:34"
+        ],
+        [
+          "phetchaburi",
+          "23:24"
+        ],
+        [
+          "hua-hin",
+          "00:23"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "01:45"
+        ],
+        [
+          "chumphon",
+          "04:35"
+        ],
+        [
+          "surat-thani",
+          "07:26"
+        ],
+        [
+          "thung-song",
+          "09:49"
+        ],
+        [
+          "trang",
+          "11:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "39",
+      "type": "special",
+      "line": "southern",
+      "direction": "out",
+      "stops": [
+        [
+          "krung-thep-aphiwat",
+          "22:50"
+        ],
+        [
+          "nakhon-pathom",
+          "23:43"
+        ],
+        [
+          "ratchaburi",
+          "00:37"
+        ],
+        [
+          "phetchaburi",
+          "01:19"
+        ],
+        [
+          "hua-hin",
+          "02:09"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "03:15"
+        ],
+        [
+          "chumphon",
+          "05:37"
+        ],
+        [
+          "surat-thani",
+          "07:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1"
+    },
+    {
+      "number": "356",
+      "type": "suburban",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "nakhon-pathom",
+          "06:33"
+        ],
+        [
+          "hua-lamphong",
+          "08:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "252",
+      "type": "ordinary",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "prachuap-khiri-khan",
+          "04:40"
+        ],
+        [
+          "hua-hin",
+          "06:14"
+        ],
+        [
+          "phetchaburi",
+          "07:17"
+        ],
+        [
+          "ratchaburi",
+          "08:14"
+        ],
+        [
+          "nakhon-pathom",
+          "09:24"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "352",
+      "type": "suburban",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "ratchaburi",
+          "05:00"
+        ],
+        [
+          "nakhon-pathom",
+          "06:04"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "446",
+      "type": "local",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "hat-yai",
+          "06:20"
+        ],
+        [
+          "phatthalung",
+          "08:26"
+        ],
+        [
+          "thung-song",
+          "10:49"
+        ],
+        [
+          "surat-thani",
+          "13:31"
+        ],
+        [
+          "chumphon",
+          "17:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "254",
+      "type": "ordinary",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "chumphon",
+          "07:50"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "11:02"
+        ],
+        [
+          "hua-hin",
+          "12:47"
+        ],
+        [
+          "phetchaburi",
+          "13:54"
+        ],
+        [
+          "ratchaburi",
+          "14:52"
+        ],
+        [
+          "nakhon-pathom",
+          "16:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "456",
+      "type": "local",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "yala",
+          "06:35"
+        ],
+        [
+          "hat-yai",
+          "08:54"
+        ],
+        [
+          "phatthalung",
+          "10:52"
+        ],
+        [
+          "nakhon-si-thammarat",
+          "13:20"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "452",
+      "type": "local",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "su-ngai-kolok",
+          "09:00"
+        ],
+        [
+          "yala",
+          "11:06"
+        ],
+        [
+          "hat-yai",
+          "13:18"
+        ],
+        [
+          "phatthalung",
+          "14:50"
+        ],
+        [
+          "nakhon-si-thammarat",
+          "17:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "40",
+      "type": "special",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "surat-thani",
+          "09:00"
+        ],
+        [
+          "chumphon",
+          "11:18"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "13:25"
+        ],
+        [
+          "hua-hin",
+          "14:36"
+        ],
+        [
+          "phetchaburi",
+          "15:25"
+        ],
+        [
+          "ratchaburi",
+          "16:09"
+        ],
+        [
+          "nakhon-pathom",
+          "17:07"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "18:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "172",
+      "type": "rapid",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "su-ngai-kolok",
+          "12:10"
+        ],
+        [
+          "yala",
+          "14:00"
+        ],
+        [
+          "hat-yai",
+          "16:05"
+        ],
+        [
+          "phatthalung",
+          "17:21"
+        ],
+        [
+          "thung-song",
+          "19:02"
+        ],
+        [
+          "surat-thani",
+          "20:55"
+        ],
+        [
+          "chumphon",
+          "23:56"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "02:28"
+        ],
+        [
+          "hua-hin",
+          "03:51"
+        ],
+        [
+          "phetchaburi",
+          "04:46"
+        ],
+        [
+          "ratchaburi",
+          "05:32"
+        ],
+        [
+          "nakhon-pathom",
+          "06:26"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "07:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "38",
+      "type": "special",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "su-ngai-kolok",
+          "14:15"
+        ],
+        [
+          "yala",
+          "15:58"
+        ],
+        [
+          "hat-yai",
+          "18:05"
+        ],
+        [
+          "phatthalung",
+          "19:18"
+        ],
+        [
+          "thung-song",
+          "21:02"
+        ],
+        [
+          "surat-thani",
+          "22:50"
+        ],
+        [
+          "chumphon",
+          "01:27"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "03:54"
+        ],
+        [
+          "hua-hin",
+          "05:17"
+        ],
+        [
+          "phetchaburi",
+          "06:13"
+        ],
+        [
+          "ratchaburi",
+          "06:59"
+        ],
+        [
+          "nakhon-pathom",
+          "08:00"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "09:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "168",
+      "type": "rapid",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "trang",
+          "14:45"
+        ],
+        [
+          "thung-song",
+          "16:11"
+        ],
+        [
+          "surat-thani",
+          "18:32"
+        ],
+        [
+          "chumphon",
+          "21:20"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "23:59"
+        ],
+        [
+          "hua-hin",
+          "01:26"
+        ],
+        [
+          "phetchaburi",
+          "02:23"
+        ],
+        [
+          "ratchaburi",
+          "03:09"
+        ],
+        [
+          "nakhon-pathom",
+          "04:05"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "05:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "910",
+      "type": "tourist",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "nakhon-pathom",
+          "18:04"
+        ],
+        [
+          "hua-lamphong",
+          "19:30"
+        ]
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "262",
+      "type": "ordinary",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "hua-hin",
+          "14:46"
+        ],
+        [
+          "phetchaburi",
+          "15:46"
+        ],
+        [
+          "ratchaburi",
+          "16:31"
+        ],
+        [
+          "nakhon-pathom",
+          "17:39"
+        ],
+        [
+          "hua-lamphong",
+          "19:20"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "454",
+      "type": "local",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "su-ngai-kolok",
+          "15:25"
+        ],
+        [
+          "yala",
+          "17:30"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "86",
+      "type": "express",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "nakhon-si-thammarat",
+          "16:00"
+        ],
+        [
+          "thung-song",
+          "17:17"
+        ],
+        [
+          "surat-thani",
+          "19:31"
+        ],
+        [
+          "chumphon",
+          "22:19"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "00:55"
+        ],
+        [
+          "hua-hin",
+          "02:20"
+        ],
+        [
+          "phetchaburi",
+          "03:19"
+        ],
+        [
+          "ratchaburi",
+          "04:05"
+        ],
+        [
+          "nakhon-pathom",
+          "05:05"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "06:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "170",
+      "type": "rapid",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "yala",
+          "16:30"
+        ],
+        [
+          "hat-yai",
+          "18:20"
+        ],
+        [
+          "phatthalung",
+          "19:41"
+        ],
+        [
+          "thung-song",
+          "21:30"
+        ],
+        [
+          "surat-thani",
+          "23:28"
+        ],
+        [
+          "chumphon",
+          "02:32"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "05:12"
+        ],
+        [
+          "hua-hin",
+          "06:40"
+        ],
+        [
+          "phetchaburi",
+          "07:43"
+        ],
+        [
+          "ratchaburi",
+          "08:32"
+        ],
+        [
+          "nakhon-pathom",
+          "09:38"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "10:50"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "912",
+      "type": "tourist",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "hua-hin",
+          "16:38"
+        ],
+        [
+          "phetchaburi",
+          "17:27"
+        ],
+        [
+          "ratchaburi",
+          "18:09"
+        ],
+        [
+          "nakhon-pathom",
+          "18:55"
+        ],
+        [
+          "hua-lamphong",
+          "20:15"
+        ]
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "46",
+      "type": "special",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "padang-besar",
+          "17:00"
+        ],
+        [
+          "hat-yai",
+          "18:05"
+        ],
+        [
+          "phatthalung",
+          "19:18"
+        ],
+        [
+          "thung-song",
+          "21:02"
+        ],
+        [
+          "surat-thani",
+          "22:50"
+        ],
+        [
+          "chumphon",
+          "01:27"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "03:54"
+        ],
+        [
+          "hua-hin",
+          "05:17"
+        ],
+        [
+          "phetchaburi",
+          "06:13"
+        ],
+        [
+          "ratchaburi",
+          "06:59"
+        ],
+        [
+          "nakhon-pathom",
+          "08:00"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "09:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "84",
+      "type": "express",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "trang",
+          "17:00"
+        ],
+        [
+          "thung-song",
+          "18:28"
+        ],
+        [
+          "surat-thani",
+          "20:23"
+        ],
+        [
+          "chumphon",
+          "23:18"
+        ],
+        [
+          "hua-hin",
+          "03:07"
+        ],
+        [
+          "phetchaburi",
+          "04:02"
+        ],
+        [
+          "ratchaburi",
+          "04:48"
+        ],
+        [
+          "nakhon-pathom",
+          "05:54"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "07:05"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "32",
+      "type": "special",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "hat-yai",
+          "17:45"
+        ],
+        [
+          "phatthalung",
+          "18:57"
+        ],
+        [
+          "thung-song",
+          "20:37"
+        ],
+        [
+          "surat-thani",
+          "22:24"
+        ],
+        [
+          "chumphon",
+          "00:54"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "03:08"
+        ],
+        [
+          "hua-hin",
+          "04:27"
+        ],
+        [
+          "phetchaburi",
+          "05:23"
+        ],
+        [
+          "ratchaburi",
+          "06:08"
+        ],
+        [
+          "nakhon-pathom",
+          "07:06"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "08:10"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    },
+    {
+      "number": "44",
+      "type": "special",
+      "line": "southern",
+      "direction": "in",
+      "stops": [
+        [
+          "surat-thani",
+          "18:25"
+        ],
+        [
+          "chumphon",
+          "20:51"
+        ],
+        [
+          "prachuap-khiri-khan",
+          "23:00"
+        ],
+        [
+          "hua-hin",
+          "00:14"
+        ],
+        [
+          "phetchaburi",
+          "01:03"
+        ],
+        [
+          "ratchaburi",
+          "01:45"
+        ],
+        [
+          "nakhon-pathom",
+          "02:42"
+        ],
+        [
+          "krung-thep-aphiwat",
+          "03:45"
+        ]
+      ],
+      "source": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ Checked 2026-10-02. One file per provider. Doc beats memory; patch doc when real
 | `rome2rio.md` | — (dropped) | multi | — | **Dead.** Not accepting applications, docs 404 | ADR-T03 |
 | `gtfs.md` | `gtfs` | bus, train, (ferry) | Ahmet | Free, keyless (namtang TH, KTMB MY). Thin intercity coach coverage | B03, T05 |
 | `busonlineticket.md` | `busonlineticket` | bus | Ahmet | **No public API.** Affiliate (manual approval) + deep links → untagged, no signup | B05 |
+| `srt.md` | `srt` | train | Ahmet | **No public API.** Keyless TTS timetable pages → seed (`pnpm srt:snapshot`); D-Ticket link-out, no deep link | T07 |
 
 Env vars (all optional, ADR-C04): `TRAVELPAYOUTS_TOKEN` `TRAVELPAYOUTS_MARKER` `TRAVELPAYOUTS_TRS`
 `TRAVELPAYOUTS_MARKET` `TWELVEGO_AFFILIATE_ID` `TDX_CLIENT_ID` `TDX_CLIENT_SECRET`

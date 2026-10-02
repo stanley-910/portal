@@ -126,7 +126,7 @@ Intercity reality check (our target routes):
 | KL ↔ Singapore coach | **no** (no operator feed; BOT/12Go deep link) |
 | KL ↔ Penang/Butterworth, KL ↔ JB | rail yes (KTMB ETS); coach no |
 | JB Sentral ↔ Woodlands | yes, KTMB `ST` shuttle |
-| Bangkok ↔ Chiang Mai | bus yes (TC บขส., NCA); **SRT rail no** — namtang long-distance trains have placeholder times (observed 2026-10-02, see Gotchas) |
+| Bangkok ↔ Chiang Mai | bus yes (TC บขส., NCA); **SRT rail no** — namtang long-distance trains have placeholder times (observed 2026-10-02, see Gotchas) → served by `srt` seed (T07, `srt.md`) |
 | Bangkok ↔ Malaysia border/Penang | `unverified` (check namtang routes at build) |
 | Japan highway bus | sparse (few 高速バス feeds); JR intercity `unverified` |
 | Korea / Taiwan | not GTFS here → other docs |

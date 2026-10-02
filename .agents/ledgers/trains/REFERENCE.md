@@ -8,6 +8,7 @@ Codebase: core `REFERENCE.md`. Provider truth in `.agents/docs/api/`.
 | `korea-tago` | `src/lib/transport/providers/korea-tago/` (shared w/ buses) — train seed, `pnpm korea:snapshot` (T03) | none in MVP — seed (ADR-T05); `DATA_GO_KR_SERVICE_KEY` (**Decoding** key) backlog | `korea-data-go-kr.md` |
 | `china-rail` | `src/lib/transport/providers/china-rail/` | `TRIPCOM_AFFILIATE_ID`, `TWELVEGO_AFFILIATE_ID` | `china-12306.md` |
 | `gtfs` | `src/lib/transport/providers/gtfs/` (buses B03 owns) | — | `gtfs.md` |
+| `srt` | `src/lib/transport/providers/srt/` — SRT seed, `pnpm srt:snapshot` (T07, ADR-T06) | — | `srt.md` |
 
 TDX quick facts (live API — unused since ADR-T04, kept for the backlog):
 - Token `POST https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token` form `grant_type=client_credentials` → `access_token`, `expires_in` 86400. Token endpoint 20 req/min/IP.

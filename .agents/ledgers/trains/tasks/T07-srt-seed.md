@@ -1,5 +1,5 @@
 # T07 — SRT (Thai rail) seed timetable + booking link-out
-REPO: (this repo) · Depends: C01 · Status: todo
+REPO: (this repo) · Depends: C01 · Status: done
 Read first: STATE.md, REFERENCE.md, `DECISIONS.md` ADR-T06, core ADR-C05 + ADR-C08, `.agents/docs/api/gtfs.md` § Gotchas (namtang SRT), then this.
 **Model: sonnet** — static data + URLs, same shape as T03/T04/T06.
 
@@ -42,10 +42,10 @@ namtang's SRT trips carry placeholder times (T05 Notes, ADR-T06).
 - `scripts/snapshot-srt.mts` + `package.json` script — only if a fetchable source exists
 
 ## Steps
-- [ ] `seed.json`: stations (name En/Th, lat/lng, `source`) + trains both directions on the demo lines with per-station times.
-- [ ] `schema.ts` zod; `index.ts` search: city match, trains stopping at both in order, running on `q.date` weekday → `Offer` (`mode: "train"`, `carrier: "SRT"` + class in name if useful, `number`, ISO `+07:00`, `kind: "timetable"`, price only if sourced).
-- [ ] Wire `"srt"` into `types.ts` + `registry.ts`.
-- [ ] Tests: Bangkok → Chiang Mai overnight train arrives next day; reverse; intermediate pair (Ayutthaya → Phitsanulok) uses own stop times; `days` filter; Taipei pair → `covers` false; seed parses; no `fetch` at request time.
+- [x] `seed.json`: stations (name En/Th, lat/lng, `source`) + trains both directions on the demo lines with per-station times.
+- [x] `schema.ts` zod; `index.ts` search: city match, trains stopping at both in order, running on `q.date` weekday → `Offer` (`mode: "train"`, `carrier: "SRT"` + class in name if useful, `number`, ISO `+07:00`, `kind: "timetable"`, price only if sourced).
+- [x] Wire `"srt"` into `types.ts` + `registry.ts`.
+- [x] Tests: Bangkok → Chiang Mai overnight train arrives next day; reverse; intermediate pair (Ayutthaya → Phitsanulok) uses own stop times; `days` filter; Taipei pair → `covers` false; seed parses; no `fetch` at request time.
 
 ## Definition of done
 - Bangkok → Chiang Mai tomorrow returns SRT timetable offers with a working link-out; `errors[]` has no `srt` entry.
@@ -58,3 +58,34 @@ Live (C02 route): `pnpm dev`, then
 → `srt` offers present, `errors[]` without `srt`.
 
 ## Notes
+Done 2026-10-03. Doc: `.agents/docs/api/srt.md` (ground truth, gotchas, sources).
+
+**Source (real, fetched 2026-10-03):** SRT TTS classic timetable
+`ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line={1,2,4}&trip={1,2}` (per-station times) +
+`timetable_modern/timetable_data.js` (train type, running days). `www.railway.co.th` resets TLS
+from here; per-train pages + modern JSON API are Turnstile-gated — not used, not bypassed.
+Every train's `source` = its line/trip page. Times never edited by hand.
+
+**Seed:** 124 trains, 36 stations (Northern → Chiang Mai, NE → Nong Khai/Ubon, Southern → Hat Yai/
+Padang Besar/Su-ngai Kolok/Trang/Nakhon Si Thammarat). Includes commuter/local trains that link two
+seeded cities. Coords = namtang `stops.txt` (feed 20261001); Padang Besar/Trang/NST = Wikipedia.
+`pnpm srt:snapshot` rebuilds `trains` from the pages, keeps hand-curated `stations` (`tts` = row label).
+
+**Snapshot repairs (logged on each run):** spur rows listed against running order → adjacent swap
+(NST/Khao Chum Thong, Surat Thani/Khiri Ratthanikhom, Taling Chan/Bang Bamru). Train 23 Surin 00:48
+(source typo) → stop dropped. 355 tangled → skipped. Skipped: 173/174 (start date en/th disagree),
+340/342/448/464/741–744 (no type in data.js). Cancelled trains (405/406) never seeded.
+
+**Adapter:** city match ≤ 15 km, all stations of the city (Bangkok = Krung Thep Aphiwat + Hua Lamphong);
+first served stop in origin city → first later stop in destination city. `days` on start weekday
+(tdx logic). `carrier` = `SRT <type label>` (e.g. `SRT Special Express`). No price (not published on
+the page). Booking = `https://dticket.railway.co.th/DTicketPublicWeb/home/Home` (200, POST search → no deep link).
+
+**Verification** (`pnpm lint && pnpm exec tsc --noEmit && pnpm test -- srt`): lint clean, tsc clean,
+`Test Files 11 passed (11) · Tests 124 passed (124)` (`-- srt` runs all files; `vitest run srt` = 16/16).
+Live `pnpm dev` :3000, Bangkok → Chiang Mai 2026-10-04 `modes=train`: 5 `srt` offers (7 07:30→17:50,
+109 14:15→04:00+1, 9 18:40→07:15+1, 13 20:05→08:45+1, 51 22:30→11:40+1), `errors: []`.
+Also Hat Yai 5, Surat Thani 10, Nong Khai 3, Ubon 6; Taipei → Zuoying = 74 `tdx`, no `srt`.
+
+**Limits:** `Workdays Only` ignores Thai public holidays. Eastern/Thon Buri/Mae Klong lines not seeded.
+No fares. Timetable is a snapshot — rerun `pnpm srt:snapshot` before demo if SRT changes it.

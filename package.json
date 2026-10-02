@@ -11,7 +11,8 @@
     "test": "vitest run",
     "gtfs:build": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gtfs-build.mts",
     "thsr:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-thsr.mts",
-    "korea:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-korea-trains.mts"
+    "korea:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-korea-trains.mts",
+    "srt:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-srt.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
