@@ -56,4 +56,23 @@ describe("parseSearchQuery", () => {
     if (r.success) return;
     expect(r.fields).toContain(field);
   });
+
+  it("accepts JSON from/to Places (globe UI format)", () => {
+    const r = parseSearchQuery(new URLSearchParams({
+      from: JSON.stringify({ name: "Hong Kong", lat: 22.3, lng: 114.2, iata: "hkg" }),
+      to: JSON.stringify({ name: "Bangkok", lat: 13.7, lng: 100.5 }),
+      date: "2026-10-10",
+      modes: "flight,train",
+    }));
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.from).toEqual({ name: "Hong Kong", lat: 22.3, lng: 114.2, iata: "HKG" });
+    expect(r.data.to).toEqual({ name: "Bangkok", lat: 13.7, lng: 100.5 });
+    expect(r.data.modes).toEqual(["flight", "train"]);
+  });
+
+  it("rejects malformed JSON places", () => {
+    const r = parseSearchQuery(new URLSearchParams({ from: "{bad", to: "{}", date: "2026-10-10" }));
+    expect(r.success).toBe(false);
+  });
 });
