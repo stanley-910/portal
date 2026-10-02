@@ -34,3 +34,7 @@ Used by S02 (ferries) and B04 (buses).
 
 ## Notes
 
+- 2026-10-02: Implemented `src/lib/transport/providers/12go/links.ts` with exactly one
+  affiliate path: Travelpayouts marker, direct `z` ID fallback, or plain URL.
+- 2026-10-02: Added focused link and adapter coverage; `pnpm lint`, `pnpm exec tsc --noEmit`,
+  and `pnpm test -- 12go` pass. Live browser verification remains an operational follow-up.

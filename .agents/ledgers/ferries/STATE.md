@@ -1,7 +1,9 @@
 # Ferries — State
 
 Last updated: 2026-10-02
-Last session ended: **Ledger written (meta session).** No code. Doc: `docs/api/12go.md`.
+Last session ended: **S01 and S02 implemented.** 12Go deep links, generic seed adapter,
+and ten curated ferry routes landed. Verification: `pnpm lint`, `pnpm exec tsc --noEmit`,
+`pnpm test -- 12go` (8 passed).
 
 ## Execution protocol (follow exactly)
 
@@ -11,7 +13,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 
 ## Current task
 
-**S01 — 12Go deep links** (Cata, sonnet). Waits on C01, F03.
+**B04 — bus 12Go seed** (next; buses ledger).
 
 ## Environment
 
@@ -30,8 +32,8 @@ TWELVEGO_AFFILIATE_ID=...     # direct agent.12go.asia program
 
 | ID | Title | Repo | Status | Depends on |
 |----|-------|------|--------|------------|
-| S01 | 12Go route deep links + affiliate tag | | todo | C01, F03 |
-| S02 | Generic 12Go seed adapter + ferry route seed | | todo | S01 |
+| S01 | 12Go route deep links + affiliate tag | | done | C01, F03 |
+| S02 | Generic 12Go seed adapter + ferry route seed | | done | S01 |
 
 ## Critical path
 
