@@ -14,7 +14,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 
 ## Current task
 
-None — all trains tasks done/retired. Next work = Backlog trigger.
+**T07 — SRT (Thai rail) seed timetable + booking link-out** (Ahmet). Keyless seed (ADR-T06, core ADR-C08).
 
 ## Environment
 
@@ -27,7 +27,7 @@ None — all trains tasks done/retired. Next work = Backlog trigger.
 
 None. TDX and data.go.kr signups dropped 2026-10-02 (ADR-T04, ADR-T05); Trip.com affiliate not signing up (T04 ships untagged).
 
-## Task ledger (T01–T06)
+## Task ledger (T01–T07)
 
 | ID | Title | Repo | Status | Depends on |
 |----|-------|------|--------|------------|
@@ -37,10 +37,11 @@ None. TDX and data.go.kr signups dropped 2026-10-02 (ADR-T04, ADR-T05); Trip.com
 | T04 | China rail seed + affiliate link-out | | done | C01 |
 | T05 | GTFS rail pairs (KTMB, SRT) | | done | B03 |
 | T06 | THSR seed timetable + booking link-out | | done | C01 |
+| T07 | SRT (Thai rail) seed timetable + booking link-out | | todo | C01 |
 
 ## Critical path
 
-C01 → T06 · C01 → T03 · B03 → T05.
+C01 → T06 · C01 → T03 · B03 → T05 · C01 → T07.
 
 ## Cross-ledger (this ledger blocks)
 
@@ -52,6 +53,5 @@ C01 → T06 · C01 → T03 · B03 → T05.
 
 - **TDX live (THSR fares/seat flags, TRA, Taiwan buses)** — trigger: a TDX member key exists (Taiwan phone or manual review approved). Then supersede ADR-T04; T01/T02/B01 files hold the old plan.
 - **THSR seat flags** in Offer (`AvailableSeatStatus`, cache 5 min) — trigger: TDX key + UI wants "seats left" badge; needs additive optional field (core ADR).
-- **SRT intercity timetable** (namtang times are placeholders, T05 Notes) — trigger: judges want BKK↔CNX/Hat Yai trains; seed from railway.co.th like T04/T06.
 - **Live TAGO client** (`TrainInfo`, Decoding key, `_type=json`) — trigger: data.go.kr key obtained.
 - **Google Routes TRANSIT** (paid) — trigger: judges want coverage outside TW/KR/TH/MY.

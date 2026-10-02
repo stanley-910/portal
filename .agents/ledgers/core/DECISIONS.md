@@ -57,3 +57,10 @@ the seat whose key is pending.
 **Context:** Provider may ignore `signal`; retries could blow the 8 s budget.
 **Decision:** `fanOut` races `search()` against `AbortSignal.any([timeout(PROVIDER_TIMEOUT_MS), request.signal])` → `TIMEOUT`. No retries; `retryable` returned to client. Route `maxDuration = 15`.
 **Consequences:** retries, if added, live in `search.ts` only.
+
+## ADR-C08 — 2026-10-03 — Additive `ProviderId` `"srt"` (Thai rail seed)
+
+**Context:** Trains T05 found namtang SRT trips unusable (placeholder times, trains ADR-T06). Owner wants Thai intercity trains as a seed (2026-10-03). No existing id fits: `gtfs` is a build-time feed pipeline (buses-owned), `china-rail`/`tdx`/`korea-tago` are country-scoped.
+**Decision:** add `"srt"` to `ProviderId` in `types.ts`, a `providers/srt/` folder, and one line in `registry.ts`. Additive only; no other contract change. Done inside trains T07 (exception to ADR-C02's "never this list" for this one id).
+**Why not inject rows into `gtfs` output:** mixes hand seed into a regenerated artifact; cross-ledger file ownership.
+**Consequences:** `ProviderId` union has 8 members. Clients switching on `provider` must accept `"srt"`.

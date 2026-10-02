@@ -51,3 +51,10 @@ up in `errors[]` at demo.
 **Decision:** `src/lib/transport/providers/korea-tago/` = hand-curated seed in core ADR-C05 format: per pair `departures` (`HH:MM`), `tz: "Asia/Seoul"`, `durationMin`, adult fare KRW, train grade/number, cited `source` (public Korail timetable/fare pages). Demo pairs: Seoul–Busan, Seoul–Daejeon, Seoul–Dongdaegu, Seoul–Gwangju-Songjeong, Seoul–Gangneung, Yongsan–Mokpo. Station coords hand-entered with `source`. No request-time calls. Provider id stays `korea-tago`.
 **Why not scrape Korail:** no legal live source found (`korea-data-go-kr.md` § Verdict).
 **Consequences:** `kind: "timetable"`, fares are typical adult fares. `DATA_GO_KR_SERVICE_KEY` stays optional, unused. Live TAGO client = backlog, trigger: key obtained.
+
+## ADR-T06 — 2026-10-03 — Thai intercity rail = hand-curated SRT seed
+
+**Context:** T05 Notes / `gtfs.md` Gotchas (observed 2026-10-02): namtang long-distance SRT trips run 00:00→00:07 placeholders; real-timed trips are ≤ 2 h stubs. The speed cap drops them, so Bangkok ↔ Chiang Mai has buses only. Owner asked to add Thai trains as a task (2026-10-03).
+**Decision:** new provider `srt` (core ADR-C08) serving a committed seed in core ADR-C05 format: stations with cited coords; trains with train number, class/type, stop times per station, `days?`, `tz: "Asia/Bangkok"`, cited `source` (railway.co.th timetable or SRT D-Ticket schedule, date read). `kind: "timetable"`; fare only if the source publishes it. Link-out to SRT D-Ticket booking (`dticket.railway.co.th`, `unverified`). No request-time calls. Namtang rail stays filtered in `gtfs` (no double counting).
+**Why not fix namtang:** source data itself is wrong; nothing to repair at build time.
+**Consequences:** timetable is a snapshot; re-curate when SRT changes it. KTMB stays on `gtfs` (T05).

@@ -7,5 +7,6 @@
 | T03 | Korea KTX seed adapter | `claude-sonnet-5-5` | Hand-curated seed + mapper (ADR-T05) |
 | T04 | China rail seed + affiliate link-out | `claude-sonnet-5-5` | Static data + URLs |
 | T05 | GTFS rail pairs (KTMB, SRT) | `claude-sonnet-5-5` | Filter over B03 pipeline |
+| T07 | SRT (Thai rail) seed timetable + booking link-out | `claude-sonnet-5-5` | Static data + URLs, same shape as T06 |
 
 Never haiku.
