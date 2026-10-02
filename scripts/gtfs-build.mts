@@ -17,7 +17,7 @@ interface FeedSource extends Omit<FeedMeta, "version" | "calendarStart" | "calen
   routeTypes: number[];
 }
 
-// data.gov.my feeds (T05) are 4 req/min: keep downloads sequential.
+// data.gov.my feeds are 4 req/min: keep downloads sequential. KTMB calendar is short (~2 months): assertFeedCurrent fails the build once it lapses.
 const FEEDS: FeedSource[] = [
   {
     id: "namtang",
@@ -26,7 +26,16 @@ const FEEDS: FeedSource[] = [
     country: "TH",
     licence: "CC BY 4.0",
     attribution: "Data: Office of Transport and Traffic Policy and Planning (OTP), Thailand, CC BY 4.0",
-    routeTypes: [3],
+    routeTypes: [2, 3],
+  },
+  {
+    id: "ktmb",
+    name: "KTMB (Keretapi Tanah Melayu)",
+    url: "https://api.data.gov.my/gtfs-static/ktmb",
+    country: "MY",
+    licence: "data.gov.my open data (exact licence unverified)",
+    attribution: "Data: KTMB via data.gov.my",
+    routeTypes: [2],
   },
 ];
 

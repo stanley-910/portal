@@ -14,7 +14,7 @@ export interface GtfsProviderOptions {
   pairs: Readonly<Record<string, () => Promise<PairFile>>>;
 }
 
-const MODES = ["bus"] as const; // T05 adds "train"
+const MODES = ["bus", "train"] as const;
 
 export function createGtfsProvider(opts: GtfsProviderOptions): TransportProvider {
   const feeds = new Map(opts.feeds.map((f) => [f.id, f]));

@@ -1,0 +1,4 @@
+agency_id,route_id,route_type,route_short_name,route_long_name,route_desc,route_url,route_color,route_text_color
+ktmb,KA15_KD19,0,Port Klang Line,KTM Tanjung Malim - Pelabuhan Klang,,https://www.ktmb.com.my/komuter-routes-map.html,DC2420,FFFFFF
+ktmb,ETS,2,ETS,Electric Train Service Padang Besar - JB Sentral,,https://www.ktmb.com.my/intercity-routes-map.html,FFC72C,000000
+ktmb,ST,2,ST,Intercity Shuttle Tebrau JB Sentral - Woodlands,,https://www.ktmb.com.my/intercity-routes-map.html,6E6E6E,FFFFFF
