@@ -3,6 +3,16 @@
 export type TripPresence = {
   /** The place under this member's pointer. Never screen pixels: everyone's view of the globe differs. */
   cursor: { lat: number; lng: number } | null;
+  /**
+   * The trip this member is drawing (M14 step 2): takeoff, the plane, and whether it has landed. Lives in presence
+   * until the trip model (M8) stores landed legs.
+   */
+  flight: {
+    origin: { lat: number; lng: number };
+    at: { lat: number; lng: number };
+    ahead: { lat: number; lng: number };
+    landed: boolean;
+  } | null;
 };
 
 export type MemberInfo = {

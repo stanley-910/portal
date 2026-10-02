@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
+import { RemotePlanes } from "@/components/multiplayer/remote-planes";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
 
@@ -21,7 +22,7 @@ export function TripRoom({ tripId }: { tripId: string }) {
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
       badgeLocation="bottom-right"
     >
-      <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null }}>
+      <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }}>
         <TripScreen />
       </RoomProvider>
     </LiveblocksProvider>
@@ -53,7 +54,9 @@ function TripScreen() {
         ref={globe}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
+        onFlightChange={(flight) => updateMyPresence({ flight })}
       />
+      <RemotePlanes globe={globe} />
       <RemoteCursors globe={globe} />
       <div className="absolute top-(--space-4) left-(--space-4) flex items-center gap-(--space-3)">
         <AvatarStack />

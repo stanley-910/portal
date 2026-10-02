@@ -1,6 +1,6 @@
 # Multiplayer decisions
 
-These were agreed in a grilling session on 2026-10-02. M4, M7 and step 1 of M14 are built; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
+These were agreed in a grilling session on 2026-10-02. M4, M7 and steps 1 and 2 of M14 are built; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
 
 Liveblocks facts behind these decisions were checked against the docs on 2026-10-02. We pin `@liveblocks/*` to 3.24.2, which supports React 19: 3.24.3 is newer than pnpm's minimum release age. Free-tier limits are in `free-tiers.md` (next to this file).
 
@@ -178,7 +178,15 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M14. Presence features, in build order
 
-**Status:** step 1 built (`src/components/multiplayer/avatar-stack.tsx` and `remote-cursors.tsx`). Steps 2 and 3 are decided.
+**Status:** steps 1 and 2 built. Step 3 is decided.
+- **Step 1:** `src/components/multiplayer/avatar-stack.tsx` and `remote-cursors.tsx`.
+- **Step 2:** `remote-planes.tsx`, plus `setRemoteFlights` in the engine.
+
+**How step 2 works:**
+- Each member's trip (`origin`, `at`, `ahead`, `landed`) is sent as `flight` in presence.
+- Other members' planes are paper stickers like your own, eased toward each update, with ink routes and origin pins.
+- Their name label sits beside the plane while it flies, in place of their cursor.
+- A landed trip stays in presence until the trip model (M8) stores legs.
 
 **Decision:** build these in order:
 1. Avatar stack and lat/lng cursors.
