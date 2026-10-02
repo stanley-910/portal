@@ -1,0 +1,77 @@
+{
+  "checked": "2026-10-03",
+  "terminals": {
+    "taipei": {
+      "name": "Taipei Bus Station",
+      "nameLocal": "臺北轉運站",
+      "city": "Taipei",
+      "lat": 25.04887,
+      "lng": 121.51761,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=161901"
+    },
+    "yuanshan": {
+      "name": "Yuanshan Bus Station",
+      "nameLocal": "圓山轉運站",
+      "city": "Taipei",
+      "lat": 25.072347,
+      "lng": 121.520435,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=187801"
+    },
+    "nangang": {
+      "name": "Nangang Bus Station",
+      "nameLocal": "南港轉運站",
+      "city": "Taipei",
+      "lat": 25.05212,
+      "lng": 121.60652,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=187801"
+    },
+    "taipei-city-hall": {
+      "name": "Taipei City Hall Bus Station",
+      "nameLocal": "市府轉運站",
+      "city": "Taipei",
+      "lat": 25.04077,
+      "lng": 121.56449,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=157202"
+    },
+    "chaoma": {
+      "name": "Taichung Chaoma",
+      "nameLocal": "朝馬",
+      "city": "Taichung",
+      "lat": 24.170355,
+      "lng": 120.636889,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=161901"
+    },
+    "taichung-station": {
+      "name": "Taichung Station",
+      "nameLocal": "臺中車站",
+      "city": "Taichung",
+      "lat": 24.136408,
+      "lng": 120.683699,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=161901"
+    },
+    "kaohsiung": {
+      "name": "Kaohsiung Jianguo Bus Station",
+      "nameLocal": "建國客運站",
+      "city": "Kaohsiung",
+      "lat": 22.63793,
+      "lng": 120.29971,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=1610A1"
+    },
+    "tainan": {
+      "name": "Tainan Bus Station",
+      "nameLocal": "臺南轉運站",
+      "city": "Tainan",
+      "lat": 23.00224,
+      "lng": 120.20894,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=1611A1"
+    },
+    "yilan": {
+      "name": "Yilan Bus Station",
+      "nameLocal": "宜蘭轉運站",
+      "city": "Yilan",
+      "lat": 24.751419,
+      "lng": 121.759251,
+      "source": "https://www.taiwanbus.tw/eBUSPage/Query/ws/getRData.ashx?type=4&key=187801"
+    }
+  }
+}
