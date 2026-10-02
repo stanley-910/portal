@@ -5,7 +5,8 @@ import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore,
 import { cursorUrl, memberColor, RoundButton } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
-import type { Airport } from "./airports";
+import { hubPreviewLabel } from "@/lib/transport/hubs/preview";
+import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import type { ThemeId } from "./palette";
 
@@ -29,8 +30,8 @@ export interface TripGlobeHandle {
 export interface TripGlobeProps {
   /** "auto" follows prefers-color-scheme. Default "auto". */
   theme?: TripGlobeTheme;
-  /** Called when a trip starts: the plane takes off from the airport nearest the click. */
-  onTakeoff?: (from: Airport) => void;
+  /** Called at takeoff, including uncovered points (null). Hub is a local preview, not a route result. */
+  onTakeoff?: (from: Hub | null) => void;
   /** Called once the plane touches down. The search for the trip starts here. */
   onLand?: (trip: LandedTrip) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
@@ -96,7 +97,8 @@ export function TripGlobe({
   const hudRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GlobeEngine | null>(null);
   const [mode, setMode] = useState<GlobeMode>("idle");
-  const [from, setFrom] = useState<Airport | null>(null);
+  const [from, setFrom] = useState<Hub | null>(null);
+  const [preview, setPreview] = useState<Hub | null>(null);
   const [landed, setLanded] = useState<LandedTrip | null>(null);
   const [unsupported, setUnsupported] = useState(false);
   const resolved = useResolvedTheme(theme);
@@ -116,8 +118,9 @@ export function TripGlobe({
         setMode(m);
         setFrom(a);
         if (m !== "landed") setLanded(null);
-        if (m === "flying" && a) handlers.current.onTakeoff?.(a);
+        if (m === "flying") handlers.current.onTakeoff?.(a);
       },
+      onPreviewChange: setPreview,
       onLand: (trip) => {
         setLanded(trip);
         handlers.current.onLand?.(trip);
@@ -148,11 +151,11 @@ export function TripGlobe({
 
   useEffect(() => {
     engineRef.current?.setTheme(resolved);
-  }, [resolved]);
+  }, [resolved, earthUrl, bordersUrl]);
 
   useEffect(() => {
     if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
-  }, [skySeed]);
+  }, [skySeed, earthUrl, bordersUrl]);
 
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
@@ -178,10 +181,10 @@ export function TripGlobe({
   );
 
   const label =
-    mode === "flying" && from
-      ? `Flying from ${from.city}`
+    mode === "flying"
+      ? `Flying from ${from?.city || from?.name || "selected point"}`
       : mode === "landed" && landed
-        ? `Trip ${landed.from.city} to ${landed.to.city}`
+        ? `Trip ${landed.from?.city || landed.from?.name || "selected point"} to ${landed.to?.city || landed.to?.name || "selected point"}`
         : "Globe";
 
   const stop = (e: PointerEvent) => e.stopPropagation();
@@ -198,6 +201,19 @@ export function TripGlobe({
     >
       <canvas ref={glRef} role="img" aria-label={label} className="absolute inset-0 block size-full" />
       <canvas ref={hudRef} aria-hidden className="pointer-events-none absolute inset-0 block size-full" />
+      <output aria-label="Nearby transport hub" aria-live="polite" className="sr-only">
+        {preview ? hubPreviewLabel(preview) : ""}
+      </output>
+      <a
+        href="https://www.openstreetmap.org/copyright"
+        target="_blank"
+        rel="noreferrer"
+        className="type-meta absolute bottom-(--space-2) left-(--space-2) rounded-tag bg-paper-raised px-(--space-2) text-ink-muted"
+        onPointerDown={stop}
+        onPointerUp={stop}
+      >
+        Hub data: OurAirports · Wikidata · © OpenStreetMap contributors
+      </a>
       {mode === "flying" ? (
         <div className="absolute top-24 right-6" onPointerDown={stop} onPointerUp={stop}>
           <RoundButton label="Cancel trip" onClick={() => engineRef.current?.cancel()} />

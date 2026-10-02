@@ -1,48 +1,57 @@
 import "server-only";
 import { ProviderFailure } from "./types";
 
-export type FetchInit = Omit<RequestInit, "signal"> & { signal: AbortSignal };
+export type FetchInit = Omit<RequestInit, "signal"> & {
+  signal?: AbortSignal;
+  next?: { revalidate: number | false; tags?: string[] };
+};
 
-async function request(url: string | URL, init: FetchInit): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetch(url, init);
-  } catch (e) {
-    throw toFailure(e, init.signal);
-  }
-  if (res.ok) return res;
-  // Drain so the socket is released; body content is never surfaced.
-  await res.body?.cancel().catch(() => {});
-  if (res.status === 401 || res.status === 403) throw new ProviderFailure("AUTH_FAILED");
-  if (res.status === 429) throw new ProviderFailure("RATE_LIMITED", true);
-  if (res.status >= 500) throw new ProviderFailure("UPSTREAM_ERROR", true);
-  throw new ProviderFailure("UPSTREAM_ERROR");
+function isAborted(error: unknown, signal?: AbortSignal): boolean {
+  return signal?.aborted === true ||
+    (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError"));
 }
 
-function toFailure(e: unknown, signal: AbortSignal): ProviderFailure {
-  if (e instanceof ProviderFailure) return e;
-  const name = e instanceof Error ? e.name : "";
-  if (signal.aborted || name === "AbortError" || name === "TimeoutError") {
-    return new ProviderFailure("TIMEOUT", true);
-  }
-  return new ProviderFailure("UPSTREAM_ERROR", true);
-}
-
-/** Returns `unknown` on purpose: adapters validate with zod before mapping. */
-export async function fetchJson(url: string | URL, init: FetchInit): Promise<unknown> {
-  const text = await fetchText(url, init);
+async function request(url: string | URL, options: FetchInit): Promise<Response> {
   try {
-    return JSON.parse(text);
-  } catch {
-    throw new ProviderFailure("BAD_RESPONSE");
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+    // Release the socket; never surface an authenticated URL or upstream body.
+    await response.body?.cancel().catch(() => {});
+    if (response.status === 401 || response.status === 403) {
+      throw new ProviderFailure("AUTH_FAILED");
+    }
+    if (response.status === 429) {
+      throw new ProviderFailure("RATE_LIMITED", true);
+    }
+    throw new ProviderFailure("UPSTREAM_ERROR", response.status >= 500);
+  } catch (error) {
+    if (error instanceof ProviderFailure) throw error;
+    if (isAborted(error, options.signal)) throw new ProviderFailure("TIMEOUT", true);
+    throw new ProviderFailure("UPSTREAM_ERROR", true);
   }
 }
 
-export async function fetchText(url: string | URL, init: FetchInit): Promise<string> {
-  const res = await request(url, init);
+async function readBody<T>(
+  url: string | URL,
+  options: FetchInit,
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
+  const response = await request(url, options);
   try {
-    return await res.text();
-  } catch (e) {
-    throw toFailure(e, init.signal);
+    return await read(response);
+  } catch (error) {
+    if (error instanceof ProviderFailure) throw error;
+    if (isAborted(error, options.signal)) throw new ProviderFailure("TIMEOUT", true);
+    if (error instanceof SyntaxError) throw new ProviderFailure("BAD_RESPONSE");
+    throw new ProviderFailure("UPSTREAM_ERROR", true);
   }
+}
+
+/** Unknown by default. T is a caller assertion, not validation; adapters validate payloads. */
+export async function fetchJson<T = unknown>(url: string | URL, options: FetchInit = {}): Promise<T> {
+  return readBody(url, options, (response) => response.json() as Promise<T>);
+}
+
+export async function fetchText(url: string | URL, options: FetchInit = {}): Promise<string> {
+  return readBody(url, options, (response) => response.text());
 }

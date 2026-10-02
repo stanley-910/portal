@@ -83,6 +83,7 @@ function offer(route: SeedRoute, query: SearchQuery, mode: "ferry" | "bus", dire
       durationMin: route.durationMin,
     }],
     kind: "timetable",
+    attribution: `Bundled estimated timetable · ${route.source}`,
     bookingUrl: tagged(twelveGoUrl(from.slug, to.slug)),
   };
 }
@@ -91,13 +92,12 @@ export const twelveGo: TransportProvider = {
   id: "12go",
   modes: ["ferry", "bus"],
   covers(query) {
-    return query.modes.length === 0
-      ? routesFor("ferry").some((route) => matchesRoute(query.from, query.to, route) !== null)
-      : query.modes.some((mode) => routesFor(mode).some((route) => matchesRoute(query.from, query.to, route) !== null));
+    const modes = query.modes.length === 0 ? ["ferry", "bus"] as const : query.modes;
+    return modes.some((mode) => routesFor(mode).some((route) => matchesRoute(query.from, query.to, route) !== null));
   },
   async search(query) {
     const modes: Array<"ferry" | "bus"> = query.modes.length === 0
-      ? ["ferry"]
+      ? ["ferry", "bus"]
       : query.modes.filter((mode): mode is "ferry" | "bus" => mode === "ferry" || mode === "bus");
     return modes.flatMap((mode) => routesFor(mode).flatMap((route) => {
       const direction = matchesRoute(query.from, query.to, route);

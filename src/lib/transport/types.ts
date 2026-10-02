@@ -37,7 +37,7 @@ export interface Offer {
   segments: Segment[];        // ≥ 1
   transfers?: number;         // connections, when the provider counts them but doesn't list each segment
   price?: Price;              // absent = timetable only
-  kind: "live" | "cached" | "timetable"; // honesty about freshness
+  kind: "live" | "cached" | "timetable" | "estimated"; // honesty about freshness; "estimated" = modelled, not quoted
   bookingUrl?: string;        // deep link incl. affiliate marker where ToS requires
   attribution?: string;       // text the provider ToS requires near the result
 }

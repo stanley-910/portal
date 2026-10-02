@@ -1,83 +1,71 @@
 import { z } from "zod";
-import type { Mode, Place, SearchQuery } from "./types";
+import type { SearchQuery } from "./types";
 
-// Query-string shape is ADR-C06: flat `from*` / `to*` params, one per Place field.
-const MODES = ["flight", "train", "bus", "ferry"] as const satisfies readonly Mode[];
-
-const blankToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
-const opt = <T extends z.ZodType>(schema: T) => z.preprocess(blankToUndefined, schema.optional());
-
-const lat = z.coerce.number().min(-90).max(90);
-const lng = z.coerce.number().min(-180).max(180);
-
-const schema = z.object({
-  fromName: z.string().trim().min(1).max(200),
-  fromLat: z.preprocess(blankToUndefined, lat),
-  fromLng: z.preprocess(blankToUndefined, lng),
-  fromIata: opt(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)),
-  fromCountry: opt(z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/)),
-  toName: z.string().trim().min(1).max(200),
-  toLat: z.preprocess(blankToUndefined, lat),
-  toLng: z.preprocess(blankToUndefined, lng),
-  toIata: opt(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)),
-  toCountry: opt(z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/)),
+const optionalText = <T extends z.ZodType>(schema: T) => z.preprocess(
+  (value) => typeof value === "string" && !value.trim() ? undefined : value, schema.optional(),
+);
+const placeSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  lat: z.number().finite().min(-90).max(90),
+  lng: z.number().finite().min(-180).max(180),
+  country: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/)),
+  iata: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)),
+  providerIds: z.partialRecord(
+    z.enum(["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt"]),
+    z.string().trim().min(1).max(200),
+  ).optional(),
+});
+const querySchema = z.object({
+  from: placeSchema,
+  to: placeSchema,
   date: z.iso.date(),
-  modes: opt(
-    z
-      .string()
-      .transform((s) => s.split(",").map((m) => m.trim()).filter(Boolean))
-      .pipe(z.array(z.enum(MODES))),
-  ),
-  passengers: opt(z.coerce.number().int().min(1).max(9)),
-  currency: opt(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)),
+  modes: z.array(z.enum(["flight", "train", "bus", "ferry"])).max(4),
+  passengers: optionalText(z.coerce.number().int().min(1).max(9)).transform((value) => value ?? 1),
+  currency: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)).transform((value) => value ?? "USD"),
 });
 
 export type ParsedQuery = { success: true; data: SearchQuery } | { success: false; fields: string[] };
 
-function place(name: string, lat: number, lng: number, iata?: string, country?: string): Place {
-  return { name, lat, lng, ...(iata && { iata }), ...(country && { country }) };
-}
-
-// The globe UI sends `from`/`to` as JSON Place objects; expand them into the flat ADR-C06 params.
-function expandJsonPlaces(params: URLSearchParams): Record<string, string> | null {
-  const flat = Object.fromEntries(params);
-  for (const side of ["from", "to"] as const) {
-    const raw = flat[side];
-    if (raw === undefined) continue;
-    delete flat[side];
-    let p: unknown;
-    try {
-      p = JSON.parse(raw);
-    } catch {
-      return null;
-    }
-    if (typeof p !== "object" || p === null) return null;
-    const o = p as Record<string, unknown>;
-    for (const key of ["name", "lat", "lng", "iata", "country"] as const) {
-      const v = o[key];
-      if (v !== undefined && v !== null) flat[`${side}${key[0].toUpperCase()}${key.slice(1)}`] = String(v);
-    }
-  }
-  return flat;
-}
-
-export function parseSearchQuery(params: URLSearchParams): ParsedQuery {
-  const flat = expandJsonPlaces(params);
-  if (!flat) return { success: false, fields: ["from", "to"].filter((k) => params.has(k)) };
-  const r = schema.safeParse(flat);
-  if (!r.success) {
-    return { success: false, fields: [...new Set(r.error.issues.map((i) => String(i.path[0] ?? "")))] };
-  }
-  const q = r.data;
-  return {
-    success: true,
-    data: {
-      from: place(q.fromName, q.fromLat, q.fromLng, q.fromIata, q.fromCountry),
-      to: place(q.toName, q.toLat, q.toLng, q.toIata, q.toCountry),
-      date: q.date,
-      modes: [...new Set(q.modes ?? [])],
-      passengers: q.passengers ?? 1,
-      currency: q.currency ?? "USD",
-    },
+function parse(params: URLSearchParams): SearchQuery {
+  const raw = Object.fromEntries(params);
+  const place = (side: "from" | "to") => {
+    // JSON has strict numeric coordinates. Only flat query-string numbers are
+    // coerced; null/empty JSON latitude must never silently become zero.
+    if (raw[side] !== undefined) return JSON.parse(raw[side]);
+    const number = (value: string | undefined) => value?.trim() ? Number(value) : undefined;
+    return {
+      name: raw[`${side}Name`], lat: number(raw[`${side}Lat`]), lng: number(raw[`${side}Lng`]),
+      iata: raw[`${side}Iata`], country: raw[`${side}Country`],
+    };
   };
+  const parsed = querySchema.parse({
+    ...raw, from: place("from"), to: place("to"),
+    modes: [...new Set((raw.modes ?? "").split(",").map((mode) => mode.trim()).filter(Boolean))],
+  });
+  // Keep the established Place shape: absent optional keys are omitted.
+  for (const side of ["from", "to"] as const) {
+    for (const key of ["iata", "country", "providerIds"] as const) {
+      if (parsed[side][key] === undefined) delete parsed[side][key];
+    }
+  }
+  return parsed;
+}
+
+/** URL helper throws on invalid input; URLSearchParams form preserves ADR-C06 diagnostics. */
+export function parseSearchQuery(url: string): SearchQuery;
+export function parseSearchQuery(params: URLSearchParams): ParsedQuery;
+export function parseSearchQuery(input: string | URLSearchParams): SearchQuery | ParsedQuery {
+  if (typeof input === "string") return parse(new URL(input).searchParams);
+  try {
+    return { success: true, data: parse(input) };
+  } catch (error) {
+    if (error instanceof SyntaxError) return { success: false, fields: ["from", "to"].filter((key) => input.has(key)) };
+    if (!(error instanceof z.ZodError)) throw error;
+    const fields = error.issues.map(({ path }) => {
+      const [side, field] = path.map(String);
+      return (side === "from" || side === "to") && field
+        ? `${side}${field[0].toUpperCase()}${field.slice(1)}` : side;
+    });
+    return { success: false, fields: [...new Set(fields)] };
+  }
 }

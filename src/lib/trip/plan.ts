@@ -7,6 +7,7 @@ import { useCallback, useEffect } from "react";
 import { searchLeg } from "@/app/t/actions";
 import type { LandedTrip } from "@/components/trip-globe";
 import type { LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
+import { sameStop, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared trip plan (M8): stops, the legs between them, and each leg's options, votes and pick. Presentation
 // lives in components; these hooks are the only place that writes the plan, so every edit follows M12.
@@ -104,13 +105,15 @@ export function usePlanActions() {
     [tripId],
   );
 
-  /** Stores a landed trip as a leg, snapping each end onto an existing stop at the same hub (M8). */
+  /** Stores a landed trip at its exact clicks, sharing only identical stops (M8). */
   const addLegMutation = useMutation(({ storage, self }, trip: LandedTrip) => {
     const stops = storage.get("stops");
-    const stopAt = (hub: { code: string; city: string; lat: number; lng: number }) => {
-      for (const [id, s] of stops) if (s.get("hub") === hub.code) return id;
+    const stopAt = (stop: Stop) => {
+      for (const [id, s] of stops) {
+        if (sameStop({ lat: s.get("lat"), lng: s.get("lng"), hub: s.get("hub") }, stop)) return id;
+      }
       const id = newId();
-      stops.set(id, new LiveObject({ lat: hub.lat, lng: hub.lng, hub: hub.code, name: hub.city }));
+      stops.set(id, new LiveObject(stop));
       return id;
     };
     const id = newId();
@@ -118,8 +121,8 @@ export function usePlanActions() {
     storage.get("legs").set(
       id,
       new LiveObject({
-        from: stopAt(trip.from),
-        to: stopAt(trip.to),
+        from: stopAt(stopFromPoint(trip.origin, trip.from)),
+        to: stopAt(stopFromPoint(trip.destination, trip.to)),
         date: localDate(trip.departDate),
         createdBy: self.id,
         riders: [self.id],

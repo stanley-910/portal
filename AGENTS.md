@@ -16,7 +16,7 @@ We solve how to get between places. We are not a trip guide or an event planner,
 
 ## What exists in the repo today
 
-- `/` is the globe screen: a custom WebGL2 globe (`src/components/trip-globe`) running on mock airports (`airports.ts`). Taking off, flying, landing, pan, Google Earth-style zoom and a landing ticket work. It's single-player, and there's no backend yet.
+- `/` is the globe screen: a custom WebGL2 globe (`src/components/trip-globe`). Idle/in-flight hover previews use local bundled transport hubs; landing resolves exact clicked coordinates to hub pairs and searches provider offers through `/api/transport/search`. See `docs/transport/README.md` for coverage, credentials, and estimated-data limits. Taking off, flying, landing, pan, zoom and the landing ticket work.
 - `/design` is the Paper Atlas design system gallery. The rules are in `DESIGN.md` and the tokens are in `src/design/tokens.json`.
 - `docs/<area>/` holds each area's decisions and research, for example `docs/multiplayer/decisions.md`. See `docs/README.md`.
 

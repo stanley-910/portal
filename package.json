@@ -44,6 +44,7 @@
     "@types/topojson-client": "^3.1.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "playwright": "1.58.2",
     "fflate": "^0.8.3",
     "tailwindcss": "^4",
     "topojson-client": "^3.1.0",

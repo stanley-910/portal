@@ -795,6 +795,72 @@
       "durationMin": 250,
       "tz": "Asia/Shanghai",
       "source": "https://www.travelchinaguide.com/china-trains/xian-beijing.htm"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shanghai-hongqiao",
+      "number": "G902",
+      "departures": [
+        "11:35"
+      ],
+      "durationMin": 488,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "shanghai-hongqiao",
+      "number": "G386",
+      "departures": [
+        "13:58"
+      ],
+      "durationMin": 524,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hong-kong-west-kowloon",
+      "number": "G384",
+      "departures": [
+        "08:47"
+      ],
+      "durationMin": 545,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "hong-kong-west-kowloon",
+      "number": "G901",
+      "departures": [
+        "13:50"
+      ],
+      "durationMin": 486,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+    },
+    {
+      "from": "hong-kong-west-kowloon",
+      "to": "beijing-west",
+      "number": "G382",
+      "departures": [
+        "11:19"
+      ],
+      "durationMin": 491,
+      "tz": "Asia/Hong_Kong",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+    },
+    {
+      "from": "beijing-west",
+      "to": "hong-kong-west-kowloon",
+      "number": "G381",
+      "departures": [
+        "10:00"
+      ],
+      "durationMin": 492,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
     }
   ]
 }

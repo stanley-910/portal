@@ -14,6 +14,22 @@ const MAX_SNAP_DISTANCE_KM = 150;
 const records = airports as AirportRecord[];
 const byCode = new Map(records.map((airport) => [airport.code, airport]));
 
+/** Use airport coordinates when our small snapshot knows the returned airport. */
+export function airportPlace(code: string, fallback: Place): Place {
+  if (fallback.iata?.trim().toUpperCase() === code) return { ...fallback, iata: code };
+  const airport = byCode.get(code);
+  return {
+    ...fallback,
+    name: code,
+    iata: code,
+    ...(airport ? {
+      lat: airport.coordinates.lat,
+      lng: airport.coordinates.lon,
+      country: airport.country_code,
+    } : {}),
+  };
+}
+
 function distanceKm(a: Place, b: { lat: number; lon: number }): number {
   const lat1 = (a.lat * Math.PI) / 180;
   const lat2 = (b.lat * Math.PI) / 180;
@@ -25,9 +41,12 @@ function distanceKm(a: Place, b: { lat: number; lon: number }): number {
 
 export function toIata(place: Place): string | null {
   if (place.iata) {
-    const airport = byCode.get(place.iata.toUpperCase());
-    return airport?.city_code ?? place.iata.toUpperCase();
+    const code = place.iata.trim().toUpperCase();
+    // An explicit airport must not silently broaden to its metropolitan area.
+    return /^[A-Z]{3}$/.test(code) ? code : null;
   }
+  if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng) ||
+      Math.abs(place.lat) > 90 || Math.abs(place.lng) > 180) return null;
   let closest: AirportRecord | undefined;
   let closestDistance = Infinity;
   for (const airport of records) {

@@ -1,18 +1,23 @@
+import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { parseSearchQuery } from "@/lib/transport/query";
-import { fanOut } from "@/lib/transport/search";
+import { searchTransport } from "@/lib/transport/search";
 
-// ADR-C01: provider keys stay server-side.
+// Provider keys stay server-side; provider deadlines leave headroom below this cap.
 export const runtime = "nodejs";
-// Providers run in parallel under PROVIDER_TIMEOUT_MS (8 s); headroom under Vercel's legacy 60 s cap.
 export const maxDuration = 15;
-
 const headers = { "Cache-Control": "no-store" };
 
 export async function GET(request: Request) {
-  const parsed = parseSearchQuery(new URL(request.url).searchParams);
+  const params = new URL(request.url).searchParams;
+  const resolution = params.get("resolve");
+  if (resolution !== null && resolution !== "hubs") {
+    return Response.json({ code: "BAD_QUERY", fields: ["resolve"] }, { status: 400, headers });
+  }
+  const parsed = parseSearchQuery(params);
   if (!parsed.success) {
     return Response.json({ code: "BAD_QUERY", fields: parsed.fields }, { status: 400, headers });
   }
-  const result = await fanOut(parsed.data, { signal: request.signal });
+  // Keep internal/provider failures out of the input-error classification.
+  const result = await (resolution === "hubs" ? searchFromCoordinates : searchTransport)(parsed.data, request.signal);
   return Response.json(result, { headers });
 }

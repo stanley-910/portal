@@ -6,8 +6,8 @@ Each area of the app has its own folder. Every folder has a `decisions.md`, plus
 |---|---|
 | [foundation](foundation/decisions.md) | The stack, design tokens, fonts, and syncing with the design system |
 | [globe](globe/decisions.md) | Globe interaction: zoom, pan, and the plane |
+| [transport](transport/decisions.md) | Click-to-hub resolution, bundled coverage, provider ranking. API and verification in [README.md](transport/README.md), merged-code review in [ranking-review.md](transport/ranking-review.md), provider API index in [api/README.md](transport/api/README.md) |
 | [entry](entry/decisions.md) | Entry requirements per passport: data sources, curation and providers. Spec in [spec.md](entry/spec.md), sources in [research.md](entry/research.md) |
-| [transport](transport/decisions.md) | Transport search core: the provider contract, registry, search route and fan-out. Provider API docs index in [api/README.md](transport/api/README.md) |
 | [flights](flights/decisions.md) | Flight fares (Travelpayouts) |
 | [trains](trains/decisions.md) | Train providers: China HSR, Taiwan THSR, Korail, Thai SRT, KTMB |
 | [buses](buses/decisions.md) | Bus providers: GTFS feeds, BusOnlineTicket, Taiwan and Korea coach seeds |

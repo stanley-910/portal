@@ -6,7 +6,10 @@ import { memberColor, type MemberInfo } from "@/lib/liveblocks/types";
 
 const MAX_SHOWN = 5;
 
-/** Who is in the trip: you first, then everyone else. Re-renders only when someone joins, leaves or renames. */
+/**
+ * Who is in the trip: you first, then everyone else. Re-renders only when someone joins, leaves or renames.
+ * Avatars are styled by `.pn-avatar` in nav-bar.css, sized with the navbar's other controls.
+ */
 export function AvatarStack() {
   const me = useSelf((self) => self.info);
   const others = useOthers((list) => list.map((o) => ({ key: o.connectionId, info: o.info })), shallowList);
@@ -19,7 +22,7 @@ export function AvatarStack() {
         <Avatar key={o.key} info={o.info} label={o.info.name} />
       ))}
       {extra ? (
-        <li className="type-tag -ml-(--space-2) grid size-9 place-items-center rounded-round border-(length:--line-hair) border-ink bg-paper-raised">
+        <li className="pn-avatar -ml-(--space-2) border-(length:--line-control) border-control-border">
           +{extra}
         </li>
       ) : null}
@@ -32,7 +35,7 @@ function Avatar({ info, label }: { info: MemberInfo; label: string }) {
     <li
       title={label}
       aria-label={label}
-      className="type-tag -ml-(--space-2) grid size-9 place-items-center rounded-round border-2 bg-paper-raised shadow-tag first:ml-0"
+      className="pn-avatar -ml-(--space-2) border-2 first:ml-0"
       style={{ borderColor: memberColor(info.color) }}
     >
       {initials(info.name)}

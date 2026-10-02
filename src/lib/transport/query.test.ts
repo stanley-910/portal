@@ -1,78 +1,38 @@
 import { describe, expect, it } from "vitest";
+
 import { parseSearchQuery } from "./query";
 
-const base = {
-  fromName: "Hong Kong",
-  fromLat: "22.31",
-  fromLng: "113.92",
-  fromIata: "hkg",
-  fromCountry: "hk",
-  toName: "Taipei",
-  toLat: "25.08",
-  toLng: "121.23",
-  date: "2026-10-20",
-};
+const from = { name: "Hong Kong", lat: 22.3, lng: 114.2 };
+const to = { name: "Shanghai", lat: 31.2, lng: 121.5 };
+function url(overrides: Record<string, string> = {}) {
+  return `http://localhost/api/transport/search?${new URLSearchParams({
+    from: JSON.stringify(from), to: JSON.stringify(to), date: "2026-10-03", ...overrides,
+  })}`;
+}
 
-const parse = (params: Record<string, string>) => parseSearchQuery(new URLSearchParams(params));
-
-describe("parseSearchQuery", () => {
-  it("parses a full query with defaults", () => {
-    const r = parse(base);
-    expect(r.success).toBe(true);
-    if (!r.success) return;
-    expect(r.data).toEqual({
-      from: { name: "Hong Kong", lat: 22.31, lng: 113.92, iata: "HKG", country: "HK" },
-      to: { name: "Taipei", lat: 25.08, lng: 121.23 },
-      date: "2026-10-20",
-      modes: [],
-      passengers: 1,
-      currency: "USD",
-    });
+describe("public transport query", () => {
+  it("defaults all modes, one passenger and USD", () => {
+    expect(parseSearchQuery(url())).toEqual({ from, to, date: "2026-10-03", modes: [], passengers: 1, currency: "USD" });
   });
 
-  it("parses modes, passengers and currency", () => {
-    const r = parse({ ...base, modes: "train,bus", passengers: "2", currency: "twd" });
-    expect(r.success && r.data).toMatchObject({ modes: ["train", "bus"], passengers: 2, currency: "TWD" });
-  });
-
-  it("treats empty optional params as absent", () => {
-    const r = parse({ ...base, fromIata: "", modes: "", currency: "" });
-    expect(r.success && r.data).toMatchObject({ modes: [], currency: "USD" });
-    expect(r.success && r.data.from).not.toHaveProperty("iata");
-  });
-
-  it.each([
-    ["missing date", { date: "" }, "date"],
-    ["impossible date", { date: "2026-02-30" }, "date"],
-    ["latitude out of range", { fromLat: "91" }, "fromLat"],
-    ["non-numeric longitude", { toLng: "east" }, "toLng"],
-    ["unknown mode", { modes: "train,rocket" }, "modes"],
-    ["zero passengers", { passengers: "0" }, "passengers"],
-    ["bad currency", { currency: "dollars" }, "currency"],
-    ["bad iata", { fromIata: "HK" }, "fromIata"],
-  ])("rejects %s", (_label, patch, field) => {
-    const r = parse({ ...base, ...patch });
-    expect(r.success).toBe(false);
-    if (r.success) return;
-    expect(r.fields).toContain(field);
-  });
-
-  it("accepts JSON from/to Places (globe UI format)", () => {
-    const r = parseSearchQuery(new URLSearchParams({
-      from: JSON.stringify({ name: "Hong Kong", lat: 22.3, lng: 114.2, iata: "hkg" }),
-      to: JSON.stringify({ name: "Bangkok", lat: 13.7, lng: 100.5 }),
-      date: "2026-10-10",
-      modes: "flight,train",
+  it("normalizes identifiers without stripping provider place IDs", () => {
+    const result = parseSearchQuery(url({
+      from: JSON.stringify({ ...from, country: "hk", iata: "hkg", providerIds: { "12go": "hong-kong" } }),
+      currency: "hkd", modes: "flight,train,flight",
     }));
-    expect(r.success).toBe(true);
-    if (!r.success) return;
-    expect(r.data.from).toEqual({ name: "Hong Kong", lat: 22.3, lng: 114.2, iata: "HKG" });
-    expect(r.data.to).toEqual({ name: "Bangkok", lat: 13.7, lng: 100.5 });
-    expect(r.data.modes).toEqual(["flight", "train"]);
+    expect(result.from).toMatchObject({ country: "HK", iata: "HKG", providerIds: { "12go": "hong-kong" } });
+    expect(result.currency).toBe("HKD");
+    expect(result.modes).toEqual(["flight", "train"]);
   });
 
-  it("rejects malformed JSON places", () => {
-    const r = parseSearchQuery(new URLSearchParams({ from: "{bad", to: "{}", date: "2026-10-10" }));
-    expect(r.success).toBe(false);
+  it.each(["2026-02-30", "2026-02-29", "2026-13-01", "26-10-03"])("rejects impossible date %s", (date) => {
+    expect(() => parseSearchQuery(url({ date }))).toThrow();
+  });
+  it("accepts leap day", () => expect(parseSearchQuery(url({ date: "2028-02-29" })).date).toBe("2028-02-29"));
+  it.each([null, "", "22.3", 91])("rejects invalid latitude %s rather than coercing", (lat) => {
+    expect(() => parseSearchQuery(url({ from: JSON.stringify({ ...from, lat }) }))).toThrow();
+  });
+  it.each<Record<string, string>>([{ from: "{" }, { modes: "car" }, { passengers: "0" }, { passengers: "1.5" }])("rejects invalid query %j", (input) => {
+    expect(() => parseSearchQuery(url(input))).toThrow();
   });
 });

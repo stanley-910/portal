@@ -1,4 +1,5 @@
-// Hub code → ISO-3 country for the mock hubs in src/components/trip-globe/airports.ts.
+// Curated hub code → ISO-3 country for entry rules. This is not the complete
+// transport hub catalog; unlisted codes must keep the entry lookup's unknown fallback.
 // Temporary: POR-6 replaces the mock hubs with a static dataset that should carry the country itself.
 export const HUB_COUNTRY: Record<string, string> = {
   HKG: "HKG", PEK: "CHN", PKX: "CHN", PVG: "CHN", SHA: "CHN", CAN: "CHN", SZX: "CHN", CTU: "CHN", TFU: "CHN",

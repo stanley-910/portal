@@ -20,12 +20,14 @@ export type MemberInfo = {
   color: number;
 };
 
-/** A place legs start or end at (M8). Legs landing at the same hub share one stop, which is how a meet-up shows. */
+/** An exact clicked place legs start or end at (M8); preview hubs never move the point. */
 export type Stop = {
   lat: number;
   lng: number;
-  /** Hub code, e.g. "PVG". Landing at a hub that already has a stop snaps onto it. */
-  hub: string;
+  /** Preview hub's catalog ID, not an IATA code; null outside bundled coverage. */
+  hub: string | null;
+  /** Display code only, not provider identity. Optional for rooms created before hub previews. */
+  code?: string | null;
   name: string;
 };
 
@@ -37,7 +39,7 @@ export type StoredOffer = {
   id: string;
   provider: string;
   mode: "flight" | "train" | "bus" | "ferry";
-  kind: "live" | "cached" | "timetable";
+  kind: "live" | "cached" | "timetable" | "estimated";
   price: { amount: number; currency: string } | null;
   carrier: string | null;
   depart: string;

@@ -41,7 +41,7 @@ function LegCard({ leg }: { leg: PlanLeg }) {
     <article className="flex flex-col gap-(--space-2) border-b-(length:--line-hair) border-ink pb-(--space-3) last:border-b-0 last:pb-0">
       <header className="flex items-center justify-between gap-(--space-2)">
         <h3 className="type-title">
-          {leg.from.hub} → {leg.to.hub}
+          {leg.from.code ?? leg.from.name} → {leg.to.code ?? leg.to.name}
         </h3>
         <button type="button" className="type-tag text-ink-muted" onClick={() => removeLeg(leg.id)}>
           Remove
@@ -106,7 +106,7 @@ function LegCard({ leg }: { leg: PlanLeg }) {
                   {o.kind !== "live" ? " · ESTIMATED" : ""}
                 </span>
                 <span className="type-body block">
-                  {time(o.depart)} · {hours(o.durationMin)}
+                  {o.kind === "estimated" ? "Any time" : time(o.depart)} · {hours(o.durationMin)}
                   {o.stops ? ` · ${o.stops} stop${o.stops > 1 ? "s" : ""}` : ""} · {money(o)}
                 </span>
               </span>

@@ -6,9 +6,10 @@ import { redirect } from "next/navigation";
 
 import { ensureGuest, MAX_NAME, readGuest, setGuestName } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";
-import { TRIP_ID, tripRoomId, type LegSearch, type Stop } from "@/lib/liveblocks/types";
-import { fanOut } from "@/lib/transport/search";
+import { TRIP_ID, tripRoomId, type LegSearch } from "@/lib/liveblocks/types";
+import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { MAX_OFFERS, toStoredOffer } from "@/lib/trip/offers";
+import { stopToPlace } from "@/lib/trip/stops";
 
 /** Creates a trip room owned by the current guest and opens it. Its URL is the invite (M7). */
 export async function createTrip() {
@@ -49,17 +50,16 @@ export async function searchLeg(tripId: string, legId: string, searchId: string)
   const to = leg && plan.stops?.[leg.to];
   if (!leg || !from || !to || leg.search.id !== searchId) return;
 
-  const place = (s: Stop) => ({ name: s.name, lat: s.lat, lng: s.lng, iata: s.hub });
   let search: LegSearch;
   try {
-    const result = await fanOut({
-      from: place(from),
-      to: place(to),
+    const result = await searchFromCoordinates({
+      from: stopToPlace(from),
+      to: stopToPlace(to),
       date: leg.date,
       modes: [],
       passengers: 1,
       currency: "USD",
-    });
+    }, new AbortController().signal);
     search = { id: searchId, status: "done", offers: result.offers.slice(0, MAX_OFFERS).map(toStoredOffer) };
   } catch {
     search = { id: searchId, status: "failed", offers: [] };

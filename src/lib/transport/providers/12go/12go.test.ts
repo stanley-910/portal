@@ -68,6 +68,28 @@ describe("12Go ferry adapter", () => {
     });
   });
 
+  it("does not relabel ferries as buses when both modes are requested", async () => {
+    const offers = await twelveGo.search({ ...query, modes: ["flight", "ferry", "bus"] }, new AbortController().signal);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((offer) => offer.mode === "ferry" && offer.segments[0].mode === "ferry")).toBe(true);
+    expect(offers.every((offer) => offer.id.startsWith("12go:ferry:") && offer.attribution)).toBe(true);
+  });
+
+  it("searches buses too when an empty mode list means all modes", async () => {
+    // Add an isolated fixture to exercise the all-modes contract independently
+    // of the production seed's evolving route coverage.
+    const route = { ...routesFor("ferry")[0] };
+    routesFor("bus").push(route);
+    try {
+      const allModes = { ...query, from: route.from, to: route.to, modes: [] };
+      expect(twelveGo.covers(allModes)).toBe(true);
+      const offers = await twelveGo.search(allModes, new AbortController().signal);
+      expect(offers.some((offer) => offer.mode === "bus" && offer.id.startsWith("12go:bus:"))).toBe(true);
+    } finally {
+      routesFor("bus").pop();
+    }
+  });
+
   it("does not cover a query outside the snap radius", () => {
     expect(twelveGo.covers({
       ...query,
@@ -135,7 +157,9 @@ describe("12Go bus seed", () => {
     const ferryOffers = await twelveGo.search(query, new AbortController().signal);
     expect(ferryOffers.every((offer) => offer.mode === "ferry")).toBe(true);
     const defaultModes = await twelveGo.search({ ...busQuery(hanoi, sapa), modes: [] }, new AbortController().signal);
-    expect(defaultModes).toHaveLength(0);
+    // The shared query contract defines an empty mode list as all modes.
+    expect(defaultModes.length).toBeGreaterThan(0);
+    expect(defaultModes.every((offer) => offer.mode === "bus")).toBe(true);
     expect(twelveGo.covers({ ...busQuery(hanoi, sapa), modes: ["ferry"] })).toBe(false);
   });
 

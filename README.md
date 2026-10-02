@@ -30,6 +30,7 @@ Open http://localhost:3000 for the globe and http://localhost:3000/design for th
   - `/t/<id>` is a trip room, and its URL is the invite.
   - `/design` is the token and component gallery.
 - `src/components/trip-globe` is `<TripGlobe>`, a WebGL2 globe. `engine.ts` contains the camera, picking, gestures and drawing.
+- `src/lib/transport` resolves exact globe clicks to bundled Asia-wide hubs, searches a bounded set of endpoint pairs, and ranks provider offers. See [transport docs](docs/transport/README.md) for coverage, API setup, and honest estimated fallbacks.
 - `src/components/paper-atlas` holds the design system components: Ticket, Tag, Sticker, Route and RoundButton.
 - `src/components/ui` holds the shadcn/ui components, themed with our tokens.
 - `src/design/tokens.json` holds the design tokens. Edit this file, then run `pnpm tokens`.

@@ -33,6 +33,14 @@ describe("china-rail seed", () => {
 });
 
 describe("china-rail provider", () => {
+  it("Hong Kong West Kowloon ↔ Shanghai Hongqiao both ways, from MTR's long-haul timetable", async () => {
+    const out = await provider.search(q(HONG_KONG, SHANGHAI), signal());
+    expect(out.map((o) => o.segments[0].number)).toEqual(["G902", "G386"]);
+    expect(out[0].segments[0]).toMatchObject({ depart: "2026-10-20T11:35:00+08:00", durationMin: 488 });
+    const back = await provider.search(q(SHANGHAI, HONG_KONG), signal());
+    expect(back.map((o) => o.segments[0].number)).toEqual(["G384", "G901"]);
+  });
+
   it("Shanghai → Beijing returns seeded G trains as timetable offers at +08:00", async () => {
     const offers = await provider.search(q(SHANGHAI, BEIJING), signal());
     expect(offers.length).toBeGreaterThan(0);

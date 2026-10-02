@@ -194,7 +194,6 @@ void main() {
 
     col = mix(col, g, (1.0 - smoothstep(1.0 - fw, 1.0, dmin)) * front);
   }
-  col = mix(col, ink, lineAA(abs(dmin - 1.0), 0.7 * fw, fw) * front);
 
   col += (hash(floor(px)) - 0.5) * 0.045 + (hash(floor(px / (3.0 * uDpr))) - 0.5) * 0.02;
   outColor = vec4(col, 1.0);

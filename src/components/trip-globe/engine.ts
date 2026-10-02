@@ -1,6 +1,7 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
-import { nearestAirport, type Airport } from "./airports";
+import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import type { Hub } from "@/lib/transport/hubs/types";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { buildPlane } from "./plane-model";
@@ -19,12 +20,13 @@ export interface LatLng {
 }
 
 export interface LandedTrip {
-  from: Airport;
-  to: Airport;
-  /** Where the trip was started and landed, before snapping to airports. */
+  /** Nearest local preview hub, or null outside coverage. Search still resolves pairs from the clicks. */
+  from: Hub | null;
+  to: Hub | null;
+  /** Exact picked surface points before snapping. These are the transport-search inputs. */
   origin: LatLng;
   destination: LatLng;
-  /** Great-circle distance between the two airports. */
+  /** Great-circle distance between the actual clicked points, not a snapped route. */
   distanceKm: number;
   /** Earliest departure: tomorrow, local time. */
   departDate: Date;
@@ -47,7 +49,9 @@ export interface RemoteFlight extends FlightState {
 }
 
 export interface GlobeEvents {
-  onModeChange?: (mode: GlobeMode, from: Airport | null) => void;
+  onModeChange?: (mode: GlobeMode, from: Hub | null) => void;
+  /** Only when the local hover hub changes. Never triggers a provider search. */
+  onPreviewChange?: (hub: Hub | null) => void;
   onLand?: (trip: LandedTrip) => void;
   onCancel?: () => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
@@ -88,10 +92,6 @@ interface Plane {
   alt: number;
   bank: number;
   pitch: number;
-}
-interface Snap {
-  airport: Airport;
-  v: Vec3;
 }
 interface NameSpot {
   i: number;
@@ -244,17 +244,18 @@ export class GlobeEngine {
   private mode: GlobeMode = "idle";
   private origin: Vec3 | null = null;
   private dest: Vec3 | null = null;
-  private oAir: Snap | null = null;
-  private dAir: Snap | null = null;
+  private originHub: Hub | null = null;
+  private destinationHub: Hub | null = null;
+  private hoverHub: Hub | null = null;
+  private hoverResolver = new HoverHubResolver();
   /** How lit up the landed country's outline is (0–1), and where it was landed, kept while it fades out. */
   private hi = 0;
   private hiP: Vec3 = [0, 1, 0];
-  private curAir: Snap | null = null;
   private pl: Plane | null = null;
   // other members' flights: where presence says they are, and where we draw them (eased toward that)
   private remotes = new Map<string, {
     o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane;
-    oAir: Snap; airAt: Vec3 | null; dAir: Snap | null;
+    originHub: Hub | null; destinationHub: Hub | null;
   }>();
 
   // input and time
@@ -468,6 +469,7 @@ export class GlobeEngine {
 
   pointerLeave() {
     this.hasPointer = false;
+    this.updatePreview(null, this.t * 1000);
   }
 
   // ---------- zoom ----------
@@ -592,6 +594,8 @@ export class GlobeEngine {
     this.dest = null;
     this.pl = null;
     this.turn = null;
+    this.originHub = this.destinationHub = null;
+    this.updatePreview(null, this.t * 1000);
     this.lastInteract = this.t;
     this.events.onModeChange?.("idle", null);
     if (wasActive) this.events.onCancel?.();
@@ -602,28 +606,29 @@ export class GlobeEngine {
     this.mode = "flying";
     this.origin = o;
     this.dest = null;
-    this.dAir = null;
-    this.oAir = nearestAirport(o);
-    this.curAir = this.oAir;
+    this.destinationHub = null;
+    this.originHub = nearestPreviewHub(toLatLng(o));
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0 };
     this.tTake = this.t;
     this.vlon = 0;
     this.vlat = 0;
     this.turn = null;
-    this.events.onModeChange?.("flying", this.oAir.airport);
+    this.events.onModeChange?.("flying", this.originHub);
   }
 
   private land(v: Vec3) {
     const pl = this.pl!;
     const origin = this.origin!;
-    const oAir = this.oAir!;
     this.mode = "landed";
     this.tLand = this.t;
     this.dest = v;
     pl.n = v;
     pl.f = tangent(pl.f, v);
-    this.dAir = nearestAirport(v);
-    this.hiP = this.dAir.v;
+    this.destinationHub = nearestPreviewHub(toLatLng(v));
+    this.updatePreview(null, this.t * 1000);
+    // light up the destination hub's country, or where the plane landed when no hub resolves
+    const hub = this.destinationHub;
+    this.hiP = hub ? vecOf(hub.lat * D2R, hub.lng * D2R) : v;
     // turn the globe to frame the whole route
     // and back out if the whole route doesn't fit, rising mid-way like a fly-to
     const mid = llOf(slerp(origin, v, 0.5));
@@ -638,13 +643,13 @@ export class GlobeEngine {
     };
     const depart = new Date();
     depart.setDate(depart.getDate() + 1);
-    this.events.onModeChange?.("landed", oAir.airport);
+    this.events.onModeChange?.("landed", this.originHub);
     this.events.onLand?.({
-      from: oAir.airport,
-      to: this.dAir.airport,
+      from: this.originHub,
+      to: this.destinationHub,
       origin: toLatLng(origin),
       destination: toLatLng(v),
-      distanceKm: Math.round(EARTH_RADIUS_KM * angle(oAir.v, this.dAir.v)),
+      distanceKm: Math.round(EARTH_RADIUS_KM * angle(origin, v)),
       departDate: depart,
     });
   }
@@ -868,12 +873,17 @@ export class GlobeEngine {
       const ft = tangent(sub(ahead, target), target);
       const o = vecOf(f.origin.lat * D2R, f.origin.lng * D2R);
       const r = this.remotes.get(f.id);
-      if (r) {
-        if (o.some((v, i) => v !== r.o[i])) r.oAir = nearestAirport(o);
-        Object.assign(r, { o, target, ft, landed: f.landed });
-      } else this.remotes.set(f.id, {
-        o, target, ft, landed: f.landed, pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 },
-        oAir: nearestAirport(o), airAt: null, dAir: null,
+      // Resolve fixed endpoint labels only when presence changes them, never in the draw loop.
+      // Null is a valid cached result for points outside local hub coverage.
+      const originHub = r && o.every((v, i) => v === r.o[i])
+        ? r.originHub : nearestPreviewHub(f.origin);
+      const destinationHub = !f.landed ? null
+        : r?.landed && target.every((v, i) => v === r.target[i])
+          ? r.destinationHub : nearestPreviewHub(f.at);
+      if (r) Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub });
+      else this.remotes.set(f.id, {
+        o, target, ft, landed: f.landed, originHub, destinationHub,
+        pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 },
       });
     }
     for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
@@ -975,7 +985,6 @@ export class GlobeEngine {
         const turn = Math.atan2(dot(cross(fPrev, pl.f), hit), dot(fPrev, pl.f)) / Math.max(dt, 1e-3);
         pl.bank += (clamp(-turn * 0.08, -0.6, 0.6) - pl.bank) * k(6);
       }
-      this.curAir = nearestAirport(pl.n);
     } else if (this.mode === "landed") {
       // touchdown: the plane settles onto its shadow
       pl.alt += (0 - pl.alt) * k(8);
@@ -1013,7 +1022,10 @@ export class GlobeEngine {
     const nameInk = this.nameInk;
     this.sim(dt, t);
     this.cam = this.camera();
-    this.hover = this.hasPointer && !this.down?.drag ? this.pick(this.mx, this.my) : null;
+    this.hover = this.hasPointer && !this.down?.drag && !this.pinch ? this.pick(this.mx, this.my) : null;
+    // Use the surface raycast after the camera moves, not the elevated plane's
+    // normal or a clamped horizon point. Pan/zoom under a still cursor also updates.
+    this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
     const animated = !this.reduceMotion && (hover || this.mode === "landed" ||
@@ -1035,6 +1047,14 @@ export class GlobeEngine {
     // Remote DOM cursors ease independently of the canvases, so keep their frame callbacks running.
     this.events.onFrame?.();
   };
+
+  private updatePreview(point: Vec3 | null, nowMs: number) {
+    const next = this.hoverResolver.resolve(point ? toLatLng(point) : null, nowMs);
+    if (next?.id === this.hoverHub?.id) return;
+    this.hoverHub = next;
+    this.hudDirty = true;
+    this.events.onPreviewChange?.(next);
+  }
 
   private planeBasis(pl: Plane, S: number) {
     let up = pl.n;
@@ -1222,10 +1242,15 @@ export class GlobeEngine {
     const P = this.P;
     ctx.save();
     ctx.font = this.tagFont;
+    const maxTextWidth = Math.max(1, this.W - 30);
+    if (ctx.measureText(text).width > maxTextWidth) {
+      while (text.length > 1 && ctx.measureText(`${text}…`).width > maxTextWidth) text = text.slice(0, -1);
+      text += "…";
+    }
     const w = Math.ceil(ctx.measureText(text).width) + 14;
     const h = 21;
-    const lx = x - w / 2;
-    const ly = y - h / 2;
+    const lx = clamp(x - w / 2, 8, Math.max(8, this.W - w - 8));
+    const ly = clamp(y - h / 2, 8, Math.max(8, this.H - h - 8));
     ctx.beginPath();
     ctx.roundRect(lx + 2, ly + 2, w, h, 4);
     ctx.fillStyle = P.tagShadow;
@@ -1550,22 +1575,18 @@ export class GlobeEngine {
 
     if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
 
-    // other members' trips, under this viewer's own: their route, start ring and airport codes
+    if (this.mode === "idle" && this.hoverHub) this.tag(ctx, this.mx, this.my + 30, hubPreviewLabel(this.hoverHub));
+
+    // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       this.route(ctx, r.o, r.pl, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
         this.startMark(ctx, op.x, op.y);
-        this.tag(ctx, op.x, op.y + 20, r.oAir.airport.code);
+        if (r.originHub) this.tag(ctx, op.x, op.y - 30, hubPreviewLabel(r.originHub));
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
-      if (rp && rp.vis) {
-        if (!r.airAt || r.pl.n.some((v, i) => v !== r.airAt![i])) {
-          r.airAt = r.pl.n;
-          r.dAir = nearestAirport(r.pl.n);
-        }
-        this.tag(ctx, rp.x + 24, rp.y + 20, r.dAir!.airport.code);
-      }
+      if (rp && rp.vis && r.destinationHub) this.tag(ctx, rp.x + 24, rp.y + 20, hubPreviewLabel(r.destinationHub));
     }
 
     const pl = this.pl;
@@ -1586,17 +1607,19 @@ export class GlobeEngine {
     };
     const op = this.proj(origin);
     ripple(op, this.tTake);
-    if (op && op.vis && this.oAir) {
+    if (op && op.vis) {
       this.startMark(ctx, op.x, op.y);
-      this.tag(ctx, op.x, op.y + 20, this.oAir.airport.code);
+      // Keep the origin label above its pin; the moving/landing preview is below
+      // the plane, so short hops do not immediately stack the longer hub names.
+      if (this.originHub) this.tag(ctx, op.x, op.y - 30, hubPreviewLabel(this.originHub));
     }
 
     const pp = this.proj(mul(pl.n, 1 + pl.alt));
     if (this.mode === "flying") {
-      if (pp && pp.vis && this.curAir) this.tag(ctx, pp.x + 24, pp.y + 20, this.curAir.airport.code);
+      if (pp && pp.vis && this.hoverHub) this.tag(ctx, pp.x + 24, pp.y + 20, hubPreviewLabel(this.hoverHub));
     } else if (this.mode === "landed") {
       ripple(pp, this.tLand);
-      if (pp && pp.vis && this.dAir) this.tag(ctx, pp.x + 24, pp.y + 20, this.dAir.airport.code);
+      if (pp && pp.vis && this.destinationHub) this.tag(ctx, pp.x + 24, pp.y + 20, hubPreviewLabel(this.destinationHub));
     }
   }
 }

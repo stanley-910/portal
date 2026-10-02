@@ -59,9 +59,19 @@ All the code is in `src/components/trip-globe/engine.ts` unless noted.
 - If its screen size stayed fixed, it would feel pasted on.
 - A slight growth keeps it reading as an object on the map.
 
-## Known issues
+## G5. Preview nearby bundled transport hubs, without moving the clicked points
 
-- Snapping to an airport always pulls up to 220 km, whatever the zoom. Zoomed in, this can snap a short hop onto the same airport (HKG → HKG, 0 km). It should scale with zoom; POR-16 (hub picker) owns it.
+**Status:** built in `feat/click-to-transport-hubs`, 2026-10-03
+
+Idle hover and the flying plane now label the closest nearby airport, railway
+station or ferry terminal from the bundled catalog. This removes the old mock
+airport weight/pull behavior. Uncovered locations have no hub label; clicked
+coordinates and click-to-click distance stay exact even when both previews select
+the same hub. Hover is browser-local, throttled and updated after camera movement;
+it does not call providers or determine country boundaries. The landing search
+still performs connection-aware pair selection. See [TR4](../transport/decisions.md#tr4-use-the-bundled-catalog-for-local-hover-and-in-flight-previews).
+
+## Known issues
 - Pan glide and pinch haven't been tuned on real touch hardware yet.
 
 ## G5. A generated, stippled sky in world space
