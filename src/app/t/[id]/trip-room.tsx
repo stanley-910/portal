@@ -20,7 +20,6 @@ export function TripRoom({ tripId }: { tripId: string }) {
       authEndpoint="/api/liveblocks-auth"
       throttle={32}
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
-      badgeLocation="bottom-right"
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }}>
         <TripScreen />

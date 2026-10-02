@@ -102,3 +102,8 @@
     outline-offset: 3px;
   }
 }
+
+/* Demo build: Liveblocks injects its "Powered by" badge with inline styles, so only !important removes it. */
+#liveblocks-badge {
+  display: none !important;
+}
