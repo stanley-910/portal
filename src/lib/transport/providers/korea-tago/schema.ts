@@ -28,6 +28,38 @@ const trainRow = z.object({
   source: url,
 });
 
+const busTerminal = z.object({
+  name: z.string(),
+  nameLocal: z.string(), // KoBus terminal name
+  kobusCode: z.string().regex(/^\d{3}$/), // KoBus deprCd / arvlCd
+  lat: z.number(),
+  lng: z.number(),
+  matchKm: z.number().positive().optional(), // default bus.ts MATCH_KM; Busan (Nopo) sits ~19 km from the centre
+  source: url,
+});
+
+/** One KoBus express (고속) grade on one terminal pair (ADR-C05 / ADR-B07), cited. */
+const busRow = z.object({
+  from: z.string(), // terminal key
+  to: z.string(),
+  carrier: z.string(), // grade, romanised: "Express Premium", "Express Deluxe (late night)", …
+  gradeLocal: z.string(), // grade as KoBus prints it: "프리미엄", "심야우등"
+  departures: z.array(hhmm).min(1), // local at origin; KoBus "24:00" stored as 00:00 of the next weekday
+  days: z.array(z.number().int().min(0).max(6)).min(1).optional(), // departure weekday, 0 = Sun; omit = daily
+  durationMin: z.number().int().positive(), // KoBus 소요예상 per pair
+  fareKrw: z.number().int().positive(), // adult (어른)
+  tz: z.literal("Asia/Seoul"),
+  source: url,
+});
+
+export const busTerminalsSchema = z.record(z.string(), busTerminal);
+
+export const busSeedSchema = z.object({
+  checked: ymd,
+  sampleWeek: z.tuple([ymd, ymd]),
+  buses: z.array(busRow),
+});
+
 export const trainStationsSchema = z.record(z.string(), trainStation);
 
 export const trainSeedSchema = z.object({
@@ -39,3 +71,6 @@ export const trainSeedSchema = z.object({
 export type TrainStation = z.infer<typeof trainStation>;
 export type TrainRow = z.infer<typeof trainRow>;
 export type TrainSeed = z.infer<typeof trainSeedSchema> & { stations: Record<string, TrainStation> };
+export type BusTerminal = z.infer<typeof busTerminal>;
+export type BusRow = z.infer<typeof busRow>;
+export type BusSeed = z.infer<typeof busSeedSchema> & { terminals: Record<string, BusTerminal> };
