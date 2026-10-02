@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { MAX_NAME, readGuest } from "@/lib/guest";
-import { isNotFound, liveblocks } from "@/lib/liveblocks/server";
+import { joinTrip } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 
 import { saveName } from "../actions";
@@ -10,15 +10,10 @@ import { TripRoom } from "./trip-room";
 export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   const { id } = await params;
   if (!TRIP_ID.test(id)) notFound();
-  try {
-    await liveblocks().getRoom(tripRoomId(id));
-  } catch (e) {
-    if (isNotFound(e)) notFound();
-    throw e;
-  }
-
   const guest = await readGuest();
   if (!guest?.name) return <NamePrompt />;
+  // join now, so the grant has reached Liveblocks before the browser connects
+  if ((await joinTrip(tripRoomId(id), guest.id)) === null) notFound();
   return <TripRoom tripId={id} />;
 }
 
