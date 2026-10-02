@@ -1,7 +1,8 @@
 # Trains — State
 
 Last updated: 2026-10-02
-Last session ended: **Ledger written (meta session).** No code.
+Last session ended: **T04 done (2026-10-02).** `china-rail` adapter: 64 seeded G trains,
+5 pairs both ways, Trip.com link-out (untagged). Next by § 4: T01 (needs TDX key for live Verification).
 
 ## Execution protocol (follow exactly)
 
@@ -11,7 +12,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 
 ## Current task
 
-**T01 — TDX OAuth client + THSR adapter** (Ahmet, opus). Waits on C01 + TDX key.
+**T01 — TDX OAuth client + THSR adapter** (Ahmet, opus). C01 done; live Verification waits on TDX key.
 
 ## Environment
 
@@ -33,7 +34,7 @@ DATA_GO_KR_SERVICE_KEY=...                     # data.go.kr, DECODING key
 | T01 | TDX OAuth client + THSR adapter | | todo | C01 |
 | T02 | TDX TRA adapter | | todo | T01 |
 | T03 | Korea TAGO client + KTX adapter | | todo | C01 |
-| T04 | China rail seed + affiliate link-out | | todo | C01 |
+| T04 | China rail seed + affiliate link-out | | done | C01 |
 | T05 | GTFS rail pairs (KTMB, SRT) | | todo | B03 |
 
 ## Critical path
