@@ -1,0 +1,19 @@
+/* Trip plan: the shared legs, built from the ticket search popover's pieces (ticket-search.css). */
+
+.tp { max-height: calc(100dvh - 12rem); overflow-y: auto; }
+.tp-leg { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+
+/* Riders sit in a box the size of the date field beside them */
+.tp-riders { cursor: default; }
+.tp-rider-list { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ts .tp-rider { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 2px solid; border-radius: var(--radius-round); background: var(--paper-raised); font-size: 11px; line-height: 1; font-weight: 600; }
+.tp-rider[aria-pressed="false"] { opacity: 0.4; }
+
+/* An option: the row picks it for everyone, the button beside it votes */
+.tp-offer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px; }
+.ts .tp-vote { display: inline-flex; align-items: center; gap: 3px; height: 26px; margin-top: 6px; padding: 0 7px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-tag); background: transparent; font-size: 12px; line-height: 16px; font-weight: 600; }
+.tp-vote:hover { background: var(--control-hover); }
+.tp-vote svg { fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
+.ts .tp-vote[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+
+.ts .tp-remove { color: var(--ink-muted); }
