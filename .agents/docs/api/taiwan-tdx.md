@@ -110,6 +110,8 @@ Seat status (observed): `{"TrainDate":"2026-10-03","AvailableSeats":[{"TrainNo":
 - Times are Asia/Taipei (+08:00); `TrainDate` is local date.
 - Free 5 req/min means: never fan out per-request; precompute + cache in Supabase/edge.
 - Guest quota is per IP — local dev works w/o key until 20/day, prod on Vercel won't.
+- Guest from curl: `/v2/Rail/THSR/GeneralTimetable`, `/DailyTimetable/TrainDate/{d}`, `/DailyTimetable/OD/…` → `401 Valid API Key Required` with no UA; `/v2/Rail/THSR/Station` → 200 with browser `User-Agent` + `Referer: https://tdx.transportdata.tw/` (observed 2026-10-02, T06). GeneralTimetable with headers untried.
+- THSR seed (ADR-T04) times come from thsrc.com.tw, not TDX: `POST https://www.thsrc.com.tw/TimeTable/Search` form `SearchType=S Lang=EN StartStation=TaiPei EndStation=ZuoYing OutWardSearchDate=YYYY/MM/DD OutWardSearchTime=00:00 …` → `data.DepartureTable.TrainItem[]{TrainNumber,RunDate,StationInfo[]{StationName,DepartureTime,Show}}`; full stop list per train; also lists previous night's cross-midnight trains (filter `RunDate`). Bad param → HTTP 405 HTML "操作異常" (observed 2026-10-02). Script `scripts/snapshot-thsr.mts`.
 
 ## Sources
 | URL | What it confirms | Verified |
