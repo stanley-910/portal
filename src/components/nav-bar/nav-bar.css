@@ -1,16 +1,16 @@
 /* NavBar: the Portal logo and the controls over the globe. Shrinks once the globe zooms in (data-compact).
    Every size comes from four registered properties, so they ease as numbers; the logo's shadow DOM
    inherits each step, and nothing jumps when the bar folds. */
-@property --logo-h { syntax: "<length>"; inherits: true; initial-value: 44px; }
+@property --logo-h { syntax: "<length>"; inherits: true; initial-value: 36px; }
 @property --mark-scale { syntax: "<number>"; inherits: true; initial-value: 1; }
-@property --ctrl-h { syntax: "<length>"; inherits: true; initial-value: 44px; }
+@property --ctrl-h { syntax: "<length>"; inherits: true; initial-value: 36px; }
 @property --fold { syntax: "<number>"; inherits: true; initial-value: 0; }
 
 .pn-bar {
-  --logo-h: 44px; /* the word's height */
+  --logo-h: 36px; /* the word's height */
   --mark-scale: 0.62; /* the globe beside it, drawn a little taller than the P */
   --mark-h: calc(var(--logo-h) * var(--mark-scale));
-  --ctrl-h: 44px; /* buttons; zoomed in they match the globe */
+  --ctrl-h: 36px; /* buttons; zoomed in they match the globe */
   --fold: 0; /* 0 open, 1 folded down to the globe and icon discs */
   --ease-fold: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-settle: cubic-bezier(0.2, 0.9, 0.25, 1.15);
