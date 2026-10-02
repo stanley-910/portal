@@ -14,7 +14,7 @@ Reviewed `b26dea648d384605e838e3e02bc1bc910e7bc04f` (2026-10-02 work session), b
 | HTTP boundary accepted other non-2xx statuses and confused body aborts with parse errors | Invalid/error bodies could reach mappers; cancellation diagnostics were inconsistent | Classify all non-2xx responses, fetch aborts and body-read aborts without returning raw errors |
 | Travelpayouts response types were assertions, not runtime validation | Null/wrong envelopes, invalid dates, absent durations or malformed fares could throw or invent zero-duration journeys | Validate envelopes and essential rows; typed `BAD_RESPONSE` failures |
 | Explicit airport codes broadened to metropolitan city codes | NRT/ICN selections could search TYO/SEL; airport-pair intent could be lost | Preserve explicit airport codes; require returned airport identity to match explicit queries |
-| Connecting results were represented as a single segment | A connecting summary looked like a direct flight | Request `direct=true`; omit summaries with transfers instead of inventing segments |
+| Connecting results were represented as a single segment | A connecting summary looked like a direct flight | Initially direct-only; main's later `Offer.transfers` contract now preserves connecting summaries with explicit counts and unverified intermediate-leg labels |
 | Offer IDs omitted airline | Airlines sharing a flight number could collide | Include airline and actual airport endpoints in the ID |
 | Upstream booking links accepted arbitrary origins/protocols | An upstream URL could lead users somewhere other than the intended booking site | Only HTTPS `www.aviasales.com/search/…`, without embedded credentials; omit unsafe links |
 | Coordinate-based queries reused clicked coordinates as airport coordinates | A cached airport flight could be drawn from a non-airport location | Use the adapter's airport snapshot for coordinate-fallback results when known; preserve explicit hub coordinates |
@@ -42,7 +42,7 @@ This is price-first display ordering, not Pareto ranking, shortest-duration rank
 
 The original fare-ordering helper above was retained as `rankFareOffers` when
 merging `0807cd0`. Public `rankOffers` now preserves main's convenience heuristic:
-`0.75 × estimated USD fare + 0.03 × segment minutes + mode penalty + 30 × extra segments`.
+`0.75 × estimated USD fare + 0.03 × segment minutes + mode penalty + 30 × transfers`.
 Mode penalties are flight 0, train 4, bus 12, ferry 16; missing fares use a neutral
 USD 100 ranking placeholder, never a displayed quote. Fixed rates exist for USD,
 CNY, HKD, THB, MYR, SGD and EUR; they are heuristic estimates, not live FX. Priced
@@ -83,9 +83,9 @@ The review follows [flight ADR-F01/F02](../flights/decisions.md) and the checked
 - Attribution explicitly says cached fare **per passenger**, availability unverified. `passengers` does not make the Data API check seats or quote the whole group; no fare multiplication is performed. The source's booking link can still encode its original passenger count.
 - When upstream currency is supplied at envelope or row level, it must match the requested currency; otherwise the batch fails. When absent, the documented requested-currency convention is used. No conversion is inferred from the amount.
 - A successful envelope must explicitly contain an array. `success: true, data: []` means normal cache sparsity; absent/non-array data is malformed, not proof of no service.
-- Malformed essential rows fail the Travelpayouts batch with `BAD_RESPONSE`. This intentionally favors honesty over partially accepting a corrupt provider payload. Unsupported connecting rows, wrong dates and mismatched airport pairs are omitted instead.
+- Malformed essential rows fail the Travelpayouts batch with `BAD_RESPONSE`. This intentionally favors honesty over partially accepting a corrupt provider payload. Wrong dates and mismatched airport pairs are omitted instead. Main's estimated fallback catches unavailable/invalid cache responses without exposing raw provider errors.
 - The mapper requires positive duration, valid offset-bearing departure, nonnegative finite amount, airline, flight number and an explicit transfer count. It uses `duration_to`, or `duration` when the former is absent. Arrival is calculated from departure plus duration and emitted in UTC, not invented in destination local time.
-- Direct-flight-only support is a deliberate limitation of the current one-segment mapper. Supporting connecting cached summaries needs connection details or an explicit summary representation in the shared contract, not a fabricated direct segment.
+- Main's later explicit `Offer.transfers` summary contract supersedes the original direct-only limitation. Connecting rows retain their count in ranking and UI, with no invented intermediate legs. Main's `kind: estimated` fallback is visibly modelled rather than a cached quotation; its placeholder times are never presented as actual departures.
 - Explicit airport IATA codes are preserved and are not translated to city codes. The coordinate-only fallback remains the old seven-record snapshot with a 150 km nearest-airport cutoff and metropolitan-code lookup. It is not a global resolver. The hub integration should send explicit airport places. Explicit metropolitan codes are not a substitute for airport-pair selection; strict returned-airport matching may omit those results.
 - A safe link is a search redirect, not a verified bookable offer. Manually appending an affiliate marker is retained; affiliate tracking itself has not been verified. Unsafe/malformed links are omitted without losing an otherwise valid cached offer.
 
@@ -107,7 +107,7 @@ click-to-hub integration implements the API/UI recommendations below; see
 
 ## Offline verification
 
-The tests use checked-in fixtures, fake providers, fake timers and stubbed `fetch`; no test relies on external network access. Coverage includes same-/cross-currency ordering, equal-instant offsets, deterministic ties, immutability, missing segments, malformed offers, concurrent fan-out, hanging providers, cancellation, sync throws, error redaction, HTTP status/body failures, malformed Travelpayouts envelopes/rows, direct-only mapping, explicit airport matching, currency mismatch and unsafe links.
+The tests use checked-in fixtures, fake providers, fake timers and stubbed `fetch`; no test relies on external network access. Coverage includes same-/cross-currency ordering, equal-instant offsets, deterministic ties, immutability, missing segments, malformed offers, concurrent fan-out, hanging providers, cancellation, sync throws, error redaction, HTTP status/body failures, malformed Travelpayouts envelopes/rows, explicit transfer counts, local-time arrivals, labelled estimated fallback, explicit airport matching, currency mismatch and unsafe links.
 
 Run from the worktree:
 

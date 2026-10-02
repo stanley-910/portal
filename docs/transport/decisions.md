@@ -43,7 +43,7 @@ stripped) and a mapper test. Live calls only in task Verification smoke steps.
 the seat whose key is pending.
 **Decision:** `env.server.ts` zod schema, every provider var optional. `covers()` may be true,
 `search()` throws `NOT_CONFIGURED` when var absent. Fan-out reports it in `errors[]`.
-**Consequences:** demo must check `errors[]` is empty of `NOT_CONFIGURED` (`.agents/SETUP.md` checklist, kept locally).
+**Consequences:** demo must check `errors[]` is empty of `NOT_CONFIGURED` (`.agents/SETUP.md` checklist, kept locally). Exception since 2026-10-03: travelpayouts returns an estimate instead (flights ADR-F03).
 
 ## ADR-C05 — 2026-10-02 — Seeded (link-out) routes carry typical departure times
 
@@ -174,3 +174,33 @@ The selected departure date changes only the search date, never the clicked poin
 Choosing either side wholesale would drop working behavior. Unit suites from both
 sides and browser checks cover the integration; the inherited empty-modes ferry-only
 test was corrected to the shared all-modes contract.
+
+## ADR-C09 — 2026-10-03 — `Offer.transfers` and `kind: "estimated"`
+
+**Status:** built
+
+**Context:** Travelpayouts cached fares include connecting flights but list one segment, so every flight read as direct and the ranking's layover penalty never applied (flights ADR-F04). Thin flight routes returned nothing, and AGENTS.md requires a mock fallback for every provider (flights ADR-F03).
+**Decision:** two additive fields on the contract in `types.ts`:
+- `transfers?: number`: connections the provider counts but doesn't list. `transfersOf(offer)` is the larger of it and `segments.length - 1`; ranking and every UI use that.
+- `kind` gains `"estimated"`: modelled, not quoted. It has no real departure time, so UIs show "estimated" in place of the time.
+**Consequences:** clients switching on `kind` must accept `"estimated"`. The trip plan's `StoredOffer` (multiplayer M13) mirrors both.
+
+## TR6. Preserve subsequent country, currency and shared-plan work
+
+**Status:** built, 2026-10-03
+
+**Decision:** Integrate subsequent main changes through `afbd01e`: country borders,
+wrapped labels that appear on zoom, navbar currency controls, shared trip storage,
+HK long-haul rail seeds, local-time flight arrivals and the ADR-C09 estimate/transfer
+contract. Connecting summaries now retain transfer counts instead of the original
+TR3 direct-only restriction; intermediate legs remain unknown. Modelled flight
+fallbacks are explicitly estimated, never claimed as quotes or verified schedules.
+Provider errors remain sanitized, including fallback logging.
+
+Shared stops store exact clicked coordinates and nullable preview identity, with
+separate display codes. Only identical points/hubs coalesce; searches resolve hubs
+again rather than treating preview IDs as IATA codes. Display-currency changes use
+live FX independently from ranking, retain original fares, and do not refetch routes.
+
+**Scope:** Worldwide transport-hub expansion remains deferred at the owner's request.
+This merge preserves existing country/globe work; it does not expand the hub dataset.

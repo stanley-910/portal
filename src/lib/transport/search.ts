@@ -39,7 +39,7 @@ const offerSchema = z.object({
   id: z.string().min(1),
   provider: z.string(),
   mode,
-  kind: z.enum(["live", "cached", "timetable"]),
+  kind: z.enum(["live", "cached", "timetable", "estimated"]),
   transfers: z.number().int().nonnegative().optional(),
   segments: z.array(z.object({
     mode,

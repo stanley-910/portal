@@ -18,7 +18,7 @@ function OfferContent({ offer, currency, rates }: { offer: Offer } & DisplayMone
   return <>
     <p className="type-tag">{first.from.iata ?? first.from.name} → {last.to.iata ?? last.to.name}</p>
     <p className="type-body">
-      {converted !== null && currency ? `≈ ${formatCurrency(converted, currency)}` : originalPrice}
+      {converted !== null && currency ? `≈ ${formatCurrency(converted, currency)}` : `${offer.kind === "estimated" && offer.price ? "≈ " : ""}${originalPrice}`}
       {" · "}{duration} min{transfers ? ` · ${transfers} transfer${transfers > 1 ? "s" : ""}` : ""}
 
     </p>
@@ -27,6 +27,7 @@ function OfferContent({ offer, currency, rates }: { offer: Offer } & DisplayMone
       {offer.kind !== "live" ? " · Estimated" : " · Live"}
       {offer.kind === "cached" ? " · Cached fare per person" : offer.kind === "timetable" ? " · Typical timetable" : ""}
     </p>
+    {offer.kind === "estimated" ? <p className="type-meta text-ink-muted">Modelled fare · Schedule and service unverified</p> : null}
     {converted !== null ? <p className="type-meta text-ink-muted">Original fare: {originalPrice} · Currency conversion estimate</p> : null}
     {currency && offer.price && offer.price.currency !== currency && converted === null ? <p className="type-meta text-ink-muted">Conversion unavailable · Original fare shown</p> : null}
     {offer.attribution ? <p className="type-meta text-ink-muted">{offer.attribution}</p> : null}

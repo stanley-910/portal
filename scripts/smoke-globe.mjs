@@ -30,6 +30,11 @@ function screenPoint({ lat, lng }) {
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 try {
   const page = await browser.newPage({ viewport, reducedMotion: "reduce" });
+  // Keep this UI assertion deterministic; external FX availability is a separate API check.
+  await page.route("**/api/exchange-rates", (route) => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({ rates: { USD: 1, EUR: 0.92, CNY: 7.1, HKD: 7.8 } }),
+  }));
   const errors = [];
   let searchRequests = 0;
   page.on("pageerror", (error) => errors.push(error.message));
@@ -86,6 +91,16 @@ try {
   }
   if (process.env.SCREENSHOT_PATH) await page.screenshot({ path: process.env.SCREENSHOT_PATH });
   console.log("PASS: real globe clicks → unsnapped coordinates → local API → hub/route results");
+
+  const searchesBeforeCurrency = searchRequests;
+  await page.getByRole("button", { name: "Currency: USD", exact: true }).click();
+  await page.getByRole("option", { name: /EUR/ }).click();
+  await page.getByRole("button", { name: "Currency: EUR", exact: true }).waitFor();
+  if (data.offers.some((offer) => offer.price && ["USD", "CNY", "HKD"].includes(offer.price.currency))) {
+    await page.getByText(/Currency conversion estimate/).first().waitFor({ state: "attached" });
+  }
+  assert.equal(searchRequests, searchesBeforeCurrency, "Display currency must not refetch routes");
+  console.log("PASS: navbar currency conversion (fixture rates), no route refetch");
 
   // Preserve main's navbar and selectable date while keeping precise coordinates.
   await page.getByRole("button", { name: "Plan with friends", exact: true }).waitFor();

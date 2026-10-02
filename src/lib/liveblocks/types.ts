@@ -39,7 +39,7 @@ export type StoredOffer = {
   id: string;
   provider: string;
   mode: "flight" | "train" | "bus" | "ferry";
-  kind: "live" | "cached" | "timetable";
+  kind: "live" | "cached" | "timetable" | "estimated";
   price: { amount: number; currency: string } | null;
   carrier: string | null;
   depart: string;

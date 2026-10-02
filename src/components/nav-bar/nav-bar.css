@@ -57,6 +57,20 @@
 .pn-controls .pa-btn svg, .pn-controls .pa-round svg { width: calc(16px - 2px * var(--fold)); height: calc(16px - 2px * var(--fold)); }
 .pn-btn-label { display: inline-block; overflow: hidden; vertical-align: bottom; max-width: calc(14em * (1 - var(--fold))); opacity: calc(1 - var(--fold) * 2); }
 
+/* A RoundButton showing the chosen currency's symbol in place of an icon. */
+.pn-currency { font-family: var(--font-sans); font-weight: 600; font-size: calc(17px - 3px * var(--fold)); line-height: 1; }
+.pn-currency[data-long] { font-size: calc(12px - 2px * var(--fold)); letter-spacing: -0.02em; }
+
+/* A menu dropped from a control, e.g. the currency list: a v2 panel of quiet, left-aligned options. */
+.pn-menu { position: absolute; top: 100%; right: 0; margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); min-width: 13rem; padding: var(--space-2); background: var(--paper-raised); border: var(--line-control) solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--shadow-float); }
+.pn-menu .pa-btn { justify-content: flex-start; height: auto; min-height: 44px; padding: var(--space-2) var(--space-2); text-align: left; }
+.pn-menu .pa-btn > span { display: flex; align-items: center; gap: var(--space-gap); width: 100%; }
+.pn-menu .pa-btn[aria-selected="true"] { background: var(--control-hover); }
+.pn-menu-symbol { display: inline-grid; place-items: center; flex: none; width: 36px; height: 32px; box-sizing: border-box; font-size: 13px; letter-spacing: -0.02em; border-radius: var(--radius-control); border: var(--line-control) solid var(--line); background: var(--paper); font-weight: 600; }
+.pn-menu-text { display: flex; flex-direction: column; flex: 1; line-height: 18px; }
+.pn-menu-detail { font-size: 13px; font-weight: 400; color: var(--ink-muted); }
+.pn-menu-check { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+
 @media (prefers-reduced-motion: reduce) {
   .pn-bar, .pn-bar * { animation: none !important; transition: none !important; }
 }

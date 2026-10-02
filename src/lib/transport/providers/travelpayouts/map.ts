@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { aviasalesUrl } from "./links";
 import { airportPlace, toIata } from "./places";
+import { localIso, zoneOf } from "./timezones";
 import { ProviderFailure, type Offer, type SearchQuery } from "../../types";
 
 const iata = z.string().regex(/^[A-Z]{3}$/);
@@ -59,7 +60,7 @@ export function mapFlights(rows: readonly unknown[], query: SearchQuery, marker?
         from: airportPlace(fromCode, query.from),
         to: airportPlace(toCode, query.to),
         depart: row.departure_at,
-        arrive: new Date(arrivalMs).toISOString(),
+        arrive: localIso(arrivalMs, zoneOf(toCode)),
         durationMin,
       }],
       // cached fares include connections but don't list the legs, so the count is all we have

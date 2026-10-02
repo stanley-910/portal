@@ -36,6 +36,21 @@ const search = (q = query, signal = new AbortController().signal) => searchTrans
 beforeEach(() => { providers.length = 0; });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+describe("merged offer metadata validation", () => {
+  it("retains explicitly estimated fallbacks and transfer counts", async () => {
+    const estimated = offer("estimate", { kind: "estimated", transfers: 2 });
+    const result = await fanOut(query, { providers: [provider({ search: async () => [estimated] })] });
+    expect(result.errors).toEqual([]);
+    expect(result.offers).toEqual([estimated]);
+  });
+
+  it.each([-1, 0.5, NaN, Infinity])("rejects an invalid transfer count: %s", async (transfers) => {
+    const result = await fanOut(query, { providers: [provider({ search: async () => [offer("bad", { transfers })] })] });
+    expect(result.offers).toEqual([]);
+    expect(result.errors[0].code).toBe("BAD_RESPONSE");
+  });
+});
+
 describe("rankFareOffers (original currency-safe fare contract)", () => {
   const rankOffers = rankFareOffers;
   it("ranks comparable prices, foreign currencies in separate groups, then unpriced offers", () => {

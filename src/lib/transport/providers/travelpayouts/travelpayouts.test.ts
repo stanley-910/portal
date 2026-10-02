@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import fixture from "./__fixtures__/prices_for_dates.json";
+import { estimateFlight } from "./estimate";
 import { aviasalesUrl } from "./links";
 import { mapFlights } from "./map";
 import { toIata } from "./places";
+import { localIso, zoneOf } from "./timezones";
 import { ProviderFailure, type SearchQuery } from "../../types";
 
 const { env } = vi.hoisted(() => ({ env: {
@@ -29,7 +31,7 @@ beforeEach(() => {
   env.TRAVELPAYOUTS_TOKEN = "offline-test-token";
   env.TRAVELPAYOUTS_MARKER = undefined;
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("Travelpayouts mapper", () => {
   it("maps the documented fixture as a cached, per-passenger fare", () => {
@@ -42,7 +44,7 @@ describe("Travelpayouts mapper", () => {
       transfers: 0,
       segments: [{
         carrier: "HX", number: "HX765", durationMin: 165,
-        arrive: "2026-11-15T03:45:00.000Z",
+        arrive: "2026-11-15T10:45:00+07:00",
         to: { iata: "BKK", lat: 13.69, lng: 100.75 },
       }],
     });
@@ -183,18 +185,49 @@ describe("Travelpayouts client and adapter (offline fetch stubs)", () => {
     await expect(getPrices(query, "HKG", "BKK", signal())).rejects.toMatchObject({ code: "BAD_RESPONSE", message: "BAD_RESPONSE" });
   });
 
-  it("distinguishes an empty successful cache from malformed missing data", async () => {
+  it("keeps empty cache data distinct while the adapter supplies an estimate", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ success: true, data: [], currency: "usd" })));
-    expect(await travelpayouts.search(query, signal())).toEqual([]);
+    expect(await getPrices(query, "HKG", "BKK", signal())).toEqual([]);
+    expect(await travelpayouts.search(query, signal())).toMatchObject([{ kind: "estimated" }]);
   });
 
-  it("reports missing credentials without making a request", async () => {
+  it("reports missing credentials in the client but estimates without a request", async () => {
     env.TRAVELPAYOUTS_TOKEN = undefined;
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     await expect(getPrices(query, "HKG", "BKK", signal())).rejects.toMatchObject({ code: "NOT_CONFIGURED" });
-    await expect(travelpayouts.search(query, signal())).rejects.toMatchObject({ code: "NOT_CONFIGURED" });
+    expect(await travelpayouts.search(query, signal())).toMatchObject([{ kind: "estimated" }]);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("falls back for API failures without logging upstream secrets", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("secret-token-in-url"); }));
+    expect(await travelpayouts.search(query, signal())).toMatchObject([{ kind: "estimated" }]);
+    expect(warn).toHaveBeenCalledWith({ provider: "travelpayouts" }, "FELL_BACK_TO_ESTIMATE");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("secret-token");
+  });
+
+  it("replaces invalid cached fares with an estimate rather than trusting their currency", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ success: true, data: [{ ...row, currency: "EUR" }] })));
+    expect(await travelpayouts.search(query, signal())).toMatchObject([{ kind: "estimated", price: { currency: "USD" } }]);
+  });
+
+  it("does not turn cancellation into an estimate, even without a token", async () => {
+    env.TRAVELPAYOUTS_TOKEN = undefined;
+    const controller = new AbortController();
+    controller.abort();
+    await expect(travelpayouts.search(query, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("preserves cancellation while awaiting the cache", async () => {
+    const controller = new AbortController();
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      controller.abort();
+      return Response.json(fixture);
+    }));
+    await expect(travelpayouts.search(query, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
   });
 
   it("covers means resolvable endpoints only; identical endpoints are not a route", async () => {
@@ -203,5 +236,34 @@ describe("Travelpayouts client and adapter (offline fetch stubs)", () => {
     const same = { ...query, to: query.from };
     expect(travelpayouts.covers(same)).toBe(false);
     await expect(travelpayouts.search(same, signal())).rejects.toMatchObject({ code: "UNSUPPORTED_ROUTE" });
+  });
+
+  it("writes arrivals in the destination's local time, or UTC for an airport it doesn't know", () => {
+    const ms = Date.parse("2026-11-15T03:45:00Z");
+    expect(localIso(ms, zoneOf("BKK"))).toBe("2026-11-15T10:45:00+07:00");
+    expect(localIso(ms, zoneOf("HND"))).toBe("2026-11-15T12:45:00+09:00");
+    expect(localIso(ms, zoneOf("KTM"))).toBe("2026-11-15T09:30:00+05:45");
+    expect(zoneOf("XXX")).toBeNull();
+    expect(localIso(ms, null)).toBe("2026-11-15T03:45:00.000Z");
+  });
+
+  it("estimates a flight from distance, marked estimated, with a search link", () => {
+    const [offer] = estimateFlight(query, "HKG", "BKK", "generic");
+    expect(offer).toMatchObject({
+      kind: "estimated",
+      mode: "flight",
+      price: { currency: "USD" },
+      attribution: expect.stringContaining("distance-based estimate"),
+      segments: [{ to: { iata: "BKK", lat: 13.69, lng: 100.75 } }],
+      bookingUrl: "https://www.aviasales.com/search/HKG1511BKK1?marker=generic",
+    });
+    // HKG–BKK is about 1,700 km: roughly 2 h 50 in the air plus overhead
+    expect(offer.segments[0].durationMin).toBeGreaterThan(150);
+    expect(offer.segments[0].durationMin).toBeLessThan(200);
+  });
+
+  it("doesn't estimate a flight for a short hop", () => {
+    const near = { ...query, to: { name: "Shenzhen", lat: 22.64, lng: 113.81 } };
+    expect(estimateFlight(near, "HKG", "SZX")).toEqual([]);
   });
 });

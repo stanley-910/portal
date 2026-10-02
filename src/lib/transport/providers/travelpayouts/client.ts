@@ -22,7 +22,7 @@ export async function getPrices(
     destination,
     departure_at: query.date,
     one_way: "true",
-    // The current Offer contract has no connection-summary representation.
+    // Both nonstop and connecting summaries retain explicit transfer counts.
     sorting: "price",
     currency: query.currency.toLowerCase(),
     market: env.TRAVELPAYOUTS_MARKET,

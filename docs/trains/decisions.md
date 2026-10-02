@@ -68,3 +68,12 @@ up in `errors[]` at demo.
 **Decision:** new provider `srt` (core ADR-C08) serving a committed seed in core ADR-C05 format: stations with cited coords; trains with train number, class/type, stop times per station, `days?`, `tz: "Asia/Bangkok"`, cited `source` (railway.co.th timetable or SRT D-Ticket schedule, date read). `kind: "timetable"`; fare only if the source publishes it. Link-out to SRT D-Ticket booking (`dticket.railway.co.th`, `unverified`). No request-time calls. Namtang rail stays filtered in `gtfs` (no double counting).
 **Why not fix namtang:** source data itself is wrong; nothing to repair at build time.
 **Consequences:** timetable is a snapshot; re-curate when SRT changes it. KTMB stays on `gtfs` (T05).
+
+## ADR-T07 — 2026-10-03 — Hong Kong long-haul trains in the China rail seed
+
+**Status:** built
+
+**Context:** The demo route's first leg is high-speed rail from Hong Kong West Kowloon to Shanghai, but the seed only had Hong Kong ↔ Shenzhen, so the search returned just a flight.
+**Decision:** seed the direct long-haul trains between West Kowloon and stations already in the seed, from MTR's long-haul timetable: G902 and G386 to Shanghai Hongqiao, G384 and G901 back, G382 to Beijing West and G381 back. The rows match in both the timetable from 1 July 2026 and the one from 11 October 2026 (`long-haul-train-timetable-new.pdf`), so they hold either side of the change.
+**Why not Trip.com or 12306 live:** ADR-T02; scraping either from Vercel is too fragile for a demo.
+**Consequences:** fares are still the seed's duration-based estimate. Trains whose number changes en route (printed `G386/3`) use the first number. Xi'an and other long-haul destinations aren't seeded yet.

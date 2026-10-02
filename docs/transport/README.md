@@ -1,8 +1,10 @@
 # Clicks → hubs → transport offers
 
 Implemented on `feat/click-to-transport-hubs`, originally based on `36e386e` and
-integrated with remote `main` at `0807cd0` before publishing. The merge retains
-main's new providers, best-option ordering, date picker, navbar, sky and multiplayer planes.
+integrated incrementally with remote `main` through `afbd01e` before publishing.
+The merge retains main's providers, ranking, date/currency controls, sky,
+country borders and wrapped/zoom-dependent country names, and shared trip storage.
+Worldwide transport-hub expansion is deferred; the bundled coverage below is unchanged.
 The merged provider/ranking code was reviewed and hardened first; see
 [ranking review](ranking-review.md).
 
@@ -151,15 +153,21 @@ provider/code across pair searches; the response currently does not expose
 per-pair error diagnostics. A normal empty cache is not a failure or evidence
 that a route does not operate.
 
-Travelpayouts currently maps **direct cached flight summaries only**. Its prices
-are per passenger, not party totals, and do not confirm seats. Connecting-flight
-support requires a richer summary/segment contract. The UI deliberately avoids
+Travelpayouts maps cached summaries with explicit transfer counts and local-time
+arrivals. Connecting summaries disclose unavailable intermediate legs instead of
+inventing airports. Main's `kind: estimated` fallback remains available when
+cache/API data is absent, explicitly labelled modelled with unverified service
+and schedule. Cached prices are per passenger, not party totals or confirmed seats. The UI deliberately avoids
 labeling the first row “cheapest journey.” Main's best-option heuristic is retained:
-known fixed FX estimates, duration, mode and segment-count penalties affect ordering
+known fixed FX estimates, duration, mode and transfer-count penalties affect ordering
 only, never displayed fares. Unknown currencies do not default to USD. The first
 row is a suggested option; the remaining offers are available under Other options.
 Changing the departure date reruns the same precise clicked coordinates, preserving
-request cancellation and local-calendar semantics. The legacy seven-airport fallback is
+request cancellation and local-calendar semantics. The navbar currency selector
+converts displayed amounts only; original fares remain visible and missing rates
+never hide them. Shared trip stops retain exact clicks and nullable preview hub IDs,
+separating display codes from identity; shared searches use the same hub resolver.
+The legacy seven-airport fallback is
 still used by direct coordinate-only provider callers **without** `resolve=hubs`.
 
 The 12Go adapter is a bundled estimated timetable, not a live fare source. Its
@@ -208,10 +216,13 @@ pnpm start --port 3015 # after pnpm build, in another terminal
 BASE_URL=http://localhost:3015 node scripts/smoke-globe.mjs
 ```
 
-The pre-merge hover integration passed **207 tests**. The final main integration
-checks cover both suites, real surface-provider validation, and the browser flow
-including navbar/date-picker retention. Run the commands above for the current
-suite count. There is one inherited ESLint warning in the generated LogoReveal
+Final merge verification: **403 tests passed**, TypeScript/build and dataset checks
+passed, and browser smoke checks passed hover, exact clicks, cancellation, card
+layout, date changes and navbar currency conversion (fixture FX rates).
+The real merged API returned two cached flights, two explicitly modelled flights
+and two trains for HK–Shanghai on 2026-11-01, without provider errors; the exchange-rate
+endpoint also returned HTTP 200. Multiplayer storage was type/unit-checked, not
+verified in a live multi-browser room. There is one inherited ESLint warning in the generated LogoReveal
 bundle (`@typescript-eslint/no-unused-expressions`); no lint errors. Local HTTP smoke checks returned HK → Shanghai rail/airport candidates,
 Seoul → Shanghai and Shanghai → Tokyo airport candidates, HK → Macau ferry
 results, and no origin candidates for an ocean click. The browser check also
