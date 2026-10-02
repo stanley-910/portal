@@ -1300,6 +1300,13 @@ export class GlobeEngine {
     // names fade over about 0.2s rather than popping; under reduced motion they switch
     const ease = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 14);
     this.namesMoving = false;
+    // the whole globe carries no names: they print in as you zoom in, following the zoom rather than popping
+    const zoomInk = 1 - smooth(RANGE_MAX * 0.8, RANGE_MAX * 0.95, this.range);
+    if (zoomInk <= 0) {
+      this.nameFade.fill(0);
+      this.namePlaced.fill(0);
+      return;
+    }
 
     // 1. where each name would go this frame, and whether it has room there
     const spots = this.visibleNames;
@@ -1399,7 +1406,7 @@ export class GlobeEngine {
       const f = (this.nameFade[sp.i] += ((on ? 1 : 0) - prev) * ease);
       if (t < this.nameHold[sp.i] || (!dt && f !== Number(on)) ||
           (this.nameFade[sp.i] !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
-      const alpha = f * smooth(0.22, 0.4, sp.facing) * this.nameInk;
+      const alpha = f * smooth(0.22, 0.4, sp.facing) * this.nameInk * zoomInk;
       if (alpha < 0.01) continue;
       const n = NAMES[sp.i];
       const img = this.nameSprite(sp.wrapped && n.wrap ? n.wrap : n.name, dpr);

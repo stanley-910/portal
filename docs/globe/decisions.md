@@ -133,6 +133,7 @@ All the code is in `src/components/trip-globe/engine.ts` unless noted.
 - Running level, a country's room is its width along the parallel, taken as an ellipse on its long axis. Averaging length and width shortchanged wide, slightly tilted countries.
 - A long thin country runs its name along its axis when that axis is within 60° of level. Other names run along their parallel, so they curve with the globe toward the edge.
 - Names step around planes and airport tags, and print at 70% while a trip is on the globe.
+- The whole globe carries no names. They fade in with the zoom, from 95% of the way out to fully shown by 80%, so the first view on load is just the print.
 - Names don't pop. Names already on screen are placed first, so a newcomer never displaces one. A new name needs 10% spare room to appear, and keeps its place until it is 5% short. A name that loses its place waits 0.6s before trying again. Each name fades in or out over about 0.2s, and switches at once under reduced motion. A long country flips to its axis below 60° and back above 66°. Measured: no visible name flipped back within 0.5s over an 8s spin and a 5s zoom.
 - The type is a new `country` token: Courier Prime bold, 11px, in capitals with 0.16em tracking, set in `ink` with a soft 70% `paper` halo. It grows up to 1.25×.
 - Each name is drawn once into a cached canvas, halo included, and frames only copy it, rotated and scaled. The cache clears on a theme or font change. Names facing away are rejected before any projection.
