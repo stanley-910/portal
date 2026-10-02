@@ -1,12 +1,13 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
 import { Ticket } from "@/components/paper-atlas";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
+import { convertCurrency, CURRENCIES, formatCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { Offer } from "@/lib/transport/types";
 
 import { createTrip } from "./t/actions";
@@ -18,8 +19,64 @@ const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 const dateFromIso = (value: string) => new Date(`${value}T00:00:00Z`);
 /** "9,624 km" */
 const formatDistance = (km: number) => `${km.toLocaleString("en-US")} km`;
-const formatMoney = (offer: Offer) =>
-  offer.price ? `${offer.price.amount.toLocaleString("en-US", { style: "currency", currency: offer.price.currency })}` : "Typical timetable";
+
+function formatMoney(offer: Offer, currency: Currency, rates: ExchangeRates | null): string {
+  if (!offer.price) return "Typical timetable";
+  const amount = convertCurrency(offer.price.amount, offer.price.currency, currency, rates ?? { USD: 1, EUR: 0, CNY: 0, HKD: 0 });
+  return amount === null ? "Rate unavailable" : formatCurrency(amount, currency);
+}
+
+function CurrencySelector({
+  currency,
+  rates,
+  error,
+  onChange,
+}: {
+  currency: Currency;
+  rates: ExchangeRates | null;
+  error: boolean;
+  onChange: (currency: Currency) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="absolute top-(--space-4) right-(--space-4) z-10 flex flex-col items-end gap-(--space-2)">
+      <button
+        type="button"
+        className="type-tag min-h-11 rounded-tag border border-ink bg-paper-raised px-(--space-3) shadow-tag"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((visible) => !visible)}
+      >
+        {currency}
+      </button>
+      {open ? (
+        <div className="flex flex-col gap-(--space-1) rounded-ticket border border-ink bg-paper-raised p-(--space-2) shadow-ticket" role="listbox" aria-label="Currency">
+          {CURRENCIES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={option === currency}
+              disabled={option !== "USD" && !rates}
+              className="type-tag min-h-11 rounded-tag px-(--space-3) text-left hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+            >
+              {option === "EUR" ? "EUR · Euro" : option}
+            </button>
+          ))}
+          {error ? (
+            <p className="type-meta max-w-44 px-(--space-2) pb-(--space-1) text-ink-muted">
+              Live rates unavailable. USD remains available.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function bestByMode(offers: Offer[]): Offer[] {
   const seen = new Set<Offer["mode"]>();
@@ -30,7 +87,7 @@ function bestByMode(offers: Offer[]): Offer[] {
   });
 }
 
-function ResultCard({ offer, best }: { offer: Offer; best?: boolean }) {
+function ResultCard({ offer, best, currency, rates }: { offer: Offer; best?: boolean; currency: Currency; rates: ExchangeRates | null }) {
   return (
     <a
       href={offer.bookingUrl}
@@ -46,19 +103,31 @@ function ResultCard({ offer, best }: { offer: Offer; best?: boolean }) {
           {new Date(offer.segments[0].depart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {offer.segments[0].durationMin} min
         </span>
       </span>
-      <span className="type-body shrink-0 text-right">{formatMoney(offer)}</span>
+      <span className="type-body shrink-0 text-right">{formatMoney(offer, currency, rates)}</span>
     </a>
   );
 }
 
-function ResultList({ offers, showOtherOptions, onToggle }: { offers: Offer[]; showOtherOptions: boolean; onToggle: () => void }) {
+function ResultList({
+  offers,
+  showOtherOptions,
+  onToggle,
+  currency,
+  rates,
+}: {
+  offers: Offer[];
+  showOtherOptions: boolean;
+  onToggle: () => void;
+  currency: Currency;
+  rates: ExchangeRates | null;
+}) {
   const options = bestByMode(offers);
   const primary = options[0];
   const otherOptions = options.slice(1);
 
   return (
     <div className="flex max-h-[min(42dvh,360px)] w-[min(92vw,560px)] flex-col gap-(--space-2) overflow-y-auto">
-      {primary ? <ResultCard offer={primary} best /> : null}
+      {primary ? <ResultCard offer={primary} best currency={currency} rates={rates} /> : null}
       {otherOptions.length > 0 ? (
         <button
           type="button"
@@ -69,7 +138,7 @@ function ResultList({ offers, showOtherOptions, onToggle }: { offers: Offer[]; s
           {showOtherOptions ? "Hide other options" : `Other options (${otherOptions.length})`}
         </button>
       ) : null}
-      {showOtherOptions ? otherOptions.map((offer) => <ResultCard key={offer.id} offer={offer} />) : null}
+      {showOtherOptions ? otherOptions.map((offer) => <ResultCard key={offer.id} offer={offer} currency={currency} rates={rates} />) : null}
     </div>
   );
 }
@@ -129,6 +198,28 @@ export function GlobeScreen() {
   const [searchError, setSearchError] = useState(false);
   const [showOtherOptions, setShowOtherOptions] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<Currency>("USD");
+  const [rates, setRates] = useState<ExchangeRates | null>(null);
+  const [rateError, setRateError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/exchange-rates")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("exchange rates unavailable");
+        const result = (await response.json()) as { rates: ExchangeRates };
+        if (CURRENCIES.some((option) => !Number.isFinite(result.rates?.[option]) || result.rates[option] <= 0)) {
+          throw new Error("invalid exchange rates");
+        }
+        if (active) setRates(result.rates);
+      })
+      .catch(() => {
+        if (active) setRateError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const search = async (nextTrip: LandedTrip, selectedDateValue = isoDate(nextTrip.departDate)) => {
     setTrip({ ...nextTrip, departDate: dateFromIso(selectedDateValue) });
@@ -160,6 +251,7 @@ export function GlobeScreen() {
 
   return (
     <main className="relative h-dvh w-full overflow-hidden">
+      <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
       <TripGlobe
         ref={globe}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
@@ -191,6 +283,8 @@ export function GlobeScreen() {
               offers={offers}
               showOtherOptions={showOtherOptions}
               onToggle={() => setShowOtherOptions((visible) => !visible)}
+              currency={currency}
+              rates={rates}
             />
           ) : null}
           {!searching && !searchError && offers.length === 0 ? <p className="type-body text-ink-muted">No supported routes found.</p> : null}
