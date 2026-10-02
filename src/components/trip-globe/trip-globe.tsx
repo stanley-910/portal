@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { hubPreviewLabel } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type GlobeMode, type LandedTrip, type LatLng } from "./engine";
+import { GlobeEngine, type FlightState, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import type { ThemeId } from "./palette";
 
 export type TripGlobeTheme = ThemeId | "auto";
@@ -19,6 +19,12 @@ export interface TripGlobeHandle {
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
+  /** Draws other members' planes and routes. Replaces the previous list; planes ease toward new positions. */
+  setRemoteFlights(flights: RemoteFlight[]): void;
+  /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
+  remotePlane(id: string): { x: number; y: number } | null;
+  /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
+  zoom(): number;
 }
 
 export interface TripGlobeProps {
@@ -35,6 +41,10 @@ export interface TripGlobeProps {
    * Null once the pointer leaves the globe. Rounded to about 10 m.
    */
   onPointerLatLng?: (ll: LatLng | null) => void;
+  /** Called when this viewer's trip changes: takeoff, every move of the plane, landing, cancel (null). Rounded. */
+  onFlightChange?: (flight: FlightState | null) => void;
+  /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
+  skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
   earthUrl?: string;
   className?: string;
@@ -59,6 +69,8 @@ function useResolvedTheme(theme: TripGlobeTheme): ThemeId {
 
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
 const roundLatLng = (ll: LatLng | null): LatLng | null => (ll ? { lat: round4(ll.lat), lng: round4(ll.lng) } : null);
+const roundFlight = (f: FlightState | null): FlightState | null =>
+  f && { origin: roundLatLng(f.origin)!, at: roundLatLng(f.at)!, ahead: roundLatLng(f.ahead)!, landed: f.landed };
 const sameLatLng = (a: LatLng | null, b: LatLng | null) => a === b || (!!a && !!b && a.lat === b.lat && a.lng === b.lng);
 
 /**
@@ -71,7 +83,9 @@ export function TripGlobe({
   onLand,
   onCancel,
   onPointerLatLng,
+  onFlightChange,
   earthUrl = "/textures/earth.png",
+  skySeed,
   className,
   ref,
 }: TripGlobeProps) {
@@ -87,14 +101,15 @@ export function TripGlobe({
   const resolved = useResolvedTheme(theme);
 
   // Latest callbacks, so the engine never needs rebuilding when a parent re-renders.
-  const handlers = useRef({ onTakeoff, onLand, onCancel, onPointerLatLng });
+  const handlers = useRef({ onTakeoff, onLand, onCancel, onPointerLatLng, onFlightChange });
   useEffect(() => {
-    handlers.current = { onTakeoff, onLand, onCancel, onPointerLatLng };
+    handlers.current = { onTakeoff, onLand, onCancel, onPointerLatLng, onFlightChange };
   });
   const frameListeners = useRef(new Set<() => void>());
 
   useEffect(() => {
     let lastPointer: LatLng | null = null;
+    let lastFlight = "null";
     const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, {
       onModeChange: (m, a) => {
         setMode(m);
@@ -114,6 +129,12 @@ export function TripGlobe({
           lastPointer = ll;
           handlers.current.onPointerLatLng?.(ll);
         }
+        const flight = roundFlight(engine.flight());
+        const key = JSON.stringify(flight);
+        if (key !== lastFlight) {
+          lastFlight = key;
+          handlers.current.onFlightChange?.(flight);
+        }
         for (const cb of frameListeners.current) cb();
       },
     });
@@ -127,7 +148,11 @@ export function TripGlobe({
 
   useEffect(() => {
     engineRef.current?.setTheme(resolved);
-  }, [resolved]);
+  }, [resolved, earthUrl]);
+
+  useEffect(() => {
+    if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
+  }, [skySeed, earthUrl]);
 
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
@@ -140,11 +165,14 @@ export function TripGlobe({
     () => ({
       cancel: () => engineRef.current?.cancel(),
       project: (ll) => engineRef.current?.project(ll) ?? null,
+      setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
         const listeners = frameListeners.current;
         listeners.add(cb);
         return () => listeners.delete(cb);
       },
+      zoom: () => engineRef.current?.zoom() ?? 0,
     }),
     [],
   );
@@ -184,7 +212,7 @@ export function TripGlobe({
         Hub data: OurAirports · Wikidata · © OpenStreetMap contributors
       </a>
       {mode === "flying" ? (
-        <div className="absolute top-6 right-6" onPointerDown={stop} onPointerUp={stop}>
+        <div className="absolute top-24 right-6" onPointerDown={stop} onPointerUp={stop}>
           <RoundButton label="Cancel trip" onClick={() => engineRef.current?.cancel()} />
         </div>
       ) : null}

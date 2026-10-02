@@ -62,11 +62,17 @@ describe("clicks → hubs → provider queries", () => {
     expect(result.offerPairs["travelpayouts:duplicate"].length).toBeGreaterThan(1);
     expect(result.estimates.every((id) => result.hubs.pairs.find((pair) => pair.id === id)?.mode !== "flight")).toBe(true);
   });
-  it("does not call providers for unsupported ocean clicks", async () => {
+  it("does not make flight searches for unsupported ocean clicks", async () => {
+    search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
     const result = await searchFromCoordinates({ ...query, from: { name: "Ocean", lat: 0, lng: -140 } }, signal());
-    expect(search).not.toHaveBeenCalled();
+    expect(search.mock.calls.every(([query]) => !query.modes.includes("flight"))).toBe(true);
     expect(result.hubs.from).toEqual([]);
     expect(result.offers).toEqual([]);
+  });
+  it("retains new surface-provider coverage outside the curated connection graph", async () => {
+    search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
+    await searchFromCoordinates(query, signal());
+    expect(search).toHaveBeenCalledWith({ ...query, modes: ["train", "ferry"] }, expect.any(AbortSignal));
   });
   it("retains the raw bus adapter path when buses are requested", async () => {
     search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });

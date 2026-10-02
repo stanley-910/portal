@@ -25,3 +25,5 @@ export const travelpayouts: TransportProvider = {
     return mapFlights(await getPrices(query, origin, destination, signal), query, env.TRAVELPAYOUTS_MARKER);
   },
 };
+
+export default travelpayouts;

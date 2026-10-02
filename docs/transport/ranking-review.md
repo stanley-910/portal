@@ -23,7 +23,7 @@ The existing fan-out already reduced ordinary rejected promises to public error 
 
 ## Ranking contract
 
-`rankOffers(offers: readonly Offer[], currency: string): Offer[]` is exported by `src/lib/transport/search.ts`. It returns a new array and does not mutate the supplied array or offers. This module imports the server provider registry: use it for server-side merging, not in a client component.
+`rankFareOffers(offers: readonly Offer[], currency: string): Offer[]` is exported by `src/lib/transport/search.ts`. It returns a new array and does not mutate the supplied array or offers. This module imports the server provider registry: use it for server-side merging, not in a client component.
 
 The order is:
 
@@ -38,6 +38,18 @@ Example for a USD request: `USD 10`, `USD 200`, `EUR 20`, `EUR 500`, `JPY 1`, un
 
 This is price-first display ordering, not Pareto ranking, shortest-duration ranking, a multi-leg planner, an airport-access-cost calculation, or a guarantee of the best available journey. It does not prefer live data over cached data at equal prices. Identity-identical ties retain input order; the helper does not deduplicate offers. It does not compute party totals or convert currencies.
 
+### Main integration: best-option ordering
+
+The original fare-ordering helper above was retained as `rankFareOffers` when
+merging `0807cd0`. Public `rankOffers` now preserves main's convenience heuristic:
+`0.75 × estimated USD fare + 0.03 × segment minutes + mode penalty + 30 × extra segments`.
+Mode penalties are flight 0, train 4, bus 12, ferry 16; missing fares use a neutral
+USD 100 ranking placeholder, never a displayed quote. Fixed rates exist for USD,
+CNY, HKD, THB, MYR, SGD and EUR; they are heuristic estimates, not live FX. Priced
+unsupported currencies sort behind finite scores, rather than being mistaken for
+USD. Equal scores retain deterministic fare-group/time/provider/ID ordering.
+The UI calls the first result a suggested option, not a guaranteed cheapest journey.
+
 ## Search and failure contract
 
 - Mode filtering precedes `covers`. An empty requested mode list means all modes.
@@ -46,7 +58,7 @@ This is price-first display ordering, not Pareto ranking, shortest-duration rank
 - Deadline timers/listeners are cleaned after settlement. Provider cancellation never aborts the parent request or another provider's controller.
 - The existing error union has no `CANCELLED` member. Caller cancellation therefore uses `TIMEOUT`, like a deadline expiry; no interface change was introduced.
 - Healthy providers survive another provider's timeout, synchronous exception, malformed batch or rejected promise. A mixed valid/malformed offer batch keeps valid siblings and adds one `BAD_RESPONSE` for that provider.
-- Boundary validation checks nonempty segments, finite/nonnegative fares and durations, offset-bearing valid timestamps, arrival not before departure, place coordinates, provider ownership and supported mode. Only requested modes are returned.
+- Boundary validation checks nonempty segments, finite/nonnegative fares and durations, offset-bearing segment timestamps, arrival not before departure, place coordinates, provider ownership and supported mode. Price freshness also accepts a real calendar date, because bundled surface providers record their checked date rather than a precise instant. Only requested modes are returned.
 - Public errors contain only `provider`, `code`, `retryable`. Unknown exceptions become retryable `UPSTREAM_ERROR`; raw messages, bodies, tokens and URLs are never included in `errors`.
 
 HTTP classification:
@@ -65,7 +77,7 @@ HTTP classification:
 
 ## Travelpayouts semantics
 
-The review follows [flight ADR-F01/F02](../../.agents/ledgers/flights/DECISIONS.md) and the checked-in [provider research](../../.agents/docs/api/travelpayouts.md): Data API cached fares only, explicit currency and market, no real-time Search API. The implementation still uses `/aviasales/v3/prices_for_dates`, server-only header authentication, a 30-row limit and 24-hour Next fetch revalidation.
+The review follows [flight ADR-F01/F02](../flights/decisions.md) and the checked-in [provider research](../flights/api/travelpayouts.md): Data API cached fares only, explicit currency and market, no real-time Search API. The implementation still uses `/aviasales/v3/prices_for_dates`, server-only header authentication, a 30-row limit and 24-hour Next fetch revalidation.
 
 - `kind` stays `cached`; `asOf` is populated only when the source supplies a valid `found_at`. We do not stamp the fetch time as the fare's observation time. An upstream cache plus our revalidation interval can make data older than the provider cache alone.
 - Attribution explicitly says cached fare **per passenger**, availability unverified. `passengers` does not make the Data API check seats or quote the whole group; no fare multiplication is performed. The source's booking link can still encode its original passenger count.

@@ -18,7 +18,7 @@ describe("globe click search", () => {
     expect(JSON.parse(params.get("from")!)).toEqual({ name: "Origin", ...trip.origin });
     expect(JSON.parse(params.get("to")!)).toEqual({ name: "Destination", ...trip.destination });
     expect(params.get("resolve")).toBe("hubs");
-    expect(params.get("modes")).toBe("flight,train,ferry");
+    expect(params.get("modes")).toBe("flight,train,bus,ferry");
   });
   it("still searches coordinates when takeoff and landing have no nearby hubs", () => {
     const params = clickSearchParams({ ...trip, from: null, to: null });

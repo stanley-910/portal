@@ -78,8 +78,28 @@ try {
   assert.ok(data.hubs.pairs.some((pair) => pair.from.hub.iata === "HKG"));
   await page.getByText("Nearby airports, stations and terminals").waitFor();
   assert.ok((await page.locator("body").innerText()).includes("Estimated"));
+  if (data.offers.length) {
+    const bounds = await page.getByText("Suggested option", { exact: true }).locator("..").evaluate((element) => ({
+      visible: element.clientHeight, content: element.scrollHeight,
+    }));
+    assert.ok(bounds.content <= bounds.visible + 2, "Offer text must not collapse out of its scrolling card");
+  }
   if (process.env.SCREENSHOT_PATH) await page.screenshot({ path: process.env.SCREENSHOT_PATH });
   console.log("PASS: real globe clicks → unsnapped coordinates → local API → hub/route results");
+
+  // Preserve main's navbar and selectable date while keeping precise coordinates.
+  await page.getByRole("button", { name: "Plan with friends", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Choose departure date", exact: true }).click();
+  const later = new Date(`${requestUrl.searchParams.get("date")}T12:00:00Z`);
+  later.setUTCDate(later.getUTCDate() + 7);
+  const chosenDate = later.toISOString().slice(0, 10);
+  const changedResponse = page.waitForResponse((response) => response.url().includes("/api/transport/search?")
+    && new URL(response.url()).searchParams.get("date") === chosenDate);
+  await page.getByLabel("Departure date", { exact: true }).fill(chosenDate);
+  const changed = await changedResponse;
+  assert.equal(changed.status(), 200);
+  assert.deepEqual(JSON.parse(new URL(changed.url()).searchParams.get("from")), clicked);
+  console.log("PASS: merged navbar and date picker; changing date preserves clicked coordinates");
 
   // A delayed result must not reappear after cancellation.
   await load();

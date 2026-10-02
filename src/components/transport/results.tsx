@@ -2,7 +2,7 @@ import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { HubCandidate } from "@/lib/transport/hubs/types";
 import type { Offer } from "@/lib/transport/types";
 
-const card = "rounded-ticket border border-ink/15 bg-paper-raised p-(--space-3) text-ink shadow-tag";
+const card = "shrink-0 rounded-ticket border border-ink/15 bg-paper-raised p-(--space-3) text-ink shadow-tag";
 
 function OfferContent({ offer }: { offer: Offer }) {
   const first = offer.segments[0];
@@ -21,6 +21,16 @@ function OfferContent({ offer }: { offer: Offer }) {
     </p>
     {offer.attribution ? <p className="type-meta text-ink-muted">{offer.attribution}</p> : null}
   </>;
+}
+
+function OfferCard({ offer, recommended = false }: { offer: Offer; recommended?: boolean }) {
+  const content = <>
+    {recommended ? <p className="type-tag">Suggested option</p> : null}
+    <OfferContent offer={offer} />
+  </>;
+  return offer.bookingUrl
+    ? <a className={`${card} block min-h-11`} href={offer.bookingUrl} target="_blank" rel="noreferrer">{content}</a>
+    : <article className={card}>{content}</article>;
 }
 
 function HubList({ label, hubs }: { label: string; hubs: HubCandidate[] }) {
@@ -44,9 +54,13 @@ export function TransportResults({ result }: { result: HubSearchResult }) {
     {result.errors.length > 0 ? <p className="type-body text-ink-muted" role="status">
       Some providers are unavailable. Bundled candidates remain available.
     </p> : null}
-    {result.offers.map((offer) => offer.bookingUrl ? (
-      <a key={offer.id} className={`${card} block min-h-11`} href={offer.bookingUrl} target="_blank" rel="noreferrer"><OfferContent offer={offer} /></a>
-    ) : <article key={offer.id} className={card}><OfferContent offer={offer} /></article>)}
+    {result.offers[0] ? <OfferCard offer={result.offers[0]} recommended /> : null}
+    {result.offers.length > 1 ? <details className={card}>
+      <summary className="type-tag flex min-h-11 cursor-pointer items-center">Other options ({result.offers.length - 1})</summary>
+      <div className="flex flex-col gap-(--space-3)">
+        {result.offers.slice(1).map((offer) => <OfferCard key={offer.id} offer={offer} />)}
+      </div>
+    </details> : null}
     {result.offers.length === 0 ? <p className="type-body text-ink-muted">No provider offers returned.</p> : null}
     {result.hubs.pairs.filter((pair) => estimates.has(pair.id)).map((pair) => <article key={pair.id} className={card}>
       <p className="type-tag">{pair.mode} · Estimated</p>

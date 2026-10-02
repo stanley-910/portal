@@ -20,7 +20,7 @@ describe("transport search route", () => {
   it.each<Record<string, string>>([{ from: "{" }, { date: "2026-02-30" }, { modes: "spaceship" }, { resolve: "anything" }])("returns safe 400 for invalid input %j", async (extra) => {
     const response = await GET(request(extra));
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ code: "BAD_QUERY" });
+    expect(await response.json()).toEqual({ code: "BAD_QUERY", fields: expect.any(Array) });
     expect(searchTransport).not.toHaveBeenCalled();
     expect(searchFromCoordinates).not.toHaveBeenCalled();
   });

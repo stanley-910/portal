@@ -1,3 +1,4 @@
+import "server-only";
 import ferryRoutes from "./ferry-routes.json";
 import busRoutes from "./bus-routes.json";
 import { matchesRoute } from "./match";
@@ -64,7 +65,7 @@ function place(stop: SeedStop): Place {
   return { ...stop };
 }
 
-function offer(route: SeedRoute, query: SearchQuery, direction: "forward" | "reverse", departure: string, mode: "ferry" | "bus"): Offer {
+function offer(route: SeedRoute, query: SearchQuery, mode: "ferry" | "bus", direction: "forward" | "reverse", departure: string): Offer {
   const from = direction === "forward" ? route.from : route.to;
   const to = direction === "forward" ? route.to : route.from;
   const [depart, arrive] = localIso(query.date, departure, route.tz, route.durationMin);
@@ -100,7 +101,9 @@ export const twelveGo: TransportProvider = {
       : query.modes.filter((mode): mode is "ferry" | "bus" => mode === "ferry" || mode === "bus");
     return modes.flatMap((mode) => routesFor(mode).flatMap((route) => {
       const direction = matchesRoute(query.from, query.to, route);
-      return direction ? route.departures.map((departure) => offer(route, query, direction, departure, mode)) : [];
+      return direction ? route.departures.map((departure) => offer(route, query, mode, direction, departure)) : [];
     }));
   },
 };
+
+export default twelveGo;

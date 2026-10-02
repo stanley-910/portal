@@ -5,9 +5,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import { Ticket } from "@/components/paper-atlas";
+import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
+import { DatePicker } from "@/components/transport/date-picker";
 import { TransportResults } from "@/components/transport/results";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
-import { clickSearchParams } from "@/lib/transport/client-query";
+import { clickSearchParams, localDate } from "@/lib/transport/client-query";
+import { distanceKm } from "@/lib/transport/hubs/geo";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 
 import { createTrip } from "./t/actions";
@@ -34,16 +37,18 @@ export function GlobeScreen() {
     setSearching(false);
     setSearchError(false);
   };
-  const search = async (nextTrip: LandedTrip) => {
+  const search = async (nextTrip: LandedTrip, date = localDate(nextTrip.departDate)) => {
     pending.current?.abort();
     const controller = new AbortController();
     pending.current = controller;
-    setTrip(nextTrip);
+    // Noon in the browser's local timezone preserves the selected calendar day.
+    const datedTrip = { ...nextTrip, departDate: new Date(`${date}T12:00:00`) };
+    setTrip(datedTrip);
     setResult(null);
     setSearchError(false);
     setSearching(true);
     try {
-      const response = await fetch(`/api/transport/search?${clickSearchParams(nextTrip)}`, { signal: controller.signal });
+      const response = await fetch(`/api/transport/search?${clickSearchParams(datedTrip)}`, { signal: controller.signal });
       if (!response.ok) throw new Error("Search failed");
       const next = await response.json() as HubSearchResult;
       if (pending.current === controller && !controller.signal.aborted) setResult(next);
@@ -57,6 +62,13 @@ export function GlobeScreen() {
   // A local hover preview is not a connection-aware search result.
   const firstOfferPair = result?.offers[0] && result.offerPairs[result.offers[0].id]?.[0];
   const preferredPair = result?.hubs.pairs.find((pair) => pair.id === firstOfferPair) ?? result?.hubs.pairs[0];
+  const primary = result?.offers[0];
+  const from = primary?.segments[0].from ?? preferredPair?.from.hub;
+  const to = primary?.segments.at(-1)?.to ?? preferredPair?.to.hub;
+  const mode = primary?.mode ?? preferredPair?.mode;
+  const originLabel = (firstOfferPair || !primary) ? preferredPair?.from.hub.city || from?.name : from?.name;
+  const destinationLabel = (firstOfferPair || !primary) ? preferredPair?.to.hub.city || to?.name : to?.name;
+  const code = (iata?: string) => iata ?? (mode === "train" ? "RAIL" : mode === "ferry" ? "PORT" : mode === "bus" ? "BUS" : "—");
 
   return <main className="relative h-dvh w-full overflow-hidden">
     <TripGlobe
@@ -66,18 +78,20 @@ export function GlobeScreen() {
       onLand={search}
       onCancel={clear}
     />
-    <form action={createTrip} className="absolute top-(--space-4) left-(--space-4)">
-      <button type="submit" className="type-tag min-h-11 rounded-tag border-(length:--line-hair) border-ink bg-paper-raised px-(--space-3) shadow-tag">New trip</button>
-    </form>
+    <NavBar globe={globe}>
+      <form action={createTrip}>
+        <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
+      </form>
+    </NavBar>
     {trip ? <div className="absolute bottom-(--space-6) left-1/2 flex max-h-[90dvh] -translate-x-1/2 flex-col items-center gap-(--space-3) overflow-y-auto p-(--space-6)">
-      {preferredPair?.mode === "flight" ? <EntryPanel leg={{ fromHub: preferredPair.from.hub.code, toHub: preferredPair.to.hub.code }} members={DEMO_PARTY} /> : null}
+      {from?.iata && to?.iata ? <EntryPanel leg={{ fromHub: from.iata, toHub: to.iata }} members={DEMO_PARTY} /> : null}
       <Ticket
         className="shrink-0"
-        from={{ code: preferredPair ? (preferredPair.mode === "flight" ? preferredPair.from.hub.code : preferredPair.mode === "train" ? "RAIL" : "PORT") : "—", city: preferredPair?.from.hub.city || preferredPair?.from.hub.name || coordinates(trip.origin) }}
-        to={{ code: preferredPair ? (preferredPair.mode === "flight" ? preferredPair.to.hub.code : preferredPair.mode === "train" ? "RAIL" : "PORT") : "—", city: preferredPair?.to.hub.city || preferredPair?.to.hub.name || coordinates(trip.destination) }}
+        from={{ code: code(from?.iata), city: originLabel || coordinates(trip.origin) }}
+        to={{ code: code(to?.iata), city: destinationLabel || coordinates(trip.destination) }}
         date={formatDate(trip.departDate)}
         searching={searching}
-        distance={preferredPair ? `${Math.round(preferredPair.distanceKm).toLocaleString("en-US")} km` : "—"}
+        distance={from && to ? `${Math.round(distanceKm(from, to)).toLocaleString("en-US")} km` : "—"}
         onClose={() => globe.current?.cancel()}
       />
       <div role="status" aria-live="polite">
@@ -86,5 +100,7 @@ export function GlobeScreen() {
       </div>
       {result ? <TransportResults result={result} /> : null}
     </div> : null}
+    {trip ? <DatePicker value={localDate(trip.departDate)} min={localDate(new Date())}
+      onChange={(date) => void search(trip, date)} /> : null}
   </main>;
 }

@@ -1,5 +1,20 @@
 /* Paper Atlas component styles, ported from the design system's components/bundle.css. Tokens: src/design/tokens.css. */
 
+/* Button: the interface register */
+.pa-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-gap); height: 44px; padding: 0 var(--space-control); box-sizing: border-box; border-radius: var(--radius-control); border: var(--line-control) solid transparent; font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease; }
+.pa-btn:active:not(:disabled) { transform: scale(0.98); }
+.pa-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.pa-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pa-btn-primary { background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-control); }
+.pa-btn-primary:hover:not(:disabled) { background: var(--ink-hover); }
+.pa-btn-secondary { background: var(--paper-raised); color: var(--ink); border-color: var(--control-border); }
+.pa-btn-secondary:hover:not(:disabled) { background: var(--control-hover); }
+.pa-btn-quiet { background: transparent; color: var(--ink); }
+.pa-btn-quiet:hover:not(:disabled) { background: var(--control-hover); }
+.pa-btn-block { display: flex; width: 100%; }
+.pa-btn-icon { display: inline-flex; }
+.pa-btn-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+
 /* Ticket */
 .pa-ticket {
   position: relative;
@@ -49,11 +64,15 @@
 .pa-star-edge { stop-color: var(--star-edge); }
 
 /* RoundButton */
-.pa-round { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-round); border: var(--line-ink) solid var(--ink); background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-tag); cursor: pointer; }
+.pa-round { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-round); border: var(--line-control) solid var(--control-border); background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-float); cursor: pointer; transition: background-color 150ms ease, transform 120ms ease; }
+.pa-round:hover { background: var(--control-hover); }
+.pa-round:active { transform: scale(0.96); }
 .pa-round svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
-.pa-round:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.pa-round:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
+  .pa-btn, .pa-round { transition: none; }
+  .pa-btn:active:not(:disabled), .pa-round:active { transform: none; }
   .pa-cursor, .pa-cast { transition: none; }
   .pa-dots span, .pa-route-marching path { animation: none; }
   .pa-dots span { opacity: 1; }

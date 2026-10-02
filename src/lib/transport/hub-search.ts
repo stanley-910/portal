@@ -19,11 +19,12 @@ export async function searchFromCoordinates(query: SearchQuery, signal: AbortSig
     pairId: pair.id,
     query: { ...query, from: pair.from.hub, to: pair.to.hub, modes: [pair.mode] } as SearchQuery,
   }));
-  // Bus adapters already match coordinates to their own stops. Preserve that path
-  // without treating every nearby bus stop as an airport/rail/ferry hub.
-  if (query.modes.length === 0 || query.modes.includes("bus")) {
-    searches.push({ pairId: "", query: { ...query, modes: ["bus"] } });
-  }
+  // Surface adapters have their own broader station/route seeds. Keep a raw
+  // coordinate search too: our curated hub graph must not suppress those routes.
+  // Airports still use only the bounded, exact-IATA pair shortlist.
+  const surfaceModes = (query.modes.length ? query.modes : ["train", "bus", "ferry"] as const)
+    .filter((mode) => mode !== "flight");
+  if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, modes: surfaceModes } });
   const results = await Promise.all(searches.map(async (search) => ({
     ...search, result: await searchTransport(search.query, signal),
   })));

@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 
 import { providers } from "./registry";
@@ -14,6 +15,13 @@ export interface SearchResult {
   offers: Offer[];
   errors: ProviderError[];
   tookMs: number;
+}
+
+export interface FanOutOptions {
+  providers?: readonly TransportProvider[];
+  timeoutMs?: number;
+  /** Caller cancellation, e.g. `request.signal`; aborts every provider. */
+  signal?: AbortSignal;
 }
 
 export const PROVIDER_TIMEOUT_MS = 8_000;
@@ -42,16 +50,17 @@ const offerSchema = z.object({
   price: z.object({
     amount: z.number().nonnegative(),
     currency: z.string().regex(/^[A-Za-z]{3}$/),
-    asOf: instant.optional(),
+    // Curated providers record a checked calendar date, not a fabricated instant.
+    asOf: z.union([instant, z.iso.date()]).optional(),
   }).optional(),
 });
 
-function errorFor(provider: ProviderId, error: unknown): ProviderError {
+function errorFor(provider: ProviderId, error: unknown, unknownRetryable: boolean): ProviderError {
   if (error instanceof ProviderFailure) {
     return { provider, code: error.code, retryable: error.retryable };
   }
   // Never serialize exception messages, bodies or authenticated URLs.
-  return { provider, code: "UPSTREAM_ERROR", retryable: true };
+  return { provider, code: "UPSTREAM_ERROR", retryable: unknownRetryable };
 }
 
 function compareText(a: string, b: string): number {
@@ -70,7 +79,7 @@ function departure(offer: Offer): number {
 }
 
 /** Price-first within a currency, never FX conversion. Does not mutate input. */
-export function rankOffers(offers: readonly Offer[], currency: string): Offer[] {
+export function rankFareOffers(offers: readonly Offer[], currency: string): Offer[] {
   const requestedCurrency = currency.toUpperCase();
   return [...offers].sort((a, b) => {
     const aGroup = priceGroup(a, requestedCurrency);
@@ -89,14 +98,43 @@ export function rankOffers(offers: readonly Offer[], currency: string): Offer[] 
   });
 }
 
+// Fixed estimates are for the best-option heuristic only, never displayed fares.
+const USD_RATES: Record<string, number> = {
+  USD: 1, CNY: 0.138, HKD: 0.128, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08,
+};
+
+function convenienceScore(offer: Offer): number {
+  if (!offer.segments.length) return Infinity;
+  const validPrice = priceGroup(offer, "USD") !== 2;
+  const rate = validPrice ? USD_RATES[offer.price!.currency.toUpperCase()] : undefined;
+  // An unsupported currency is not USD. Keep it behind comparable scores.
+  const priceUsd = validPrice ? (rate === undefined ? Infinity : offer.price!.amount * rate) : 100;
+  const durationPenalty = offer.segments.reduce((sum, segment) => sum + segment.durationMin, 0) * 0.03;
+  const modePenalty = { flight: 0, train: 4, bus: 12, ferry: 16 }[offer.mode];
+  const layoverPenalty = Math.max(0, offer.segments.length - 1) * 30;
+  return priceUsd * 0.75 + durationPenalty + modePenalty + layoverPenalty;
+}
+
+/**
+ * Best-option heuristic, not a converted quote: fixed known FX estimates affect
+ * ranking only. Original prices/currencies stay untouched; unsupported currencies
+ * never default to USD. Equal/unknown scores use currency-grouped fares then UTC
+ * departure, provider and ID, so ordering is deterministic without raw cross-FX
+ * price comparison. A missing fare uses main's neutral heuristic, not a free fare.
+ */
+export function rankOffers(offers: readonly Offer[], currency: string): Offer[] {
+  return rankFareOffers(offers, currency).sort((a, b) => convenienceScore(a) - convenienceScore(b));
+}
+
 async function searchProvider(
   provider: TransportProvider,
   query: SearchQuery,
-  requestSignal: AbortSignal,
+  requestSignal: AbortSignal | undefined,
+  timeoutMs: number,
 ): Promise<Offer[]> {
   const deadline = new AbortController();
-  const timer = setTimeout(() => deadline.abort(), PROVIDER_TIMEOUT_MS);
-  const signal = AbortSignal.any([requestSignal, deadline.signal]);
+  const timer = setTimeout(() => deadline.abort(), timeoutMs);
+  const signal = requestSignal ? AbortSignal.any([requestSignal, deadline.signal]) : deadline.signal;
   let onAbort: () => void = () => {};
   try {
     // Racing also bounds adapters that ignore AbortSignal. Their late rejection
@@ -117,28 +155,30 @@ async function searchProvider(
   }
 }
 
-export async function searchTransport(query: SearchQuery, signal: AbortSignal): Promise<SearchResult> {
+async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean): Promise<SearchResult> {
   const started = Date.now();
   const errors: ProviderError[] = [];
-  const applicable = providers.filter((provider) => {
+  const applicable = (opts.providers ?? providers).filter((provider) => {
     if (query.modes.length && !provider.modes.some((mode) => query.modes.includes(mode))) return false;
     try {
       return provider.covers(query);
     } catch (error) {
-      errors.push(errorFor(provider.id, error));
+      // Preserve fanOut's eligibility contract; coordinate searches surface this error.
+      if (!best) errors.push(errorFor(provider.id, error, true));
       return false;
     }
   });
-  const settled = await Promise.allSettled(applicable.map((provider) => searchProvider(provider, query, signal)));
+  const settled = await Promise.allSettled(applicable.map((provider) =>
+    searchProvider(provider, query, opts.signal, opts.timeoutMs ?? PROVIDER_TIMEOUT_MS)));
   const offers: Offer[] = [];
   settled.forEach((result, index) => {
     const provider = applicable[index];
     if (result.status === "rejected") {
-      errors.push(errorFor(provider.id, result.reason));
+      errors.push(errorFor(provider.id, result.reason, !best));
       return;
     }
     if (!Array.isArray(result.value)) {
-      errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE")));
+      errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
       return;
     }
     let malformed = false;
@@ -150,8 +190,26 @@ export async function searchTransport(query: SearchQuery, signal: AbortSignal): 
         offers.push(offer);
       }
     }
-    if (malformed) errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE")));
+    if (malformed) errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
   });
   errors.sort((a, b) => compareText(a.provider, b.provider));
-  return { offers: rankOffers(offers, query.currency), errors, tookMs: Date.now() - started };
+  const tookMs = Date.now() - started;
+  if (best) {
+    for (const error of errors) {
+      if (error.code !== "NOT_CONFIGURED") {
+        console.warn({ provider: error.provider, code: error.code, ms: tookMs }, "PROVIDER_FAILED");
+      }
+    }
+  }
+  return { offers: rankOffers(offers, query.currency), errors, tookMs };
+}
+
+/** Coordinate/hub searches use best-option ranking and retain their error contract. */
+export function searchTransport(query: SearchQuery, signal: AbortSignal): Promise<SearchResult> {
+  return runSearch(query, { signal }, false);
+}
+
+// No retries here yet: retryable failures go back to the client in `errors[]`.
+export function fanOut(query: SearchQuery, opts: FanOutOptions = {}): Promise<SearchResult> {
+  return runSearch(query, opts, true);
 }

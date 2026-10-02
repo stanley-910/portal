@@ -1,5 +1,4 @@
 import { z } from "zod";
-
 import { env } from "@/lib/env.server";
 
 import { fetchJson } from "../../http";
@@ -30,7 +29,7 @@ export async function getPrices(
     market: env.TRAVELPAYOUTS_MARKET,
     limit: "30",
   });
-  const payload = await fetchJson<unknown>(
+  const payload = await fetchJson(
     `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params}`,
     {
       signal,
@@ -39,8 +38,7 @@ export async function getPrices(
     },
   );
   const response = responseSchema.safeParse(payload);
-  if (!response.success || (response.data.currency &&
-      response.data.currency.toUpperCase() !== query.currency.toUpperCase())) {
+  if (!response.success || (response.data.currency && response.data.currency.toUpperCase() !== query.currency.toUpperCase())) {
     throw new ProviderFailure("BAD_RESPONSE");
   }
   return response.data.data;

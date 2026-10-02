@@ -11,7 +11,7 @@ export function clickSearchParams(trip: LandedTrip): URLSearchParams {
     from: JSON.stringify({ name: "Origin", ...trip.origin }),
     to: JSON.stringify({ name: "Destination", ...trip.destination }),
     date: localDate(trip.departDate),
-    modes: "flight,train,ferry",
+    modes: "flight,train,bus,ferry",
     currency: "USD",
     passengers: "1",
     resolve: "hubs",

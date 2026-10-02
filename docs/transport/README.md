@@ -1,6 +1,8 @@
 # Clicks → hubs → transport offers
 
-Implemented on `feat/click-to-transport-hubs`, based on remote `main` at `36e386e`.
+Implemented on `feat/click-to-transport-hubs`, originally based on `36e386e` and
+integrated with remote `main` at `0807cd0` before publishing. The merge retains
+main's new providers, best-option ordering, date picker, navbar, sky and multiplayer planes.
 The merged provider/ranking code was reviewed and hardened first; see
 [ranking review](ranking-review.md).
 
@@ -99,8 +101,10 @@ python3 scripts/snapshot-hubs.py          # refresh airports from the pinned sou
   those in retained pairs; it can include four to preserve all selected airport
   endpoints. Groups appear flight, train, ferry; this is not a cross-mode “best
   journey” recommendation.
-- If explicitly requested, buses retain their existing provider-specific
-  coordinate matching path. The globe currently requests flight/train/ferry.
+- The globe requests flight/train/bus/ferry. Surface providers also receive one
+  raw-coordinate search using their own broader station/route seeds, so this
+  intentionally partial hub graph cannot suppress newly added train/bus coverage.
+  Those offers keep their actual provider endpoints, not an unrelated airport pair.
 
 Access distances are great-circle distances, **not road distance or travel time**.
 The resolver has no road network, border/check-in penalty, visa eligibility,
@@ -125,7 +129,9 @@ curl --get 'http://localhost:3000/api/transport/search' \
 
 Dates must be real `YYYY-MM-DD` calendar dates; numeric JSON coordinates must be
 finite and in range. `modes` omitted/empty means all modes. Invalid input returns
-`400 {"code":"BAD_QUERY"}`. Responses use `Cache-Control: no-store`; provider
+`400 {"code":"BAD_QUERY","fields":[...]}`. Both flat `fromName/fromLat/fromLng`
+(and `to*`) parameters and strict numeric JSON places are accepted. Passengers
+remain limited to 1–9 per ADR-C06; optional `providerIds` are preserved in JSON places. Responses use `Cache-Control: no-store`; provider
 internal caching is separate.
 
 The existing fields remain `{ offers, errors, tookMs }`. In hub mode the response
@@ -148,12 +154,19 @@ that a route does not operate.
 Travelpayouts currently maps **direct cached flight summaries only**. Its prices
 are per passenger, not party totals, and do not confirm seats. Connecting-flight
 support requires a richer summary/segment contract. The UI deliberately avoids
-labeling the first row “cheapest journey.” The legacy seven-airport fallback is
+labeling the first row “cheapest journey.” Main's best-option heuristic is retained:
+known fixed FX estimates, duration, mode and segment-count penalties affect ordering
+only, never displayed fares. Unknown currencies do not default to USD. The first
+row is a suggested option; the remaining offers are available under Other options.
+Changing the departure date reruns the same precise clicked coordinates, preserving
+request cancellation and local-calendar semantics. The legacy seven-airport fallback is
 still used by direct coordinate-only provider callers **without** `resolve=hubs`.
 
 The 12Go adapter is a bundled estimated timetable, not a live fare source. Its
 mode assignment now follows the actual seed being mapped instead of relabeling
-ferries as buses when both modes are requested. Its bus seed is currently empty.
+ferries as buses when both modes are requested. Main's bus seed and other surface
+adapters are retained. Their checked-date freshness values are accepted as calendar
+dates rather than fabricated timestamps.
 
 ## File map
 
@@ -195,10 +208,11 @@ pnpm start --port 3015 # after pnpm build, in another terminal
 BASE_URL=http://localhost:3015 node scripts/smoke-globe.mjs
 ```
 
-Observed after hover integration: **207 unit/API tests passed**, TypeScript/lint/build
-passed, and the browser test passed airport/surface previews, off-globe clearing,
-no hover-triggered searches, real globe clicks through the local API and
-cancellation of a delayed result, without page errors. Dataset validation passed. Local HTTP smoke checks returned HK → Shanghai rail/airport candidates,
+The pre-merge hover integration passed **207 tests**. The final main integration
+checks cover both suites, real surface-provider validation, and the browser flow
+including navbar/date-picker retention. Run the commands above for the current
+suite count. There is one inherited ESLint warning in the generated LogoReveal
+bundle (`@typescript-eslint/no-unused-expressions`); no lint errors. Local HTTP smoke checks returned HK → Shanghai rail/airport candidates,
 Seoul → Shanghai and Shanghai → Tokyo airport candidates, HK → Macau ferry
 results, and no origin candidates for an ocean click. The browser check also
 caught and fixed a clipped ticket close control in the new scrolling layout.
