@@ -166,6 +166,18 @@ gh pr create --title "<type>(<scope>): <short description>" --body "Task: <ID>"
 Report: task done + PR URL. Other seat reviews and merges; never self-merge. Push rejected or
 `gh` not authed → report exact error, leave branch committed locally.
 
+### 10b. Ahmet's flow — overrides the block above for Ahmet
+
+| Step | Rule |
+|---|---|
+| Integration branch | `dev/ahmet` (tracks `origin/dev/ahmet`). Behind `main` → `git merge --ff-only main` first |
+| Task branch | `<id>-<slug>`, **local only, never pushed**, in its own worktree: `git worktree add ../portal-<id> -b <id>-<slug> dev/ahmet` |
+| Parallel tasks | one worktree per task branch, all cut from `dev/ahmet` |
+| Commit | in the worktree, message as above |
+| Merge | task branch → `dev/ahmet` (`git switch dev/ahmet && git merge --no-ff <id>-<slug>`) |
+| PR | only `dev/ahmet` is pushed; PR `dev/ahmet` → `main` |
+| Worktree setup | `pnpm install` per worktree; needs Node ≥ 22.13 (pnpm 11) — shell default may be older, check `node -v` |
+
 ---
 
 # Part 2 — team reference
