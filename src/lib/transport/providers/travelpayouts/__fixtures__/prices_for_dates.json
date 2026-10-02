@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "data": [
+    {
+      "origin": "HKG",
+      "destination": "BKK",
+      "origin_airport": "HKG",
+      "destination_airport": "BKK",
+      "price": 120,
+      "airline": "HX",
+      "flight_number": "765",
+      "departure_at": "2026-11-15T09:00:00+08:00",
+      "duration_to": 165,
+      "transfers": 0,
+      "link": "/search/HKG1511BKK15111"
+    }
+  ]
+}
