@@ -1,0 +1,7 @@
+route_id,service_id,trip_id,trip_headsign,direction_id,shape_id,wheelchair_accessible
+"R1","WK","T1","เชียงใหม่;Chiang Mai","0","","2"
+"R1","ALL","T2","เชียงใหม่;Chiang Mai","0","","2"
+"R1","ALL","T3","เชียงใหม่;Chiang Mai","0","","2"
+"R1","HOL","T4","กรุงเทพ;Bangkok","1","","2"
+"R2","ALL","T5","เชียงใหม่;Chiang Mai","0","","2"
+"R3","ALL","T6","หัวลำโพง;Hua Lamphong","0","","2"

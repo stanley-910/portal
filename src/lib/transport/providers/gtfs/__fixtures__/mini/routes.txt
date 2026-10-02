@@ -1,0 +1,4 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_color
+"R1","TC","18","กรุงเทพฯ-เชียงใหม่;Bangkok-Chiang Mai","","3",""
+"R2","SRT","9","กรุงเทพ-เชียงใหม่;Bangkok-Chiang Mai rail","","2",""
+"R3","BMTA","29","หมอชิต-หัวลำโพง;Mo Chit-Hua Lamphong","","3",""

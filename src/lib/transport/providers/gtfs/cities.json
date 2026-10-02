@@ -1,0 +1,14 @@
+[
+  { "id": "bangkok", "name": "Bangkok", "country": "TH", "lat": 13.7563, "lng": 100.5018, "radiusKm": 20 },
+  { "id": "chiang-mai", "name": "Chiang Mai", "country": "TH", "lat": 18.7883, "lng": 98.9853, "radiusKm": 15 },
+  { "id": "phuket", "name": "Phuket", "country": "TH", "lat": 7.8804, "lng": 98.3923, "radiusKm": 15 },
+  { "id": "krabi", "name": "Krabi", "country": "TH", "lat": 8.0863, "lng": 98.9063, "radiusKm": 15 },
+  { "id": "surat-thani", "name": "Surat Thani", "country": "TH", "lat": 9.1382, "lng": 99.3215, "radiusKm": 15 },
+  { "id": "hat-yai", "name": "Hat Yai", "country": "TH", "lat": 7.0086, "lng": 100.4747, "radiusKm": 15 },
+  { "id": "pattaya", "name": "Pattaya", "country": "TH", "lat": 12.9236, "lng": 100.8825, "radiusKm": 15 },
+  { "id": "kuala-lumpur", "name": "Kuala Lumpur", "country": "MY", "lat": 3.139, "lng": 101.6869, "radiusKm": 20 },
+  { "id": "penang", "name": "Penang", "country": "MY", "lat": 5.4141, "lng": 100.3288, "radiusKm": 15 },
+  { "id": "ipoh", "name": "Ipoh", "country": "MY", "lat": 4.5975, "lng": 101.0901, "radiusKm": 15 },
+  { "id": "johor-bahru", "name": "Johor Bahru", "country": "MY", "lat": 1.4927, "lng": 103.7414, "radiusKm": 15 },
+  { "id": "singapore", "name": "Singapore", "country": "SG", "lat": 1.3521, "lng": 103.8198, "radiusKm": 20 }
+]
