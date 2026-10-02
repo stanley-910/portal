@@ -23,7 +23,7 @@ pnpm dev                      # runs scripts/tokens.mts then next dev on :3000
 pnpm lint
 pnpm exec tsc --noEmit
 pnpm test                     # after C01
-curl -s 'localhost:3000/api/transport/search?from=...&to=...&date=YYYY-MM-DD' | jq   # after C02
+curl -s 'localhost:3000/api/transport/search?fromName=..&fromLat=..&fromLng=..&toName=..&toLat=..&toLng=..&date=YYYY-MM-DD' | jq   # ADR-C06
 ```
 
 ## Next 16 docs to read before route work
@@ -44,6 +44,7 @@ curl -s 'localhost:3000/api/transport/search?from=...&to=...&date=YYYY-MM-DD' | 
 | `src/lib/transport/providers/<id>/*.test.ts` | adapter tasks | vitest, fixture-only |
 | `src/lib/transport/http.ts` | C01 | `fetchJson/fetchText(url, {signal, headers})` → throws `ProviderFailure` on 401/403/429/5xx/parse |
 | `src/lib/transport/search.ts` | C02 | `fanOut(q)` |
+| `src/lib/transport/query.ts` | C02 | `parseSearchQuery` (ADR-C06) |
 | `src/lib/env.server.ts` | C01 (vars added by adapter tasks, append-only) | zod schema, all optional |
 | `src/app/api/transport/search/route.ts` | C02 | GET handler |
 | `.env.example` | C01 (append-only) | every env var, empty values |
