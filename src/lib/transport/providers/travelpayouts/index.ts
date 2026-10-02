@@ -10,27 +10,18 @@ import { ProviderFailure, type SearchQuery, type TransportProvider } from "../..
 export const travelpayouts: TransportProvider = {
   id: "travelpayouts",
   modes: ["flight"],
+  // Eligibility to ask the cache is not evidence of a route or seat availability.
   covers(query: SearchQuery) {
+    const origin = toIata(query.from);
+    const destination = toIata(query.to);
     return (query.modes.length === 0 || query.modes.includes("flight")) &&
-      toIata(query.from) !== null &&
-      toIata(query.to) !== null;
+      origin !== null && destination !== null && origin !== destination;
   },
   async search(query, signal) {
     if (!env.TRAVELPAYOUTS_TOKEN) throw new ProviderFailure("NOT_CONFIGURED");
     const origin = toIata(query.from);
     const destination = toIata(query.to);
-    if (!origin || !destination) throw new ProviderFailure("UNSUPPORTED_ROUTE");
-    try {
-      return mapFlights(await getPrices(query, origin, destination, signal), query, env.TRAVELPAYOUTS_MARKER);
-    } catch (error) {
-      if (error instanceof ProviderFailure) throw error;
-      if (error instanceof Error && error.message === "NOT_CONFIGURED") {
-        throw new ProviderFailure("NOT_CONFIGURED");
-      }
-      if (error instanceof Error && error.message === "BAD_RESPONSE") {
-        throw new ProviderFailure("BAD_RESPONSE");
-      }
-      throw error;
-    }
+    if (!origin || !destination || origin === destination) throw new ProviderFailure("UNSUPPORTED_ROUTE");
+    return mapFlights(await getPrices(query, origin, destination, signal), query, env.TRAVELPAYOUTS_MARKER);
   },
 };

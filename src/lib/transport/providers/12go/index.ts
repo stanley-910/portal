@@ -64,16 +64,16 @@ function place(stop: SeedStop): Place {
   return { ...stop };
 }
 
-function offer(route: SeedRoute, query: SearchQuery, direction: "forward" | "reverse", departure: string): Offer {
+function offer(route: SeedRoute, query: SearchQuery, direction: "forward" | "reverse", departure: string, mode: "ferry" | "bus"): Offer {
   const from = direction === "forward" ? route.from : route.to;
   const to = direction === "forward" ? route.to : route.from;
   const [depart, arrive] = localIso(query.date, departure, route.tz, route.durationMin);
   return {
-    id: `12go:${query.modes[0] ?? "ferry"}:${from.slug}-${to.slug}:${query.date}:${departure}`,
+    id: `12go:${mode}:${from.slug}-${to.slug}:${query.date}:${departure}`,
     provider: "12go",
-    mode: query.modes.includes("bus") ? "bus" : "ferry",
+    mode,
     segments: [{
-      mode: query.modes.includes("bus") ? "bus" : "ferry",
+      mode,
       carrier: route.operators.join(", "),
       from: place(from),
       to: place(to),
@@ -82,6 +82,7 @@ function offer(route: SeedRoute, query: SearchQuery, direction: "forward" | "rev
       durationMin: route.durationMin,
     }],
     kind: "timetable",
+    attribution: `Bundled estimated timetable · ${route.source}`,
     bookingUrl: tagged(twelveGoUrl(from.slug, to.slug)),
   };
 }
@@ -90,17 +91,16 @@ export const twelveGo: TransportProvider = {
   id: "12go",
   modes: ["ferry", "bus"],
   covers(query) {
-    return query.modes.length === 0
-      ? routesFor("ferry").some((route) => matchesRoute(query.from, query.to, route) !== null)
-      : query.modes.some((mode) => routesFor(mode).some((route) => matchesRoute(query.from, query.to, route) !== null));
+    const modes = query.modes.length === 0 ? ["ferry", "bus"] as const : query.modes;
+    return modes.some((mode) => routesFor(mode).some((route) => matchesRoute(query.from, query.to, route) !== null));
   },
   async search(query) {
     const modes: Array<"ferry" | "bus"> = query.modes.length === 0
-      ? ["ferry"]
+      ? ["ferry", "bus"]
       : query.modes.filter((mode): mode is "ferry" | "bus" => mode === "ferry" || mode === "bus");
     return modes.flatMap((mode) => routesFor(mode).flatMap((route) => {
       const direction = matchesRoute(query.from, query.to, route);
-      return direction ? route.departures.map((departure) => offer(route, query, direction, departure)) : [];
+      return direction ? route.departures.map((departure) => offer(route, query, direction, departure, mode)) : [];
     }));
   },
 };

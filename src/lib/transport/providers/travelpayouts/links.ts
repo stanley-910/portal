@@ -1,19 +1,22 @@
 const AVIASALES_ORIGIN = "https://www.aviasales.com";
 
 export function withTpMarker(url: string, marker?: string): string {
-  if (!marker) return url;
   const parsed = new URL(url);
-  const existing = parsed.searchParams.get("marker");
-  if (existing) {
-    parsed.searchParams.delete("marker");
-    parsed.searchParams.set("marker", existing);
-    return parsed.toString();
-  }
-  parsed.searchParams.set("marker", marker);
+  const selectedMarker = parsed.searchParams.getAll("marker").find(Boolean) || marker;
+  // Collapse duplicates and empty values even when no new marker was configured.
+  parsed.searchParams.delete("marker");
+  if (selectedMarker) parsed.searchParams.set("marker", selectedMarker);
   return parsed.toString();
 }
 
-export function aviasalesUrl(link: string, marker?: string): string {
-  const absolute = new URL(link, AVIASALES_ORIGIN).toString();
-  return withTpMarker(absolute, marker);
+/** Upstream data may supply a relative search link, not an arbitrary redirect. */
+export function aviasalesUrl(link: string, marker?: string): string | undefined {
+  try {
+    const parsed = new URL(link, AVIASALES_ORIGIN);
+    if (parsed.origin !== AVIASALES_ORIGIN || parsed.username || parsed.password ||
+        !parsed.pathname.startsWith("/search/")) return undefined;
+    return withTpMarker(parsed.toString(), marker);
+  } catch {
+    return undefined;
+  }
 }

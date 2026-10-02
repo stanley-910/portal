@@ -17,9 +17,11 @@ export interface LatLng {
 }
 
 export interface LandedTrip {
+  /** Legacy renderer preview only; resolve actual transport hubs from origin/destination. */
   from: Airport;
+  /** Legacy renderer preview only; not the destination chosen by the hub resolver. */
   to: Airport;
-  /** Where the trip was started and landed, before snapping to airports. */
+  /** Exact picked surface points before snapping. These are the transport-search inputs. */
   origin: LatLng;
   destination: LatLng;
   /** Great-circle distance between the two airports. */

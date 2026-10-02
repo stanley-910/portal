@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-02T17:49:37.382Z",
+  "origin": "HKG",
+  "destination": "PVG",
+  "date": "2026-11-01",
+  "provider": "travelpayouts",
+  "dataFreshness": "cached",
+  "mocked": false,
+  "networkAttempted": true,
+  "httpStatus": 200,
+  "status": "ok",
+  "offerCount": 1,
+  "note": "Real API returned cached fares, not live availability"
+}

@@ -1,119 +1,90 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import { Ticket } from "@/components/paper-atlas";
+import { TransportResults } from "@/components/transport/results";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
-import type { Offer } from "@/lib/transport/types";
+import { clickSearchParams } from "@/lib/transport/client-query";
+import type { HubSearchResult } from "@/lib/transport/hub-search";
 
 import { createTrip } from "./t/actions";
 
-/** "Sat 3 Oct" */
-const formatDate = (d: Date) =>
-  d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
-/** "9,624 km" */
-const formatDistance = (km: number) => `${km.toLocaleString("en-US")} km`;
-const formatMoney = (offer: Offer) =>
-  offer.price ? `${offer.price.amount.toLocaleString("en-US", { style: "currency", currency: offer.price.currency })}` : "Typical timetable";
-
-function ResultList({ offers }: { offers: Offer[] }) {
-  return (
-    <div className="flex max-h-[min(42dvh,360px)] w-[min(92vw,560px)] flex-col gap-(--space-2) overflow-y-auto">
-      {offers.map((offer, index) => (
-        <a
-          key={offer.id}
-          href={offer.bookingUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center justify-between gap-(--space-4) rounded-(--radius-md) border border-ink/15 bg-paper/95 px-(--space-4) py-(--space-3) text-ink shadow-(--shadow-sm) backdrop-blur transition hover:-translate-y-px"
-        >
-          <span className="min-w-0">
-            <span className="type-label block text-ink-muted">{index === 0 ? "CHEAPEST" : offer.mode.toUpperCase()} · {offer.segments[0].carrier ?? offer.provider}</span>
-            <span className="type-body block truncate">{new Date(offer.segments[0].depart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {offer.segments[0].durationMin} min</span>
-          </span>
-          <span className="type-body shrink-0 text-right">{formatMoney(offer)}</span>
-        </a>
-      ))}
-    </div>
-  );
-}
+const formatDate = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+const coordinates = (point: { lat: number; lng: number }) => `${point.lat.toFixed(2)}, ${point.lng.toFixed(2)}`;
 
 export function GlobeScreen() {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
+  const pending = useRef<AbortController | null>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [result, setResult] = useState<HubSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
 
+  useEffect(() => () => { pending.current?.abort(); }, []);
+
+  const clear = () => {
+    pending.current?.abort();
+    pending.current = null;
+    setTrip(null);
+    setResult(null);
+    setSearching(false);
+    setSearchError(false);
+  };
   const search = async (nextTrip: LandedTrip) => {
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
     setTrip(nextTrip);
-    setOffers([]);
+    setResult(null);
     setSearchError(false);
     setSearching(true);
-    const date = nextTrip.departDate.toISOString().slice(0, 10);
-    const params = new URLSearchParams({
-      from: JSON.stringify({ name: nextTrip.from.city, lat: nextTrip.from.lat, lng: nextTrip.from.lng, iata: nextTrip.from.code }),
-      to: JSON.stringify({ name: nextTrip.to.city, lat: nextTrip.to.lat, lng: nextTrip.to.lng, iata: nextTrip.to.code }),
-      date,
-      modes: "flight,train,bus,ferry",
-      currency: "USD",
-      passengers: "1",
-    });
     try {
-      const response = await fetch(`/api/transport/search?${params}`);
-      if (!response.ok) throw new Error("search failed");
-      const result = (await response.json()) as { offers: Offer[] };
-      setOffers(result.offers);
+      const response = await fetch(`/api/transport/search?${clickSearchParams(nextTrip)}`, { signal: controller.signal });
+      if (!response.ok) throw new Error("Search failed");
+      const next = await response.json() as HubSearchResult;
+      if (pending.current === controller && !controller.signal.aborted) setResult(next);
     } catch {
-      setSearchError(true);
+      if (pending.current === controller && !controller.signal.aborted) setSearchError(true);
     } finally {
-      setSearching(false);
+      if (pending.current === controller && !controller.signal.aborted) setSearching(false);
     }
   };
+  // Show provider endpoints when available, otherwise the first geographic pair.
+  // Never present the globe renderer's legacy mock snap as a search result.
+  const firstOfferPair = result?.offers[0] && result.offerPairs[result.offers[0].id]?.[0];
+  const preferredPair = result?.hubs.pairs.find((pair) => pair.id === firstOfferPair) ?? result?.hubs.pairs[0];
 
-  return (
-    <main className="relative h-dvh w-full overflow-hidden">
-      <TripGlobe
-        ref={globe}
-        theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
-        onTakeoff={() => setTrip(null)}
-        onLand={search}
-        onCancel={() => {
-          setTrip(null);
-          setOffers([]);
-          setSearching(false);
-        }}
+  return <main className="relative h-dvh w-full overflow-hidden">
+    <TripGlobe
+      ref={globe}
+      theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
+      onTakeoff={clear}
+      onLand={search}
+      onCancel={clear}
+    />
+    <form action={createTrip} className="absolute top-(--space-4) left-(--space-4)">
+      <button type="submit" className="type-tag min-h-11 rounded-tag border-(length:--line-hair) border-ink bg-paper-raised px-(--space-3) shadow-tag">New trip</button>
+    </form>
+    {trip ? <div className="absolute bottom-(--space-6) left-1/2 flex max-h-[90dvh] -translate-x-1/2 flex-col items-center gap-(--space-3) overflow-y-auto p-(--space-6)">
+      {preferredPair?.mode === "flight" ? <EntryPanel leg={{ fromHub: preferredPair.from.hub.code, toHub: preferredPair.to.hub.code }} members={DEMO_PARTY} /> : null}
+      <Ticket
+        className="shrink-0"
+        from={{ code: preferredPair ? (preferredPair.mode === "flight" ? preferredPair.from.hub.code : preferredPair.mode === "train" ? "RAIL" : "PORT") : "—", city: preferredPair?.from.hub.city || preferredPair?.from.hub.name || coordinates(trip.origin) }}
+        to={{ code: preferredPair ? (preferredPair.mode === "flight" ? preferredPair.to.hub.code : preferredPair.mode === "train" ? "RAIL" : "PORT") : "—", city: preferredPair?.to.hub.city || preferredPair?.to.hub.name || coordinates(trip.destination) }}
+        date={formatDate(trip.departDate)}
+        searching={searching}
+        distance={preferredPair ? `${Math.round(preferredPair.distanceKm).toLocaleString("en-US")} km` : "—"}
+        onClose={() => globe.current?.cancel()}
       />
-      <form action={createTrip} className="absolute top-(--space-4) left-(--space-4)">
-        <button
-          type="submit"
-          className="type-tag h-9 rounded-tag border-(length:--line-hair) border-ink bg-paper-raised px-(--space-3) shadow-tag"
-        >
-          Plan with friends
-        </button>
-      </form>
-      {trip ? (
-        <div
-          key={`${trip.from.code}-${trip.to.code}-${trip.destination.lat}`}
-          className="absolute bottom-(--space-6) left-1/2 flex -translate-x-1/2 flex-col items-center gap-(--space-4) animate-in duration-500 ease-[cubic-bezier(0.2,0.9,0.25,1.15)] fade-in slide-in-from-bottom-[18px] motion-reduce:animate-none"
-        >
-          <EntryPanel leg={{ fromHub: trip.from.code, toHub: trip.to.code }} members={DEMO_PARTY} />
-          <Ticket
-            from={{ code: trip.from.code, city: trip.from.city }}
-            to={{ code: trip.to.code, city: trip.to.city }}
-            date={formatDate(trip.departDate)}
-            distance={formatDistance(trip.distanceKm)}
-            onClose={() => globe.current?.cancel()}
-          />
-          {searching ? <p className="type-body text-ink-muted">Finding the cheapest routes…</p> : null}
-          {searchError ? <p className="type-body text-ink-muted">Route search failed. Please try again.</p> : null}
-          {!searching && !searchError && offers.length > 0 ? <ResultList offers={offers} /> : null}
-          {!searching && !searchError && offers.length === 0 ? <p className="type-body text-ink-muted">No supported routes found.</p> : null}
-        </div>
-      ) : null}
-    </main>
-  );
+      <div role="status" aria-live="polite">
+        {searching ? <p className="type-body rounded-tag bg-paper-raised p-(--space-3) text-ink-muted">Finding hubs and routes…</p> : null}
+        {searchError ? <p className="type-body rounded-tag bg-paper-raised p-(--space-3) text-ink-muted">Route search failed. Please try again.</p> : null}
+      </div>
+      {result ? <TransportResults result={result} /> : null}
+    </div> : null}
+  </main>;
 }

@@ -68,6 +68,28 @@ describe("12Go ferry adapter", () => {
     });
   });
 
+  it("does not relabel ferries as buses when both modes are requested", async () => {
+    const offers = await twelveGo.search({ ...query, modes: ["flight", "ferry", "bus"] }, new AbortController().signal);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((offer) => offer.mode === "ferry" && offer.segments[0].mode === "ferry")).toBe(true);
+    expect(offers.every((offer) => offer.id.startsWith("12go:ferry:") && offer.attribution)).toBe(true);
+  });
+
+  it("searches buses too when an empty mode list means all modes", async () => {
+    // The production bus seed is currently empty; exercise the contract with a
+    // temporary fixture without claiming that a real bus route is bundled.
+    const route = { ...routesFor("ferry")[0] };
+    routesFor("bus").push(route);
+    try {
+      const allModes = { ...query, from: route.from, to: route.to, modes: [] };
+      expect(twelveGo.covers(allModes)).toBe(true);
+      const offers = await twelveGo.search(allModes, new AbortController().signal);
+      expect(offers.some((offer) => offer.mode === "bus" && offer.id.startsWith("12go:bus:"))).toBe(true);
+    } finally {
+      routesFor("bus").pop();
+    }
+  });
+
   it("does not cover a query outside the snap radius", () => {
     expect(twelveGo.covers({
       ...query,

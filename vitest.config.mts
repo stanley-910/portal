@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// dev/ahmet adds the same file (core ADR-C03) plus a `server-only` alias; on merge keep both include globs.
+// One ESM config for application and script tests. Keep both include globs.
 export default defineConfig({
   resolve: {
     alias: {
