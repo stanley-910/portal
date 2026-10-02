@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
-import { Ticket } from "@/components/paper-atlas";
+import { Button, Ticket } from "@/components/paper-atlas";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { convertCurrency, CURRENCIES, formatCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import { transfersOf, type Offer } from "@/lib/transport/types";
@@ -26,6 +26,14 @@ function formatMoney(offer: Offer, currency: Currency, rates: ExchangeRates | nu
   return amount === null ? "Rate unavailable" : formatCurrency(amount, currency);
 }
 
+const CURRENCY_NAMES: Record<Currency, { name: string; symbol: string }> = {
+  USD: { name: "US dollar", symbol: "$" },
+  EUR: { name: "Euro", symbol: "€" },
+  CNY: { name: "Chinese yuan", symbol: "¥" },
+  HKD: { name: "Hong Kong dollar", symbol: "HK$" },
+};
+
+/** The currency control in the navbar: a secondary button that opens a list of currencies below it. */
 function CurrencySelector({
   currency,
   rates,
@@ -38,37 +46,74 @@ function CurrencySelector({
   onChange: (currency: Currency) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  // Close on a click outside or Escape.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
   return (
-    <div className="absolute top-(--space-4) right-(--space-4) z-10 flex flex-col items-end gap-(--space-2)">
+    <div ref={root} className="relative">
       <button
         type="button"
-        className="type-tag min-h-11 rounded-tag border border-ink bg-paper-raised px-(--space-3) shadow-tag"
+        className="pa-round pn-currency"
+        data-long={CURRENCY_NAMES[currency].symbol.length > 1 || undefined}
+        aria-label={`Currency: ${currency}`}
+        title={CURRENCY_NAMES[currency].name}
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((visible) => !visible)}
       >
-        {currency}
+        {CURRENCY_NAMES[currency].symbol}
       </button>
       {open ? (
-        <div className="flex flex-col gap-(--space-1) rounded-ticket border border-ink bg-paper-raised p-(--space-2) shadow-ticket" role="listbox" aria-label="Currency">
+        <div
+          className="pn-menu"
+          role="listbox"
+          aria-label="Currency"
+        >
           {CURRENCIES.map((option) => (
-            <button
+            <Button
               key={option}
-              type="button"
+              variant="quiet"
+              block
               role="option"
               aria-selected={option === currency}
               disabled={option !== "USD" && !rates}
-              className="type-tag min-h-11 rounded-tag px-(--space-3) text-left hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => {
                 onChange(option);
                 setOpen(false);
               }}
             >
-              {option === "EUR" ? "EUR · Euro" : option}
-            </button>
+              <span className="pn-menu-symbol" aria-hidden>
+                {CURRENCY_NAMES[option].symbol}
+              </span>
+              <span className="pn-menu-text">
+                <span>{option}</span>
+                <span className="pn-menu-detail">{CURRENCY_NAMES[option].name}</span>
+              </span>
+              {option === currency ? (
+                <svg className="pn-menu-check" width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+                  {NAV_ICONS.check}
+                </svg>
+              ) : null}
+            </Button>
           ))}
           {error ? (
-            <p className="type-meta max-w-44 px-(--space-2) pb-(--space-1) text-ink-muted">
+            <p className="type-caption max-w-44 px-(--space-2) pb-(--space-1) text-ink-muted">
               Live rates unavailable. USD remains available.
             </p>
           ) : null}
@@ -257,7 +302,6 @@ export function GlobeScreen() {
 
   return (
     <main className="relative h-dvh w-full overflow-hidden">
-      <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
       <TripGlobe
         ref={globe}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
@@ -272,6 +316,7 @@ export function GlobeScreen() {
         }}
       />
       <NavBar globe={globe}>
+        <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
         <form action={createTrip}>
           <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
         </form>
