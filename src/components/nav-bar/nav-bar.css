@@ -57,6 +57,9 @@
 .pn-controls .pa-btn svg, .pn-controls .pa-round svg { width: calc(16px - 2px * var(--fold)); height: calc(16px - 2px * var(--fold)); }
 .pn-btn-label { display: inline-block; overflow: hidden; vertical-align: bottom; max-width: calc(14em * (1 - var(--fold))); opacity: calc(1 - var(--fold) * 2); }
 
+/* Trip members' avatars: discs the size of the controls, ringed in each member's colour. */
+.pn-avatar { display: grid; place-items: center; box-sizing: border-box; width: var(--ctrl-h, 36px); height: var(--ctrl-h, 36px); border-style: solid; border-radius: var(--radius-round); background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-float); font-family: var(--font-sans); font-weight: 600; font-size: calc(13px - 2px * var(--fold, 0)); line-height: 1; }
+
 /* A RoundButton showing the chosen currency's symbol in place of an icon. */
 .pn-currency { font-family: var(--font-sans); font-weight: 600; font-size: calc(17px - 3px * var(--fold)); line-height: 1; }
 .pn-currency[data-long] { font-size: calc(12px - 2px * var(--fold)); letter-spacing: -0.02em; }
