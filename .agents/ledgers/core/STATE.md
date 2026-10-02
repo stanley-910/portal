@@ -1,8 +1,9 @@
 # Core — State
 
 Last updated: 2026-10-02
-Last session ended: **C01 done (2026-10-02, Ahmet).** Contract, 7 stubs, `http.ts`, `env.server.ts`,
-vitest (34 tests) landed on `dev/ahmet`. Every `F/S/T/B` task + C02 now eligible. Hand-off: C01 `## Notes`.
+Last session ended: **C02 done (2026-10-02, Ahmet, on owner's request — Cata's seat).** Search route
+`/api/transport/search` + `fanOut` + `parseSearchQuery` on `dev/ahmet`; ADR-C06 (query shape),
+ADR-C07 (race, no retries). Core ledger complete. Hand-off: C02 `## Notes`.
 
 ## Execution protocol (follow exactly)
 
@@ -13,7 +14,7 @@ verbatim → `## Notes` → update row, "Current task", "Last session ended" →
 
 ## Current task
 
-**C02 — `/api/transport/search` fan-out route** (Cata, sonnet). Adapters parallel alongside.
+**None — core complete.** Next work lives in `F/S/T/B` ledgers (EXECUTE § 4).
 
 ## Environment
 
@@ -33,7 +34,7 @@ Statuses: todo → in_progress → done → (blocked) · retired = dropped, ID k
 | ID | Title | Repo | Status | Depends on |
 |----|-------|------|--------|------------|
 | C01 | Contract, stub registry, vitest, env schema | | done | — |
-| C02 | `/api/transport/search` fan-out route | | todo | C01 |
+| C02 | `/api/transport/search` fan-out route | | done | C01 |
 
 ## Critical path
 

@@ -44,3 +44,16 @@ the seat whose key is pending.
 **Decision:** every seed row has `departures: string[]` ("HH:MM", local) + `tz` (IANA) from a cited operator/public source. Adapter emits one `Offer` per departure on `q.date`, `kind: "timetable"`, arrive = depart + `durationMin`. No times known → row not seeded.
 **Why not optional times:** contract churn across 7 adapters; UI sorts by depart.
 **Consequences:** seed curation costs more; times are "typical", UI says so via `kind`.
+
+## ADR-C06 — 2026-10-02 — Search query string: flat `from*` / `to*` params
+
+**Context:** `GET /api/transport/search` must carry two `Place`s. Options: (A) flat params per field (B) `from=lat,lng,name[,iata]` packed (C) JSON in a param.
+**Decision:** (A). `fromName, fromLat, fromLng, fromIata?, fromCountry?` and same for `to*`; `date` (YYYY-MM-DD, real calendar date), `modes?` (comma list), `passengers?` (1–9, default 1), `currency?` (ISO 4217, default USD). Blank = absent. Parser: `src/lib/transport/query.ts`.
+**Why not (B):** names contain commas. **(C):** unreadable curls, double encoding.
+**Consequences:** `providerIds` not passable by URL; adapters resolve stations from lat/lng/iata. 400 body `{ code: "BAD_QUERY", fields: string[] }`.
+
+## ADR-C07 — 2026-10-02 — Fan-out: race each provider against its signal, no retries yet
+
+**Context:** Provider may ignore `signal`; retries could blow the 8 s budget.
+**Decision:** `fanOut` races `search()` against `AbortSignal.any([timeout(PROVIDER_TIMEOUT_MS), request.signal])` → `TIMEOUT`. No retries; `retryable` returned to client. Route `maxDuration = 15`.
+**Consequences:** retries, if added, live in `search.ts` only.
