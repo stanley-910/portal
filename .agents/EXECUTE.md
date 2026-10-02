@@ -166,17 +166,18 @@ gh pr create --title "<type>(<scope>): <short description>" --body "Task: <ID>"
 Report: task done + PR URL. Other seat reviews and merges; never self-merge. Push rejected or
 `gh` not authed → report exact error, leave branch committed locally.
 
-### 10b. Ahmet's flow — overrides the block above for Ahmet
+### 10b. Ahmet's flow — overrides § 5 and the block above for Ahmet
 
 | Step | Rule |
 |---|---|
+| Model tier | **skip § 5.** Run on whatever model Ahmet started; no `TIER` stop |
 | Integration branch | `dev/ahmet` (tracks `origin/dev/ahmet`). Behind `main` → `git merge --ff-only main` first |
-| Task branch | `<id>-<slug>`, **local only, never pushed**, in its own worktree: `git worktree add ../portal-<id> -b <id>-<slug> dev/ahmet` |
-| Parallel tasks | one worktree per task branch, all cut from `dev/ahmet` |
-| Commit | in the worktree, message as above |
-| Merge | task branch → `dev/ahmet` (`git switch dev/ahmet && git merge --no-ff <id>-<slug>`) |
+| Ledger branch | **one per ledger, not per task**: branch `<ledger>` (`core`, `trains`, `buses`), **local only, never pushed**, in worktree `../portal-<ledger>`. Create once: `git worktree add ../portal-<ledger> -b <ledger> dev/ahmet`; reuse for every task of that ledger |
+| Start of task | in the ledger worktree: `git merge dev/ahmet` (pick up other ledgers' merged work) |
+| Commit | one commit per task, message as above |
+| Merge | after each task: ledger branch → `dev/ahmet` (`git merge --no-ff <ledger>` from a checkout of `dev/ahmet`) |
 | PR | only `dev/ahmet` is pushed; PR `dev/ahmet` → `main` |
-| Worktree setup | `pnpm install` per worktree; needs Node ≥ 22.13 (pnpm 11) — shell default may be older, check `node -v` |
+| Worktree setup | once per ledger worktree: `pnpm install` + `pnpm exec next typegen`; needs Node ≥ 22.13 (pnpm 11) — shell default may be older, check `node -v` |
 
 ---
 
