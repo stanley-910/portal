@@ -10,5 +10,5 @@
   { "id": "penang", "name": "Penang", "country": "MY", "lat": 5.4141, "lng": 100.3288, "radiusKm": 15 },
   { "id": "ipoh", "name": "Ipoh", "country": "MY", "lat": 4.5975, "lng": 101.0901, "radiusKm": 15 },
   { "id": "johor-bahru", "name": "Johor Bahru", "country": "MY", "lat": 1.4927, "lng": 103.7414, "radiusKm": 15 },
-  { "id": "singapore", "name": "Singapore", "country": "SG", "lat": 1.3521, "lng": 103.8198, "radiusKm": 20 }
+  { "id": "singapore", "name": "Singapore", "country": "SG", "lat": 1.3521, "lng": 103.8198, "radiusKm": 20, "stops": ["ktmb:37600"] }
 ]

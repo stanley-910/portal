@@ -1,0 +1,7 @@
+route_id,service_id,trip_id,direction_id
+ETS,ets,1010,0
+KA15_KD19,komuter_weekday,weekday_2102,0
+ST,intercity,61,1
+ST,intercity,72,0
+ETS,ets,9323,1
+ETS,ets,9326,0

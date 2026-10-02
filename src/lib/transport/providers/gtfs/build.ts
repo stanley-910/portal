@@ -1,6 +1,6 @@
 // Build-time only (scripts/gtfs-build.mts, tests). Runs under plain `node`, hence `.ts` import specifiers.
 import type { Mode } from "../../types";
-import { cityAt } from "./geo.ts";
+import { cityAt, distanceKm } from "./geo.ts";
 import { pairKey, type City, type PairDeparture, type PairFile, type PairService } from "./schema.ts";
 
 type Row = Record<string, string>;
@@ -17,6 +17,9 @@ export const NEEDED_FILES = [
   "frequencies.txt",
   "feed_info.txt",
 ] as const;
+
+/** Straight-line speed cap: namtang ships SRT trip copies with placeholder minute-step times (T05). */
+const MAX_KMH = 300;
 
 const MODE_BY_ROUTE_TYPE: Record<number, Mode> = { 2: "train", 3: "bus", 4: "ferry" };
 
@@ -167,10 +170,13 @@ export function buildPairs(feed: FeedTables, opts: BuildOptions): Record<string,
     feed.routes.filter((r) => opts.routeTypes.includes(Number(r.route_type))).map((r) => [r.route_id, r]),
   );
   const stops = new Map(feed.stops.map((s) => [s.stop_id, s]));
-  const stopCity = new Map<string, string>();
+  const pinned = new Map(cities.flatMap((c) => (c.stops ?? []).map((s) => [s, c] as const)));
+  const stopCity = new Map<string, { city: City; km: number }>();
   for (const s of feed.stops) {
-    const c = cityAt(cities, Number(s.stop_lat), Number(s.stop_lon));
-    if (c) stopCity.set(s.stop_id, c.id);
+    const lat = Number(s.stop_lat);
+    const lng = Number(s.stop_lon);
+    const c = pinned.get(k(s.stop_id)) ?? cityAt(cities, lat, lng);
+    if (c) stopCity.set(s.stop_id, { city: c, km: distanceKm(lat, lng, c.lat, c.lng) });
   }
 
   const services = new Map<string, PairService>();
@@ -221,28 +227,38 @@ export function buildPairs(feed: FeedTables, opts: BuildOptions): Record<string,
         )
       : [base];
 
-    const legs: Array<{ from: Row; to: Row; fromCity: string; toCity: string }> = [];
-    const originCities = new Set<string>();
-    for (let i = 0; i < st.length; i++) {
-      const a = stopCity.get(st[i].stop_id);
-      if (!a || originCities.has(a)) continue;
-      originCities.add(a);
-      const reached = new Set<string>();
-      for (let j = i + 1; j < st.length; j++) {
-        const b = stopCity.get(st[j].stop_id);
-        if (!b || b === a || reached.has(b)) continue;
-        reached.add(b);
-        legs.push({ from: st[i], to: st[j], fromCity: a, toCity: b });
-      }
+    // One stop per city: the one nearest its centre within the trip's first visit, so a through
+    // train boards/alights at KL Sentral, not Sungai Buloh at the radius edge (T05).
+    const visits: Array<{ city: string; stop: Row; km: number }> = [];
+    let prev: string | undefined;
+    for (const s of st) {
+      const hit = stopCity.get(s.stop_id);
+      const id = hit?.city.id;
+      if (hit && id === prev) {
+        const last = visits[visits.length - 1];
+        if (last.city === id && hit.km < last.km) Object.assign(last, { stop: s, km: hit.km });
+      } else if (hit && !visits.some((v) => v.city === id)) visits.push({ city: hit.city.id, stop: s, km: hit.km });
+      prev = id;
     }
+    const legs: Array<{ from: Row; to: Row; fromCity: string; toCity: string }> = [];
+    for (let i = 0; i < visits.length; i++)
+      for (let j = i + 1; j < visits.length; j++)
+        legs.push({ from: visits[i].stop, to: visits[j].stop, fromCity: visits[i].city, toCity: visits[j].city });
     if (!legs.length) continue;
 
+    const plausible = (a: Row, b: Row, secs: number) => {
+      const sa = stops.get(a.stop_id);
+      const sb = stops.get(b.stop_id);
+      if (!sa || !sb || secs <= 0) return false;
+      const km = distanceKm(Number(sa.stop_lat), Number(sa.stop_lon), Number(sb.stop_lat), Number(sb.stop_lon));
+      return km / (secs / 3600) <= MAX_KMH;
+    };
     const op = splitName(agency.agency_name).en;
     const num = route.route_short_name.trim() || undefined;
     for (const leg of legs) {
       const dep0 = gtfsSeconds(leg.from.departure_time || leg.from.arrival_time);
       const arr0 = gtfsSeconds(leg.to.arrival_time || leg.to.departure_time);
-      if (dep0 === undefined || arr0 === undefined) continue;
+      if (dep0 === undefined || arr0 === undefined || !plausible(leg.from, leg.to, arr0 - dep0)) continue;
       const key = pairKey(leg.fromCity, leg.toCity);
       const pair = (out[key] ??= { from: leg.fromCity, to: leg.toCity, stops: {}, services: {}, departures: [] });
       for (const start of starts) {

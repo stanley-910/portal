@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { SearchQuery } from "../../types";
 import { assertFeedCurrent, buildPairs, parseCsv, readFeed, splitName, tripStarts } from "./build";
+import cityList from "./cities.json";
 import { createGtfsProvider } from "./index";
 import { departuresOn, isoAt } from "./schedule";
 import type { City, FeedMeta, PairFile } from "./schema";
@@ -185,5 +186,115 @@ describe("gtfs provider", () => {
       arrive: "2026-10-06T16:03:00+07:00",
       durationMin: 518,
     });
+  });
+});
+
+describe("gtfs rail (T05)", () => {
+  const KTMB = new URL("./__fixtures__/ktmb/", import.meta.url);
+  const ktmb = readFeed(
+    Object.fromEntries(readdirSync(KTMB).map((f) => [f, readFileSync(new URL(f, KTMB), "utf8")])),
+  );
+  const allCities = cityList as City[];
+  const rail = buildPairs(ktmb, { feedId: "ktmb", cities: allCities, routeTypes: [2] });
+  const klPen = rail["kuala-lumpur__penang"];
+  const ktmbMeta: FeedMeta = { ...feedMeta, id: "ktmb", country: "MY", attribution: "Data: KTMB via data.gov.my" };
+
+  it("KTMB ETS: KL Sentral → Butterworth as a train leg, operator from agency_name", () => {
+    expect(klPen.departures.find((d) => d.id === "ktmb:1010:29700")).toEqual({
+      id: "ktmb:1010:29700",
+      feed: "ktmb",
+      op: "Keretapi Tanah Melayu",
+      num: "ETS",
+      mode: "train",
+      tz: "Asia/Kuala_Lumpur",
+      svc: "ktmb:ets",
+      from: "ktmb:19100",
+      to: "ktmb:100",
+      dep: 8 * 3600 + 15 * 60,
+      arr: 15 * 3600 + 8 * 60,
+    });
+    expect(klPen.stops["ktmb:19100"].name).toBe("KL SENTRAL");
+    expect(klPen.stops["ktmb:100"].name).toBe("BUTTERWORTH");
+  });
+
+  it("picks the stop nearest the city centre, not the first one inside the radius", () => {
+    // 9326 JB→Butterworth enters KL at Bdr Tasek Selatan; 9323 reaches KL at Sungai Buloh first.
+    expect(klPen.departures.find((d) => d.id.startsWith("ktmb:9326:"))?.from).toBe("ktmb:19100");
+    expect(rail["penang__kuala-lumpur"].departures.find((d) => d.id.startsWith("ktmb:9323:"))?.to).toBe("ktmb:19100");
+    expect(rail["kuala-lumpur__penang"].departures.every((d) => d.to === "ktmb:100")).toBe(true);
+  });
+
+  it("drops Komuter (route_type 0) and pins Woodlands CIQ to Singapore for the ST shuttle", () => {
+    const ids = Object.values(rail).flatMap((p) => p.departures.map((d) => d.id));
+    expect(ids.some((id) => id.startsWith("ktmb:weekday_"))).toBe(false);
+    expect(rail["johor-bahru__singapore"].departures.map((d) => d.id)).toEqual(["ktmb:61:18000"]);
+    expect(rail["singapore__johor-bahru"].departures[0]).toMatchObject({ from: "ktmb:37600", to: "ktmb:37500", num: "ST" });
+  });
+
+  it("fails loudly once the KTMB calendar (ends 20261015) is past", () => {
+    expect(() => assertFeedCurrent("ktmb", ktmb, "20261015")).not.toThrow();
+    expect(() => assertFeedCurrent("ktmb", ktmb, "20261016")).toThrow(/ktmb calendar ended 20261015/);
+  });
+
+  it("KL → Penang returns train offers", async () => {
+    const provider = createGtfsProvider({
+      cities: allCities,
+      feeds: [ktmbMeta],
+      pairs: { "kuala-lumpur__penang": async () => klPen },
+    });
+    const q: SearchQuery = {
+      from: { name: "Kuala Lumpur", lat: 3.14, lng: 101.69 },
+      to: { name: "Penang", lat: 5.41, lng: 100.33 },
+      date: "2026-10-06",
+      modes: ["train"],
+      passengers: 1,
+      currency: "MYR",
+    };
+    expect(provider.modes).toContain("train");
+    expect(provider.covers(q)).toBe(true);
+    const offers = await provider.search(q, AbortSignal.timeout(1_000));
+    expect(offers.length).toBe(2);
+    expect(offers[0]).toMatchObject({ provider: "gtfs", mode: "train", kind: "timetable", attribution: ktmbMeta.attribution });
+    expect(offers[0].segments[0]).toMatchObject({
+      mode: "train",
+      carrier: "Keretapi Tanah Melayu",
+      number: "ETS",
+      from: { name: "KL SENTRAL", country: "MY" },
+      to: { name: "BUTTERWORTH", country: "MY" },
+      depart: "2026-10-06T08:15:00+08:00",
+      arrive: "2026-10-06T15:08:00+08:00",
+    });
+  });
+
+  it("drops placeholder-timed legs (namtang SRT copies run 00:00 → 00:07 Bangkok → Chiang Mai)", () => {
+    const bogus = readFeed({
+      ...files,
+      "trips.txt": `${files["trips.txt"]}"R2","ALL","T7","Chiang Mai","0","","2"\n`,
+      "stop_times.txt": `${files["stop_times.txt"]}"T7","00:00:00","00:01:00","40","1","0"\n"T7","00:07:00","00:07:00","30","2","0"\n`,
+    });
+    const p = buildPairs(bogus, { feedId: "mini", cities, routeTypes: [2, 3] })["bangkok__chiang-mai"];
+    expect(p.departures.some((d) => d.id.startsWith("mini:T7:"))).toBe(false);
+    expect(p.departures.some((d) => d.id.startsWith("mini:T5:"))).toBe(true);
+  });
+
+  it("Bangkok → Chiang Mai returns SRT trains and buses when route_type 2 is included", async () => {
+    const both = buildPairs(feed, { feedId: "mini", cities, routeTypes: [2, 3] })["bangkok__chiang-mai"];
+    const srt = both.departures.filter((d) => d.mode === "train");
+    expect(srt).toEqual([
+      expect.objectContaining({ id: "mini:T5:64800", op: "State Railway of Thailand", num: "9", from: "mini:40", to: "mini:30" }),
+    ]);
+    const provider = createGtfsProvider({ cities, feeds: [feedMeta], pairs: { "bangkok__chiang-mai": async () => both } });
+    const q: SearchQuery = {
+      from: { name: "Bangkok", lat: 13.75, lng: 100.5 },
+      to: { name: "Chiang Mai", lat: 18.79, lng: 98.98 },
+      date: "2026-10-06",
+      modes: [],
+      passengers: 1,
+      currency: "THB",
+    };
+    const modes = (await provider.search(q, AbortSignal.timeout(1_000))).map((o) => o.mode);
+    expect(new Set(modes)).toEqual(new Set(["bus", "train"]));
+    const trainsOnly = await provider.search({ ...q, modes: ["train"] }, AbortSignal.timeout(1_000));
+    expect(trainsOnly.map((o) => o.segments[0].carrier)).toEqual(["State Railway of Thailand"]);
   });
 });

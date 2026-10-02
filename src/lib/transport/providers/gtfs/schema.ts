@@ -7,6 +7,8 @@ export interface City {
   lat: number;
   lng: number;
   radiusKm: number;
+  /** Feed-qualified stop ids (`ktmb:37600`) pinned to this city, overriding the nearest-centroid match. */
+  stops?: string[];
 }
 
 export interface PairStop {

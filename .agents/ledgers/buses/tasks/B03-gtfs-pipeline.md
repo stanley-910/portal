@@ -47,7 +47,7 @@ Live: `pnpm gtfs:build` completes; `ls src/lib/transport/providers/gtfs/pairs | 
   `build.ts` at runtime.
 - Live build: namtang only, 18 pairs, 241 departures, 96 KB. BKK→CNX = 27/day. KL/Penang/JB/SG pairs empty (no bus feed).
 - Namtang frequencies = chained windows, headway = window length → end inclusive + dedupe (ADR-B04).
-- Leg = first stop in origin city → first stop in each later city. Stop→city = nearest centroid within radius.
+- Leg = first stop in origin city → first stop in each later city. Stop→city = nearest centroid within radius. **Superseded by T05:** stop nearest city centre within the first visit; `City.stops` pins; legs > 300 km/h dropped.
 - Fares skipped (non-negotiable) though `fare_attributes` has THB prices → Backlog.
 - Provider modes `["bus"]`; `registry.test.ts` has `LANDED` set (stub tests skip landed adapters) — add your id there.
 - **T05:** add KTMB to `FEEDS` (`routeTypes: [2]`), add `2` to namtang `routeTypes`, `MODES` in `index.ts` += `"train"`.

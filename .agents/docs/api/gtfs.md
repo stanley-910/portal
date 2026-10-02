@@ -126,7 +126,7 @@ Intercity reality check (our target routes):
 | KL ↔ Singapore coach | **no** (no operator feed; BOT/12Go deep link) |
 | KL ↔ Penang/Butterworth, KL ↔ JB | rail yes (KTMB ETS); coach no |
 | JB Sentral ↔ Woodlands | yes, KTMB `ST` shuttle |
-| Bangkok ↔ Chiang Mai | yes: SRT rail + bus (TC บขส., NCA) in namtang (observed 19 routes) |
+| Bangkok ↔ Chiang Mai | bus yes (TC บขส., NCA); **SRT rail no** — namtang long-distance trains have placeholder times (observed 2026-10-02, see Gotchas) |
 | Bangkok ↔ Malaysia border/Penang | `unverified` (check namtang routes at build) |
 | Japan highway bus | sparse (few 高速バス feeds); JR intercity `unverified` |
 | Korea / Taiwan | not GTFS here → other docs |
@@ -146,6 +146,9 @@ Intercity reality check (our target routes):
 - Namtang `fare_attributes.txt` has real `price` + `currency_type` THB per `fare_rules` origin/destination zone (observed 2026-10-02) — skipped for now (buses Backlog).
 - Namtang `shapes.txt` 154 MB, fares 65 MB → skip those files when unzipping (stream only needed entries).
 - myBAS zips carry 38 MB fares-v2 files; same, skip.
+- **Namtang SRT unusable for intercity (observed 2026-10-02, feed_version 20261001):** 199 rail trips; 23 long-distance copies (e.g. train 9 Bangkok→Chiang Mai, 13 stops) run `00:00:00`→`00:07:00` in 1-min steps, no frequencies; the 176 real-timed trips are truncated ≤ 2 h stubs (train 9 = Krung Thep Aphiwat 18:40 → Rangsit only). Build drops legs > 300 km/h straight-line → 0 SRT legs between our cities.
+- KTMB zip has no `feed_info.txt`; calendar 20260818–20261015 (observed 2026-10-02). Intercity = `route_type` 2 (`ETS`,`ERT`,`SH`,`ST`); Komuter = 0. `route_short_name` = service (`ETS`), trip_id looks like train no. (`9326`) `unverified`. ETS 1004/1005 run to **HAT YAI** (TH) in KTMB times/tz.
+- Woodlands CIQ (1.4437,103.7696) is nearer JB centroid than SG → pinned via `cities.json` `stops: ["ktmb:37600"]`.
 - KTMB calendar ends 20261015 → rebuild before demo if past; check `end_date` at build, fail loudly.
 - Times >24:00 and `agency_timezone` (`Asia/Kuala_Lumpur`, `Asia/Bangkok`) — compute dates in feed tz, not UTC/Vercel `iad1`.
 - MDB `country_code` for SG community feeds sometimes `MY` (observed mdb-3051/3409) → don't trust country filter blindly.

@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-02T14:40:46.029Z",
+  "builtAt": "2026-10-02T15:32:13.705Z",
   "feeds": [
     {
       "id": "namtang",
@@ -11,6 +11,16 @@
       "version": "20261001",
       "calendarStart": "20260101",
       "calendarEnd": "20261231"
+    },
+    {
+      "id": "ktmb",
+      "name": "KTMB (Keretapi Tanah Melayu)",
+      "url": "https://api.data.gov.my/gtfs-static/ktmb",
+      "country": "MY",
+      "licence": "data.gov.my open data (exact licence unverified)",
+      "attribution": "Data: KTMB via data.gov.my",
+      "calendarStart": "20260818",
+      "calendarEnd": "20261015"
     }
   ],
   "pairs": [
@@ -22,14 +32,32 @@
     "bangkok__surat-thani",
     "chiang-mai__bangkok",
     "hat-yai__bangkok",
+    "hat-yai__ipoh",
     "hat-yai__krabi",
+    "hat-yai__kuala-lumpur",
+    "ipoh__hat-yai",
+    "ipoh__johor-bahru",
+    "ipoh__kuala-lumpur",
+    "ipoh__penang",
+    "johor-bahru__ipoh",
+    "johor-bahru__kuala-lumpur",
+    "johor-bahru__penang",
+    "johor-bahru__singapore",
     "krabi__bangkok",
     "krabi__hat-yai",
     "krabi__phuket",
     "krabi__surat-thani",
+    "kuala-lumpur__hat-yai",
+    "kuala-lumpur__ipoh",
+    "kuala-lumpur__johor-bahru",
+    "kuala-lumpur__penang",
     "pattaya__bangkok",
+    "penang__ipoh",
+    "penang__johor-bahru",
+    "penang__kuala-lumpur",
     "phuket__bangkok",
     "phuket__krabi",
+    "singapore__johor-bahru",
     "surat-thani__bangkok",
     "surat-thani__krabi"
   ]

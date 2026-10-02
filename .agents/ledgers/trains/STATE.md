@@ -1,9 +1,10 @@
 # Trains — State
 
 Last updated: 2026-10-02
-Last session ended: **T06 done (2026-10-02).** `tdx` = THSR seed: 181 trains (Taipei↔Zuoying,
-week 2026-10-12..18 from thsrc.com.tw), 12 stations, `days` per train, IRS booking link-out.
-Next by § 4: T03 (live needs data.go.kr key, see blockers); then T05 (B03 done).
+Last session ended: **T05 done (2026-10-02).** `gtfs` now trains too: KTMB feed (ETS/Intercity/ST, 163
+departures, KL→Penang 11, JB↔SG via Woodlands pin). Namtang SRT = placeholder times → 0 legs (doc patched).
+Build: stop nearest city centre per visit, 300 km/h cap. KTMB calendar ends 20261015 → rebuild before demo.
+Next by § 4: T03 (live needs data.go.kr key, see blockers).
 
 ## Execution protocol (follow exactly)
 
@@ -34,7 +35,7 @@ DATA_GO_KR_SERVICE_KEY=...                     # data.go.kr, DECODING key
 | T02 | TDX TRA adapter | | retired (ADR-T04) | T01 |
 | T03 | Korea TAGO client + KTX adapter | | todo | C01 |
 | T04 | China rail seed + affiliate link-out | | done | C01 |
-| T05 | GTFS rail pairs (KTMB, SRT) | | todo | B03 |
+| T05 | GTFS rail pairs (KTMB, SRT) | | done | B03 |
 | T06 | THSR seed timetable + booking link-out | | done | C01 |
 
 ## Critical path
@@ -51,4 +52,5 @@ C01 → T06 · C01 → T03 · B03 → T05.
 
 - **TDX live (THSR fares/seat flags, TRA, Taiwan buses)** — trigger: a TDX member key exists (Taiwan phone or manual review approved). Then supersede ADR-T04; T01/T02/B01 files hold the old plan.
 - **THSR seat flags** in Offer (`AvailableSeatStatus`, cache 5 min) — trigger: TDX key + UI wants "seats left" badge; needs additive optional field (core ADR).
+- **SRT intercity timetable** (namtang times are placeholders, T05 Notes) — trigger: judges want BKK↔CNX/Hat Yai trains; seed from railway.co.th like T04/T06.
 - **Google Routes TRANSIT** (paid) — trigger: judges want coverage outside TW/KR/TH/MY.
