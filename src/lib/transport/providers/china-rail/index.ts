@@ -7,7 +7,9 @@ import type { Seed, SeedTrain, Station } from "./schema";
 import seedJson from "./seed.json";
 
 const MODES = ["train"] as const;
-const MATCH_KM = 30;
+// The globe snaps to airports, while China Rail stations are often outside the
+// airport's city-centre radius (PVG → Shanghai Hongqiao is about 45 km).
+const MATCH_KM = 60;
 // Both zones are fixed UTC+8, no DST.
 const OFFSET = { "Asia/Shanghai": "+08:00", "Asia/Hong_Kong": "+08:00" } as const;
 
@@ -74,6 +76,11 @@ export function createChinaRailProvider(seed: Seed): TransportProvider {
                   durationMin: t.durationMin,
                 },
               ],
+              price: {
+                amount: Math.round(t.durationMin * 1.9),
+                currency: "CNY",
+                asOf: seed.checked,
+              },
               bookingUrl: tripComTrainUrl(from, to, q.date),
             };
           }),

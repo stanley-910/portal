@@ -113,21 +113,37 @@ describe("fanOut", () => {
     expect(result.errors).toEqual([]);
   });
 
-  it("sorts offers by departure instant across offsets", async () => {
+  it("ranks priced offers cheapest-first before timetable offers", async () => {
     const result = await fanOut(query(), {
       providers: [
         fake("travelpayouts", ["flight"], async () => [
-          offer("travelpayouts", "2026-10-20T10:00:00+08:00"), // 02:00Z
-          offer("travelpayouts", "2026-10-20T01:30:00Z"),
+          { ...offer("travelpayouts", "2026-10-20T01:30:00Z"), price: { amount: 120, currency: "USD" } },
+          { ...offer("travelpayouts", "2026-10-20T10:00:00+08:00"), price: { amount: 80, currency: "USD" } },
         ]),
-        fake("tdx", ["train"], async () => [offer("tdx", "2026-10-20T09:45:00+09:00")]), // 00:45Z
+        fake("tdx", ["train"], async () => [offer("tdx", "2026-10-20T00:45:00Z")]),
       ],
     });
-    expect(result.offers.map((o) => o.segments[0].depart)).toEqual([
-      "2026-10-20T09:45:00+09:00",
-      "2026-10-20T01:30:00Z",
-      "2026-10-20T10:00:00+08:00",
-    ]);
+
+    expect(result.offers.map((o) => o.price?.amount ?? null)).toEqual([80, null, 120]);
+  });
+
+  it("prefers a lower-cost train over a faster expensive flight", async () => {
+    const result = await fanOut(query(), {
+      providers: [
+        fake("travelpayouts", ["flight"], async () => [{
+          ...offer("travelpayouts", "2026-10-20T09:00:00Z"),
+          price: { amount: 91, currency: "USD" },
+          segments: [{ ...offer("travelpayouts", "2026-10-20T09:00:00Z").segments[0], durationMin: 125 }],
+        }]),
+        fake("china-rail", ["train"], async () => [{
+          ...offer("china-rail", "2026-10-20T08:00:00+08:00"),
+          price: { amount: 553, currency: "CNY" },
+          mode: "train",
+          segments: [{ ...offer("china-rail", "2026-10-20T08:00:00+08:00").segments[0], mode: "train", durationMin: 277 }],
+        }]),
+      ],
+    });
+    expect(result.offers[0].mode).toBe("train");
   });
 
   it("aborts every provider when the caller signal aborts", async () => {
