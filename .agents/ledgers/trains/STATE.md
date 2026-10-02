@@ -1,10 +1,10 @@
 # Trains — State
 
 Last updated: 2026-10-02
-Last session ended: **T05 done (2026-10-02).** `gtfs` now trains too: KTMB feed (ETS/Intercity/ST, 163
-departures, KL→Penang 11, JB↔SG via Woodlands pin). Namtang SRT = placeholder times → 0 legs (doc patched).
-Build: stop nearest city centre per visit, 300 km/h cap. KTMB calendar ends 20261015 → rebuild before demo.
-Next by § 4: T03 (live needs data.go.kr key, see blockers).
+Last session ended: **T03 done (2026-10-02).** `korea-tago` = Korail seed, 683 trains on 7 pairs both ways
+(Seoul/Yongsan city match), KRW adult fares, `days` per weekday. Source train.asamaru.net (korail.com
+search bot-protected, not bypassed). Fares ~9% below quoted Korail fares → verify before demo (T03 Notes).
+`pnpm korea:snapshot` re-snapshots. Next by § 4: none — trains ledger empty except Backlog.
 
 ## Execution protocol (follow exactly)
 
@@ -14,7 +14,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 
 ## Current task
 
-**T03 — Korea KTX seed adapter** (Ahmet). Keyless — hand-curated seed (ADR-T05).
+None — all trains tasks done/retired. Next work = Backlog trigger.
 
 ## Environment
 
@@ -33,7 +33,7 @@ None. TDX and data.go.kr signups dropped 2026-10-02 (ADR-T04, ADR-T05); Trip.com
 |----|-------|------|--------|------------|
 | T01 | TDX OAuth client + THSR adapter | | retired (ADR-T04) | C01 |
 | T02 | TDX TRA adapter | | retired (ADR-T04) | T01 |
-| T03 | Korea KTX seed adapter | | todo | C01 |
+| T03 | Korea KTX seed adapter | | done | C01 |
 | T04 | China rail seed + affiliate link-out | | done | C01 |
 | T05 | GTFS rail pairs (KTMB, SRT) | | done | B03 |
 | T06 | THSR seed timetable + booking link-out | | done | C01 |

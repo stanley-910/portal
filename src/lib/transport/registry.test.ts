@@ -14,7 +14,7 @@ const ALL_IDS: Record<ProviderId, true> = {
 };
 
 // Providers whose adapter task has replaced the stub; their own tests cover search/covers.
-const LANDED = new Set<ProviderId>(["gtfs", "china-rail", "tdx", "busonlineticket"]);
+const LANDED = new Set<ProviderId>(["gtfs", "china-rail", "tdx", "busonlineticket", "korea-tago"]);
 const stubs = providers.filter((p) => !LANDED.has(p.id));
 
 const place = { name: "X", lat: 0, lng: 0 };
