@@ -39,11 +39,11 @@ fanOut ─▶ providers/tdx/         client.ts (OAuth token cache 24h, shared w/
 | D2 | Korea | hand-curated Korail seed, no data.go.kr key (ADR-T05) | signup needs Korean national + 본인인증 |
 | D3 | China | own seed + affiliate link-out | 12306 has no API; scraping legally risky (ADR-T02) |
 | D4 | Rome2Rio | dropped | not accepting applications; docs 404 (ADR-T03) |
-| D5 | SE Asia rail | GTFS (KTMB, SRT) via buses `gtfs` pipeline | no-key feeds exist |
+| D5 | SE Asia rail | KTMB via buses `gtfs` pipeline (T05); SRT as own seed provider `srt` (ADR-T06, core ADR-C08) | namtang SRT times are placeholders |
 
 ## Phasing
 
-T06 THSR seed (replaces T01/T02, ADR-T04) → T03 Korea KTX seed (ADR-T05) → T04 China seed → T05 GTFS rail.
+T06 THSR seed (replaces T01/T02, ADR-T04) → T03 Korea KTX seed (ADR-T05) → T04 China seed → T05 GTFS rail → T07 SRT seed.
 
 ## Out of scope
 

@@ -42,7 +42,7 @@ browser ──GET /api/transport/search?from&to&date&modes──▶ src/app/api/
 export type Mode = "flight" | "train" | "bus" | "ferry";
 export type ProviderId =
   | "travelpayouts" | "12go" | "tdx" | "korea-tago" | "china-rail"
-  | "busonlineticket" | "gtfs";
+  | "busonlineticket" | "gtfs" | "srt";   // "srt" added by ADR-C08
 
 export interface Place {
   name: string;               // own spelling, accents kept (DESIGN.md)
