@@ -1,3 +1,50 @@
+# Trip Globe
+
+A multiplayer globe for getting between places in Asia, built for the HKU Hackathon (Fall 2026).
+
+## What it does
+
+You click a point to take off. A paper plane follows your cursor with a dashed great-circle route. You land it somewhere, and the app finds the best flights, trains and buses between the nearest relevant hubs. Friends join the same trip from different origins. The app suggests where and when to meet, and splits costs by who is present for each leg and each night.
+
+We solve how to get between places. We are not a trip guide or an event planner, so don't add itineraries, sights or reviews.
+
+**Demo route:**
+1. Two friends take the high-speed rail from HK West Kowloon to Shanghai.
+2. A third friend flies from Seoul to Shanghai.
+3. The party meets in Shanghai and flies to Tokyo.
+4. One member leaves early, and the stay split updates live.
+
+## What exists in the repo today
+
+- `/` is the globe screen: a custom WebGL2 globe (`src/components/trip-globe`) running on mock airports (`airports.ts`). Taking off, flying, landing, pan, Google Earth-style zoom and a landing ticket work. It's single-player, and there's no backend yet.
+- `/design` is the Paper Atlas design system gallery. The rules are in `DESIGN.md` and the tokens are in `src/design/tokens.json`.
+- `docs/research` holds research notes, such as free-tier limits for Liveblocks, Supabase and Vercel.
+
+## Planned
+
+All work is tracked in Linear: project "Hackathon MVP", team POR. Decisions made so far, and why, are in `docs/decisions/`. Where a ticket disagrees with them, the decisions win.
+
+| Area | Plan | Tickets |
+|---|---|---|
+| Planner | Multimodal route search | POR-24 |
+| Planner | Meet-up solver | POR-26 |
+| Planner | Pareto ranking | POR-25 |
+| Planner | Shared Zod `Leg` schema with `freshness: live \| cached \| estimated`, and a mock fallback for every provider | POR-5 |
+| Live layer | Liveblocks: the shared trip plan in Storage, presence (cursors as lat/lng, live planes), soft edit locks, follow mode | POR-32, POR-34, POR-35 |
+| Accounts and trips | Guest cookie plus Liveblocks ID token, no Supabase. The trip URL is the invite | POR-29, POR-30 (need rewriting) |
+| Money and AI | Per-member cost split | POR-37 |
+| Money and AI | Stripe test checkout per member, then a Duffel test order | POR-38 |
+| Money and AI | Shared agent in the trip thread, built on the Vercel AI SDK and Claude | POR-39 |
+
+Some tickets predate the custom globe and mention react-globe.gl. Ignore that and use `<TripGlobe>`.
+
+## Rules
+
+- For UI work, follow `DESIGN.md` and use the tokens. Never hard-code colours, fonts, radii or shadows.
+- Every leg shows where its data came from. Anything that isn't live shows an "estimated" badge.
+- The demo must never depend on a flaky API, so every provider needs a mock fallback.
+- Don't use Amadeus Self-Service. It shut down on 2026-07-17.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
