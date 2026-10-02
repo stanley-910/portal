@@ -50,7 +50,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 - Vendor lock-in.
 - Storage is capped at 10 MB per room and 3M updates per month on Free.
 
-### M4. Who you are: a guest cookie and a Liveblocks ID token
+### M4. Who you are: a guest cookie and a Liveblocks access token
 
 **Status:** built. This replaces Supabase auth (POR-12).
 
@@ -61,7 +61,8 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 **Decision:**
 - On first visit, set a random guest id in a cookie.
-- A route handler turns it into a Liveblocks ID token (`identifyUser`), with `userInfo` carrying the name and colour.
+- A route handler turns it into a Liveblocks access token (`prepareSession` plus `allow(room, FULL_ACCESS)`) for that one trip room, with `userInfo` carrying the name and colour.
+- **Changed on 2026-10-03 from an ID token** (`identifyUser`). With ID tokens, Liveblocks checks the room's access list on connect, and in production it kept refusing guests added while the room was active, even after a reload. The access list is still written, as the record of members for colours and "My trips" (M6).
 - You pick a name when you first join a trip, and you're given a colour.
 
 **Why:**
