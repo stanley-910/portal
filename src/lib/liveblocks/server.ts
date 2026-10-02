@@ -19,11 +19,9 @@ export function liveblocks() {
 export const isNotFound = (e: unknown) => e instanceof LiveblocksError && e.status === 404;
 
 /**
- * Adds a guest to a trip room if they aren't in it yet, and returns their member colour (1 to MEMBER_COLORS, in join
- * order). Opening a trip's URL is the invite (M7). Returns null if the room doesn't exist.
- *
- * Call it when the trip page renders, well before the browser connects: Liveblocks checks room access on connect,
- * and a grant made in the same moment may not have reached it yet.
+ * Records a guest as a member of a trip room if they aren't one yet, and returns their member colour (1 to
+ * MEMBER_COLORS, in join order). Returns null if the room doesn't exist. The access list it writes is what
+ * `getRooms({ userId })` reads for "My trips" (M6); connecting uses the access token from the auth route.
  */
 export async function joinTrip(roomId: string, guestId: string): Promise<number | null> {
   const lb = liveblocks();

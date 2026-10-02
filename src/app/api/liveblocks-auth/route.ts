@@ -5,8 +5,10 @@ import { TRIP_ID } from "@/lib/liveblocks/types";
 export const runtime = "nodejs";
 
 /**
- * Issues a Liveblocks ID token for the guest (M4), with their name and member colour. The trip page has normally
- * added them to the room already; joining again here is a no-op that covers a page cached from before they joined.
+ * Issues a Liveblocks access token for the guest (M4) that lets them into this one trip room, with their name and
+ * member colour. Holding the trip's URL is the invite (M7), so this route decides access itself; the room's access
+ * list only records who has joined. An ID token would make Liveblocks check that list on connect, and in production
+ * it kept refusing guests added while the room was already active.
  */
 export async function POST(request: Request) {
   const { room } = (await request.json().catch(() => ({}))) as { room?: unknown };
@@ -18,9 +20,8 @@ export async function POST(request: Request) {
   const color = await joinTrip(room, guest.id);
   if (color === null) return Response.json({ error: "Trip not found" }, { status: 404 });
 
-  const { status, body } = await liveblocks().identifyUser(
-    { userId: guest.id, groupIds: [] },
-    { userInfo: { name: guest.name ?? "Guest", color } },
-  );
+  const session = liveblocks().prepareSession(guest.id, { userInfo: { name: guest.name ?? "Guest", color } });
+  session.allow(room, session.FULL_ACCESS);
+  const { status, body } = await session.authorize();
   return new Response(body, { status });
 }

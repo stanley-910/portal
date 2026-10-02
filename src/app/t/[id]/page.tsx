@@ -12,7 +12,6 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   if (!TRIP_ID.test(id)) notFound();
   const guest = await readGuest();
   if (!guest?.name) return <NamePrompt />;
-  // join now, so the grant has reached Liveblocks before the browser connects
   if ((await joinTrip(tripRoomId(id), guest.id)) === null) notFound();
   return <TripRoom tripId={id} />;
 }
