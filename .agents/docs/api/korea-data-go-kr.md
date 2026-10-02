@@ -8,6 +8,7 @@ Checked: 2026-10-02 · Modes: trains (KTX/Korail), buses (고속 express, 시외
 - **Endpoints moved (2026-03).** Old `TrainInfoService/getStrtpntAlocFndTrainInfo` (lower camel) is legacy; current Swagger = `TrainInfo/GetStrtpntAlocFndTrainInfo` (Pascal). Old 국토교통부_열차정보 returns code 12. [S1][S7]
 - 시외버스 (SuburbsBusInfo) **same-day dispatch only** per provider note. [S3]
 - Fallback if no Korean account: static seed of station/terminal IDs + hand-off links (Korail/Kobus sites); no legal live source found.
+- Fallback in use (ADR-T05, T03): train seed snapshotted from train.asamaru.net per-pair pages (public, 7 days, grade/number/times/fares; TAGO-shaped fares, 특실 = 일반실) — observed 2026-10-02. korail.com/ticket/search is bot-protected (search POST to obfuscated `/web_s/…` → HTTP 500 in automated Chrome, observed 2026-10-02) → not usable as a source.
 
 ## Access
 | Item | Value |
@@ -121,4 +122,5 @@ Gateway codes (`returnReasonCode` / errMsg) [S6]:
 | [S5] https://www.kick-off.co.kr/8077 · https://github.com/S-DUNG/Ongil-Server/pull/5 | Encoding/Decoding key, double-encoding → code 30 | unverified (secondary) |
 | [S6] error-code table on [S1] page | codes 01–31 meanings, 22 = daily | yes |
 | [S7] https://github.com/dhmailing/RailFlow/pull/5 | old path → code 12, rename to PascalCase | unverified (secondary; consistent with [S1]) |
+| [O2] https://train.asamaru.net/시간표/서울역-경부선-고속철도/출발/부산역-경부선-고속철도/도착/ | Seoul→Busan 67 trains 2026-10-02, KTX 54,400 KRW adult; source of T03 seed | observed 2026-10-02 |
 | [O1] curl 2026-10-02 `TrainInfo/GetVhcleKndList?serviceKey=INVALID&_type=json` | HTTP 403 + `OpenAPI_ServiceResponse` shape, path alive | observed |

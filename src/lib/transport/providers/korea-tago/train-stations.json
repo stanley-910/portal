@@ -1,0 +1,66 @@
+{
+  "seoul": {
+    "city": "seoul",
+    "name": "Seoul",
+    "nameLocal": "서울",
+    "lat": 37.55319,
+    "lng": 126.9726,
+    "source": "https://en.wikipedia.org/wiki/Seoul_station"
+  },
+  "yongsan": {
+    "city": "seoul",
+    "name": "Yongsan",
+    "nameLocal": "용산",
+    "lat": 37.53,
+    "lng": 126.96472,
+    "source": "https://en.wikipedia.org/wiki/Yongsan_station"
+  },
+  "busan": {
+    "city": "busan",
+    "name": "Busan",
+    "nameLocal": "부산",
+    "lat": 35.1152,
+    "lng": 129.04137,
+    "source": "https://en.wikipedia.org/wiki/Busan_station"
+  },
+  "daejeon": {
+    "city": "daejeon",
+    "name": "Daejeon",
+    "nameLocal": "대전",
+    "lat": 36.33189,
+    "lng": 127.43452,
+    "source": "https://en.wikipedia.org/wiki/Daejeon_station"
+  },
+  "dongdaegu": {
+    "city": "daegu",
+    "name": "Dongdaegu",
+    "nameLocal": "동대구",
+    "lat": 35.87972,
+    "lng": 128.62922,
+    "source": "https://en.wikipedia.org/wiki/Dongdaegu_station"
+  },
+  "gwangju-songjeong": {
+    "city": "gwangju",
+    "name": "Gwangju-Songjeong",
+    "nameLocal": "광주송정",
+    "lat": 35.13784,
+    "lng": 126.79023,
+    "source": "https://en.wikipedia.org/wiki/Gwangju_Songjeong_station"
+  },
+  "gangneung": {
+    "city": "gangneung",
+    "name": "Gangneung",
+    "nameLocal": "강릉",
+    "lat": 37.76376,
+    "lng": 128.89909,
+    "source": "https://en.wikipedia.org/wiki/Gangneung_station"
+  },
+  "mokpo": {
+    "city": "mokpo",
+    "name": "Mokpo",
+    "nameLocal": "목포",
+    "lat": 34.79198,
+    "lng": 126.38731,
+    "source": "https://en.wikipedia.org/wiki/Mokpo_station"
+  }
+}

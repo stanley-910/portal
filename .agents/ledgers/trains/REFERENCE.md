@@ -5,7 +5,7 @@ Codebase: core `REFERENCE.md`. Provider truth in `.agents/docs/api/`.
 | Provider id | Folder | Env | Doc |
 |---|---|---|---|
 | `tdx` | `src/lib/transport/providers/tdx/` — THSR seed, no key (ADR-T04, re-verified 2026-10-02) | — (`TDX_*` unused) | `taiwan-tdx.md` |
-| `korea-tago` | `src/lib/transport/providers/korea-tago/` (shared w/ buses) | none in MVP — seed (ADR-T05); `DATA_GO_KR_SERVICE_KEY` (**Decoding** key) backlog | `korea-data-go-kr.md` |
+| `korea-tago` | `src/lib/transport/providers/korea-tago/` (shared w/ buses) — train seed, `pnpm korea:snapshot` (T03) | none in MVP — seed (ADR-T05); `DATA_GO_KR_SERVICE_KEY` (**Decoding** key) backlog | `korea-data-go-kr.md` |
 | `china-rail` | `src/lib/transport/providers/china-rail/` | `TRIPCOM_AFFILIATE_ID`, `TWELVEGO_AFFILIATE_ID` | `china-12306.md` |
 | `gtfs` | `src/lib/transport/providers/gtfs/` (buses B03 owns) | — | `gtfs.md` |
 
