@@ -89,3 +89,67 @@ describe("12Go ferry adapter", () => {
     expect(routesFor("ferry").every((route) => route.source && route.source.includes("://"))).toBe(true);
   });
 });
+
+describe("12Go bus seed", () => {
+  const busQuery = (from: SearchQuery["from"], to: SearchQuery["to"]): SearchQuery => ({
+    ...query,
+    from,
+    to,
+    modes: ["bus"],
+  });
+  const hanoi = { name: "Hanoi", lat: 21.03, lng: 105.85 };
+  const sapa = { name: "Sapa", lat: 22.34, lng: 103.84 };
+  const hcmc = { name: "Ho Chi Minh City", lat: 10.78, lng: 106.7 };
+  const phnomPenh = { name: "Phnom Penh", lat: 11.56, lng: 104.92 };
+
+  it("returns a 12Go bus offer for Hanoi to Sapa", async () => {
+    const offers = await twelveGo.search(busQuery(hanoi, sapa), new AbortController().signal);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((offer) => offer.mode === "bus" && offer.kind === "timetable")).toBe(true);
+    expect(offers[0].bookingUrl).toBe("https://12go.asia/en/travel/hanoi/sapa");
+  });
+
+  it("returns a bus offer with a 12Go link for Ho Chi Minh City to Phnom Penh", async () => {
+    const q = busQuery(hcmc, phnomPenh);
+    expect(twelveGo.covers(q)).toBe(true);
+    const offers = await twelveGo.search(q, new AbortController().signal);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers[0]).toMatchObject({
+      provider: "12go",
+      mode: "bus",
+      bookingUrl: "https://12go.asia/en/travel/ho-chi-minh-city/phnom-penh",
+    });
+    expect(offers[0].segments[0]).toMatchObject({
+      from: { slug: "ho-chi-minh-city" },
+      to: { slug: "phnom-penh" },
+      depart: "2026-11-15T08:00:00+07:00",
+    });
+  });
+
+  it("serves the reverse direction with the reverse 12Go link", async () => {
+    const offers = await twelveGo.search(busQuery(phnomPenh, hcmc), new AbortController().signal);
+    expect(offers[0].bookingUrl).toBe("https://12go.asia/en/travel/phnom-penh/ho-chi-minh-city");
+  });
+
+  it("leaves ferry searches unaffected", async () => {
+    const ferryOffers = await twelveGo.search(query, new AbortController().signal);
+    expect(ferryOffers.every((offer) => offer.mode === "ferry")).toBe(true);
+    const defaultModes = await twelveGo.search({ ...busQuery(hanoi, sapa), modes: [] }, new AbortController().signal);
+    expect(defaultModes).toHaveLength(0);
+    expect(twelveGo.covers({ ...busQuery(hanoi, sapa), modes: ["ferry"] })).toBe(false);
+  });
+
+  it("ships at least ten cited bus routes with valid times", () => {
+    const routes = routesFor("bus");
+    expect(routes.length).toBeGreaterThanOrEqual(10);
+    for (const route of routes) {
+      expect(route.source).toMatch(/^https?:\/\//);
+      expect(route.source).not.toContain("12go.asia");
+      expect(route.departures.length).toBeGreaterThan(0);
+      expect(route.departures.every((time) => /^([01]\d|2[0-3]):[0-5]\d$/.test(time))).toBe(true);
+      expect(route.durationMin).toBeGreaterThan(0);
+      expect(route.from.slug).toMatch(/^[a-z0-9-]+$/);
+      expect(route.to.slug).toMatch(/^[a-z0-9-]+$/);
+    }
+  });
+});
