@@ -37,3 +37,49 @@ export const seedSchema = z
 export type Station = z.infer<typeof station>;
 export type SeedTrain = z.infer<typeof seedTrain>;
 export type Seed = z.infer<typeof seedSchema>;
+
+// --- Intercity bus (國道客運) seed, B01 / ADR-B07 ---
+
+const busTerminal = z.object({
+  name: z.string(),
+  nameLocal: z.string(),
+  city: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  source: url,
+});
+
+export const busTerminalsSchema = z.object({
+  checked: ymd,
+  terminals: z.record(z.string(), busTerminal),
+});
+
+const busRoute = z.object({
+  operator: z.string(), // English short name, shown as Segment.carrier
+  operatorLocal: z.string(),
+  bookingUrl: url,
+  source: url, // where the trip times were read
+  crossCheck: url, // 公路局 timetable the times were compared against
+});
+
+/** One scheduled run: seeded terminals it serves in running order (ADR-C05 times, Asia/Taipei). */
+const busTrip = z.object({
+  route: z.string(),
+  sub: z.string(), // TDX SubRouteName, e.g. "1619B"
+  // [terminal key, "HH:MM"]; a time smaller than the previous stop's = next day.
+  stops: z.array(z.tuple([z.string(), hhmm])).min(2),
+  days: z.array(z.number().int().min(0).max(6)).min(1).optional(), // start weekday, 0 = Sun; omit = daily
+});
+
+export const busSeedSchema = z
+  .object({
+    checked: ymd,
+    tz: z.literal("Asia/Taipei"),
+    routes: z.record(z.string(), busRoute),
+    trips: z.array(busTrip),
+  })
+  .refine((s) => s.trips.every((t) => t.route in s.routes), "trip references unknown route");
+
+export type BusTerminals = z.infer<typeof busTerminalsSchema>;
+export type BusSeed = z.infer<typeof busSeedSchema>;
+export type BusTrip = z.infer<typeof busTrip>;

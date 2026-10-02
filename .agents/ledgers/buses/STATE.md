@@ -1,10 +1,10 @@
 # Buses — State
 
-Last updated: 2026-10-02
-Last session ended: **B05 done (2026-10-02, Ahmet).** `busonlineticket` adapter on `buses` (not yet merged to
-`dev/ahmet`): 22 MY/SG/TH pairs, first/last bus of top-5 operators per pair (ADR-B06), route-page
-links, `refererid` only if `BOT_REFERER_ID`. KL→SG 10 offers live. Hand-off: B05 `## Notes`.
-Next here: B02 (needs T03 + Korean account), B04 (needs S02).
+Last updated: 2026-10-03
+Last session ended: **B01 done (2026-10-03, Ahmet).** `tdx` provider now train+bus on `buses` (not yet merged to
+`dev/ahmet`): 9 國道客運 routes / 1196 trips, Taipei ↔ Taichung, Kaohsiung, Tainan, Yilan both ways. Times from
+TDX guest `Schedule` read once at curation, cross-checked 公路局 (ADR-B08); no fares. Taipei→Taichung bus 72 offers
+live. Hand-off: B01 `## Notes`. Next here: B02 (needs T03), B04 (needs S02).
 
 ## Execution protocol (follow exactly)
 
@@ -30,7 +30,7 @@ pnpm gtfs:build          # cached zip < 24 h reused; --fresh re-downloads; write
 
 | ID | Title | Repo | Status | Depends on |
 |----|-------|------|--------|------------|
-| B01 | Taiwan intercity bus seed (`tdx` provider) | | todo | T06 |
+| B01 | Taiwan intercity bus seed (`tdx` provider) | | done | T06 |
 | B02 | Korea express bus seed (`korea-tago` provider) | | todo | T03 |
 | B03 | GTFS build pipeline + gtfs adapter | | done | C01 |
 | B04 | 12Go bus route seed | | todo | S02 |
@@ -54,6 +54,7 @@ C01 → B03 → T05 · T03 → B02 · S02 (Cata) → B04.
 - **Namtang fares** (`fare_attributes`/`fare_rules`, THB, 65 MB) — trigger: UI wants bus prices; stream-filter by pair stops at build.
 
 - **Live TDX intercity bus** (stop-pair index from `StopOfRoute` + `Schedule`, old PLAN D2) — trigger: TDX key obtained.
+- **Taiwan bus fares** (taiwanbus.tw `TMSQuery` matrix: seat class × time band) — trigger: UI wants bus prices.
 - **Live Korea bus** (`ExpBusInfo` + 시외 `SuburbsBusInfo`) — trigger: data.go.kr key obtained.
 - **BusOnlineTicket affiliate** — not signing up (2026-10-02); B05 ships untagged, adds `refererid` only if `BOT_REFERER_ID` is set — trigger: owner wants commission.
 - **myBAS / Prasarana feeds** — trigger: city-bus legs wanted.

@@ -2,15 +2,17 @@ import "server-only";
 import { distanceKm } from "../gtfs/geo";
 import { ProviderFailure, type Offer, type Place, type SearchQuery, type TransportProvider } from "../../types";
 import { servesModes } from "../stub";
+import { createBusSearch, type BusSearch } from "./bus";
+import busSeedJson from "./bus-seed.json";
+import busTerminalsJson from "./bus-terminals.json";
 import { THSR_BOOKING_URL } from "./links";
-import { seedSchema, type Seed, type SeedTrain } from "./schema";
+import { busSeedSchema, busTerminalsSchema, seedSchema, type Seed, type SeedTrain } from "./schema";
 import seedJson from "./seed.json";
+import { at, runsOn, timeline } from "./time";
 
-// THSR seed, no TDX calls (ADR-T04). Provider id stays `tdx`.
-const MODES = ["train"] as const;
+// THSR seed (ADR-T04) + 國道客運 seed (ADR-B07), no TDX calls at request time. Provider id stays `tdx`.
+const MODES = ["train", "bus"] as const;
 const MATCH_KM = 20;
-const OFFSET = "+08:00"; // Asia/Taipei, no DST
-const DAY = 1440;
 
 /** Minutes from midnight of the train's start day; may exceed DAY after midnight. */
 interface Leg {
@@ -32,27 +34,8 @@ function nearest(seed: Seed, lat: number, lng: number): string | undefined {
   return best;
 }
 
-/** A smaller HH:MM than the previous stop rolls a day. */
-function timeline(t: SeedTrain): Map<string, number> {
-  const out = new Map<string, number>();
-  let day = 0;
-  let prev = -1;
-  for (const [station, hhmm] of t.stops) {
-    const m = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3));
-    if (m < prev) day += DAY;
-    prev = m;
-    out.set(station, day + m);
-  }
-  return out;
-}
-
-/** `date` (YYYY-MM-DD) + `min` minutes, as local ISO with +08:00. */
-function at(date: string, min: number): string {
-  return `${new Date(Date.parse(`${date}T00:00:00Z`) + min * 60_000).toISOString().slice(0, 19)}${OFFSET}`;
-}
-
-export function createTdxProvider(seed: Seed): TransportProvider {
-  const timelines = seed.trains.map((train) => ({ train, times: timeline(train) }));
+function createThsrSearch(seed: Seed) {
+  const timelines = seed.trains.map((train) => ({ train, times: timeline(train.stops) }));
 
   const legsFor = (q: SearchQuery): { from: string; to: string; legs: Leg[] } | undefined => {
     const from = nearest(seed, q.from.lat, q.from.lng);
@@ -75,45 +58,62 @@ export function createTdxProvider(seed: Seed): TransportProvider {
   };
 
   return {
+    covers: (q: SearchQuery) => legsFor(q) !== undefined,
+    search(q: SearchQuery): Offer[] | undefined {
+      const found = legsFor(q);
+      if (!found) return undefined;
+      const { from, to, legs } = found;
+      return legs.flatMap(({ train, departMin, arriveMin }): Offer[] => {
+        const base = runsOn(q.date, departMin, train.days);
+        if (base === undefined) return [];
+        return [
+          {
+            id: `tdx:${train.number}:${from}:${q.date}`,
+            provider: "tdx",
+            mode: "train",
+            kind: "timetable",
+            segments: [
+              {
+                mode: "train",
+                carrier: "THSR",
+                number: train.number,
+                from: place(from),
+                to: place(to),
+                depart: at(q.date, departMin - base),
+                arrive: at(q.date, arriveMin - base),
+                durationMin: arriveMin - departMin,
+              },
+            ],
+            bookingUrl: THSR_BOOKING_URL,
+          },
+        ];
+      });
+    },
+  };
+}
+
+export function createTdxProvider(seed: Seed, bus?: BusSearch): TransportProvider {
+  const thsr = createThsrSearch(seed);
+  const wantsTrain = (q: SearchQuery) => servesModes(["train"], q);
+  const busFor = (q: SearchQuery) => (bus && servesModes(["bus"], q) ? bus : undefined);
+
+  return {
     id: "tdx",
     modes: [...MODES],
-    covers: (q) => servesModes(MODES, q) && legsFor(q) !== undefined,
+    covers: (q) => (wantsTrain(q) && thsr.covers(q)) || (busFor(q)?.covers(q) ?? false),
     async search(q) {
-      const found = legsFor(q);
-      if (!found) throw new ProviderFailure("UNSUPPORTED_ROUTE");
-      const { from, to, legs } = found;
-      return legs
-        .flatMap(({ train, departMin, arriveMin }): Offer[] => {
-          // q.date is the origin's local date; `days` is keyed on the train's start day.
-          const base = Math.floor(departMin / DAY) * DAY;
-          const startWeekday = new Date(Date.parse(`${q.date}T00:00:00Z`) - base * 60_000).getUTCDay();
-          if (train.days && !train.days.includes(startWeekday)) return [];
-          return [
-            {
-              id: `tdx:${train.number}:${from}:${q.date}`,
-              provider: "tdx",
-              mode: "train",
-              kind: "timetable",
-              segments: [
-                {
-                  mode: "train",
-                  carrier: "THSR",
-                  number: train.number,
-                  from: place(from),
-                  to: place(to),
-                  depart: at(q.date, departMin - base),
-                  arrive: at(q.date, arriveMin - base),
-                  durationMin: arriveMin - departMin,
-                },
-              ],
-              bookingUrl: THSR_BOOKING_URL,
-            },
-          ];
-        })
-        .sort((a, b) => Date.parse(a.segments[0].depart) - Date.parse(b.segments[0].depart));
+      const train = wantsTrain(q) ? thsr.search(q) : undefined;
+      const buses = busFor(q)?.search(q);
+      if (!train && !buses) throw new ProviderFailure("UNSUPPORTED_ROUTE");
+      return [...(train ?? []), ...(buses ?? [])].sort(
+        (a, b) => Date.parse(a.segments[0].depart) - Date.parse(b.segments[0].depart),
+      );
     },
   };
 }
 
 // Parsed once at module load; a bad seed fails the seed test, not a request.
-export default createTdxProvider(seedSchema.parse(seedJson));
+export default createTdxProvider(
+  seedSchema.parse(seedJson),
+  createBusSearch(busSeedSchema.parse(busSeedJson), busTerminalsSchema.parse(busTerminalsJson)),
+);
