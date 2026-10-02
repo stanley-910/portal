@@ -6,7 +6,7 @@ export type RGB = [number, number, number];
 
 type TokenValue = string | Partial<Record<ThemeId, string>>;
 const byName = new Map<string, TokenValue>(
-  [...tokens.color.tokens, ...tokens.shadow.tokens].map((t) => [t.name, t.value as TokenValue]),
+  [...tokens.color.tokens, ...tokens.shadow.tokens, ...tokens.print.tokens].map((t) => [t.name, t.value as TokenValue]),
 );
 
 /** A token's CSS value in a theme. Values missing a theme inherit the first (light) one, as in tokens.json. */
@@ -45,14 +45,15 @@ export interface Palette {
   inkRGB: string;
   muted: string;
   tagShadow: string;
-  stickerShadow: string;
-  sticker: { border: string; fill: string; ink: string; starLight: string; starEdge: string };
+  /** Opacity of the sky's stippled ink. Light paper takes it a touch softer. */
+  skyInk: number;
   gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
   stickerGL: { fill: RGB; ink: RGB; roundel: RGB; border: RGB };
 }
 
-// The cut-out shadow tint under the globe. Not a token: it only exists inside the shader.
+// The tint of the plane's shadow on the ground. Not a token: it only exists inside the shader.
 const SHADE: Record<ThemeId, RGB> = { light: [0.87, 0.86, 0.8], dark: [0.55, 0.55, 0.62] };
+const SKY_INK: Record<ThemeId, number> = { light: 0.7, dark: 0.95 };
 
 function build(theme: ThemeId): Palette {
   const ink = parse(token("ink", theme)).rgb;
@@ -64,14 +65,7 @@ function build(theme: ThemeId): Palette {
     inkRGB: ink.map((c) => Math.round(c * 255)).join(","),
     muted: token("ink-muted", theme),
     tagShadow: shadowColor("shadow-tag", theme),
-    stickerShadow: token("sticker-shadow", theme),
-    sticker: {
-      border: token("sticker", theme),
-      fill: token("sticker-fill", theme),
-      ink: token("sticker-ink", theme),
-      starLight: token("star-light", theme),
-      starEdge: token("star-edge", theme),
-    },
+    skyInk: SKY_INK[theme],
     gl: {
       uPaper: rgb("paper", theme),
       uInk: ink,
@@ -89,5 +83,8 @@ function build(theme: ThemeId): Palette {
     },
   };
 }
+
+/** Distance between halftone dots, in CSS pixels. */
+export const HALFTONE_PITCH = parseFloat(token("halftone-pitch", "light"));
 
 export const PALETTES: Record<ThemeId, Palette> = { light: build("light"), dark: build("dark") };

@@ -25,6 +25,8 @@ export interface TripGlobeProps {
   onLand?: (trip: LandedTrip) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
+  /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
+  skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
   earthUrl?: string;
   className?: string;
@@ -57,6 +59,7 @@ export function TripGlobe({
   onLand,
   onCancel,
   earthUrl = "/textures/earth.png",
+  skySeed,
   className,
   ref,
 }: TripGlobeProps) {
@@ -101,6 +104,10 @@ export function TripGlobe({
   useEffect(() => {
     engineRef.current?.setTheme(resolved);
   }, [resolved]);
+
+  useEffect(() => {
+    if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
+  }, [skySeed]);
 
   useImperativeHandle(ref, () => ({ cancel: () => engineRef.current?.cancel() }), []);
 

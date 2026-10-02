@@ -34,18 +34,18 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - By day, ink gathers on the shadow side. By night, the inks are light, so they gather on the lit side instead.
 - Draw coastlines in `ink` at about one device pixel. Add three or four water-lining ripples in `sea-deep` off each coast, fading out from the shore.
 - Draw the graticule every `graticule-step` in `ink` at 30% (20% at night), with the equator slightly stronger.
-- Ring the globe with a solid `ink` outline plus two thin rings just outside it, and give the whole globe a hard offset shadow, like a paper cut-out.
+- Outline the globe in solid `ink`. It hangs in a stippled night sky, so it casts no shadow on the page.
 - Lay a fine paper grain over everything.
 
 ## Stickers and the route
 
-- Two stickers exist: the **plane** (the cursor while flying) and the **star pin** (origin and destination). Draw each with a `line-sticker` border in `sticker`, then the face, then a `sticker-ink` outline at `line-ink`, with a `sticker-shadow` drop shadow.
+- Two stickers exist: the **plane** (the cursor while flying) and the **star pin**. On the globe, only the plane is used; a trip's start is marked with a small `ink` ring at the foot of the route. Draw each sticker with a `line-sticker` border in `sticker`, then the face, then a `sticker-ink` outline at `line-ink`, with a `sticker-shadow` drop shadow.
 - While flying, the plane casts a soft shadow offset down and to the right. On landing, the shadow slides in under the plane and the plane shrinks to about 70%: a touchdown.
 - Draw a route as a great-circle arc that rises off the surface, dashed in `ink` at `line-route` with `dash-route`. Under it, draw the surface path dotted in `rule` with `dash-ground`. Hide any part that passes behind the globe.
 
 ## Motion
 
-- Keep three moments only. **Takeoff:** an ink ripple from the origin, and the star pin pops in. **Landing:** the touchdown, and the globe turns to frame the whole route. **Searching:** the route dashes march forward and the ticket's three dots bob.
+- Keep three moments only. **Takeoff:** an ink ripple from the origin. **Landing:** the touchdown, and the globe turns to frame the whole route. **Searching:** the route dashes march forward and the ticket's three dots bob.
 - When the viewer prefers reduced motion, keep the end states and drop the movement.
 
 ## Layout and controls

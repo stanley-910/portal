@@ -1,9 +1,10 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { nearestAirport, type Airport } from "./airports";
-import { PALETTES, type Palette, type ThemeId } from "./palette";
+import { HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { buildPlane } from "./plane-model";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
+import { randomSeed, Sky, type Program } from "./sky";
 import {
   add, angle, clamp, cross, D2R, dot, EARTH_RADIUS_KM, ease, len, lerp, llOf, mul, norm, rotAround, slerp, smooth,
   sub, tangent, vecOf, wrapPi, type Vec3,
@@ -69,10 +70,6 @@ interface Plane {
   bank: number;
   pitch: number;
 }
-interface Program {
-  p: WebGLProgram;
-  u: Record<string, WebGLUniformLocation | null>;
-}
 interface Snap {
   airport: Airport;
   v: Vec3;
@@ -93,6 +90,8 @@ export class GlobeEngine {
   private vaoPlane: WebGLVertexArrayObject | null = null;
   private planeCount = 0;
   private texEarth: WebGLTexture | null = null;
+  private sky: Sky | null = null;
+  private skySeed: string | number = randomSeed();
   private cam: Camera | null = null;
   private P: Palette = PALETTES.light;
   private tagFont = '700 12px "Courier Prime", ui-monospace, monospace';
@@ -169,6 +168,8 @@ export class GlobeEngine {
     this.vaoQuad = gl.createVertexArray();
     gl.bindVertexArray(this.vaoQuad);
     this.attrib(gl, 0, new Float32Array([-1, -1, 3, -1, -1, 3]), 2);
+    this.sky = new Sky(gl, (vs, fs, attrs) => this.program(gl, vs, fs, attrs));
+    this.sky.setSeed(this.skySeed, this.vaoQuad);
 
     const m = buildPlane();
     this.planeCount = m.count;
@@ -210,6 +211,8 @@ export class GlobeEngine {
     this.root.removeEventListener("wheel", this.onWheel);
     this.root.removeEventListener("gesturestart", this.onGesture as EventListener);
     this.root.removeEventListener("gesturechange", this.onGesture as EventListener);
+    this.sky?.dispose();
+    this.sky = null;
     // Not loseContext(): React Strict Mode remounts onto the same canvas, which would hand back the lost context.
     this.gl = null;
   }
@@ -218,6 +221,13 @@ export class GlobeEngine {
     this.P = PALETTES[theme];
     const stack = getComputedStyle(this.root).getPropertyValue("--font-typewriter").trim();
     if (stack) this.tagFont = `700 12px ${stack}`;
+  }
+
+  /** Regenerates the sky from a seed. Give everyone on a trip the same seed and they all see the same sky. */
+  setSkySeed(seed: string | number) {
+    if (seed === this.skySeed) return;
+    this.skySeed = seed;
+    this.sky?.setSeed(seed, this.vaoQuad);
   }
 
   getMode() {
@@ -422,11 +432,6 @@ export class GlobeEngine {
     const half = Math.atan(this.tan0 * Math.min(1, this.asp)) * 0.6;
     const a = w / 2 + 0.03;
     return clamp(Math.sin(a) / Math.tan(half) + Math.cos(a) - 1, RANGE_MIN, RANGE_MAX);
-  }
-
-  /** 1 while the whole globe is in view, fading to 0 as it overflows the screen. */
-  private get globeAmt() {
-    return smooth(1.2, 2.0, this.range);
   }
 
   /** The plane's world scale: a touch less than zoomScale, so on screen it grows to about 1.5x as you zoom right in. */
@@ -796,11 +801,18 @@ export class GlobeEngine {
     const pp = pl && showPlane ? mul(pl.n, 1 + pl.alt + 0.09 * S) : null;
     // the plane's shadow falls along the light onto the ground
     let shP: Vec3 = pl && showPlane ? pl.n : [0, 1, 0];
+    let shadow = !!pp;
     if (pp) {
       const ld = mul(L, -1);
       const b = dot(pp, ld);
       const disc = b * b - (dot(pp, pp) - 1);
-      if (disc > 0) shP = norm(add(pp, mul(ld, -b - Math.sqrt(disc))));
+      const t = -b - Math.sqrt(Math.max(disc, 0));
+      // t <= 0: the globe sits between the light and the plane (it's round the far side), so it casts no shadow.
+      // Taking that hit anyway put the shadow on the near face.
+      if (disc > 0) {
+        if (t > 0) shP = norm(add(pp, mul(ld, t)));
+        else shadow = false;
+      }
     }
     const setCam = (u: Program["u"]) => {
       gl.uniform3fv(u.uC, c.C);
@@ -811,7 +823,7 @@ export class GlobeEngine {
       gl.uniform1f(u.uAsp, this.asp);
       gl.uniform1f(u.uShift, c.shift);
       gl.uniform3fv(u.uL, L);
-      gl.uniform1f(u.uPer, 4.5 * dpr); // halftone-pitch
+      gl.uniform1f(u.uPer, HALFTONE_PITCH * dpr);
     };
 
     gl.viewport(0, 0, cw, ch);
@@ -824,16 +836,20 @@ export class GlobeEngine {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texEarth);
     gl.uniform1i(u.uEarth, 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.sky?.texture ?? null);
+    gl.uniform1i(u.uSky, 1);
+    gl.uniform1f(u.uSkyInk, th.skyInk);
     gl.uniform2f(u.uRes, cw, ch);
     gl.uniform1f(u.uDpr, dpr);
     setCam(u);
-    gl.uniform1f(u.uGlobe, this.globeAmt); // the ring and cut-out shadow only make sense around the whole globe
     gl.uniform1f(u.uDark, th.dark);
     for (const [key, value] of Object.entries(th.gl)) gl.uniform3fv(u[key], value);
     gl.uniform3fv(u.uShP, shP);
     gl.uniform1f(u.uShR, S * 0.42);
-    gl.uniform1f(u.uShA, pl && showPlane ? 0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt) : 0);
+    gl.uniform1f(u.uShA, pl && shadow ? 0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt) : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    this.sky?.draw(setCam, [cw, ch], dpr, th.gl.uInk, th.skyInk, 1);
 
     if (!pp) return;
     const pv = this.proj(pp);
@@ -913,42 +929,16 @@ export class GlobeEngine {
     ctx.restore();
   }
 
-  private star(ctx: CanvasRenderingContext2D, x: number, y: number, R: number, rot: number) {
-    const { sticker, stickerShadow } = this.P;
-    const dpr = this.dpr;
-    const path = () => {
-      ctx.beginPath();
-      for (let i = 0; i < 16; i++) {
-        const a = rot + (i * Math.PI) / 8 - Math.PI / 2;
-        const r = i % 2 === 0 ? R : R * 0.34;
-        const px = x + Math.cos(a) * r;
-        const py = y + Math.sin(a) * r;
-        if (i) ctx.lineTo(px, py);
-        else ctx.moveTo(px, py);
-      }
-      ctx.closePath();
-    };
+  /** The route's start: a small ring at the foot of the line. */
+  private startMark(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    const P = this.P;
     ctx.save();
-    ctx.lineJoin = "round";
-    path();
-    ctx.shadowColor = stickerShadow;
-    ctx.shadowOffsetX = 2 * dpr;
-    ctx.shadowOffsetY = 3 * dpr;
-    ctx.shadowBlur = 2 * dpr;
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = sticker.border;
-    ctx.stroke();
-    ctx.shadowColor = "transparent";
-    ctx.fillStyle = sticker.border;
+    ctx.beginPath();
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = P.raised;
     ctx.fill();
-    path();
-    const g = ctx.createRadialGradient(x, y, 0, x, y, R);
-    g.addColorStop(0, sticker.starLight);
-    g.addColorStop(1, sticker.starEdge);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.lineWidth = 1.3;
-    ctx.strokeStyle = sticker.ink;
+    ctx.lineWidth = 2; // line-route
+    ctx.strokeStyle = P.ink;
     ctx.stroke();
     ctx.restore();
   }
@@ -994,23 +984,6 @@ export class GlobeEngine {
     ctx.clearRect(0, 0, this.hudEl.width, this.hudEl.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // collage stars around the globe, lifted away as soon as you zoom in
-    const stars = smooth(1.9, 2.35, this.range);
-    const cx = this.W / 2;
-    const cy = this.H * CENTRE_Y;
-    ctx.save();
-    ctx.globalAlpha = stars;
-    for (const [a, rf, r, rot] of stars > 0.01 ? [
-      [-2.35, 1.34, 24, 0.15],
-      [0.62, 1.3, 16, -0.2],
-      [-0.72, 1.42, 10, 0.3],
-    ] : []) {
-      const x = cx + Math.cos(a) * this.Rpx * rf;
-      const y = cy + Math.sin(a) * this.Rpx * rf;
-      if (x > r && y > r && x < this.W - r && y < this.H - r) this.star(ctx, x, y, r, rot);
-    }
-    ctx.restore();
-
     if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
     const pl = this.pl;
     const origin = this.origin;
@@ -1052,20 +1025,11 @@ export class GlobeEngine {
       ctx.stroke();
       ctx.restore();
     };
-    // overshooting pop for the star pin
-    const pop = (k: number) => {
-      if (this.reduceMotion) return 1;
-      k = clamp(k, 0, 1);
-      const c = 1.7;
-      return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2);
-    };
-
     const op = this.proj(origin);
     ripple(op, this.tTake);
     if (op && op.vis && this.oAir) {
-      const s = pop((t - this.tTake) / 0.45);
-      if (s > 0.05) this.star(ctx, op.x, op.y, 13 * s, 0.2);
-      this.tag(ctx, op.x, op.y + 30, this.oAir.airport.code);
+      this.startMark(ctx, op.x, op.y);
+      this.tag(ctx, op.x, op.y + 20, this.oAir.airport.code);
     }
 
     const pp = this.proj(mul(pl.n, 1 + pl.alt));

@@ -18,6 +18,29 @@ float halftone(vec2 px, float k, float ang, float per) {
 float lineAA(float d, float w, float fw) { return 1.0 - smoothstep(w, w + max(fw, 1e-5), d); }
 `;
 
+// The nebula lives on a shell around the globe rather than at infinity, so it drifts against the stars as the
+// camera orbits and zooms. Both the globe pass and the star pass look it up through skyUV.
+const GLSL_SKY = `
+const float SKY_R = 9.0;
+/** Where the view ray d from c meets the nebula shell, as a unit direction. */
+vec3 skyPoint(vec3 c, vec3 d) {
+  float b = dot(c, d);
+  return (c + d * (-b + sqrt(b * b - dot(c, c) + SKY_R * SKY_R))) / SKY_R;
+}
+vec2 skyUV(vec3 s) {
+  return vec2(atan(s.x, s.z) / 6.2831853 + 0.5, 0.5 - asin(clamp(s.y, -1.0, 1.0)) / 3.14159265);
+}
+/** Random 0–1 per cell of a lattice fixed to the sky (pcg3d), so stipple moves with the sky, not the screen. */
+float skyGrain(vec3 s, float cells) {
+  uvec3 q = uvec3(ivec3(floor(s * cells)) + 1048576);
+  q = q * 1664525u + 1013904223u;
+  q.x += q.y * q.z; q.y += q.z * q.x; q.z += q.x * q.y;
+  q ^= q >> 16u;
+  q.x += q.y * q.z; q.y += q.z * q.x; q.z += q.x * q.y;
+  return float(q.x & 0xffffffu) / 16777216.0;
+}
+`;
+
 export const FS_GLOBE = `#version 300 es
 precision highp float;
 uniform vec2 uRes;
@@ -31,7 +54,6 @@ uniform float uAsp;
 uniform float uShift;
 uniform vec3 uL;
 uniform float uPer;
-uniform float uGlobe;
 uniform sampler2D uEarth;
 uniform vec3 uPaper;
 uniform vec3 uInk;
@@ -44,9 +66,11 @@ uniform float uDark;
 uniform vec3 uShP;
 uniform float uShR;
 uniform float uShA;
+uniform sampler2D uSky;
+uniform float uSkyInk;
 out vec4 outColor;
 const float PI = 3.14159265;
-` + GLSL_COMMON + `
+` + GLSL_COMMON + GLSL_SKY + `
 vec3 rayDir(vec2 px) {
   vec2 ndc = px / uRes * 2.0 - 1.0;
   return normalize(uFf + uRr * (ndc.x * uTan * uAsp) + uUu * ((ndc.y + uShift) * uTan));
@@ -66,17 +90,20 @@ void main() {
   vec3 ink = uInk;
   vec3 col = paper;
 
+  // the sky: stippled nebulae, inked where their north rims catch the light and sparse inside
+  // (the grain lattice is about one device pixel per cell)
+  vec3 sp = skyPoint(uC, d);
+  vec2 neb = texture(uSky, skyUV(sp)).rg;
+  float edge = smoothstep(0.04, 0.3, neb.r) * (1.0 - smoothstep(0.3, 0.9, neb.r));
+  float pNeb = clamp(pow(neb.g, 1.4) * 0.8 + edge * 0.16 + step(0.04, neb.r) * neb.r * 0.03, 0.0, 1.0);
+  pNeb *= smoothstep(1.02, 1.12, dmin);
+  col = mix(col, ink, step(skyGrain(sp, uRes.y / (2.0 * uTan)), pNeb) * uSkyInk);
+
   // engraved atmosphere: hatching that thickens toward the horizon
   float atm = exp(-max(dmin - 1.0, 0.0) * 14.0) * step(1.0, dmin);
   float hp = uPer * 1.1;
   float hd = abs(fract(px.y / hp) - 0.5) * hp;
   col = mix(col, uSea, lineAA(hd, atm * 0.9 * uDpr, uDpr) * 0.55 * atm);
-
-  // globe view only: offset cut-out shadow and the double ring
-  float dsh = closest(rayDir(px - vec2(7.0, -11.0) * uDpr));
-  col = mix(col, col * uShade, (1.0 - smoothstep(1.0, 1.0 + 2.0 * fw, dsh)) * step(1.0, dmin) * uGlobe);
-  col = mix(col, ink, lineAA(abs(dmin - 1.05), 0.45 * fw, fw) * 0.85 * uGlobe);
-  col = mix(col, ink, lineAA(abs(dmin - 1.07), 0.45 * fw, fw) * 0.85 * uGlobe);
 
   // the surface, computed for every pixel so derivatives stay valid
   float tHit = disc > 0.0 ? -b - sqrt(disc) : -b;
@@ -212,4 +239,153 @@ void main() {
   vec3 col = mix(base, uInkS, k * 0.16);
   col += vec3(0.04) * pow(dif, 8.0);
   outColor = vec4(col, 1.0);
+}`;
+
+// Bakes the nebula field once per sky seed into an equirectangular RG8 texture on the SKY_R shell.
+// r: cloud cover (0 to 1). g: the rim lit from the north, where the stipple gathers.
+export const FS_SKY_BAKE = `#version 300 es
+precision highp float;
+uniform vec2 uRes;
+uniform vec4 uBlob[12];
+uniform int uBlobs;
+uniform vec3 uSeed;
+out vec4 outColor;
+float h3(vec3 p) {
+  p = fract(p * 0.3183099 + 0.1);
+  p *= 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+float vnoise(vec3 x) {
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+  return mix(
+    mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y),
+    f.z);
+}
+float fbm(vec3 p) {
+  float a = 0.5, s = 0.0;
+  for (int i = 0; i < 5; i++) {
+    s += a * vnoise(p);
+    p = p * 2.03 + vec3(1.7, 9.2, 3.1);
+    a *= 0.5;
+  }
+  return s / 0.97;
+}
+float cover(vec3 d) {
+  float m = 0.0;
+  for (int i = 0; i < 12; i++) {
+    if (i >= uBlobs) break;
+    float a = acos(clamp(dot(d, uBlob[i].xyz), -1.0, 1.0)) / uBlob[i].w;
+    m = max(m, exp(-a * a));
+  }
+  if (m < 0.03) return 0.0;
+  // domain-warped noise gives the billowing edges
+  vec3 q = d * 3.2 + uSeed;
+  vec3 w = vec3(fbm(q), fbm(q + vec3(5.2, 1.3, 2.8)), fbm(q + vec3(1.7, 9.2, 4.4)));
+  float n = fbm(q * 1.8 + w * 2.2);
+  return smoothstep(0.46, 0.6, m * 0.85 + (n - 0.5) * 1.1);
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float lon = (uv.x - 0.5) * 6.2831853;
+  float lat = (0.5 - uv.y) * 3.14159265;
+  vec3 d = vec3(cos(lat) * sin(lon), sin(lat), cos(lat) * cos(lon));
+  float c = cover(d);
+  float lit = 0.0;
+  if (c > 0.0) {
+    vec3 north = vec3(0.0, 1.0, 0.0) - d * d.y;
+    north = length(north) > 1e-3 ? normalize(north) : vec3(1.0, 0.0, 0.0);
+    lit = clamp((c - cover(normalize(d + north * 0.018))) * 1.6, 0.0, 1.0);
+  }
+  outColor = vec4(c, lit, 0.0, 1.0);
+}`;
+
+// Stars as instanced quads. Each one sits at infinity or on a nearer shell (aStar.w), so the layers part as the
+// camera moves. The fragment shader stipples a solid core, a halo and, for the bright few, four diffraction spikes.
+export const VS_STAR = `#version 300 es
+in vec2 aCorner;
+in vec4 aStar;
+in vec4 aLook;
+uniform vec3 uC;
+uniform vec3 uRr;
+uniform vec3 uUu;
+uniform vec3 uFf;
+uniform float uTan;
+uniform float uAsp;
+uniform float uShift;
+uniform vec2 uRes;
+uniform float uDpr;
+out vec2 vQ;
+out vec2 vOff;
+flat out vec4 vLook;
+flat out float vSeed;
+void main() {
+  bool near = aStar.w > 0.0;
+  vec3 v = near ? aStar.xyz * aStar.w - uC : aStar.xyz;
+  float vz = dot(v, uFf);
+  if (vz <= 1e-4) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    return;
+  }
+  // nearer stars grow a little as the camera closes in on them
+  float scale = near ? clamp(aStar.w / length(v), 0.75, 1.5) : 1.0;
+  vec2 ndc = vec2(dot(v, uRr) / (vz * uTan * uAsp), dot(v, uUu) / (vz * uTan) - uShift);
+  float r = (max(aLook.x * 4.0, aLook.y) + 2.0) * scale;
+  vec2 off = aCorner * r;
+  gl_Position = vec4(ndc + off * uDpr * 2.0 / uRes, 0.0, 1.0);
+  float c = cos(aLook.z), s = sin(aLook.z);
+  vQ = mat2(c, -s, s, c) * off / scale;
+  vOff = off;
+  vLook = aLook;
+  vSeed = fract(aStar.x * 91.7 + aStar.y * 37.3 + aStar.z * 13.1) * 100.0;
+}`;
+
+export const FS_STAR = `#version 300 es
+precision highp float;
+in vec2 vQ;
+in vec2 vOff;
+flat in vec4 vLook;
+flat in float vSeed;
+uniform vec3 uC;
+uniform vec3 uRr;
+uniform vec3 uUu;
+uniform vec3 uFf;
+uniform float uTan;
+uniform float uAsp;
+uniform float uShift;
+uniform vec2 uRes;
+uniform float uDpr;
+uniform sampler2D uSky;
+uniform vec3 uInk;
+uniform float uSkyInk;
+out vec4 outColor;
+` + GLSL_COMMON + GLSL_SKY + `
+void main() {
+  float r = length(vQ);
+  float core = vLook.x;
+  float k = 1.0 - smoothstep(core * 0.85, core * 1.05, r);
+  k += 0.5 * exp(-r / (core * 1.3));
+  float L = vLook.y;
+  if (L > 0.0) {
+    vec2 a = abs(vQ);
+    float w = core * 0.3 + 0.55;
+    k += 1.3 * exp(-a.y * a.y / (w * w)) * pow(max(1.0 - a.x / L, 0.0), 2.2);
+    k += 1.3 * exp(-a.x * a.x / (w * w)) * pow(max(1.0 - a.y / (L * 1.2), 0.0), 2.2);
+    k += 0.3 * exp(-r / (L * 0.2));
+  }
+  k *= vLook.w;
+
+  // hidden behind the globe, fading out through its atmosphere, and behind the body of a nebula
+  vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
+  vec3 d = normalize(uFf + uRr * (ndc.x * uTan * uAsp) + uUu * ((ndc.y + uShift) * uTan));
+  float b = dot(uC, d);
+  float dmin = b < 0.0 ? sqrt(max(dot(uC, uC) - b * b, 0.0)) : length(uC);
+  k *= smoothstep(1.02, 1.15, dmin);
+  k *= 1.0 - 0.9 * smoothstep(0.35, 0.8, texture(uSky, skyUV(skyPoint(uC, d))).r);
+
+  // stipple: each device pixel, anchored to the star so the grain doesn't crawl as it moves, is inked or not
+  if (hash(floor(vOff * uDpr) + vSeed) >= k) discard;
+  outColor = vec4(uInk, uSkyInk);
 }`;
