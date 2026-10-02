@@ -8,7 +8,7 @@ import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
 import { Ticket } from "@/components/paper-atlas";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { convertCurrency, CURRENCIES, formatCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
-import type { Offer } from "@/lib/transport/types";
+import { transfersOf, type Offer } from "@/lib/transport/types";
 
 import { createTrip } from "./t/actions";
 
@@ -78,6 +78,12 @@ function CurrencySelector({
   );
 }
 
+/** " · 1 stop", or nothing for a direct trip. */
+const stopsLabel = (offer: Offer) => {
+  const n = transfersOf(offer);
+  return n ? ` · ${n} stop${n > 1 ? "s" : ""}` : "";
+};
+
 function bestByMode(offers: Offer[]): Offer[] {
   const seen = new Set<Offer["mode"]>();
   return offers.filter((offer) => {
@@ -100,7 +106,7 @@ function ResultCard({ offer, best, currency, rates }: { offer: Offer; best?: boo
           {best ? "BEST" : offer.mode.toUpperCase()} · {offer.segments[0].carrier ?? offer.provider}
         </span>
         <span className="type-body block truncate">
-          {new Date(offer.segments[0].depart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {offer.segments[0].durationMin} min
+          {new Date(offer.segments[0].depart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {offer.segments[0].durationMin} min{stopsLabel(offer)}
         </span>
       </span>
       <span className="type-body shrink-0 text-right">{formatMoney(offer, currency, rates)}</span>

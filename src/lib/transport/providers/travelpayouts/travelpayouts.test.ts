@@ -23,6 +23,7 @@ describe("Travelpayouts adapter", () => {
       id: "travelpayouts:HKG-BKK-2026-11-15T09:00:00+08:00-765",
       kind: "cached",
       price: { amount: 120, currency: "USD" },
+      transfers: 0,
       segments: [{
         carrier: "HX",
         number: "HX765",
@@ -30,6 +31,12 @@ describe("Travelpayouts adapter", () => {
         arrive: "2026-11-15T03:45:00.000Z",
       }],
     });
+  });
+
+  it("keeps the transfer count of a connecting fare", () => {
+    const [offer] = mapFlights([{ ...fixture.data[0], transfers: 1 }], query);
+    expect(offer.transfers).toBe(1);
+    expect(offer.segments).toHaveLength(1);
   });
 
   it("maps an empty data array to no offers", () => {

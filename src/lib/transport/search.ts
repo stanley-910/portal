@@ -1,6 +1,6 @@
 import "server-only";
 import { providers as registered } from "./registry";
-import { ProviderFailure, type Offer, type ProviderError, type SearchQuery, type TransportProvider } from "./types";
+import { ProviderFailure, transfersOf, type Offer, type ProviderError, type SearchQuery, type TransportProvider } from "./types";
 
 export const PROVIDER_TIMEOUT_MS = 8_000;
 
@@ -61,7 +61,7 @@ function convenienceScore(offer: Offer): number {
     : 100;
   const durationPenalty = segment.durationMin * 0.03;
   const modePenalty = { flight: 0, train: 4, bus: 12, ferry: 16 }[offer.mode];
-  const layoverPenalty = Math.max(0, offer.segments.length - 1) * 30;
+  const layoverPenalty = transfersOf(offer) * 30;
   return priceUsd * 0.75 + durationPenalty + modePenalty + layoverPenalty;
 }
 

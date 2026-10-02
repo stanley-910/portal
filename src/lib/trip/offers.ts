@@ -1,5 +1,5 @@
 import type { StoredOffer } from "@/lib/liveblocks/types";
-import type { Offer } from "@/lib/transport/types";
+import { transfersOf, type Offer } from "@/lib/transport/types";
 
 /** How many options a leg keeps. Rooms are capped at 10 MB, and nobody reads past this many. */
 export const MAX_OFFERS = 20;
@@ -20,7 +20,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     depart: first.depart,
     arrive: last.arrive,
     durationMin: Number.isFinite(span) && span > 0 ? Math.round(span) : offer.segments.reduce((sum, s) => sum + s.durationMin, 0),
-    stops: offer.segments.length - 1,
+    stops: transfersOf(offer),
     bookingUrl: offer.bookingUrl ?? null,
     attribution: offer.attribution ?? null,
   };
