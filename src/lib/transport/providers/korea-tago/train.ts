@@ -23,7 +23,7 @@ function stationsNear(seed: TrainSeed, lat: number, lng: number): Set<string> {
 }
 
 /** `date` + `hhmm` + `plusMin`, as local ISO with +09:00. */
-function at(date: string, hhmm: string, plusMin = 0): string {
+export function at(date: string, hhmm: string, plusMin = 0): string {
   return `${new Date(Date.parse(`${date}T${hhmm}:00Z`) + plusMin * 60_000).toISOString().slice(0, 19)}${OFFSET}`;
 }
 
