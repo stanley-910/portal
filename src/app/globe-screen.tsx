@@ -7,6 +7,8 @@ import { DEMO_PARTY, EntryPanel } from "@/components/entry";
 import { Ticket } from "@/components/paper-atlas";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 
+import { createTrip } from "./t/actions";
+
 /** "Sat 3 Oct" */
 const formatDate = (d: Date) =>
   d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
@@ -27,6 +29,14 @@ export function GlobeScreen() {
         onLand={setTrip}
         onCancel={() => setTrip(null)}
       />
+      <form action={createTrip} className="absolute top-(--space-4) left-(--space-4)">
+        <button
+          type="submit"
+          className="type-tag h-9 rounded-tag border-(length:--line-hair) border-ink bg-paper-raised px-(--space-3) shadow-tag"
+        >
+          Plan with friends
+        </button>
+      </form>
       {trip ? (
         <div
           key={`${trip.from.code}-${trip.to.code}-${trip.destination.lat}`}

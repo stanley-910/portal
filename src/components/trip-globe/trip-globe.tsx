@@ -6,7 +6,7 @@ import { RoundButton } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
 import type { Airport } from "./airports";
-import { GlobeEngine, type GlobeMode, type LandedTrip } from "./engine";
+import { GlobeEngine, type GlobeMode, type LandedTrip, type LatLng } from "./engine";
 import type { ThemeId } from "./palette";
 
 export type TripGlobeTheme = ThemeId | "auto";
@@ -14,6 +14,10 @@ export type TripGlobeTheme = ThemeId | "auto";
 export interface TripGlobeHandle {
   /** Ends the current trip and returns to the idle globe. */
   cancel(): void;
+  /** Where a place is on screen, in CSS px relative to the globe, and whether the globe hides it. */
+  project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
+  /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
+  onFrame(cb: () => void): () => void;
 }
 
 export interface TripGlobeProps {
@@ -25,6 +29,11 @@ export interface TripGlobeProps {
   onLand?: (trip: LandedTrip) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
+  /**
+   * Called when the place under the pointer changes, including when the globe turns under a still pointer.
+   * Null once the pointer leaves the globe. Rounded to about 10 m.
+   */
+  onPointerLatLng?: (ll: LatLng | null) => void;
   /** The 2D earth data texture (land mask, coast distance, relief). */
   earthUrl?: string;
   className?: string;
@@ -47,6 +56,10 @@ function useResolvedTheme(theme: TripGlobeTheme): ThemeId {
   return theme === "auto" ? (systemDark ? "dark" : "light") : theme;
 }
 
+const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
+const roundLatLng = (ll: LatLng | null): LatLng | null => (ll ? { lat: round4(ll.lat), lng: round4(ll.lng) } : null);
+const sameLatLng = (a: LatLng | null, b: LatLng | null) => a === b || (!!a && !!b && a.lat === b.lat && a.lng === b.lng);
+
 /**
  * The globe screen's canvas: click to take off, move to fly, click to land, drag to turn.
  * Owns its WebGL and overlay canvases; place the Ticket and any results beside it.
@@ -56,6 +69,7 @@ export function TripGlobe({
   onTakeoff,
   onLand,
   onCancel,
+  onPointerLatLng,
   earthUrl = "/textures/earth.png",
   className,
   ref,
@@ -71,12 +85,14 @@ export function TripGlobe({
   const resolved = useResolvedTheme(theme);
 
   // Latest callbacks, so the engine never needs rebuilding when a parent re-renders.
-  const handlers = useRef({ onTakeoff, onLand, onCancel });
+  const handlers = useRef({ onTakeoff, onLand, onCancel, onPointerLatLng });
   useEffect(() => {
-    handlers.current = { onTakeoff, onLand, onCancel };
+    handlers.current = { onTakeoff, onLand, onCancel, onPointerLatLng };
   });
+  const frameListeners = useRef(new Set<() => void>());
 
   useEffect(() => {
+    let lastPointer: LatLng | null = null;
     const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, {
       onModeChange: (m, a) => {
         setMode(m);
@@ -89,6 +105,14 @@ export function TripGlobe({
         handlers.current.onLand?.(trip);
       },
       onCancel: () => handlers.current.onCancel?.(),
+      onFrame: () => {
+        const ll = roundLatLng(engine.pointerLatLng());
+        if (!sameLatLng(ll, lastPointer)) {
+          lastPointer = ll;
+          handlers.current.onPointerLatLng?.(ll);
+        }
+        for (const cb of frameListeners.current) cb();
+      },
     });
     if (!engine.start()) setUnsupported(true);
     engineRef.current = engine;
@@ -102,7 +126,19 @@ export function TripGlobe({
     engineRef.current?.setTheme(resolved);
   }, [resolved]);
 
-  useImperativeHandle(ref, () => ({ cancel: () => engineRef.current?.cancel() }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      cancel: () => engineRef.current?.cancel(),
+      project: (ll) => engineRef.current?.project(ll) ?? null,
+      onFrame: (cb) => {
+        const listeners = frameListeners.current;
+        listeners.add(cb);
+        return () => listeners.delete(cb);
+      },
+    }),
+    [],
+  );
 
   const label =
     mode === "flying" && from
