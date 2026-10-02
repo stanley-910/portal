@@ -15,7 +15,7 @@ runner and the env schema so `F/S/T/B` tasks touch only their own `providers/<id
 ## Non-negotiables
 - `types.ts` matches core `PLAN.md` § Contract exactly. Deviation = new ADR-C first.
 - Every `ProviderId` registered with stub throwing `ProviderFailure("NOT_CONFIGURED")`.
-- All env vars optional (ADR-C04). App boots with empty `.env.local`.
+- All env vars optional (ADR-C04). App boots with empty `.env`.
 - Provider modules and `env.server.ts` import `server-only` — client import must fail build.
 
 ## Context (anchors)
@@ -36,7 +36,7 @@ runner and the env schema so `F/S/T/B` tasks touch only their own `providers/<id
 
 ## Definition of done
 - `pnpm test` green; `pnpm lint && pnpm exec tsc --noEmit` clean.
-- `pnpm dev` boots with no `.env.local`.
+- `pnpm dev` boots with no `.env`.
 
 ## Verification
 `pnpm lint && pnpm exec tsc --noEmit && pnpm test`

@@ -46,3 +46,10 @@ Re-open via a new task when a TDX key exists (trains backlog).
 **Decision:** per pair the top 5 operators by "No. of Trip"; `departures` = that operator's First Bus + Last Bus; `durationMin` = pair "Est. Duration" (range → midpoint). `source` = the route page. Read by hand-run script, no fares stored, not in repo.
 **Why not full timetables:** BOT shows only first/last; per-departure lists need the POST search (no permission, doc § Gotchas).
 **Consequences:** 2 offers per operator, not every run; times "typical" via `kind: "timetable"`. Re-curate when pages change.
+
+## ADR-B07 — 2026-10-02 — TDX intercity bus + Korea bus = seeded routes (supersedes ADR-B05)
+
+**Context:** What changed: trains ADR-T04/ADR-T05 dropped the TDX member key and the data.go.kr key (Taiwan SMS signup; Korean national + 본인인증 signup; owner not signing up, 2026-10-02). PLAN D2 (TDX stop-pair index from `StopOfRoute` + `Schedule`) and D3 (`ExpBusInfo` + `SuburbsBusInfo`) both need those keys.
+**Decision:** Owner (2026-10-02): mock every keyed source with seed data, so ADR-B05 (Taiwan bus dropped) no longer governs. B01 = hand-curated seed of 國道客運 routes (Taipei–Taichung, Taipei–Kaohsiung, Taipei–Tainan, Taipei–Yilan; more if sourced) with typical departures from operator sites (Kuo-Kuang, Ubus, Aloha, etc.), core ADR-C05 format (`departures` `HH:MM`, `tz: "Asia/Taipei"`, `durationMin`, operator, fare TWD if published, `source`). No stop-pair index, no TDX calls. B02 = KoBus express (고속) seed (Seoul Express Bus Terminal–Busan, –Daegu, –Gwangju, –Daejeon…), any date, same format (`tz: "Asia/Seoul"`, fare KRW). 시외 (intercity, today-only API) path dropped. Both served from the trains providers' folders (`tdx`, `korea-tago`) via their seed loaders.
+**Why not TDX guest mode for buses:** 20 calls/day/IP; the route+`StopOfRoute` crawl is hundreds of calls.
+**Consequences:** `kind: "timetable"`; times are typical, not per-date. ADR-B01–B04, B06 unaffected. B01 builds on the T06 `tdx` seed provider. Live TDX bus / live Korea bus = backlog, trigger: key obtained.

@@ -15,6 +15,7 @@ for prices/booking.
 - Never call 12306 at request time. `station_name.js` only via one-off script, if at all.
 - Seed rows cite `source` (public timetable page, operator notice). `kind: "timetable"`, no price.
 - Link-out: Trip.com affiliate (12Go `links.ts` only if S01 already `done` — not a dependency). Trip.com param names `unverified` — confirm or ship untagged.
+- No Trip.com affiliate signup (owner, 2026-10-02): ship untagged links; add the id param only if `TRIPCOM_AFFILIATE_ID` is ever set.
 
 ## Context (anchors)
 - Demo pairs (default): Beijing–Shanghai, Shanghai–Hangzhou, Guangzhou–Shenzhen, Shenzhen–Hong Kong West Kowloon, Beijing–Xi'an.

@@ -16,7 +16,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 ## Environment
 
 ```bash
-# .env.local — one of:
+# .env — one of:
 TRAVELPAYOUTS_MARKER=...      # TP 12Go program (join in TP dashboard)
 TWELVEGO_AFFILIATE_ID=...     # direct agent.12go.asia program
 ```

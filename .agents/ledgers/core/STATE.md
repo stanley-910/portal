@@ -20,7 +20,7 @@ verbatim → `## Notes` → update row, "Current task", "Last session ended" →
 
 ```bash
 pnpm install
-cp .env.example .env.local   # after C01; fill keys per .agents/SETUP.md
+cp .env.example .env         # after C01; fill keys per .agents/SETUP.md
 ```
 
 ## Open blockers / decisions for the user

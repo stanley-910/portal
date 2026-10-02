@@ -16,7 +16,7 @@ ended" → devlog → commit + push + PR (EXECUTE § 10) → stop.
 ## Environment
 
 ```bash
-# .env.local
+# .env
 TRAVELPAYOUTS_TOKEN=...   # app.travelpayouts.com/profile/api-token
 TRAVELPAYOUTS_MARKER=...
 ```

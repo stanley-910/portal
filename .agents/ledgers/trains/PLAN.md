@@ -14,6 +14,8 @@ fares where the source gives them and THSR seat flags, as `Offer`s honest about 
 
 TDX free = 5 req/min/key, ~4,500 calls/month: station lists + fares snapshotted, timetables
 cached per date. 12306 is never called at request time (ADR-T02).
+MVP: TDX and TAGO are seed-only, zero request-time calls (ADR-T04, ADR-T05); topology `client.ts`
+boxes below are the backlog live design.
 
 ## Topology
 
@@ -34,14 +36,14 @@ fanOut ─▶ providers/tdx/         client.ts (OAuth token cache 24h, shared w/
 | # | Decision | Chosen | Reason |
 |---|---|---|---|
 | D1 | Taiwan | THSR seed + link-out, no TDX key (ADR-T04; was TDX key, ADR-T01) | signup needs Taiwan phone or manual review; owner declined |
-| D2 | Korea | data.go.kr TAGO `TrainInfo` (Pascal ops) | official, free, 10k/day dev |
+| D2 | Korea | hand-curated Korail seed, no data.go.kr key (ADR-T05) | signup needs Korean national + 본인인증 |
 | D3 | China | own seed + affiliate link-out | 12306 has no API; scraping legally risky (ADR-T02) |
 | D4 | Rome2Rio | dropped | not accepting applications; docs 404 (ADR-T03) |
 | D5 | SE Asia rail | GTFS (KTMB, SRT) via buses `gtfs` pipeline | no-key feeds exist |
 
 ## Phasing
 
-T06 THSR seed (replaces T01/T02, ADR-T04) → T03 Korea KTX → T04 China seed → T05 GTFS rail.
+T06 THSR seed (replaces T01/T02, ADR-T04) → T03 Korea KTX seed (ADR-T05) → T04 China seed → T05 GTFS rail.
 
 ## Out of scope
 

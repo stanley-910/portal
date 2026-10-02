@@ -28,19 +28,22 @@ build time (pnpm gtfs:build, local or CI)          request time
                                                     busonlineticket seed + deep links (B05)
 ```
 
+MVP: the TDX bus snapshot and `ExpBusInfo`/`SuburbsBusInfo` boxes above are the backlog live
+design; B01/B02 ship as seed (ADR-B07).
+
 ## Decision table
 
 | # | Decision | Chosen | Reason |
 |---|---|---|---|
 | D1 | GTFS processing | build-time → committed per-pair JSON | Thai zip 42 MB / 230 MB unzipped; data.gov.my 4 req/min |
-| D2 | TDX bus A→B | dropped — no TDX key (trains ADR-T04, buses ADR-B05) | signup needs Taiwan phone; was stop-pair index |
-| D3 | Korea | `ExpBusInfo` + `SuburbsBusInfo` (today-only) | official, free |
+| D2 | TDX bus A→B | hand-curated 國道客運 route seed, no TDX calls (ADR-B07) | no TDX key; guest 20/day too small to crawl |
+| D3 | Korea | KoBus express seed, any date; 시외 dropped (ADR-B07) | no data.go.kr key |
 | D4 | MY/SG coaches | BusOnlineTicket seed + deep link | no feed, no public API |
 | D5 | 12Go buses | reuse ferries S02 adapter + `bus-routes.json` | ADR-S02 |
 
 ## Phasing
 
-B03 GTFS pipeline (no key needed — start here) → B05 BOT seed → B02 Korea bus → B04 12Go bus seed.
+B03 GTFS pipeline (no key needed — start here) → B05 BOT seed → B01 TDX bus seed → B02 Korea bus seed → B04 12Go bus seed.
 
 ## Out of scope
 

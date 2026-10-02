@@ -5,8 +5,8 @@ Codebase: core `REFERENCE.md`. Provider truth in `.agents/docs/api/`.
 | Provider id | Folder | Env | Doc |
 |---|---|---|---|
 | `gtfs` | `src/lib/transport/providers/gtfs/` | `LTA_DATAMALL_ACCOUNT_KEY` (optional, SG train only), `MOBILITYDB_REFRESH_TOKEN` (build-time, optional) | `gtfs.md` |
-| `tdx` | `providers/tdx/` — trains-only seed; Taiwan bus dropped (ADR-B05, 2026-10-02) | — | `taiwan-tdx.md` |
-| `korea-tago` | `providers/korea-tago/` (T03 client) | `DATA_GO_KR_SERVICE_KEY` | `korea-data-go-kr.md` |
+| `tdx` | `providers/tdx/` (T06 THSR seed; B01 adds bus seed) | none in MVP — seed (ADR-B07) | `taiwan-tdx.md` |
+| `korea-tago` | `providers/korea-tago/` (T03 folder + seed loader) | none in MVP — seed (ADR-B07) | `korea-data-go-kr.md` |
 | `12go` | `providers/12go/` (S02 adapter) | `TWELVEGO_AFFILIATE_ID`, `TRAVELPAYOUTS_MARKER` | `12go.md` |
 | `busonlineticket` | `providers/busonlineticket/` | `BOT_REFERER_ID` (optional) | `busonlineticket.md` |
 
@@ -16,6 +16,8 @@ Feeds (no key):
 - data.gov.my 4 req/min → fetch sequentially, cache in `.cache/gtfs/`.
 
 GTFS traps: times > 24:00; compute in `agency_timezone` (`Asia/Bangkok`, `Asia/Kuala_Lumpur`), not Vercel UTC; stop ≠ city (radius map ~15 km + overrides); `route_type` 3 bus, 2 rail, 4 ferry.
+
+Re-verified 2026-10-02: TDX bus and Korea bus are seed-only in MVP (ADR-B07); the two API notes below are for the backlog live clients.
 
 TDX bus: `/v2/Bus/Route/InterCity`, `/v2/Bus/StopOfRoute/InterCity/{RouteName}`, `/v2/Bus/Schedule/InterCity/{RouteName}`; RouteName Traditional Chinese → URL-encode; no OD query.
 

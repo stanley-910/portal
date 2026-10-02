@@ -44,3 +44,10 @@ up in `errors[]` at demo.
 **Consequences:** ADR-T01 no longer governs; older task Notes quoting it were true when written.
 `TDX_CLIENT_ID`/`TDX_CLIENT_SECRET` stay optional in the env schema (unused). Taiwan east coast
 (TRA) and buses: no coverage. Re-opening = new task once a key exists (backlog).
+
+## ADR-T05 — 2026-10-02 — Korea = hand-curated seed, no data.go.kr key
+
+**Context:** data.go.kr signup needs a Korean national + 본인인증 (Korean phone / i-PIN); nobody on the team can do it (STATE blocker 2026-10-02). TAGO `TrainInfo` therefore has no key.
+**Decision:** `src/lib/transport/providers/korea-tago/` = hand-curated seed in core ADR-C05 format: per pair `departures` (`HH:MM`), `tz: "Asia/Seoul"`, `durationMin`, adult fare KRW, train grade/number, cited `source` (public Korail timetable/fare pages). Demo pairs: Seoul–Busan, Seoul–Daejeon, Seoul–Dongdaegu, Seoul–Gwangju-Songjeong, Seoul–Gangneung, Yongsan–Mokpo. Station coords hand-entered with `source`. No request-time calls. Provider id stays `korea-tago`.
+**Why not scrape Korail:** no legal live source found (`korea-data-go-kr.md` § Verdict).
+**Consequences:** `kind: "timetable"`, fares are typical adult fares. `DATA_GO_KR_SERVICE_KEY` stays optional, unused. Live TAGO client = backlog, trigger: key obtained.

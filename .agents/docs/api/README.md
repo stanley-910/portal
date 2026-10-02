@@ -7,12 +7,12 @@ Checked 2026-10-02. One file per provider. Doc beats memory; patch doc when real
 |---|---|---|---|---|---|
 | `travelpayouts.md` | `travelpayouts` | flight | Cata | **Free, no approval.** Cached fares only (≤48h); real-time Search API gated ≥50k MAU | F01–F03 |
 | `12go.md` | `12go` | ferry, bus | Cata (ferry) · Ahmet (bus) | **No public API.** Partner-only. Affiliate deep links only | S01, S02, B04 |
-| `taiwan-tdx.md` | `tdx` | train, bus | Ahmet | Official, metered: free tier 5 req/min, ~4,500 calls/month. **Signup needs Taiwan phone** (else manual email review) | T01, T02, B01 |
-| `korea-data-go-kr.md` | `korea-tago` | train, bus | Ahmet | Official, free, 10k/day. **Signup = Korean nationals + 본인인증 only** | T03, B02 |
+| `taiwan-tdx.md` | `tdx` | train, bus | Ahmet | Official, metered: free tier 5 req/min, ~4,500 calls/month. **Signup needs Taiwan phone** (else manual email review) → seeded, ADR-T04/B07 | T06, B01 |
+| `korea-data-go-kr.md` | `korea-tago` | train, bus | Ahmet | Official, free, 10k/day. **Signup = Korean nationals + 본인인증 only** → seeded, ADR-T05/B07 | T03, B02 |
 | `china-12306.md` | `china-rail` | train | Ahmet | **No official API.** Scraping legally risky → own seed + link-out | T04 |
 | `rome2rio.md` | — (dropped) | multi | — | **Dead.** Not accepting applications, docs 404 | ADR-T03 |
 | `gtfs.md` | `gtfs` | bus, train, (ferry) | Ahmet | Free, keyless (namtang TH, KTMB MY). Thin intercity coach coverage | B03, T05 |
-| `busonlineticket.md` | `busonlineticket` | bus | Ahmet | **No public API.** Affiliate (manual approval) + deep links | B05 |
+| `busonlineticket.md` | `busonlineticket` | bus | Ahmet | **No public API.** Affiliate (manual approval) + deep links → untagged, no signup | B05 |
 
 Env vars (all optional, ADR-C04): `TRAVELPAYOUTS_TOKEN` `TRAVELPAYOUTS_MARKER` `TRAVELPAYOUTS_TRS`
 `TRAVELPAYOUTS_MARKET` `TWELVEGO_AFFILIATE_ID` `TDX_CLIENT_ID` `TDX_CLIENT_SECRET`
