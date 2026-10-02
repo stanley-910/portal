@@ -1,0 +1,93 @@
+// Globe colours, read from the design tokens so the WebGL and canvas layers match the CSS exactly.
+import tokens from "@/design/tokens.json";
+
+export type ThemeId = "light" | "dark";
+export type RGB = [number, number, number];
+
+type TokenValue = string | Partial<Record<ThemeId, string>>;
+const byName = new Map<string, TokenValue>(
+  [...tokens.color.tokens, ...tokens.shadow.tokens].map((t) => [t.name, t.value as TokenValue]),
+);
+
+/** A token's CSS value in a theme. Values missing a theme inherit the first (light) one, as in tokens.json. */
+function token(name: string, theme: ThemeId): string {
+  const v = byName.get(name);
+  if (v === undefined) throw new Error(`Unknown design token: ${name}`);
+  const raw = typeof v === "string" ? v : (v[theme] ?? v.light ?? "");
+  const alias = /^\{(.+)\}$/.exec(raw);
+  return alias ? token(alias[1], theme) : raw;
+}
+
+/** "#rrggbb" or "rgb(a)(r, g, b, a)" as 0–1 channels plus alpha. */
+function parse(css: string): { rgb: RGB; a: number } {
+  const hex = /^#([0-9a-f]{6})$/i.exec(css);
+  if (hex) {
+    const n = parseInt(hex[1], 16);
+    return { rgb: [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255], a: 1 };
+  }
+  const fn = /rgba?\(([^)]+)\)/.exec(css);
+  if (fn) {
+    const [r, g, b, a = 1] = fn[1].split(",").map(Number);
+    return { rgb: [r / 255, g / 255, b / 255], a };
+  }
+  throw new Error(`Unsupported colour: ${css}`);
+}
+const rgb = (name: string, theme: ThemeId) => parse(token(name, theme)).rgb;
+/** The colour inside a shadow token, e.g. "2px 2px 0 rgba(…)" → "rgba(…)". */
+const shadowColor = (name: string, theme: ThemeId) => /rgba?\([^)]+\)/.exec(token(name, theme))?.[0] ?? "transparent";
+
+export interface Palette {
+  dark: 0 | 1;
+  paper: string;
+  raised: string;
+  ink: string;
+  /** ink as "r,g,b" (0–255) for building rgba() strings with other alphas */
+  inkRGB: string;
+  muted: string;
+  tagShadow: string;
+  stickerShadow: string;
+  sticker: { border: string; fill: string; ink: string; starLight: string; starEdge: string };
+  gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
+  stickerGL: { fill: RGB; ink: RGB; roundel: RGB; border: RGB };
+}
+
+// The cut-out shadow tint under the globe. Not a token: it only exists inside the shader.
+const SHADE: Record<ThemeId, RGB> = { light: [0.87, 0.86, 0.8], dark: [0.55, 0.55, 0.62] };
+
+function build(theme: ThemeId): Palette {
+  const ink = parse(token("ink", theme)).rgb;
+  return {
+    dark: theme === "dark" ? 1 : 0,
+    paper: token("paper", theme),
+    raised: token("paper-raised", theme),
+    ink: token("ink", theme),
+    inkRGB: ink.map((c) => Math.round(c * 255)).join(","),
+    muted: token("ink-muted", theme),
+    tagShadow: shadowColor("shadow-tag", theme),
+    stickerShadow: token("sticker-shadow", theme),
+    sticker: {
+      border: token("sticker", theme),
+      fill: token("sticker-fill", theme),
+      ink: token("sticker-ink", theme),
+      starLight: token("star-light", theme),
+      starEdge: token("star-edge", theme),
+    },
+    gl: {
+      uPaper: rgb("paper", theme),
+      uInk: ink,
+      uSea: rgb("sea", theme),
+      uSeaDeep: rgb("sea-deep", theme),
+      uSage: rgb("sage", theme),
+      uMoss: rgb("moss", theme),
+      uShade: SHADE[theme],
+    },
+    stickerGL: {
+      fill: rgb("sticker-fill", theme),
+      ink: rgb("sticker-ink", theme),
+      roundel: rgb("roundel", theme),
+      border: rgb("sticker", theme),
+    },
+  };
+}
+
+export const PALETTES: Record<ThemeId, Palette> = { light: build("light"), dark: build("dark") };

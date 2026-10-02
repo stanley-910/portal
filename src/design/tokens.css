@@ -1,0 +1,158 @@
+/* Generated from src/design/tokens.json by scripts/tokens.mts. Do not edit by hand: change the JSON and run `pnpm tokens`. */
+
+/* Theme "light" is the default; "dark" apply under html.dark (next-themes). */
+:root {
+  --paper: #f0e8d5;
+  --paper-raised: #fbf6ea;
+  --ink: #283020;
+  --ink-muted: #555c4a;
+  --rule: rgba(40, 48, 32, 0.3);
+  --sea: #8099d4;
+  --sea-deep: #4f69b0;
+  --sage: #8fad73;
+  --moss: #4a6e47;
+  --sticker: #fffcf2;
+  --sticker-fill: #f2e7cb;
+  --sticker-ink: #283020;
+  --star-light: #f6f0de;
+  --star-edge: #c9bf9f;
+  --roundel: #7f96cc;
+  --sticker-shadow: rgba(40, 48, 32, 0.28);
+  --focus: var(--ink);
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 18px;
+  --space-4: 20px;
+  --space-5: 26px;
+  --space-6: 32px;
+  --radius-tag: 4px;
+  --radius-ticket: 8px;
+  --radius-round: 50%;
+  --shadow-ticket: 4px 5px 0 rgba(40, 48, 32, 0.18);
+  --shadow-tag: 2px 2px 0 rgba(40, 48, 32, 0.18);
+  --line-hair: 1.2px;
+  --line-ink: 1.5px;
+  --line-route: 2px;
+  --line-sticker: 6.5px;
+  --dash-route: 7 6;
+  --dash-ground: 0.1 6;
+  --halftone-pitch: 4.5px;
+  --screen-sea: 15deg;
+  --screen-land: 45deg;
+  --screen-moss: 75deg;
+  --misregister: 1.2px -0.8px;
+  --graticule-step: 30deg;
+}
+
+.dark {
+  --paper: #16191f;
+  --paper-raised: #20242c;
+  --ink: #e7dcc2;
+  --ink-muted: #a49e8b;
+  --rule: rgba(231, 220, 194, 0.25);
+  --sea: #5c73bd;
+  --sea-deep: #94abeb;
+  --sage: #739463;
+  --moss: #b8cc94;
+  --sticker-shadow: rgba(0, 0, 0, 0.5);
+  --shadow-ticket: 4px 5px 0 rgba(0, 0, 0, 0.45);
+  --shadow-tag: 2px 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Font stacks at zero specificity, so the next/font variables set on <html> in src/app/fonts.ts win when present. */
+:where(:root) {
+  --font-fell-sc: "IM Fell English SC", Georgia, serif;
+  --font-fell: "IM Fell English", Georgia, serif;
+  --font-typewriter: "Courier Prime", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Tailwind: bg-paper, text-ink, border-ink, font-fell-sc, type-code, rounded-ticket, shadow-tag, ... */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-sea: var(--sea);
+  --color-sea-deep: var(--sea-deep);
+  --color-sage: var(--sage);
+  --color-moss: var(--moss);
+  --color-sticker: var(--sticker);
+  --color-sticker-fill: var(--sticker-fill);
+  --color-sticker-ink: var(--sticker-ink);
+  --color-star-light: var(--star-light);
+  --color-star-edge: var(--star-edge);
+  --color-roundel: var(--roundel);
+  --color-sticker-shadow: var(--sticker-shadow);
+  --color-focus: var(--focus);
+}
+
+@utility font-fell-sc {
+  font-family: var(--font-fell-sc);
+}
+@utility font-fell {
+  font-family: var(--font-fell);
+}
+@utility font-typewriter {
+  font-family: var(--font-typewriter);
+}
+@utility type-code {
+  font-family: var(--font-fell-sc);
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 400;
+}
+@utility type-title {
+  font-family: var(--font-fell-sc);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 400;
+}
+@utility type-body {
+  font-family: var(--font-fell);
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 400;
+}
+@utility type-city {
+  font-family: var(--font-fell);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 400;
+  font-style: italic;
+}
+@utility type-stamp {
+  font-family: var(--font-typewriter);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+@utility type-meta {
+  font-family: var(--font-typewriter);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+@utility type-tag {
+  font-family: var(--font-typewriter);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+@utility rounded-tag {
+  border-radius: var(--radius-tag);
+}
+@utility rounded-ticket {
+  border-radius: var(--radius-ticket);
+}
+@utility rounded-round {
+  border-radius: var(--radius-round);
+}
+@utility shadow-ticket {
+  box-shadow: var(--shadow-ticket);
+}
+@utility shadow-tag {
+  box-shadow: var(--shadow-tag);
+}
