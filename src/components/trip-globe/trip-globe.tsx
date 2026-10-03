@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import { openArea } from "./free-area";
 import type { ThemeId } from "./palette";
 import { GlobeInfo } from "./globe-info";
 
@@ -127,6 +128,25 @@ export function TripGlobe({
   });
   const frameListeners = useRef(new Set<() => void>());
 
+  // While a trip is landed, the page changing (a panel opening, closing, or growing as results arrive) re-frames
+  // its route in the space left open. Settled changes only: it waits for the page to be still for a moment.
+  useEffect(() => {
+    if (mode !== "landed") return;
+    let timer = 0;
+    const reframe = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => engineRef.current?.reframe(), 200);
+    };
+    const page = new MutationObserver(reframe);
+    page.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", reframe);
+    return () => {
+      window.clearTimeout(timer);
+      page.disconnect();
+      window.removeEventListener("resize", reframe);
+    };
+  }, [mode]);
+
   useEffect(() => {
     let lastPointer: LatLng | null = null;
     let lastFlight = "null";
@@ -145,6 +165,16 @@ export function TripGlobe({
       },
       onCancel: () => handlers.current.onCancel?.(),
       onRouteClick: () => handlers.current.onRouteClick?.(),
+      // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
+      // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count.
+      freeArea: () => {
+        const root = rootRef.current!;
+        const box = root.getBoundingClientRect();
+        return openArea(box.width, box.height, (x, y) => {
+          const el = document.elementFromPoint(box.left + x, box.top + y);
+          return !!el && !root.contains(el);
+        });
+      },
       onFrame: () => {
         const ll = roundLatLng(engine.pointerLatLng());
         if (!sameLatLng(ll, lastPointer)) {

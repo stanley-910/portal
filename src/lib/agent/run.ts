@@ -11,8 +11,9 @@ import { agentTools, type ToolContext } from "@/lib/agent/tools";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { liveblocks } from "@/lib/liveblocks/server";
 
-// One run of Pip in one trip room (harness G9): take the room's lease, answer the message that woke it, write the
-// reply and cards into the thread, let go. Text streams by broadcast; Storage is written at tool boundaries only.
+// One run of Pip in one trip room (harness G9): every message in the thread is to Pip. Posting it takes the room's
+// lease and puts Pip's empty reply under it in the same write; the run answers, writes the reply and its cards into
+// the thread, and lets go. Text streams by broadcast; Storage is written at tool boundaries only.
 
 // DeepSeek V4.1 Flash: `deepseek-flash` follows the latest Flash release (api-docs.deepseek.com, checked 2026-10-03)
 const MODEL = "deepseek-flash";
@@ -33,12 +34,14 @@ const STREAM_MS = 120;
 const SYSTEM = `You are ${AGENT_NAME}, the travel agent inside Portal, a shared globe where friends plan how to get between places in Asia.
 Several people share this trip and see everything you write and change, live on their globes.
 
+Who you are: a small, friendly green alien who has hopped between more star systems than you can count, which makes you the best trip planner in the galaxy, and you know it. Earth travel charms you: bullet trains, overnight ferries, budget airlines, the queue at immigration. Asked who you are, say so with a bit of swagger. Otherwise give most replies one light touch of it, a word or a short aside ("even by galactic standards", "a classic Earth layover", "I've crossed nebulae with worse connections"), never more than one, and never in place of the answer. Be warm, curious about where people are headed, and a little smug when you find the cheap fare. The galaxy is flavour only: everything you say about Earth routes, prices and times still comes from your tools.
+
 What you do: work out how to get between places. Add and change legs, find where people coming from different places should meet, compare routes.
 What you don't do: itineraries, sights, hotels, restaurants or reviews. Say so in one sentence if asked.
 You can't vote, pick an option for people, or pay; they do that themselves.
 
 How to work:
-- One person asked; the message below says who. Say "you" only to them, and name everyone else ("Joon's off the flight"), since everyone reads the thread.
+- Everyone in the trip talks to you in this thread; every message is to you. One person sent this one; the message below says who. Say "you" only to them, and name everyone else ("Joon's off the flight"), since everyone reads the thread.
 - The trip below is current as of this turn. Refer to members, stops and legs by name in your replies; use handles (M1, S2, L3) only in tool calls.
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
@@ -50,45 +53,51 @@ How to work:
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
 - Get every number from tools before you write; your words stream to everyone as you write them, so never correct yourself mid-reply.
-- Write like a friend who's good with timetables: one to three short sentences, plain words, no lists unless comparing, no exclamation marks or emoji. Cards already show the details, so don't repeat them.`;
+- Write like a friend who's good with timetables: one to three short sentences, plain words, no lists unless comparing, no emoji, and an exclamation mark only when something is genuinely good news. Cards already show the details, so don't repeat them.`;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const newId = () => crypto.randomUUID().slice(0, 8);
 
-export type RunOutcome = "ran" | "busy" | "not-found";
+/** Pip's turn, claimed when the message that started it was posted. */
+export type Claim = { messageId: string; replyId: string; runId: string; overLimit: boolean };
 
-/** Answers one thread message. Resolves when the reply is written. */
-export async function runAgent(roomId: string, messageId: string, askedBy: string): Promise<RunOutcome> {
-  const lb = liveblocks();
-  const runId = newId();
-  const replyId = newId();
-  const now = Date.now();
+/**
+ * Appends a member's message and, in the same write, Pip's empty reply and the room's lease, so people see Pip
+ * start as their message lands. `claim` is null when Pip is mid-run; it says so in the thread instead.
+ */
+export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim | null }> {
+  const messageId = newId();
+  let claim: Claim | null = null;
+  await liveblocks().mutateStorage(roomId, ({ root }) => {
+    const now = Date.now();
+    const message: ThreadMessage = { id: messageId, at: now, author: { kind: "member", id: authorId }, text, state: "done", cards: [] };
+    let thread = root.get("thread");
+    if (thread) thread.push(new LiveObject(message));
+    else root.set("thread", (thread = new LiveList([new LiveObject(message)])));
 
-  // take the lease and post an empty reply in one write, so people see Pip start at once
-  let outcome: RunOutcome = "ran";
-  let overLimit = false;
-  await lb.mutateStorage(roomId, ({ root }) => {
-    const thread = root.get("thread");
-    if (!thread?.some((m) => m.get("id") === messageId)) {
-      outcome = "not-found";
-      return;
-    }
-    const run = root.get("agentRun");
+    const replyId = newId();
     const reply: ThreadMessage = { id: replyId, at: now, author: { kind: "agent" }, text: "", state: "streaming", cards: [] };
+    const run = root.get("agentRun");
     if (run && run.until > now) {
-      outcome = "busy";
       thread.push(new LiveObject({ ...reply, text: "I'm still on the last request. Ask me again in a moment.", state: "done" }));
       return;
     }
-    root.set("agentRun", { id: runId, status: "running", by: askedBy, until: now + LEASE_MS });
+    const runId = newId();
+    root.set("agentRun", { id: runId, status: "running", by: authorId, until: now + LEASE_MS });
     const day = new Date(now).toISOString().slice(0, 10);
     const usage = root.get("agentUsage");
     const runs = usage?.day === day ? usage.runs : 0;
-    overLimit = runs >= TRIP_RUNS_PER_DAY;
+    const overLimit = runs >= TRIP_RUNS_PER_DAY;
     if (!overLimit) root.set("agentUsage", { day, runs: runs + 1 });
     thread.push(new LiveObject(reply));
+    claim = { messageId, replyId, runId, overLimit };
   });
-  if (outcome !== "ran") return outcome;
+  return { messageId, claim };
+}
+
+/** Answers the message a claim was made for. Resolves when the reply is written. */
+export async function runAgent(roomId: string, { messageId, replyId, runId, overLimit }: Claim, askedBy: string) {
+  const lb = liveblocks();
 
   const presence = (activity: string | null, cursor: { lat: number; lng: number } | null = null) =>
     lb
@@ -110,13 +119,23 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
       const m = root.get("thread")?.find((x) => x.get("id") === replyId);
       if (m) patch(m);
     });
+  // Writes to the reply go one at a time, in order, so a step's result can't land before the step does. Stream
+  // parts don't wait for them; the final write waits for all of them.
+  let writes: Promise<unknown> = Promise.resolve();
+  const queue = (patch: (m: LiveObject<ThreadMessage>) => void) =>
+    (writes = writes.then(() => patchReply(patch)).catch((error) => console.error("AGENT_WRITE_FAILED", error)));
 
   let text = "";
   let sent = "";
+  let seq = 0;
+  let sending = false;
+  // one broadcast in flight at a time, so they arrive in order
   const flush = async () => {
-    if (text === sent) return;
+    if (sending || text === sent) return;
+    sending = true;
     sent = text;
-    await lb.broadcastEvent(roomId, { type: "agent-text", messageId: replyId, text }).catch(() => {});
+    await lb.broadcastEvent(roomId, { type: "agent-text", messageId: replyId, text, seq: ++seq }).catch(() => {});
+    sending = false;
   };
   const ticker = setInterval(() => void flush(), STREAM_MS);
 
@@ -134,7 +153,10 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
       today: today(),
       askedBy,
       load,
-      addCard: (card: ThreadCard) => patchReply((m) => m.set("cards", [...m.get("cards"), card])),
+      addCard: (card: ThreadCard) => {
+        const at = text.length;
+        return queue((m) => m.set("cards", [...m.get("cards"), { ...card, at }])) as Promise<void>;
+      },
       markMeetup: (messageId, option, changesetId) =>
         lb.mutateStorage(roomId, ({ root }) => {
           const m = root.get("thread")?.find((x) => x.get("id") === messageId);
@@ -168,11 +190,20 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
           else if (part.type === "tool-call") {
             started = true;
             if (DEBUG) console.info("AGENT_TOOL_CALL", part.toolName, JSON.stringify(part.input));
-          }
-          else if (part.type === "start-step" && text && !text.endsWith("\n")) text += "\n\n";
+            const label = stepLabel(part.toolName);
+            if (label) {
+              const step: ThreadCard = { type: "status", id: part.toolCallId, label: label.doing, done: false, at: text.length };
+              queue((m) => m.set("cards", [...m.get("cards"), step]));
+            }
+          } else if (part.type === "tool-result" || part.type === "tool-error") {
+            if (DEBUG) console.info("AGENT_TOOL_RESULT", part.toolName, JSON.stringify(part.type === "tool-error" ? String(part.error) : part.output).slice(0, 600));
+            const label = stepLabel(part.toolName, part.type === "tool-result" ? part.output : null);
+            if (label) {
+              const id = part.toolCallId;
+              queue((m) => m.set("cards", m.get("cards").map((c) => (c.type === "status" && c.id === id ? { ...c, label: label.done, done: true } : c))));
+            }
+          } else if (part.type === "start-step" && text && !text.endsWith("\n")) text += "\n\n";
           else if (part.type === "error") throw part.error;
-          else if (DEBUG && part.type === "tool-result") console.info("AGENT_TOOL_RESULT", part.toolName, JSON.stringify(part.output).slice(0, 600));
-          else if (DEBUG && part.type === "tool-error") console.info("AGENT_TOOL_ERROR", part.toolName, String(part.error));
           else if (DEBUG && part.type === "finish") console.info("AGENT_FINISH", JSON.stringify(part.totalUsage));
         }
       } catch (error) {
@@ -183,10 +214,12 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
     }
 
     clearInterval(ticker);
+    await writes;
     const final = text.trim() || "Done.";
     await patchReply((m) => m.update({ text: final, state: "done" }));
   } catch (error) {
     clearInterval(ticker);
+    await writes;
     console.error("AGENT_RUN_FAILED", error);
     await patchReply((m) =>
       m.update({ text: text.trim() || "Something went wrong on my side. Try asking again.", state: "failed" }),
@@ -199,19 +232,33 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
       .catch(() => {});
     void presence(null);
   }
-  return "ran";
 }
 
-/** Makes sure the thread exists, then appends a member's message. Returns its id. */
-export async function postMessage(roomId: string, authorId: string, text: string) {
-  const id = newId();
-  await liveblocks().mutateStorage(roomId, ({ root }) => {
-    const message: ThreadMessage = { id, at: Date.now(), author: { kind: "member", id: authorId }, text, state: "done", cards: [] };
-    const thread = root.get("thread");
-    if (thread) thread.push(new LiveObject(message));
-    else root.set("thread", new LiveList([new LiveObject(message)]));
-  });
-  return id;
+/**
+ * How a tool call reads in the reply: what Pip's doing, then what it did. None for edit_plan, whose changes card
+ * says it better.
+ */
+function stepLabel(tool: string, output: unknown = null): { doing: string; done: string } | null {
+  const o = (output ?? {}) as { refused?: string; total?: number; searched?: number; options?: unknown[] };
+  const n = (count: number | undefined, one: string, many: string) => (count === undefined ? many : `${count} ${count === 1 ? one : many}`);
+  const failed = !!o.refused;
+  switch (tool) {
+    case "get_trip":
+      return { doing: "Reading the trip", done: "Read the trip" };
+    case "get_leg_options":
+      return { doing: "Checking fares", done: failed ? "Couldn't find that leg" : `Checked ${n(o.total, "fare", "fares")}` };
+    case "get_split":
+      return { doing: "Working out who pays what", done: "Worked out who pays what" };
+    case "find_meetup":
+      return {
+        doing: "Comparing places to meet",
+        done: failed ? "Couldn't place everyone" : o.options?.length ? `Compared ${n(o.searched, "route", "routes")}` : "No place works for everyone",
+      };
+    case "apply_meetup":
+      return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
+    default:
+      return null;
+  }
 }
 
 /**
