@@ -27,7 +27,6 @@ import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
-import { HIDE_SANDBOX_BADGE } from "@/lib/demo";
 import { isBookable, shownOffers } from "@/lib/trip/offers";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
@@ -350,7 +349,7 @@ function LegCard({
                     {chosen ? <span className="ts-badge">Picked</span> : null}
                     {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
                     {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
-                    {o.sandbox && !HIDE_SANDBOX_BADGE ? <span className="ts-badge ts-badge-quiet">Sandbox</span> : null}
+                    {o.sandbox ? <span className="ts-badge ts-badge-quiet">Sandbox</span> : null}
                   </span>
                   <span className="ts-price" data-none={!price || undefined}>
                     {price ?? "No fare"}
