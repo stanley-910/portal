@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type PointerEvent, type Ref } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type Ref } from "react";
 
-import { cursorUrl, memberColor, RoundButton } from "@/components/paper-atlas";
+import { cursorUrl, memberColor } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
@@ -195,7 +195,17 @@ export function TripGlobe({
         ? `Trip ${landed.from?.city || landed.from?.name || "selected point"} to ${landed.to?.city || landed.to?.name || "selected point"}`
         : "Globe";
 
-  const stop = (e: PointerEvent) => e.stopPropagation();
+  // While flying, Esc or a right-click puts the plane away. Esc typed into a field stays with the field.
+  useEffect(() => {
+    if (mode !== "flying") return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "Escape" || e.defaultPrevented || t?.closest("input, textarea, select, [contenteditable]")) return;
+      engineRef.current?.cancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mode]);
 
   return (
     <div
@@ -206,6 +216,11 @@ export function TripGlobe({
       onPointerUp={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
       onPointerCancel={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
       onPointerLeave={() => engineRef.current?.pointerLeave()}
+      onContextMenu={(e) => {
+        if (mode !== "flying") return;
+        e.preventDefault();
+        engineRef.current?.cancel();
+      }}
     >
       <canvas ref={glRef} role="img" aria-label={label} className="absolute inset-0 block size-full" />
       <canvas ref={hudRef} aria-hidden className="pointer-events-none absolute inset-0 block size-full" />
@@ -213,11 +228,6 @@ export function TripGlobe({
         {preview ?? ""}
       </output>
       <GlobeInfo />
-      {mode === "flying" ? (
-        <div className="absolute top-24 right-6" onPointerDown={stop} onPointerUp={stop}>
-          <RoundButton label="Cancel trip" onClick={() => engineRef.current?.cancel()} />
-        </div>
-      ) : null}
       {unsupported ? (
         <p className="type-body absolute inset-x-0 top-1/2 text-center text-ink-muted">This browser cannot draw the globe.</p>
       ) : null}

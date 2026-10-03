@@ -126,7 +126,7 @@ function Panel({ thread, onClose }: { thread: ThreadMessage[]; onClose: () => vo
           <p className="pip-head-name">{AGENT_NAME}</p>
           <p className="pip-head-sub">{others.length ? `This trip · with ${list(others)}` : "This trip · just you so far"}</p>
         </div>
-        <RoundButton label="Minimise chat" onClick={onClose} />
+        <RoundButton label="Minimise chat" variant="quiet" onClick={onClose} />
       </header>
 
       <div ref={scroller} className="pip-messages" role="log" aria-live="polite">

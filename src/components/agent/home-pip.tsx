@@ -37,7 +37,7 @@ export function HomePip({ account }: { account: boolean }) {
           <p className="pip-head-name">{AGENT_NAME}</p>
           <p className="pip-head-sub">New trip · invite friends once it&apos;s started</p>
         </div>
-        <RoundButton label="Minimise chat" onClick={() => setOpen(false)} />
+        <RoundButton label="Minimise chat" variant="quiet" onClick={() => setOpen(false)} />
       </header>
       <div className="pip-messages">
         <div className="pip-msg-agent">

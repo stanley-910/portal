@@ -63,6 +63,7 @@ export function ComponentGallery() {
         <Route marching />
         <Route lift={0.4} />
         <RoundButton label="Close" />
+        <RoundButton label="Close" variant="quiet" />
       </div>
       <div className="flex flex-wrap items-start gap-8">
         <EntryPanel leg={{ fromHub: "HKG", toHub: "PVG" }} members={DEMO_PARTY} />
