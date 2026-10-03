@@ -1,6 +1,6 @@
 # Multiplayer decisions
 
-These were agreed in a grilling session on 2026-10-02. M4, M7, M13 and steps 1 and 2 of M14 are built, and M8, M10 and M12 partly; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
+These were agreed in a grilling session on 2026-10-02. M7, M13, M19 and steps 1 and 2 of M14 are built, and M8, M10 and M12 partly; M4 was built and is now superseded by M19; the rest are decided but not built. The Linear tickets haven't been updated: several tickets (POR-12, 21, 29, 30, 31, 34, 38, 39) still describe the old Supabase-centred plan. Where they disagree, this file wins.
 
 Liveblocks facts behind these decisions were checked against the docs on 2026-10-02. We pin `@liveblocks/*` to 3.24.2, which supports React 19: 3.24.3 is newer than pnpm's minimum release age. Free-tier limits are in `free-tiers.md` (next to this file).
 
@@ -52,7 +52,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M4. Who you are: a guest cookie and a Liveblocks access token
 
-**Status:** built; superseded in part by M19 (accounts replace the guest cookie once P12 lands). This replaces Supabase auth (POR-12).
+**Status:** superseded by M19 on 2026-10-03 (P12): accounts replaced the guest cookie, and `src/lib/guest.ts` is deleted. The access-token approach below still stands, keyed by the Supabase user id. Kept as history.
 
 **Code:**
 - `src/lib/guest.ts`: guest cookies.
@@ -255,9 +255,9 @@ Emoji reactions are cut. Chat between people happens in the shared thread (M15).
 
 ### M19. Accounts with Supabase Auth
 
-**Status:** decided. Supersedes M4's guest identity and M5 for accounts only; P12 flips it to built.
+**Status:** built (P11 and P12, 2026-10-03). Supersedes M4's guest identity and M5 for accounts only.
 
-**Code:** `src/lib/supabase/` (`server.ts` with `getCurrentUser()`, `client.ts`, `config.ts`), `src/proxy.ts`, `src/app/(auth)/` (`/login`, `/signup`, sign out), `supabase/migrations/0001_profiles.sql`, `scripts/supabase-migrate.mts` (`pnpm db:migrate`).
+**Code:** `src/lib/supabase/` (`server.ts` with `getCurrentUser()`, `client.ts`, `config.ts`), `src/proxy.ts`, `src/app/(auth)/` (`/login`, `/signup`, sign out), `supabase/migrations/0001_profiles.sql`, `scripts/supabase-migrate.mts` (`pnpm db:migrate`), `src/app/api/liveblocks-auth/route.ts`, `src/app/t/`, `src/app/api/agent/route.ts`.
 
 **Decision:**
 - **Sign-in:** Supabase Auth, email and password. Email confirmation is off for the demo (dashboard setting).
@@ -266,6 +266,7 @@ Emoji reactions are cut. Chat between people happens in the shared thread (M15).
 - **Sessions:** `@supabase/ssr` cookies, refreshed in `src/proxy.ts` (Next 16's name for middleware) on every non-static request. Every access check calls `auth.getUser()`, which verifies with Supabase, never `getSession()`.
 - **Keys:** only the project URL and the publishable key reach the browser. `SUPABASE_DB_URL` is for migrations only. No service-role key in the app.
 - **Plans stay in Liveblocks Storage** (M3). Supabase holds who you are, not what the trip is.
+- **Trips need sign-in:** `/t/<id>` and "Plan with friends" redirect signed-out visitors to `/login?next=…`, and `/api/liveblocks-auth` answers `401` without a session. The Liveblocks user id is the Supabase user id and `userInfo.name` is the profile's `display_name`, so one account on two devices is one member with one colour. Member checks for leg searches, Pip's thread (`/api/agent`), Undo and meet-up Apply use the same id; signed out they do nothing (`403` from `/api/agent`).
 - **Missing env:** with the Supabase vars unset, accounts are off and `/` still works.
 
 **Why:**
