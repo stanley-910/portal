@@ -145,12 +145,13 @@ function endpoints(trip: LandedTrip, result: HubSearchResult | null) {
   };
 }
 
-export type PickedStay = { label: string; nightly: { amount: number; currency: string } };
+export type PickedStay = { label: string; nightly: { amount: number; currency: string }; estimated: boolean };
 
 /** A picked hotel as the trip's stay: every room it takes, for one night. */
 const stayFrom = (hotel: HotelResult): PickedStay => ({
   label: hotel.rooms > 1 ? `${hotel.name}, ${hotel.rooms} rooms` : hotel.name,
   nightly: { amount: hotel.pricePerNight.amount * hotel.rooms, currency: hotel.pricePerNight.currency },
+  estimated: hotel.freshness !== "live",
 });
 
 export interface TicketSearchProps {

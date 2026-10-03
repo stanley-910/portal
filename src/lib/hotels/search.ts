@@ -6,7 +6,7 @@ import type { HotelFilter, HotelResult, HotelSearchQuery } from "./types";
  * Typical stays by area, not real properties: the names say what kind of place and where, so nobody books one that
  * doesn't exist. Prices are rough nightly rates for a room (a dorm bed for hostels).
  */
-type CatalogStay = Omit<HotelResult, "distanceKm" | "score" | "rooms" | "totalPrice" | "nights">;
+export type CatalogStay = Omit<HotelResult, "distanceKm" | "score" | "rooms" | "totalPrice" | "nights">;
 
 const bookingUrl = (
   hotel: Pick<CatalogStay, "city">,
@@ -45,17 +45,17 @@ const distanceKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
 };
 
-const nightsBetween = (checkIn: string, checkOut: string) =>
+export const nightsBetween = (checkIn: string, checkOut: string) =>
   Math.max(1, Math.ceil((Date.parse(`${checkOut}T00:00:00Z`) - Date.parse(`${checkIn}T00:00:00Z`)) / 86_400_000));
 
-const matches = (hotel: CatalogStay, filter: HotelFilter) => filter === "hostel"
+export const matches = (hotel: Pick<CatalogStay, "kind" | "stars">, filter: HotelFilter) => filter === "hostel"
   ? hotel.kind === "hostel"
   : hotel.kind === "hotel" && hotel.stars === filter;
 
 const sameCity = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /** The city's centre from the globe's city labels, or the searched point when the city isn't one of them. */
-function centre(query: HotelSearchQuery) {
+export function centre(query: HotelSearchQuery) {
   const label = CITY_LABELS.find(([name]) => sameCity(name, query.city));
   return label ? { lat: label[1], lng: label[2] } : { lat: query.lat, lng: query.lng };
 }
@@ -89,32 +89,35 @@ function fallbackCatalog(query: HotelSearchQuery, at: { lat: number; lng: number
 }
 
 /**
- * Local estimated data, ranked by a balanced score: 60% nightly price and 40% distance to the city centre.
- * The score is deliberately relative to the returned set so a cheap central property can beat an expensive one.
+ * Ranks stays by a balanced score: 60% nightly price and 40% distance to the city centre. The score is deliberately
+ * relative to the returned set so a cheap central property can beat an expensive one. Live stays come with their own
+ * room count and total, which the score keeps.
  */
-export function searchHotels(query: HotelSearchQuery): HotelResult[] {
+export function rankStays(stays: Array<CatalogStay & { rooms?: number; total?: number }>, query: HotelSearchQuery): HotelResult[] {
   const at = centre(query);
-  const cityCatalog = CATALOG.filter((hotel) => sameCity(hotel.city, query.city));
-  const source = cityCatalog.some((hotel) => matches(hotel, query.filter)) ? cityCatalog : fallbackCatalog(query, at);
-  const candidates = source
-    .filter((hotel) => matches(hotel, query.filter))
-    .map((hotel) => ({ ...hotel, distanceKm: distanceKm(at.lat, at.lng, hotel.lat, hotel.lng) }));
-
+  const candidates = stays.map((hotel) => ({ ...hotel, distanceKm: distanceKm(at.lat, at.lng, hotel.lat, hotel.lng) }));
   if (!candidates.length) return [];
   const maxPrice = Math.max(...candidates.map((hotel) => hotel.pricePerNight.amount), 1);
   const maxDistance = Math.max(...candidates.map((hotel) => hotel.distanceKm), 1);
   const nights = nightsBetween(query.checkIn, query.checkOut);
   return candidates
-    .map((hotel) => {
-      const rooms = Math.ceil(query.occupants / hotel.bedsPerRoom);
+    .map(({ total, ...hotel }) => {
+      const rooms = hotel.rooms ?? Math.ceil(query.occupants / hotel.bedsPerRoom);
       return {
         ...hotel,
         score: 0.6 * hotel.pricePerNight.amount / maxPrice + 0.4 * hotel.distanceKm / maxDistance,
         rooms,
-        totalPrice: { amount: hotel.pricePerNight.amount * rooms * nights, currency: "USD" as const },
+        totalPrice: { amount: total ?? hotel.pricePerNight.amount * rooms * nights, currency: hotel.pricePerNight.currency },
         nights,
         bookingUrl: bookingUrl(hotel, query.checkIn, query.checkOut, query.occupants),
       };
     })
     .sort((a, b) => a.score - b.score || a.pricePerNight.amount - b.pricePerNight.amount || a.id.localeCompare(b.id));
+}
+
+/** Local estimated stays: the catalogue for cities it covers, else rough stays around the centre. */
+export function searchHotels(query: HotelSearchQuery): HotelResult[] {
+  const cityCatalog = CATALOG.filter((hotel) => sameCity(hotel.city, query.city));
+  const source = cityCatalog.some((hotel) => matches(hotel, query.filter)) ? cityCatalog : fallbackCatalog(query, centre(query));
+  return rankStays(source.filter((hotel) => matches(hotel, query.filter)), query);
 }

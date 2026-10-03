@@ -132,6 +132,11 @@ describe("buildSoloStorage", () => {
     expect(soloSaveSchema.safeParse({ legs: [] }).success).toBe(false);
   });
 
+  it("keeps a live hotel rate unmarked as estimated", () => {
+    const stay = { label: "Hotel Nikko", nightly: { amount: 980, currency: "CNY" }, estimated: false };
+    expect(buildSoloStorage(save({ ...input, stay }), user, ids(), 1).stays).toEqual({ s2: stay });
+  });
+
   it("leaves stays out when no hotel was picked", () => {
     expect(solo().stays).toBeUndefined();
     expect((toStorageLson(solo()).data as Record<string, unknown>).stays).toBeUndefined();

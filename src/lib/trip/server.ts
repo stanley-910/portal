@@ -84,7 +84,7 @@ export async function listMyTrips(userId: string): Promise<TripSummary[]> {
 
 // ---- Solo save from `/` ----
 
-const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt"] as const satisfies readonly ProviderId[];
+const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel"] as const satisfies readonly ProviderId[];
 const MODES = ["flight", "train", "bus", "ferry"] as const;
 const MAX_SEGMENTS = 8;
 /** All options together, after unknown fields are stripped. Twenty real offers are a few KB. */
@@ -151,9 +151,14 @@ export const soloLegSchema = z
     date: z.iso.date().refine((d) => d >= isoDay(Date.now() - DAY) && d <= isoDay(Date.now() + 400 * DAY), "date out of range"),
     offers: z.array(offerSchema).min(0).max(MAX_OFFERS),
     chosen: text(200).nullable(),
-    // the hotel picked in the popover's Hotels tab: an estimate for the whole group, per night
+    // the hotel picked in the popover's Hotels tab: the whole group's cost per night, live or estimated
     stay: z
-      .object({ label: text(120), nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }) })
+      .object({
+        label: text(120),
+        nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }),
+        // a live hotel rate; anything unmarked is an estimate
+        estimated: z.boolean().default(true),
+      })
       .optional(),
   })
   .refine((v) => !sameStop(v.from, v.to), "from and to are the same place")
@@ -216,7 +221,7 @@ export function buildSoloStorage(
       // in order, so legs on the same day keep the order they were flown in
       createdAt: now + i,
     };
-    if (leg.stay) stays[to] = { ...leg.stay, estimated: true };
+    if (leg.stay) stays[to] = leg.stay;
   });
   return {
     members: { [user.id]: { name: user.displayName, color: 1 } },

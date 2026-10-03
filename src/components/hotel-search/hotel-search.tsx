@@ -11,12 +11,12 @@ const filters: Array<{ value: HotelFilter; label: string }> = [
   { value: 5, label: "5★" }, { value: "hostel", label: "Hostel" },
 ];
 
-const formatPrice = (amount: number, currency: Currency, rates: ExchangeRates | null) => {
-  const converted = currency === "USD" ? amount : rates ? convertCurrency(amount, "USD", currency, rates) : null;
+const formatPrice = (price: { amount: number; currency: string }, currency: Currency, rates: ExchangeRates | null) => {
+  const converted = price.currency === currency ? price.amount : rates ? convertCurrency(price.amount, price.currency, currency, rates) : null;
   return converted === null ? "—" : new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(converted);
 };
 
-/** Estimated stays at the landed city. Picking one saves it as the trip's stay there; picking it again unpicks it. */
+/** Stays at the landed city: live rates when Duffel has them, else estimates. Picking one saves it as the trip's stay there; picking it again unpicks it. */
 export function HotelSearch({
   city, lat, lng, checkIn, checkOut, currency, rates, picked, onPick, defaultOccupants = 1,
 }: {
@@ -56,7 +56,7 @@ export function HotelSearch({
   return (
     <section className="hotel-search" role="tabpanel" aria-label={`Hotels in ${city}`}>
       <div className="hotel-heading">
-        <div><h2>Stay in {city}</h2><span>Estimated nightly rates</span></div>
+        <div><h2>Stay in {city}</h2><span>{hotels.some((hotel) => hotel.freshness === "live") ? "Nightly rates" : "Estimated nightly rates"}</span></div>
         <label className="hotel-occupants">Occupants
           <select value={occupants} onChange={(event) => refine(setOccupants)(Number(event.target.value))}>
             {[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count}</option>)}
@@ -79,10 +79,10 @@ export function HotelSearch({
           >
             <div>
               <strong>{hotel.name}</strong>
-              <span>{hotel.distanceKm.toFixed(1)} km from centre <span className="ts-badge ts-badge-quiet">Estimated</span></span>
+              <span>{hotel.distanceKm.toFixed(1)} km from centre {hotel.freshness !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}</span>
               <a className="hotel-book" href={hotel.bookingUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>Book on Booking.com</a>
             </div>
-            <div className="hotel-price"><strong>{formatPrice(hotel.pricePerNight.amount, currency, rates)}</strong><span>per night · {hotel.rooms} {hotel.rooms === 1 ? "room" : "rooms"}</span><small>{formatPrice(hotel.totalPrice.amount, currency, rates)} total · {hotel.bedsPerRoom} beds/room</small></div>
+            <div className="hotel-price"><strong>{formatPrice(hotel.pricePerNight, currency, rates)}</strong><span>per night · {hotel.rooms} {hotel.rooms === 1 ? "room" : "rooms"}</span><small>{formatPrice(hotel.totalPrice, currency, rates)} total · {hotel.bedsPerRoom} beds/room</small></div>
           </button>
         ))}
       </div>

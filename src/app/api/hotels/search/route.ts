@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { searchHotels } from "@/lib/hotels/search";
+import { searchDuffelStays } from "@/lib/hotels/duffel";
+import { rankStays, searchHotels } from "@/lib/hotels/search";
 import type { HotelFilter } from "@/lib/hotels/types";
 
 export const runtime = "nodejs";
@@ -24,5 +25,8 @@ export async function GET(request: Request) {
   if (!parsed.success) {
     return Response.json({ code: "BAD_QUERY", fields: parsed.error.issues.map((issue) => String(issue.path[0])) }, { status: 400 });
   }
-  return Response.json({ hotels: searchHotels({ ...parsed.data, filter: parsed.data.filter as HotelFilter }) });
+  const query = { ...parsed.data, filter: parsed.data.filter as HotelFilter };
+  // live rates when Duffel has them, else the estimates
+  const live = await searchDuffelStays(query, request.signal);
+  return Response.json({ hotels: live ? rankStays(live, query) : searchHotels(query) });
 }
