@@ -81,7 +81,7 @@ function messageFor(e: BookingError): string {
     case "PRICE_CHANGED":
       return "The price changed.";
     case "ORDER_FAILED":
-      return typeof e.detail?.field === "string" ? "The airline refused a traveller detail." : "The airline refused the booking.";
+      return typeof e.detail?.field === "string" && e.detail.field.startsWith("/passengers/") ? "The airline refused a traveller detail." : "The airline refused the booking.";
     case "PAYMENT_FAILED":
       return "The payment didn't go through.";
     case "UPSTREAM_ERROR":
@@ -259,7 +259,7 @@ async function holdSeats(roomId: string, legId: string) {
       });
       return;
     }
-    await back(f.field ? `The airline refused a traveller detail (${f.field.split("/").pop()}). Check it and settle again.` : `${f.message} Settle again when you're ready.`);
+    await back(f.field?.startsWith("/passengers/") ? `The airline refused a traveller detail (${f.field.split("/").pop()}). Check it and settle again.` : `${f.message} Settle again when you're ready.`);
   }
 }
 
