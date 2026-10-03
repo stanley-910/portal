@@ -4,6 +4,7 @@ import { deepseek } from "@ai-sdk/deepseek";
 import { LiveList, LiveObject } from "@liveblocks/node";
 import { isStepCount, streamText } from "ai";
 
+import { dateIn } from "@/lib/agent/dates";
 import { bigCities } from "@/lib/agent/meetup";
 import { describePlan, describeThread, handlesFor, showDate, type PlanJson } from "@/lib/agent/snapshot";
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
@@ -17,6 +18,15 @@ import { liveblocks } from "@/lib/liveblocks/server";
 const MODEL = "deepseek-flash";
 const MAX_STEPS = 10;
 const LEASE_MS = 90_000;
+// Usage limits while nobody pays for Pip: the DeepSeek balance is the hard ceiling; these keep one trip or one
+// person from spending it. Over a limit, Pip answers from its tools without the model instead of failing.
+/** Model runs per trip per UTC day. */
+export const TRIP_RUNS_PER_DAY = 40;
+/** Output tokens per model call. Replies are one to three sentences; tool calls are small. */
+const MAX_OUTPUT_TOKENS = 1_200;
+
+/** Logs each tool call and result. Off by default: tool inputs carry what people typed (harness: no content in logs). */
+const DEBUG = process.env.AGENT_DEBUG === "1";
 /** How often streamed text is broadcast. */
 const STREAM_MS = 120;
 
@@ -28,9 +38,11 @@ What you don't do: itineraries, sights, hotels, restaurants or reviews. Say so i
 You can't vote, pick an option for people, or pay; they do that themselves.
 
 How to work:
+- One person asked; the message below says who. Say "you" only to them, and name everyone else ("Joon's off the flight"), since everyone reads the thread.
 - The trip below is current as of this turn. Refer to members, stops and legs by name in your replies; use handles (M1, S2, L3) only in tool calls.
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
-- For "where should we meet", call find_meetup. Never estimate fares, distances or durations yourself: quote tool numbers exactly, and say when a price is estimated.
+- For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
+- For fares or times on a leg, call get_leg_options. Never estimate fares, distances or durations yourself: quote tool numbers exactly, and say when a price is estimated.
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
 - Write like a friend who's good with timetables: one to three short sentences, plain words, no lists unless comparing, no exclamation marks or emoji. Cards already show the details, so don't repeat them.`;
@@ -49,6 +61,7 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
 
   // take the lease and post an empty reply in one write, so people see Pip start at once
   let outcome: RunOutcome = "ran";
+  let overLimit = false;
   await lb.mutateStorage(roomId, ({ root }) => {
     const thread = root.get("thread");
     if (!thread?.some((m) => m.get("id") === messageId)) {
@@ -63,6 +76,11 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
       return;
     }
     root.set("agentRun", { id: runId, status: "running", by: askedBy, until: now + LEASE_MS });
+    const day = new Date(now).toISOString().slice(0, 10);
+    const usage = root.get("agentUsage");
+    const runs = usage?.day === day ? usage.runs : 0;
+    overLimit = runs >= TRIP_RUNS_PER_DAY;
+    if (!overLimit) root.set("agentUsage", { day, runs: runs + 1 });
     thread.push(new LiveObject(reply));
   });
   if (outcome !== "ran") return outcome;
@@ -112,26 +130,50 @@ export async function runAgent(roomId: string, messageId: string, askedBy: strin
       askedBy,
       load,
       addCard: (card: ThreadCard) => patchReply((m) => m.set("cards", [...m.get("cards"), card])),
+      markMeetup: (messageId, option, changesetId) =>
+        lb.mutateStorage(roomId, ({ root }) => {
+          const m = root.get("thread")?.find((x) => x.get("id") === messageId);
+          if (!m) return;
+          m.set("cards", m.get("cards").map((c) => (c.type === "meetup" && c.options.some((o) => o.id === option) ? { ...c, applied: option, changesetId, undone: false } : c)));
+        }),
       activity,
       meetups,
     };
 
-    if (!process.env.DEEPSEEK_API_KEY) {
+    if (!process.env.DEEPSEEK_API_KEY || overLimit) {
+      if (overLimit) console.warn("AGENT_TRIP_LIMIT", roomId);
       text = await fallbackReply(plan, handles, messageId, ctx);
     } else {
-      const asked = plan.thread?.find((m) => m.id === messageId);
-      const result = streamText({
-        model: deepseek(MODEL),
-        system: `${SYSTEM}\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
-        prompt: `Recent thread:\n${describeThread(plan, handles)}\n\nAnswer this message from ${plan.members?.[askedBy]?.name ?? "a member"} (${handles.member.get(askedBy) ?? "?"}):\n${asked?.text ?? ""}`,
-        tools: agentTools(ctx),
-        stopWhen: isStepCount(MAX_STEPS),
-        abortSignal: AbortSignal.timeout(LEASE_MS - 5_000),
-      });
-      for await (const part of result.stream) {
-        if (part.type === "text-delta") text += part.text;
-        else if (part.type === "start-step" && text && !text.endsWith("\n")) text += "\n\n";
-        else if (part.type === "error") throw part.error;
+      // a model that's down or out of credit gets the no-model answer, as long as it hadn't started yet (AGENTS.md:
+      // the demo never depends on a flaky API)
+      let started = false;
+      try {
+        const asked = plan.thread?.find((m) => m.id === messageId);
+        const result = streamText({
+          model: deepseek(MODEL),
+          system: `${SYSTEM}\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
+          prompt: `Recent thread:\n${describeThread(plan, handles)}\n\nAnswer this message from ${plan.members?.[askedBy]?.name ?? "a member"} (${handles.member.get(askedBy) ?? "?"}):\n${asked?.text ?? ""}`,
+          tools: agentTools(ctx),
+          stopWhen: isStepCount(MAX_STEPS),
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(LEASE_MS - 5_000),
+        });
+        for await (const part of result.stream) {
+          if (part.type === "text-delta") text += part.text;
+          else if (part.type === "tool-call") {
+            started = true;
+            if (DEBUG) console.info("AGENT_TOOL_CALL", part.toolName, JSON.stringify(part.input));
+          }
+          else if (part.type === "start-step" && text && !text.endsWith("\n")) text += "\n\n";
+          else if (part.type === "error") throw part.error;
+          else if (DEBUG && part.type === "tool-result") console.info("AGENT_TOOL_RESULT", part.toolName, JSON.stringify(part.output).slice(0, 600));
+          else if (DEBUG && part.type === "tool-error") console.info("AGENT_TOOL_ERROR", part.toolName, String(part.error));
+          else if (DEBUG && part.type === "finish") console.info("AGENT_FINISH", JSON.stringify(part.totalUsage));
+        }
+      } catch (error) {
+        if (started || text) throw error;
+        console.error("AGENT_MODEL_UNAVAILABLE", error instanceof Error ? error.message : error);
+        text = await fallbackReply(plan, handles, messageId, ctx);
       }
     }
 
@@ -196,7 +238,7 @@ async function fallbackReply(plan: PlanJson, handles: ReturnType<typeof handlesF
     if (named.length < 2) return "Tell me which cities everyone's starting from, and I'll find where to meet.";
     const asker = handles.member.get(ctx.askedBy);
     groups = named.map((place, i) => ({ members: i === 0 && asker ? [asker] : [], from: { place } }));
-    date = date ?? nextWeek();
+    date = dateIn(asked) ?? date ?? nextWeek();
   }
 
   const fairest = /\b(fair|middle|halfway|even)/i.test(asked);
@@ -230,3 +272,4 @@ function citiesIn(text: string): string[] {
 
 /** A week from today, YYYY-MM-DD: a date to compare fares on when nobody gave one. */
 const nextWeek = () => new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+

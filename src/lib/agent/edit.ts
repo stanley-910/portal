@@ -176,8 +176,15 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         searches.push({ legId: p.leg, searchId: search.id });
         applied.push(`Moved ${label} to ${showDate(p.date)}`);
       } else if (p.kind === "riders") {
+        const was = leg.get("riders");
         leg.set("riders", p.riders);
-        applied.push(`Set who rides ${label}`);
+        const name = (id: string) => plan.members?.[id]?.name ?? "someone";
+        const off = was.filter((r) => !p.riders.includes(r)).map(name);
+        const on = p.riders.filter((r) => !was.includes(r)).map(name);
+        applied.push(
+          [on.length ? `Put ${names(on)} on ${label}` : "", off.length ? `Took ${names(off)} off ${label}` : ""].filter(Boolean).join("; ") ||
+            `No change to who rides ${label}`,
+        );
       } else {
         legs.delete(p.leg);
         const used = new Set<string>();
@@ -229,3 +236,5 @@ export async function undoChangeset(roomId: string, changesetId: string) {
   });
   await Promise.all(searches.map((s) => runLegSearch(roomId, s.legId, s.searchId)));
 }
+
+const names = (list: string[]) => (list.length < 2 ? list.join("") : `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`);

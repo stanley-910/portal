@@ -1,6 +1,6 @@
 import type { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 
-import type { AgentEvent, AgentRun, Changeset, ThreadMessage } from "@/lib/agent/types";
+import type { AgentEvent, AgentRun, AgentUsage, Changeset, ThreadMessage } from "@/lib/agent/types";
 
 // Shared shapes for the trip room.
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
@@ -89,6 +89,8 @@ export type TripStorage = {
   thread?: LiveList<LiveObject<ThreadMessage>>;
   /** Pip's current run, if any. */
   agentRun?: AgentRun | null;
+  /** Pip's model runs today, for the daily limit. */
+  agentUsage?: AgentUsage;
   /** Changeset id → the plan before that run changed it. */
   changesets?: LiveMap<string, Changeset>;
 };
