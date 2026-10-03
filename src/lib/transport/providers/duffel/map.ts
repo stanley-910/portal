@@ -95,8 +95,10 @@ export function mapOffers(raw: readonly unknown[], query: SearchQuery, origin: s
       segments,
       // per passenger, like every other fare we show
       price: { amount: Math.round((Number(o.total_amount) / query.passengers) * 100) / 100, currency: o.total_currency },
-      kind: o.live_mode === false ? "estimated" : "live",
-      attribution: o.live_mode === false ? "Duffel — test inventory; not a live fare or bookable real flight" : `Duffel — live fare from ${o.owner.name}` + (operators.length ? `; operated by ${operators.join(", ")}` : ""),
+      // sandbox fares are quoted and bookable like live ones, only against Duffel's test airlines; the flag keeps that visible
+      kind: "live",
+      ...(o.live_mode === false ? { sandbox: true } : {}),
+      attribution: o.live_mode === false ? "Duffel — sandbox fare; bookable in test mode, not a real flight" : `Duffel — live fare from ${o.owner.name}` + (operators.length ? `; operated by ${operators.join(", ")}` : ""),
     });
   }
   return offers.sort((a, b) => a.price!.amount - b.price!.amount).slice(0, MAX_OFFERS);

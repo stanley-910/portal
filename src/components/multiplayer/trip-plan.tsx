@@ -347,6 +347,7 @@ function LegCard({
                     {chosen ? <span className="ts-badge">Picked</span> : null}
                     {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
                     {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
+                    {o.sandbox ? <span className="ts-badge ts-badge-quiet">Sandbox</span> : null}
                   </span>
                   <span className="ts-price" data-none={!price || undefined}>
                     {price ?? "No fare"}

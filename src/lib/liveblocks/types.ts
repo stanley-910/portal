@@ -82,6 +82,8 @@ export type StoredOffer = {
   provider: string;
   mode: "flight" | "train" | "bus" | "ferry";
   kind: "live" | "cached" | "timetable" | "estimated";
+  /** The provider's test inventory: bookable in its sandbox, shown with a Sandbox badge, never a real flight. */
+  sandbox?: boolean;
   price: { amount: number; currency: string } | null;
   carrier: string | null;
   /** The first segment's airline IATA code, for its logo. Absent on older rooms and non-flights. */

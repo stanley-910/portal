@@ -39,6 +39,7 @@ export interface Offer {
   transfers?: number;         // connections, when the provider counts them but doesn't list each segment
   price?: Price;              // absent = timetable only
   kind: "live" | "cached" | "timetable" | "estimated"; // honesty about freshness; "estimated" = modelled, not quoted
+  sandbox?: boolean;          // a provider's test inventory: bookable there, never a real flight or price
   bookingUrl?: string;        // deep link incl. affiliate marker where ToS requires
   attribution?: string;       // text the provider ToS requires near the result
 }

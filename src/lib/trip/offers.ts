@@ -63,6 +63,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     provider: offer.provider,
     mode: offer.mode,
     kind: offer.kind,
+    ...(offer.sandbox ? { sandbox: true } : {}),
     price: offer.price ? { amount: offer.price.amount, currency: offer.price.currency } : null,
     carrier: first.carrier ?? null,
     ...(first.carrierCode ? { carrierCode: first.carrierCode } : {}),
