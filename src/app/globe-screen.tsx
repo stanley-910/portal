@@ -3,15 +3,17 @@
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
+import { AccountChip } from "@/components/account-chip";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySelector } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
+import type { CurrentUser } from "@/lib/supabase/server";
 
 import { createTrip } from "./t/actions";
 
-export function GlobeScreen() {
+export function GlobeScreen({ user }: { user: CurrentUser | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
@@ -53,6 +55,7 @@ export function GlobeScreen() {
       <form action={createTrip}>
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
+      <AccountChip user={user} />
     </NavBar>
     {trip ? (
       <TicketSearch

@@ -52,7 +52,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M4. Who you are: a guest cookie and a Liveblocks access token
 
-**Status:** built. This replaces Supabase auth (POR-12).
+**Status:** built; superseded in part by M19 (accounts replace the guest cookie once P12 lands). This replaces Supabase auth (POR-12).
 
 **Code:**
 - `src/lib/guest.ts`: guest cookies.
@@ -73,7 +73,7 @@ The server reads and writes it with `@liveblocks/node` (`mutateStorage`, `getSto
 
 ### M5. No Supabase
 
-**Status:** decided
+**Status:** superseded in part by M19: Supabase now holds accounts. The rest stands: no provider cache, payments or plans in Supabase.
 
 **Decision:** we don't use Supabase at all, so there's no database. What it would have held moves elsewhere:
 - **Provider cache:** JSON fixtures committed to the repo. They also serve as the required mock fallback.
@@ -250,6 +250,32 @@ Emoji reactions are cut. Chat between people happens in the shared thread (M15).
 **Why Duffel:** Stripe only collects money. Duffel actually books the flight and returns a booking reference. In test mode it's paid from a fake balance.
 
 **Why Stripe is the record:** any member can write to Storage, so a "paid" flag there could be faked.
+
+## Accounts
+
+### M19. Accounts with Supabase Auth
+
+**Status:** decided. Supersedes M4's guest identity and M5 for accounts only; P12 flips it to built.
+
+**Code:** `src/lib/supabase/` (`server.ts` with `getCurrentUser()`, `client.ts`, `config.ts`), `src/proxy.ts`, `src/app/(auth)/` (`/login`, `/signup`, sign out), `supabase/migrations/0001_profiles.sql`, `scripts/supabase-migrate.mts` (`pnpm db:migrate`).
+
+**Decision:**
+- **Sign-in:** Supabase Auth, email and password. Email confirmation is off for the demo (dashboard setting).
+- **Profiles:** one table, `public.profiles` (`id` = `auth.users.id`, `display_name` 1 to 32 characters, `created_at`). A trigger fills it on signup from the `display_name` metadata, falling back to the email's local part.
+- **Access:** RLS is on. Any signed-in user can read profiles, so names show in shared trips; a user can update only their own.
+- **Sessions:** `@supabase/ssr` cookies, refreshed in `src/proxy.ts` (Next 16's name for middleware) on every non-static request. Every access check calls `auth.getUser()`, which verifies with Supabase, never `getSession()`.
+- **Keys:** only the project URL and the publishable key reach the browser. `SUPABASE_DB_URL` is for migrations only. No service-role key in the app.
+- **Plans stay in Liveblocks Storage** (M3). Supabase holds who you are, not what the trip is.
+- **Missing env:** with the Supabase vars unset, accounts are off and `/` still works.
+
+**Why:**
+- The owner asked for real accounts on 2026-10-03. Guest cookies lose you when cookies clear (M4's accepted risk).
+- Supabase handles password hashing, sessions and rate limits. Google sign-in needs an OAuth app; magic links depend on Supabase's free SMTP, a few mails an hour.
+
+**Accepted:**
+- A second service to keep awake: free projects pause after a week idle (`free-tiers.md`), so wake it before the demo.
+- Auth rate limits are per IP. A shared venue network plus rehearsal can trip them; raise them in the dashboard.
+- Each server request that checks auth costs one Supabase round trip.
 
 ## Operational rules from the free tier
 
