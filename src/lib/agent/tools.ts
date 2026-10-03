@@ -10,6 +10,7 @@ import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot"
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
+import type { AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -27,6 +28,8 @@ export type ToolContext = {
   addCard: (card: ThreadCard) => Promise<void>;
   /** What Pip is doing, beside its cursor, and where on the globe it's looking. */
   activity: (text: string, at?: { lat: number; lng: number }) => void;
+  /** What an edit changed, for everyone's globe to pop up where it happened. */
+  marks: (marks: AgentMark[]) => void;
   /** Marks a meet-up card's option as on the trip, with the changeset its Undo reverts. */
   markMeetup: (messageId: string, option: string, changesetId: string) => Promise<void>;
   /** Options from find_meetup this run, by handle, for apply_meetup. */
@@ -220,6 +223,7 @@ export function agentTools(ctx: ToolContext) {
         ctx.activity("editing the trip");
         const { plan, handles } = await ctx.load();
         const result = await editPlan(ctx.roomId, plan, handles, ops as EditOp[], ctx.agentId, ctx.until);
+        ctx.marks(result.marks);
         if (result.changesetId) {
           await ctx.addCard({ type: "changes", changesetId: result.changesetId, lines: result.applied, undone: false });
         }
@@ -309,6 +313,7 @@ export function agentTools(ctx: ToolContext) {
         if (!o) return { refused: "UNKNOWN_HANDLE", reason: `No meet-up card has ${option}.`, next: "Call find_meetup first." };
         if (card?.applied && !card.undone) return { refused: "ALREADY_APPLIED", reason: `${card.applied} from that card is already on the trip.`, next: "Tell them; Undo on the card takes it off." };
         const result = await editPlan(ctx.roomId, plan, handles, meetupOps(o, handles), ctx.agentId, ctx.until);
+        ctx.marks(result.marks);
         if (result.changesetId && message) await ctx.markMeetup(message.id, option, result.changesetId);
         return { applied: result.applied, refused: result.refused, note: "The meet-up card now shows it on the trip, with Undo." };
       },

@@ -229,6 +229,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       />
     ) : null}
     <HomePip
+      globe={globe}
       account={account}
       trip={soloTrip}
       onTrip={(planned) => {

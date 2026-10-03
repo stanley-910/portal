@@ -6,7 +6,7 @@ import { cursorUrl, memberColor, type CursorShape } from "@/components/paper-atl
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import { openArea } from "./free-area";
 import type { ThemeId } from "./palette";
 
@@ -42,6 +42,15 @@ export interface TripGlobeHandle {
   zoom(): number;
   /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. A `name` marks and names it there. */
   flyTo(ll: LatLng, spanDeg: number, name?: string): void;
+  /** Sends Pip's saucer gliding to a place, or away (null). */
+  setAgent(at: LatLng | null): void;
+  /** Where Pip's saucer is on screen. Null when it isn't out. */
+  agentSpot(): AgentSpot | null;
+  /**
+   * Turns the view to follow Pip's saucer. Dragging, scrolling or pinching the globe stops it and calls `onEnd`;
+   * zooming doesn't.
+   */
+  followAgent(on: boolean, onEnd?: () => void): void;
 }
 
 export interface TripGlobeProps {
@@ -146,6 +155,7 @@ export function TripGlobe({
     handlers.current = { onTakeoff, onLand, onCancel, onRouteClick, onPointerLatLng, onFlightChange };
   });
   const frameListeners = useRef(new Set<() => void>());
+  const followEnd = useRef<(() => void) | null>(null);
 
   // While a trip is landed, the page changing (a panel opening, closing, or growing as results arrive) re-frames
   // its route in the space left open. Settled changes only: it waits for the page to be still for a moment.
@@ -189,6 +199,7 @@ export function TripGlobe({
         handlers.current.onCancel?.();
       },
       onRouteClick: () => handlers.current.onRouteClick?.(),
+      onFollowEnd: () => followEnd.current?.(),
       // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
       // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that
       // ride on the route itself (data-globe-follow), which would otherwise push the route away from its own card,
@@ -269,6 +280,12 @@ export function TripGlobe({
       zoom: () => engineRef.current?.zoom() ?? 0,
       flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
       showTrip: (points) => engineRef.current?.showTrip(points),
+      setAgent: (at) => engineRef.current?.setAgent(at),
+      agentSpot: () => engineRef.current?.agentSpot() ?? null,
+      followAgent: (on, onEnd) => {
+        followEnd.current = on ? (onEnd ?? null) : null;
+        engineRef.current?.setFollow(on);
+      },
     }),
     [],
   );

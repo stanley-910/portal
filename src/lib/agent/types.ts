@@ -1,5 +1,6 @@
 // The shared thread and the agent in it.
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
+import type { AgentMark } from "@/lib/agent/marks";
 
 /** The agent's user id in presence. Never a guest id, so it can't collide with a member. */
 export const AGENT_ID = "agent:pip";
@@ -90,7 +91,10 @@ export type Changeset = string;
  * Broadcast while Pip writes, so text streams without a Storage write per token. Each carries the whole text so
  * far; `seq` counts up, so a late one can't roll the text back.
  */
-export type AgentEvent = { type: "agent-text"; messageId: string; text: string; seq: number };
+export type AgentEvent =
+  | { type: "agent-text"; messageId: string; text: string; seq: number }
+  /** What an edit just changed, for everyone's globe to pop up where it happened (marks.ts). */
+  | { type: "agent-marks"; marks: AgentMark[] };
 
 /** Presence Pip sets from the server: where it's looking and what it's doing. */
 export type AgentActivity = string;

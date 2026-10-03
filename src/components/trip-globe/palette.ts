@@ -58,6 +58,8 @@ export interface Palette {
   stickerGL: { fill: RGB; ink: RGB; roundel: RGB };
   /** Each member's sticker paper, by design slot, for their pins' heads. */
   memberGL: RGB[];
+  /** Pip's saucer, as its pixel sprite paints it. */
+  pipGL: Record<"uPipBody" | "uPipShade" | "uPipCheek" | "uPipLight" | "uPipUnder", RGB>;
 }
 
 // The tint of the plane's shadow on the ground. Not a token: it only exists inside the shader.
@@ -101,6 +103,13 @@ function build(theme: ThemeId): Palette {
       roundel: rgb("roundel", theme),
     },
     memberGL: MEMBER_TOKENS.map((n) => rgb(n, theme)),
+    pipGL: {
+      uPipBody: rgb("pip-body", theme),
+      uPipShade: rgb("pip-shade", theme),
+      uPipCheek: rgb("pip-cheek", theme),
+      uPipLight: rgb("star-light", theme),
+      uPipUnder: rgb("star-edge", theme),
+    },
   };
 }
 

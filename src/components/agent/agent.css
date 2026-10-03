@@ -6,8 +6,10 @@
 /* The 2px checkerboard on everything Pip made. */
 .pip-dither { background-image: repeating-conic-gradient(var(--pip-dither) 0 25%, transparent 0 50%); background-size: 4px 4px; }
 
-/* Launcher. On page load it arrives by saucer (pip-arrival.tsx), drawn over where its sprite sits. */
-.pip-launcher { position: absolute; right: var(--space-6); bottom: var(--space-6); z-index: 30; display: flex; align-items: flex-end; gap: 8px; transform-origin: 100% 100%; animation: pip-pop 240ms steps(5) both; }
+/* Launcher. On page load it arrives by saucer (pip-arrival.tsx), drawn over where its sprite sits. The whole
+   launcher, its arrival and its nudge bubble, is drawn 1.125x from its corner: `scale`, not `transform`, so it
+   stacks with the pop-in. */
+.pip-launcher { position: absolute; right: var(--space-6); bottom: var(--space-6); z-index: 30; display: flex; align-items: flex-end; gap: 8px; transform-origin: 100% 100%; scale: 1.125; animation: pip-pop 240ms steps(5) both; }
 .pip-porthole { position: relative; display: grid; place-items: center; padding: 2px; border: 0; background: none; cursor: pointer; }
 .pip-porthole:focus-visible, .pip-nudge:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .pip-launcher-arriving { animation: none; }
@@ -126,18 +128,33 @@
 /* a text box shows focus on every click, not just from the keyboard; its own border carries it instead of a ring */
 .pip-input:focus { outline: none; border-color: var(--ink-muted); }
 
-/* Pip's cursor on the globe */
-.pip-cursor { position: absolute; top: 0; left: 0; pointer-events: none; will-change: transform; transition: opacity 150ms; }
-.pip-cursor-arrow { display: block; image-rendering: pixelated; filter: drop-shadow(5px 7px 0 var(--sticker-shadow)); }
-.pip-cursor-label { position: absolute; left: 16px; top: 26px; display: flex; align-items: center; gap: 4px; padding: 3px 8px 3px 4px; background: var(--star-light); color: var(--sticker-ink); box-shadow: var(--shadow-pixel); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; }
-.pip-cursor-label span { font-weight: 400; }
+/* Pip's saucer on the globe (pip-saucer.tsx): the beam it drops when a change pops, and the pops */
+.pip-beam { position: absolute; top: 0; left: -18px; width: 36px; pointer-events: none; will-change: transform; clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%); background-image: repeating-conic-gradient(var(--star-light) 0 25%, transparent 0 50%); background-size: 4px 4px; animation: pip-blink 160ms steps(1) infinite; }
+.pip-pop { position: absolute; top: 0; left: 0; pointer-events: none; will-change: transform; }
+/* a pop looks like the globe's own place tags (engine.ts tag()): typewriter on raised paper, ink edge */
+.pip-pop-inner { display: block; max-width: 280px; padding: 2px 7px; background: var(--paper-raised); color: var(--ink); border: var(--line-hair) solid var(--ink); border-radius: var(--radius-tag); box-shadow: var(--shadow-tag); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: translate(-50%, -100%); animation: pip-pop-rise 1800ms steps(3) both; }
+/* Follow Pip again, after moving the globe away from it: a starlight tag at the bottom of the globe */
+.pip-follow { position: absolute; left: 50%; bottom: var(--space-6); z-index: 20; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 6px; border: 0; background: var(--star-light); color: var(--sticker-ink); box-shadow: var(--shadow-pixel); font-family: var(--font-typewriter); font-size: 13px; line-height: 16px; font-weight: 700; cursor: pointer; translate: -50% 0; animation: pip-suggest-in 160ms steps(4) both; }
+.pip-follow::before { content: ""; position: absolute; inset: -6px 0; }
+.pip-follow:hover { background: var(--pip-cheek); }
+.pip-follow:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
 @keyframes pip-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes pip-open { from { transform: translateY(8px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pip-suggest-in { from { transform: translateY(-4px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pip-blink { 50% { opacity: 0; } }
+/* a hit in a game: punches in big, settles, floats up and fades */
+@keyframes pip-pop-rise {
+  0% { transform: translate(-50%, -100%) translateY(10px) scale(0.6); opacity: 0; }
+  8% { transform: translate(-50%, -100%) translateY(-4px) scale(1.08); opacity: 1; }
+  16% { transform: translate(-50%, -100%) translateY(-6px) scale(1); opacity: 1; }
+  70% { transform: translate(-50%, -100%) translateY(-28px) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -100%) translateY(-44px) scale(1); opacity: 0; }
+}
+@keyframes pip-pop-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .pip-launcher, .pip-panel { animation: none; }
-  .pip-caret, .pip-step-running .pip-step-mark, .pip-suggestion { animation: none; }
+  .pip-caret, .pip-step-running .pip-step-mark, .pip-suggestion, .pip-beam, .pip-follow { animation: none; }
+  .pip-pop-inner { animation-name: pip-pop-fade; }
 }
