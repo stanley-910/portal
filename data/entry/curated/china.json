@@ -63,12 +63,51 @@
     "verifiedAt": "2026-10-02"
   },
   {
+    "passport": "JPN",
+    "destination": "CHN",
+    "kind": "visa_free",
+    "allowedDays": 30,
+    "until": "2026-12-31",
+    "conditions": ["Business, tourism, family visits, exchange or transit only", "Ordinary passport"],
+    "note": "On China's unilateral visa-free list, extended to 31 December 2026 (Chinese consulate notice, 4 November 2025).",
+    "links": [
+      {
+        "label": "Consulate General of China in Los Angeles",
+        "url": "https://losangeles.china-consulate.gov.cn/eng/gdxw/202511/t20251104_11746357.htm",
+        "role": "source"
+      }
+    ],
+    "verifiedAt": "2026-10-03"
+  },
+  {
+    "passport": "CAN",
+    "destination": "CHN",
+    "kind": "visa_free",
+    "allowedDays": 30,
+    "until": "2026-12-31",
+    "conditions": ["Tourism, business, family visits or transit only", "Ordinary passport"],
+    "note": "Canada joined China's visa-free scheme on 17 February 2026, until 31 December 2026 (travel.gc.ca, updated 31 August 2026).",
+    "links": [
+      {
+        "label": "Government of Canada travel advice",
+        "url": "https://travel.gc.ca/destinations/china",
+        "role": "source"
+      }
+    ],
+    "verifiedAt": "2026-10-03"
+  },
+  {
     "passport": "USA",
     "destination": "CHN",
     "kind": "visa_required",
     "conditions": ["6 months passport validity", "2 blank pages"],
-    "note": "Not on China's unilateral visa-free list. The dataset's e-visa entry is wrong.",
+    "note": "Not on China's unilateral visa-free list (Chinese consulate notice, 4 November 2025; Canada and the UK were added on 17 February 2026, the US wasn't). The dataset's e-visa entry is wrong. The 240-hour transit exemption still applies.",
     "links": [
+      {
+        "label": "Consulate General of China in Los Angeles",
+        "url": "https://losangeles.china-consulate.gov.cn/eng/gdxw/202511/t20251104_11746357.htm",
+        "role": "source"
+      },
       {
         "label": "National Immigration Administration",
         "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
@@ -80,7 +119,7 @@
         "role": "info"
       }
     ],
-    "verifiedAt": "2026-10-02"
+    "verifiedAt": "2026-10-03"
   },
   {
     "passport": "HKG",
