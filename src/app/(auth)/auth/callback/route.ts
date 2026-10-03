@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
       redirect(next);
     }
     console.warn("[auth] code exchange failed:", error.status, error.code);
+  } else if (searchParams.has("error")) {
+    // Supabase couldn't finish with the provider (e.g. a wrong Google client secret) and says why.
+    console.warn("[auth] provider error:", searchParams.get("error_code"), searchParams.get("error_description"));
   }
   redirect(panelUrl(next, "signin", via));
 }
