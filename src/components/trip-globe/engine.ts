@@ -7,6 +7,7 @@ import { CITY_LABELS } from "./cities";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
+import { chooseVehicle, landMask, type LandAt } from "./vehicle-choice";
 import { buildVehicle, VEHICLE_LENGTH, VEHICLES, type Vehicle } from "./vehicle-models";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
@@ -57,13 +58,13 @@ export interface FlightState {
   /** A point just ahead of the plane, which gives its heading. */
   ahead: LatLng;
   landed: boolean;
+  /** What it's riding: in the air, the globe's guess from the leg's shape; landed, what it parks as. */
+  vehicle?: Vehicle;
 }
 
 /** Another member's flight. `id` is stable while they stay in the room. */
 export interface RemoteFlight extends FlightState {
   id: string;
-  /** What a landed trip parks as. Leave it out for the plane. Ignored in the air. */
-  vehicle?: Vehicle;
   /** Their member colour slot (0 for `member-1`), which tints the route. Unset draws it in ink. */
   color?: number | null;
 }
@@ -107,6 +108,15 @@ const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
+// While you draw a leg, the vehicle follows a guess from its length, water and hubs (vehicle-choice.ts). A new guess
+// has to hold for VEHICLE_HOLD s before the vehicle changes, so sweeping past a coast doesn't flicker; it's checked
+// every VEHICLE_CHECK s. Ground vehicles fly GROUND_LIFT of the plane's height: low, but clear of the route's dots.
+const VEHICLE_HOLD = 0.3;
+const VEHICLE_CHECK = 0.1;
+const GROUND_LIFT = 0.35;
+// The land mask's size, sampled once from the earth texture for the vehicle guess.
+const LAND_W = 1024;
+const LAND_H = 512;
 const CENTRE_Y = 0.455; // globe centre, as a fraction of the screen height
 const LAT_MAX = 1.25; // how far the view can turn toward a pole
 
@@ -153,6 +163,9 @@ interface Plane {
 }
 
 const parked = (v: Vehicle): Pick<Plane, "vehicle" | "next" | "swap"> => ({ vehicle: v, next: v, swap: 0 });
+
+/** How high a vehicle flies, as a share of the plane's height: ground vehicles skim along low. */
+const lift = (pl: Plane) => (pl.next === "flight" ? 1 : GROUND_LIFT);
 
 // a change mid-pop that is already growing back turns it round at the same size, so it never jumps
 function retarget(pl: Plane, v: Vehicle) {
@@ -360,6 +373,9 @@ export class GlobeEngine {
   private hoverName: string | null = null;
   private hoverNameAt = -Infinity;
   private hoverHub: Hub | null = null;
+  // the land mask for guessing a leg's vehicle, and the guess waiting to hold
+  private landAt: LandAt | null = null;
+  private want: { vehicle: Vehicle; t: number; checked: number } = { vehicle: "flight", t: 0, checked: -Infinity };
   private hoverResolver = new HoverHubResolver();
   /** How lit up the landed country's outline is (0–1), and where it was landed, kept while it fades out. */
   private hi = 0;
@@ -440,6 +456,7 @@ export class GlobeEngine {
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     // all sea until the texture arrives
     this.texEarth = this.dataTexture(gl, this.earthUrl, [0, 255, 255, 255]);
+    this.loadLand();
     // one country, so no borders, until the texture arrives
     this.texBorders = this.dataTexture(gl, this.bordersUrl, [0, 0, 0, 255]);
     // one province, so no lines, until it arrives
@@ -793,6 +810,7 @@ export class GlobeEngine {
     this.originHub = nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0, ...parked("flight") };
+    this.want = { vehicle: "flight", t: this.t, checked: -Infinity };
     this.tTake = this.t;
     this.vlon = 0;
     this.vlat = 0;
@@ -948,6 +966,27 @@ export class GlobeEngine {
         .catch(viaImg);
     } else viaImg();
     return tex;
+  }
+
+  /** Reads the earth texture's land mask onto the CPU, small, for guessing a leg's vehicle. Browser only. */
+  private loadLand() {
+    if (this.landAt || typeof createImageBitmap !== "function" || typeof document === "undefined") return;
+    fetch(this.earthUrl)
+      .then((r) => r.blob())
+      .then((b) => createImageBitmap(b, { colorSpaceConversion: "none", premultiplyAlpha: "none" }))
+      .then((bitmap) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = LAND_W;
+        canvas.height = LAND_H;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(bitmap, 0, 0, LAND_W, LAND_H);
+        bitmap.close();
+        this.landAt = landMask(ctx.getImageData(0, 0, LAND_W, LAND_H).data, LAND_W, LAND_H);
+      })
+      // without the mask every leg counts as over land
+      .catch(() => {});
   }
 
   private onMotionChange = (e: MediaQueryListEvent) => {
@@ -1193,6 +1232,7 @@ export class GlobeEngine {
       at: toLatLng(pl.n),
       ahead: toLatLng(norm(add(pl.n, mul(pl.f, 0.02)))),
       landed: this.mode === "landed",
+      vehicle: pl.next,
     };
   }
 
@@ -1217,7 +1257,7 @@ export class GlobeEngine {
   setRemoteFlights(flights: RemoteFlight[]) {
     const seen = new Set<string>();
     for (const f of flights) {
-      const vehicle = f.landed ? f.vehicle ?? "flight" : "flight";
+      const vehicle = f.vehicle ?? "flight";
       seen.add(f.id);
       const target = vecOf(f.at.lat * D2R, f.at.lng * D2R);
       const ahead = vecOf(f.ahead.lat * D2R, f.ahead.lng * D2R);
@@ -1358,7 +1398,7 @@ export class GlobeEngine {
       const a = this.reduceMotion ? 1 : k(14);
       pl.n = norm(slerp(pl.n, r.target, a));
       pl.f = tangent(lerp(pl.f, r.ft, a), pl.n);
-      pl.alt += ((r.landed ? 0 : ALT * this.planeScale) - pl.alt) * k(8);
+      pl.alt += ((r.landed ? 0 : ALT * this.planeScale * lift(pl)) - pl.alt) * k(8);
       this.stepSwap(pl, dt);
     }
     if (this.turn) {
@@ -1417,7 +1457,8 @@ export class GlobeEngine {
 
     if (this.mode === "flying") {
       // the plane sits under the cursor and points along the great circle from the origin
-      pl.alt += (ALT * this.planeScale * smooth(0, 0.5, t - this.tTake) - pl.alt) * k(10);
+      this.guessVehicle(pl, t);
+      pl.alt += (ALT * this.planeScale * lift(pl) * smooth(0, 0.5, t - this.tTake) - pl.alt) * k(10);
       const hit = this.hasPointer ? this.pickClamp(this.mx, this.my, 1 + pl.alt) : null;
       if (hit) {
         const origin = this.origin!;
@@ -1529,6 +1570,27 @@ export class GlobeEngine {
     const half = nose ? Math.hypot(nose.x - p.x, nose.y - p.y) : 20;
     // half the plane, its shadow falling down and to the right, a gap, then half the tag
     return { x: p.x, y: p.y + half + 8 + 6 + 12 };
+  }
+
+  /**
+   * Turns this viewer's plane into whatever the leg being drawn looks like: a train over land, a ferry over a short
+   * stretch of sea, a plane for anything long. A new guess must hold for VEHICLE_HOLD s first.
+   */
+  private guessVehicle(pl: Plane, t: number) {
+    const w = this.want;
+    if (t - w.checked >= VEHICLE_CHECK && this.origin) {
+      w.checked = t;
+      const guess = chooseVehicle({
+        from: this.origin,
+        to: pl.n,
+        landAt: this.landAt,
+        fromHub: this.originHub?.mode,
+        toHub: this.hoverHub?.mode,
+        current: pl.next,
+      });
+      if (guess !== w.vehicle) Object.assign(w, { vehicle: guess, t });
+    }
+    if (w.vehicle !== pl.next && t - w.t >= VEHICLE_HOLD) retarget(pl, w.vehicle);
   }
 
   private stepSwap(pl: Plane, dt: number) {

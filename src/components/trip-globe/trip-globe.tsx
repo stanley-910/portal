@@ -89,7 +89,7 @@ function useResolvedTheme(theme: TripGlobeTheme): ThemeId {
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
 const roundLatLng = (ll: LatLng | null): LatLng | null => (ll ? { lat: round4(ll.lat), lng: round4(ll.lng) } : null);
 const roundFlight = (f: FlightState | null): FlightState | null =>
-  f && { origin: roundLatLng(f.origin)!, at: roundLatLng(f.at)!, ahead: roundLatLng(f.ahead)!, landed: f.landed };
+  f && { origin: roundLatLng(f.origin)!, at: roundLatLng(f.at)!, ahead: roundLatLng(f.ahead)!, landed: f.landed, vehicle: f.vehicle };
 const sameLatLng = (a: LatLng | null, b: LatLng | null) => a === b || (!!a && !!b && a.lat === b.lat && a.lng === b.lng);
 
 /**

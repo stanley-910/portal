@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GlobeEngine, type GlobeCursor, type GlobeEvents } from "./engine";
-import { angle, D2R, dot, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
+import { angle, D2R, dot, EARTH_RADIUS_KM, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
 
 function engine() {
   const onLand = vi.fn();
@@ -452,6 +452,28 @@ describe("vehicles", () => {
     expect(own(engine)!.vehicle).toBe("flight");
   });
 
+  it("turns into whatever the leg being drawn looks like, once the guess has held", () => {
+    const { engine, state, frames } = setup();
+    // all land, so the guess comes down to length
+    (engine as unknown as { landAt: (v: Vec3) => boolean }).landAt = () => true;
+    const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const o = state.pick(1280, 650)!;
+    engine["takeoff"](o);
+    // the first spot to the right of takeoff that's train distance away (300 to 900 km)
+    let x = 1280;
+    while (EARTH_RADIUS_KM * angle(o, state.pick(x, 650)!) < 300) x += 4;
+    expect(EARTH_RADIUS_KM * angle(o, state.pick(x, 650)!)).toBeLessThan(900);
+    move(x, 650);
+    frames(6); // 0.1 s: the guess hasn't held yet
+    expect(own(engine)!.next).toBe("flight");
+    frames(30);
+    expect(own(engine)!.next).toBe("train");
+    // dragged right back beside takeoff, it keeps the train rather than flickering
+    move(1281, 650);
+    frames(30);
+    expect(own(engine)!.next).toBe("train");
+  });
+
   it("pops between vehicles over a quarter second, redrawing as it goes", () => {
     const { engine, state, frames, drawGL } = setup();
     state.reduceMotion = false;
@@ -484,7 +506,7 @@ describe("vehicles", () => {
     expect(own(engine)!.vehicle).toBe("bus");
   });
 
-  it("parks other members' landed trips as their vehicle, planes otherwise", () => {
+  it("draws other members' trips as their vehicle, in the air as well as landed, planes otherwise", () => {
     const { engine, frames } = setup();
     const base = { origin: { lat: 22, lng: 114 }, at: { lat: 31, lng: 121 }, ahead: { lat: 31.1, lng: 121.1 } };
     engine.setRemoteFlights([
@@ -495,7 +517,8 @@ describe("vehicles", () => {
     frames(1);
     expect(remote(engine, "a").vehicle).toBe("ferry");
     expect(remote(engine, "b").vehicle).toBe("flight");
-    expect(remote(engine, "c").vehicle).toBe("flight");
+    // in the air, what their globe guessed for the leg they're drawing
+    expect(remote(engine, "c").vehicle).toBe("train");
     engine.setRemoteFlights([{ id: "a", ...base, landed: true, vehicle: "train" }]);
     frames(1);
     expect(remote(engine, "a").vehicle).toBe("train");
