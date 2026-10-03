@@ -63,7 +63,11 @@ export async function adoptTrips(guestId: string, accountId: string): Promise<bo
       // the account takes the guest's place in join order, so it keeps the guest's colour
       await lb.updateRoom(room.id, {
         usersAccesses: { [accountId]: ["room:write"], [guestId]: null },
-        metadata: { members: [...new Set(members.map((m) => (m === guestId ? accountId : m)))] },
+        metadata: {
+          members: [...new Set(members.map((m) => (m === guestId ? accountId : m)))],
+          // a trip passed on to the guest (trips/leave.ts) stays theirs
+          ...(room.metadata.owner === guestId ? { owner: accountId } : {}),
+        },
       });
       await lb.mutateStorage(room.id, ({ root }) => {
         if (root.get("members")) adoptInStorage(root, guestId, accountId);
