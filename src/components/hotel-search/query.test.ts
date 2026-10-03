@@ -14,9 +14,9 @@ describe("hotel result scope while another request is pending", () => {
     { city: "Shanghai" }, { lat: 31.23 }, { lng: 121.47 },
   ])("never renders/selects a prior quote after changing %j", (change) => {
     const currentKey = hotelQueryKey({ ...query, ...change });
-    expect(resultForHotelQuery(currentKey, previous)).toEqual({ hotels: [], status: "idle" });
+    expect(resultForHotelQuery(currentKey, previous)).toEqual({ hotels: [], status: "searching" });
     // An old request finishing late also cannot populate the new query's results.
-    expect(resultForHotelQuery(currentKey, { ...previous, status: "failed" })).toEqual({ hotels: [], status: "idle" });
+    expect(resultForHotelQuery(currentKey, { ...previous, status: "failed" })).toEqual({ hotels: [], status: "searching" });
     expect(resultForHotelQuery(currentKey, { ...previous, queryKey: currentKey }).hotels).toEqual(previous.hotels);
   });
   it("hides rows if dates become invalid and preserves a matching result", () => {

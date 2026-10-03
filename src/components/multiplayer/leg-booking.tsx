@@ -42,6 +42,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
   const members = usePlanMembers();
   const { retrySearch } = usePlanActions();
   const [busy, start] = useTransition();
+  const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
   const [price, setPrice] = useState<PriceChange | null>(null);
   const [form, setForm] = useState(false);
@@ -73,7 +74,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
     start(async () => {
       setError(null);
       setPrice(null);
-      const result = await task();
+      const result = await task().catch((): Failure => { setUncertain(true); return { ok: false, code: "UPSTREAM_ERROR", message: "Connection lost. Check the booking status before trying again." }; });
       if (!result.ok) {
         if ("now" in result) setPrice(result);
         else setError(result);
@@ -98,6 +99,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
   const problem = error ? (
     <p className="tp-notice" role="alert">
       <span>{error.message}</span>
+      {uncertain ? <a className="ts-oneway" href={`/t/${tripId}?book=${encodeURIComponent(leg.id)}`}>Check booking</a> : null}
       {/* an offer the airline no longer sells, as after a day away: a fresh search brings today's fares */}
       {error.code === "OFFER_GONE" && !leg.booking ? (
         <button type="button" className="ts-oneway" onClick={() => { setError(null); retrySearch(leg.id); }}>
@@ -113,7 +115,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
         {price.was ? `Now ${fmt(price.now)} a seat, was ${fmt(price.was)}.` : `${fmt(price.now)} a seat.`}
       </span>
       <span className="tp-notice-actions">
-        <button type="button" className="ts-oneway" disabled={busy} onClick={() => (booking ? pay(price.now) : settle(price.now))}>
+        <button type="button" className="ts-oneway" disabled={busy || uncertain} onClick={() => (booking ? pay(price.now) : settle(price.now))}>
           Continue
         </button>
         <button type="button" className="ts-oneway" onClick={() => setPrice(null)}>
@@ -133,7 +135,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
         {problem}
         {moved}
         {bookable && rider && !price ? (
-          <Button variant="secondary" block disabled={busy} onClick={() => settle()}>
+          <Button variant="secondary" block disabled={busy || uncertain} onClick={() => settle()}>
             Settle and book
           </Button>
         ) : null}
@@ -198,7 +200,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
       {booking.status === "booked" && booking.reference ? <p className="tp-book-ref">Reference {booking.reference}</p> : null}
 
       {needsDetails && !form ? (
-        <Button variant="secondary" block disabled={busy} onClick={() => setForm(true)}>
+        <Button variant="secondary" block disabled={busy || uncertain} onClick={() => setForm(true)}>
           Enter my details
         </Button>
       ) : null}
@@ -207,21 +209,21 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
           documents={booking.documents}
           email={email}
           passportCountry={nationalities[0] ? (iso2(nationalities[0]) ?? "") : ""}
-          busy={busy}
+          busy={busy || uncertain}
           invalid={error?.fields ?? []}
           onCancel={() => setForm(false)}
           onSubmit={(details) => run(() => submitDetailsAction(tripId, leg.id, details))}
         />
       ) : null}
       {canPay && !price ? (
-        <Button block disabled={busy} onClick={() => pay()}>
+        <Button block disabled={busy || uncertain} onClick={() => pay()}>
           {booking.mode === "separate" ? `Buy my seat · ${fmt(seat.share)}` : `Pay my share · ${fmt(seat.share)}`}
         </Button>
       ) : null}
       {seat?.paid && booking.status === "paying" && booking.mode === "group" ? <p className="ts-empty">Your card is held until everyone has paid.</p> : null}
 
       {rider && booking.status !== "booked" && nobodyPaid ? (
-        <button type="button" className="ts-oneway tp-remove" disabled={busy} onClick={() => run(() => cancelSettleAction(tripId, leg.id))}>
+        <button type="button" className="ts-oneway tp-remove" disabled={busy || uncertain} onClick={() => run(() => cancelSettleAction(tripId, leg.id))}>
           Cancel settle
         </button>
       ) : null}

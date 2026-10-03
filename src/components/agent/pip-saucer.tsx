@@ -58,10 +58,11 @@ export function PipSaucer({ globe, at, busy, editing = false, ref }: Props) {
   const live = useRef({ at, busy, editing, pops });
   useEffect(() => {
     live.current = { at, busy, editing, pops };
-  });
+    globe.current?.requestFrame();
+  }, [at, busy, editing, pops, globe]);
   const queue = useRef<AgentMark[]>([]);
 
-  useImperativeHandle(ref, () => ({ play: (marks) => void queue.current.push(...marks) }), []);
+  useImperativeHandle(ref, () => ({ play: (marks) => { queue.current.push(...marks); globe.current?.requestFrame(); } }), [globe]);
 
   useEffect(() => {
     const handle = globe.current;
@@ -95,7 +96,10 @@ export function PipSaucer({ globe, at, busy, editing = false, ref }: Props) {
       if (nowOut !== shown) {
         shown = nowOut;
         setOut(nowOut);
-        if (nowOut) follow();
+        if (nowOut) {
+          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setLost(true);
+          else follow();
+        }
         else {
           handle.followAgent(false);
           setLost(false);
@@ -142,6 +146,7 @@ export function PipSaucer({ globe, at, busy, editing = false, ref }: Props) {
         el.style.opacity = where?.visible ? "1" : "0";
         if (where) el.style.transform = `translate(${Math.round(where.x)}px, ${Math.round(where.y - hover - POP_RISE)}px)`;
       }
+      if (current || queue.current.length || pops.length || (shown && t - lastBusy < LINGER_MS)) handle.requestFrame();
       if (expired) {
         const gone = new Set(pops.filter((p) => t - (born.get(p.id) ?? t) > POP_MS).map((p) => p.id));
         for (const id of gone) born.delete(id);

@@ -12,7 +12,7 @@ export interface HubSearchResult extends SearchResult {
 }
 
 /** Resolve coordinates locally, search a bounded set of pairs, then rank fares. */
-export async function searchFromCoordinates(query: SearchQuery, signal: AbortSignal): Promise<HubSearchResult> {
+export async function searchFromCoordinates(query: SearchQuery, signal: AbortSignal, onProgress?: (result: HubSearchResult) => void): Promise<HubSearchResult> {
   const started = Date.now();
   const hubs = resolveHubs(query.from, query.to, query.modes);
   const searches = hubs.pairs.map((pair) => ({
@@ -25,9 +25,24 @@ export async function searchFromCoordinates(query: SearchQuery, signal: AbortSig
   const surfaceModes = (query.modes.length ? query.modes : ["train", "bus", "ferry"] as const)
     .filter((mode) => mode !== "flight");
   if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, modes: surfaceModes } });
-  const results = await Promise.all(searches.map(async (search) => ({
-    ...search, result: await searchTransport(search.query, signal),
-  })));
+  const partial = new Map<number, SearchResult>();
+  const snapshot = () => mergeResults(query, hubs, started, searches.flatMap((search, i) => {
+    const result = partial.get(i);
+    return result ? [{ pairId: search.pairId, result }] : [];
+  }));
+  await Promise.all(searches.map(async (search, i) => {
+    const progress = onProgress ? (result: SearchResult) => {
+      partial.set(i, result);
+      if (!signal.aborted) onProgress(snapshot());
+    } : undefined;
+    const result = await (progress ? searchTransport(search.query, signal, progress) : searchTransport(search.query, signal));
+    partial.set(i, result);
+  }));
+  return snapshot();
+}
+
+function mergeResults(query: SearchQuery, hubs: HubResolution, started: number,
+  results: { pairId: string; result: SearchResult }[]): HubSearchResult {
   const offerPairs: Record<string, string[]> = Object.create(null);
   const withOffers = new Set<string>();
   for (const { pairId, result } of results) {

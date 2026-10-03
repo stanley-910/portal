@@ -71,3 +71,34 @@ describe("findMeetup", () => {
     expect(bigCities().length).toBeGreaterThan(100);
   });
 });
+
+describe("meetup request budget", () => {
+  it("limits peak searches and reuses identical origins without changing member assignments", async () => {
+    let active = 0, peak = 0, calls = 0;
+    const q = query();
+    q.groups.push({ ...q.groups[0], members: ["d"], people: 1 });
+    const result = await findMeetup(q, async (search) => {
+      calls++; peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      active--;
+      return [fare(search, 50)];
+    });
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(calls).toBe(10); // 5 cities x 2 distinct origins, not 3
+    expect(result.searched).toBe(calls);
+    expect(result.options[0].legs.map((l) => l.members)).toEqual([["a", "b"], ["c"], ["d"]]);
+  });
+  it("rejects excess groups before making provider calls", async () => {
+    const q = query();
+    q.groups = Array.from({ length: 7 }, () => q.groups[0]);
+    let calls = 0;
+    await expect(findMeetup(q, async () => { calls++; return []; })).rejects.toThrow("Too many meetup origins");
+    expect(calls).toBe(0);
+  });
+  it("does not start queued searches after the parent is cancelled", async () => {
+    const abort = new AbortController();
+    let calls = 0;
+    await findMeetup(query(), async () => { calls++; abort.abort(); return []; }, undefined, abort.signal);
+    expect(calls).toBeLessThanOrEqual(4);
+  });
+});

@@ -82,7 +82,7 @@ export function NavBar({ globe, children, name, email, account = false, reloadOn
 
   return (
     <header className="pn-bar" data-compact={compact || undefined}>
-      <Link href="/" className="pn-logo" aria-label="Portal">
+      <Link href="/" data-globe-obstacle className="pn-logo" aria-label="Portal">
         <span className="pn-lockup" aria-hidden>
           <portal-logo-reveal
             ref={logo}
@@ -91,7 +91,7 @@ export function NavBar({ globe, children, name, email, account = false, reloadOn
           />
         </span>
       </Link>
-      <div className="pn-controls">
+      <div data-globe-obstacle className="pn-controls">
         {children}
         <ProfileMenu
           name={name}

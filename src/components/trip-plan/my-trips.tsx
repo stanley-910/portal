@@ -24,7 +24,7 @@ function money(value: { amount: number; currency: string } | null) {
 }
 
 /** The signed-in user's saved trips, newest first. Renders nothing when there are none. */
-export function MyTrips({ trips }: { trips: TripSummary[] }) {
+export function MyTrips({ trips, loadingCosts = false }: { trips: TripSummary[]; loadingCosts?: boolean }) {
   return (
     <nav aria-label="My trips" className="w-full max-w-2xl overflow-hidden rounded-ticket border-(length:--line-ink) border-ink bg-paper-raised shadow-ticket">
       {trips.length ? (
@@ -49,7 +49,7 @@ export function MyTrips({ trips }: { trips: TripSummary[] }) {
                     <CostRow key={`${night.stop}-${night.date}`} label={`${night.stop} · ${night.date}`} value={money(night.share)} />
                   )) : <p className="type-meta text-ink-muted">No hotel nights selected.</p>}
                 </CostGroup>
-                </> : <p className="type-meta text-ink-muted">Costs didn&apos;t load. Open the trip to see them.</p>}
+                </> : <p className="type-meta text-ink-muted">{loadingCosts ? "Loading costs…" : "Costs didn’t load. Open the trip to see them."}</p>}
                 <div className="flex flex-wrap items-center gap-(--space-3)">
                   <Link href={`/t/${trip.id}`} className="type-meta text-ink underline underline-offset-4">Open trip</Link>
                   <LeaveTripButton tripId={trip.id} />

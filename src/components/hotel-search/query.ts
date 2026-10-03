@@ -16,7 +16,7 @@ export type HotelSearchResult = { queryKey: string; hotels: HotelResult[]; statu
 
 /** Hide the previous request immediately on render, before the new effect/fetch has started. */
 export function resultForHotelQuery(queryKey: string, result: HotelSearchResult | null): {
-  hotels: HotelResult[]; status: "idle" | "done" | "failed";
+  hotels: HotelResult[]; status: "idle" | "searching" | "done" | "failed";
 } {
-  return queryKey && result?.queryKey === queryKey ? result : { hotels: [], status: "idle" };
+  return queryKey && result?.queryKey === queryKey ? result : { hotels: [], status: queryKey ? "searching" : "idle" };
 }

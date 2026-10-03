@@ -8,9 +8,9 @@ import { searchLeg } from "@/app/t/actions";
 import { refreshTripTitle } from "@/app/t/title-actions";
 import { localIso } from "@/components/ticket-search/parts";
 import type { LandedTrip } from "@/components/trip-globe";
-import type { LegBooking, LegSearch, Stay, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
+import type { LegSearch, Stay, Stop, TripStorage } from "@/lib/liveblocks/types";
 import * as dates from "./dates";
-import { computeSplit, staysOf, type MemberSplit, type PlanStay, type Split, type SplitInput } from "./split";
+import { staysOf, type MemberSplit, type SplitInput } from "./split";
 import { sharesStop, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared trip plan: stops, the legs between them, and each leg's options, votes and pick. Presentation
@@ -31,49 +31,12 @@ const pending = (): LegSearch => ({ id: newId(), status: "searching", offers: []
 /** How an edit went: applied, or why not (the leg or stop was removed, it's being booked, or its options changed). */
 export type EditResult = "ok" | "gone" | "locked" | "replaced";
 
-export type PlanLeg = {
-  id: string;
-  from: Stop & { id: string };
-  to: Stop & { id: string };
-  date: string;
-  createdBy: string;
-  riders: string[];
-  search: LegSearch;
-  /** Offer id → guest ids who voted for it. */
-  votes: Record<string, string[]>;
-  chosen: StoredOffer | null;
-  createdAt: number;
-  booking: LegBooking | null;
-  bookingNotice: string | null;
-};
+export type { PlanLeg } from "./projections";
+import { selectPlanLegs, selectPlanStays, selectSplit, selectPlanDates } from "./projections";
 
-/** Every leg in drawing order, with its stops filled in. Re-renders only when the plan changes. */
-export function usePlanLegs(): PlanLeg[] | null {
-  return useStorage((root) => {
-    const legs: PlanLeg[] = [];
-    for (const [id, leg] of Object.entries(root.legs)) {
-      const from = root.stops[leg.from];
-      const to = root.stops[leg.to];
-      if (!from || !to) continue;
-      const votes: Record<string, string[]> = {};
-      for (const [who, offer] of Object.entries(leg.votes)) (votes[offer] ??= []).push(who);
-      legs.push({
-        id,
-        from: { id: leg.from, ...from },
-        to: { id: leg.to, ...to },
-        date: leg.date,
-        createdBy: leg.createdBy,
-        riders: leg.riders,
-        search: leg.search,
-        votes,
-        chosen: leg.search.offers.find((o) => o.id === leg.chosen) ?? null,
-        createdAt: leg.createdAt,
-        booking: leg.booking ?? null,
-        bookingNotice: leg.bookingNotice ?? null,
-      });
-    }
-    return legs.sort((a, b) => a.createdAt - b.createdAt);
-  }, legsEqual);
+/** Selectors share immutable projections across every room subscriber. */
+export function usePlanLegs() {
+  return useStorage(selectPlanLegs);
 }
 
 /** Everyone who has joined the trip, online or not: guest id → name and colour. */
@@ -81,37 +44,11 @@ export function usePlanMembers() {
   return useStorage((root) => root.members);
 }
 
-/** Every stay, whole: where some of the group sleep, when, who and for what (`staysOf`). */
-export function usePlanStays(): PlanStay[] | null {
-  return useStorage(
-    (root) =>
-      staysOf({
-        members: root.members,
-        legs: root.legs as SplitInput["legs"],
-        stays: root.stays as SplitInput["stays"],
-        ends: root.ends,
-      }),
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
-  );
-}
+/** Every stay, including legacy rooms whose stays had no explicit dates. */
+export function usePlanStays() { return useStorage(selectPlanStays); }
 
-/** Who pays what, for the whole group: every night with who was there, and each member's fares, night shares and totals. */
-export function useSplit(): Split | null {
-  return useStorage((root): Split => {
-    const input: SplitInput = {
-      members: Object.fromEntries(Object.entries(root.members).map(([memberId, member]) => [memberId, { leaves: member.leaves }])),
-      legs: Object.fromEntries(
-        Object.entries(root.legs).map(([legId, leg]) => [
-          legId,
-          { from: leg.from, to: leg.to, date: leg.date, riders: leg.riders, search: leg.search, chosen: leg.chosen, createdAt: leg.createdAt, booking: leg.booking },
-        ]),
-      ),
-      stays: root.stays as SplitInput["stays"],
-      ends: root.ends,
-    };
-    return computeSplit(input);
-  }, splitEqual);
-}
+/** Each member's fares and nightly shares, computed once per relevant snapshot. */
+export function useSplit() { return useStorage(selectSplit); }
 
 /** The current member's live fare and lodging total. Recomputes whenever another member changes presence. */
 export function useMySplit(): MemberSplit | null {
@@ -124,19 +61,8 @@ export function usePlanEnd() {
   return useStorage((root) => root.ends ?? null);
 }
 
-/** Just the dates: each leg's date and riders, leave dates and the trip's end. Feed it to `@/lib/trip/dates`. */
-export function usePlanDates(): dates.DatePlan | null {
-  return useStorage(
-    (root) => ({
-      legs: Object.fromEntries(
-        Object.entries(root.legs).map(([id, l]) => [id, { date: l.date, riders: l.riders, createdAt: l.createdAt, booking: l.booking ?? null }]),
-      ),
-      members: Object.fromEntries(Object.entries(root.members).map(([id, m]) => [id, { leaves: m.leaves ?? null }])),
-      ends: root.ends ?? null,
-    }),
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
-  );
-}
+/** Date constraints shared by every card in the room. */
+export function usePlanDates() { return useStorage(selectPlanDates); }
 
 type Root = LiveObject<TripStorage>;
 
@@ -455,12 +381,4 @@ function reset(storage: Root, legId: string, patch: { date?: string }) {
   const votes = leg.get("votes");
   for (const who of [...votes.keys()]) votes.delete(who);
   return search.id;
-}
-
-function splitEqual(a: Split | null, b: Split | null) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function legsEqual(a: PlanLeg[] | null, b: PlanLeg[] | null) {
-  return JSON.stringify(a) === JSON.stringify(b);
 }

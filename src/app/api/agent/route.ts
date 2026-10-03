@@ -37,9 +37,10 @@ export async function POST(request: Request) {
   const body = Body.safeParse(await request.json().catch(() => null));
   if (!body.success) return Response.json({ code: "BAD_REQUEST" }, { status: 400 });
 
-  const user = await currentPerson();
   const roomId = tripRoomId(body.data.tripId);
-  const room = await liveblocks().getRoom(roomId).catch(() => null);
+  const [user, room] = await Promise.all([
+    currentPerson(), liveblocks().getRoom(roomId).catch(() => null),
+  ]);
   // posting can spend model and provider quota, so only members can
   if (!user || !room?.usersAccesses[user.id]) return Response.json({ code: "FORBIDDEN" }, { status: 403 });
 

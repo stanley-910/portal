@@ -1,3 +1,4 @@
+import { GeoIndex } from "@/lib/transport/hubs/spatial";
 import type { Hub } from "@/lib/transport/hubs/types";
 
 import { CITY_LABELS } from "./cities";
@@ -9,7 +10,8 @@ const REACH_KM = 100;
 const EARTH_KM = 6371;
 const COS_REACH = Math.cos(REACH_KM / EARTH_KM);
 
-const CITY_VECS = CITY_LABELS.map(([, lat, lng]) => vecOf(lat * D2R, lng * D2R));
+const CITIES = CITY_LABELS.map(([name, lat, lng]) => ({ name, lat, lng, v: vecOf(lat * D2R, lng * D2R) }));
+const INDEX = new GeoIndex(CITIES, (c) => c);
 
 /**
  * The city a point is in or near, for the label beside the plane: the nearest printed city within reach, else the
@@ -17,17 +19,17 @@ const CITY_VECS = CITY_LABELS.map(([, lat, lng]) => vecOf(lat * D2R, lng * D2R))
  */
 export function placeName(ll: LatLng, hub: Hub | null): string | null {
   const v = vecOf(ll.lat * D2R, ll.lng * D2R);
-  let best = -1;
+  let best: string | null = null;
   let bestDot = COS_REACH;
-  for (let i = 0; i < CITY_VECS.length; i++) {
-    const c = CITY_VECS[i];
+  for (const city of INDEX.nearby(ll, REACH_KM)) {
+    const c = city.v;
     const d = c[0] * v[0] + c[1] * v[1] + c[2] * v[2];
     if (d > bestDot) {
       bestDot = d;
-      best = i;
+      best = city.name;
     }
   }
-  if (best >= 0) return CITY_LABELS[best][0];
+  if (best !== null) return best;
   // airport data names districts too ("Shanghai (Pudong)"); the city is enough
   return hub?.city?.replace(/\s*\(.*\)\s*$/, "").trim() || null;
 }

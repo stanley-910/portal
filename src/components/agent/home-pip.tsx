@@ -1,6 +1,6 @@
 "use client";
 
-import { useImperativeHandle, useMemo, useRef, useState, type Ref, type RefObject } from "react";
+import { Activity, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref, type RefObject } from "react";
 
 import { CardActionsContext, Composer, Launcher, PipClose, ThreadLog, type CardActions, type Members } from "@/components/agent/agent-chat";
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
@@ -8,6 +8,8 @@ import { pipPlace } from "@/components/agent/pip-arrival";
 import { PipSaucer, type PipSaucerHandle } from "@/components/agent/pip-saucer";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
+import { readSoloEvents } from "./solo-stream";
+import { recordTiming } from "@/lib/performance";
 import type { AgentMark } from "@/lib/agent/marks";
 import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { AGENT_NAME, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
@@ -54,7 +56,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   const [open, setOpen] = useState(false);
   const openAuth = useOpenAuth();
   const saucer = useRef<PipSaucerHandle>(null);
-  const { thread, activity, at, send, apply } = useSoloPip(trip, onTrip, (marks) => saucer.current?.play(marks));
+  const { thread, activity, at, send, apply, busy, stop, retry, appliedReplies } = useSoloPip(trip, onTrip, (marks) => saucer.current?.play(marks));
 
   const ask = async (text: string) => {
     if (account) return send(text);
@@ -69,7 +71,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
     },
   }));
 
-  const actions = useMemo<CardActions>(() => ({ apply, applyLabel: "Go with this" }), [apply]);
+  const actions = useMemo<CardActions>(() => ({ apply, retry, appliedReplies, applyLabel: "Go with this" }), [apply, retry, appliedReplies]);
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming ? (streaming.text ? "talk" : "think") : "idle";
   const line = trip.length ? [trip[0].from.name, ...trip.map((l) => l.to.name)].join(" → ") : "New trip";
@@ -78,18 +80,12 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
     : CHIPS;
 
   const flying = <PipSaucer ref={saucer} globe={globe} at={at} busy={!!streaming} editing={activity === "planning the trip"} />;
-  if (!open) {
-    return (
-      <>
-        {flying}
-        <Launcher unread={false} nudges={NUDGES} onOpen={() => setOpen(true)} />
-      </>
-    );
-  }
   return (
     <>
       {flying}
-      <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
+      {!open ? <Launcher unread={false} nudges={NUDGES} onOpen={() => setOpen(true)} /> : null}
+      <Activity mode={open ? "visible" : "hidden"}>
+      <section data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
         <header className="pip-head">
           <PipSprite size={32} mood={mood} />
           <div className="min-w-0 flex-1">
@@ -108,8 +104,10 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
             </div>
           </ThreadLog>
         </CardActionsContext>
+        {busy ? <button type="button" className="pip-undo" onClick={stop}>Stop reply</button> : null}
         <Composer chips={chips} send={ask} placeholder={`Tell ${AGENT_NAME} where you're going`} />
       </section>
+      </Activity>
     </>
   );
 }
@@ -120,18 +118,28 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
  */
 function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks: (marks: AgentMark[]) => void) {
   const [thread, setThread] = useState<ThreadMessage[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [appliedReplies, setAppliedReplies] = useState<ReadonlySet<string>>(() => new Set());
+  const active = useRef<AbortController | null>(null);
+  useEffect(() => () => active.current?.abort(), []);
+  const stop = useCallback(() => active.current?.abort(), []);
   const [activity, setActivity] = useState<string | null>(null);
   // where Pip last looked on the globe, this reply
   const [at, setAt] = useState<LatLng | null>(null);
   const threadRef = useRef(thread);
-  threadRef.current = thread;
+  useLayoutEffect(() => { threadRef.current = thread; }, [thread]);
   const tripRef = useRef({ trip, onTrip, onMarks });
-  tripRef.current = { trip, onTrip, onMarks };
+  useLayoutEffect(() => { tripRef.current = { trip, onTrip, onMarks }; }, [trip, onTrip, onMarks]);
 
   const patch = (id: string, change: (m: ThreadMessage) => ThreadMessage) =>
     setThread((t) => t.map((m) => (m.id === id ? change(m) : m)));
 
   const send = async (text: string) => {
+    if (active.current) throw new Error("Wait for this reply or stop it first.");
+    const started = performance.now();
+    const controller = new AbortController();
+    active.current = controller;
+    setBusy(true);
     const mine: ThreadMessage = { id: newId(), at: Date.now(), author: { kind: "member", id: ME }, text, state: "done", cards: [] };
     const replyId = newId();
     const reply: ThreadMessage = { id: replyId, at: Date.now(), author: { kind: "agent" }, text: "", state: "streaming", cards: [] };
@@ -146,27 +154,33 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ messages, trip: tripRef.current.trip }),
+      signal: controller.signal,
     }).catch(() => null);
     if (!res?.ok || !res.body) {
       // take the message back out, so the composer keeps the draft to send again
       setThread((t) => t.filter((m) => m.id !== mine.id && m.id !== replyId));
+      active.current = null;
+      setBusy(false);
       throw new Error(res?.status === 401 ? SIGN_IN_TO_ASK : `pip failed: ${res?.status ?? "network"}`);
     }
-    void read(res.body, replyId);
+    try { await read(res.body, replyId, controller.signal, started); }
+    finally {
+      if (active.current === controller) { active.current = null; setBusy(false); }
+    }
   };
 
-  const read = async (body: ReadableStream<Uint8Array>, id: string) => {
-    const reader = body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+  const read = async (body: ReadableStream<Uint8Array>, id: string, signal: AbortSignal, started: number) => {
     let text = "";
     let frame = 0;
     const flushText = () => {
       frame = 0;
+      if (signal.aborted) return;
       patch(id, (m) => ({ ...m, text }));
     };
     const apply = (event: SoloEvent) => {
+      if (signal.aborted) return;
       if (event.t === "text") {
+        if (!text && event.d) recordTiming("pip-first-text", started);
         text += event.d;
         frame ||= requestAnimationFrame(flushText);
       } else if (event.t === "step") {
@@ -181,7 +195,10 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
       else if (event.t === "activity") {
         setActivity(event.label);
         if (event.at) setAt(event.at);
-      } else if (event.t === "trip") tripRef.current.onTrip(event.legs);
+      } else if (event.t === "trip") {
+        setAppliedReplies((ids) => new Set(ids).add(id));
+        tripRef.current.onTrip(event.legs); recordTiming("plan-applied", started);
+      }
       else if (event.t === "marks") tripRef.current.onMarks(event.marks);
       else if (event.t === "done" || event.t === "failed") {
         cancelAnimationFrame(frame);
@@ -189,30 +206,18 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
         patch(id, (m) => ({ ...m, text: text.trim() || m.text, state: event.t === "done" ? "done" : "failed" }));
       }
     };
-    try {
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let nl;
-        while ((nl = buffer.indexOf("\n")) >= 0) {
-          const line = buffer.slice(0, nl);
-          buffer = buffer.slice(nl + 1);
-          if (line.trim()) apply(JSON.parse(line) as SoloEvent);
-        }
-      }
-    } catch {
-      // the connection dropped: keep what arrived
-    }
+    try { await readSoloEvents(body, signal, apply); }
+    catch { /* Keep the partial reply and mark it interrupted below. */ }
+    finally { cancelAnimationFrame(frame); }
     // a stream that ended without saying so
     setThread((t) =>
-      t.map((m) => (m.id === id && m.state === "streaming" ? { ...m, text: text.trim() || "I lost the connection. Try again.", state: "failed" } : m)),
+      t.map((m) => (m.id === id && m.state === "streaming" ? { ...m, text: text.trim() || (signal.aborted ? "Reply stopped." : "I lost the connection. Try again."), state: "failed" } : m)),
     );
     setActivity(null);
   };
 
   /** "Go with this" on a meet-up: puts your own leg to the meeting place on the globe. */
-  const apply = (messageId: string, option: string) => {
+  const apply = useCallback((messageId: string, option: string) => {
     const message = threadRef.current.find((m) => m.id === messageId);
     const card = message?.cards.find((c): c is Extract<ThreadCard, { type: "meetup" }> => c.type === "meetup");
     const o = card?.options.find((x) => x.id === option);
@@ -220,7 +225,14 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
     if (!o || !leg) return;
     tripRef.current.onTrip([{ from: { ...leg.from }, to: { name: o.place.name, lat: o.place.lat, lng: o.place.lng, hub: o.place.hub, code: o.place.code }, date: o.date }]);
     patch(messageId, (m) => ({ ...m, cards: m.cards.map((c) => (c === card ? { ...card, applied: option } : c)) }));
-  };
-
-  return { thread, activity, at, send, apply };
+  }, []);
+  const sendRef = useRef(send);
+  useLayoutEffect(() => { sendRef.current = send; });
+  const retry = useCallback((id: string) => {
+    if (appliedReplies.has(id)) return;
+    const at = threadRef.current.findIndex((m) => m.id === id);
+    const previous = threadRef.current.slice(0, at).findLast((m) => m.author.kind === "member");
+    if (previous && !active.current) void sendRef.current(previous.text).catch(() => {});
+  }, [appliedReplies]);
+  return { thread, activity, at, send, apply, busy, stop, retry, appliedReplies };
 }

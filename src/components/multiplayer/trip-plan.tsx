@@ -1,7 +1,7 @@
 "use client";
 
 import { useSelf } from "@liveblocks/react";
-import { Fragment, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from "react";
+import { Activity, Fragment, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from "react";
 
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import { LegBooking } from "@/components/multiplayer/leg-booking";
@@ -22,7 +22,7 @@ import { memberColor, type Stop, type StoredOffer } from "@/lib/liveblocks/types
 import type { PlanStay } from "@/lib/trip/split";
 import { legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
-import { HUBS } from "@/lib/transport/hubs/catalog";
+import { HUBS } from "@/lib/transport/hubs/browser";
 import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
@@ -121,6 +121,7 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, onM
   const stays = usePlanStays();
   const currency = useCurrencyPref();
   const rates = useExchangeRates();
+  const dates = usePlanDates();
   if (!legs?.length) return null;
   const legDates = legs.map((l) => ({ from: l.from.id, date: l.date, riders: l.riders }));
   // the stays at a leg's destination from its arrival until the next leg into that stop, so a group arriving on
@@ -154,6 +155,7 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, onM
           {i > 0 ? <div className="ts-rule" /> : null}
           <LegCard
             leg={leg}
+            dates={dates}
             stays={staysFor(leg)}
             hotelDatesFor={(offer) => stayDates(legDates, { to: leg.to.id, date: leg.date, arrival: arrivalDate(leg.date, offer), riders: leg.riders })}
             currency={currency}
@@ -170,6 +172,7 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, onM
 
 function LegCard({
   leg,
+  dates,
   stays,
   hotelDatesFor,
   currency,
@@ -179,6 +182,7 @@ function LegCard({
   focusBooking = false,
 }: {
   leg: PlanLeg;
+  dates: ReturnType<typeof usePlanDates>;
   /** The stays at this leg's destination around its arrival. */
   stays: PlanStay[];
   /** The nights a new stay at this leg's destination starts with (`stayDates`). */
@@ -198,7 +202,6 @@ function LegCard({
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
   const locked = !!leg.booking;
   const members = usePlanMembers();
-  const dates = usePlanDates();
   const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg } = usePlanActions();
   const [picking, setPicking] = useState(false);
   const [dateBlocked, setDateBlocked] = useState(false);
@@ -263,8 +266,7 @@ function LegCard({
           </svg>
         </span>
       </button>
-      {open ? (
-        <>
+      <Activity mode={open ? "visible" : "hidden"}>
 
         <div className="ts-dates">
           <DateField label="Depart" value={leg.date} open={picking} onToggle={() => !locked && setPicking((p) => !p)} />
@@ -423,8 +425,7 @@ function LegCard({
             Remove leg
           </button>
         )}
-        </>
-      ) : null}
+      </Activity>
     </article>
   );
 }

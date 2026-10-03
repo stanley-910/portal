@@ -8,7 +8,8 @@ const sans = Barlow_Semi_Condensed({
   variable: "--font-sans",
   fallback: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
 });
-const fellSC = IM_Fell_English_SC({ weight: "400", subsets: ["latin"], variable: "--font-fell-sc", fallback: ["Georgia", "serif"] });
+// Codes/titles appear in optional cards. Keep their face available without preloading it on every route.
+const fellSC = IM_Fell_English_SC({ preload: false, weight: "400", subsets: ["latin"], variable: "--font-fell-sc", fallback: ["Georgia", "serif"] });
 const fell = IM_Fell_English({ weight: "400", style: ["normal", "italic"], subsets: ["latin"], variable: "--font-fell", fallback: ["Georgia", "serif"] });
 const typewriter = Courier_Prime({
   weight: ["400", "700"],

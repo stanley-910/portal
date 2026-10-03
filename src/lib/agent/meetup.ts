@@ -1,4 +1,7 @@
-import type { MeetupLeg, MeetupOption, Money } from "@/lib/agent/types";
+import { meetupTotal, toUsd } from "./meetup-total";
+export { meetupTotal } from "./meetup-total";
+import { createLimiter } from "@/lib/concurrency";
+import type { MeetupLeg, MeetupOption } from "@/lib/agent/types";
 import { HUBS } from "@/lib/transport/hubs/catalog";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 import type { Hub } from "@/lib/transport/hubs/types";
@@ -71,6 +74,9 @@ const HOME_KM = 150;
 /** How many cities get real searches. */
 const VERIFY = 3;
 const SPARE = 2;
+/** Bound an individual question, including callers other than the model schema. */
+export const MAX_MEETUP_GROUPS = 6;
+export const MEETUP_CONCURRENCY = 4;
 
 /**
  * Offline guess at one person's trip, in USD and minutes: ground under 300 km, else the F03 flight estimate. A city
@@ -105,18 +111,6 @@ export function shortlist(q: MeetupQuery, all: readonly City[] = bigCities()): S
   return scored.sort((a, b) => score(q, a.perGroup) - score(q, b.perGroup));
 }
 
-// Fixed rates to compare fares across currencies. Ranking and the "≈ total" only; each leg keeps its own price.
-const USD: Record<string, number> = {
-  USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08,
-};
-const toUsd = (p: Money | null) => (p && USD[p.currency.toUpperCase()] !== undefined ? p.amount * USD[p.currency.toUpperCase()] : null);
-
-/** What an option costs everyone, in USD, or null when a leg has no price to compare. */
-export function meetupTotal(legs: readonly MeetupLeg[]): Money | null {
-  const usd = legs.map((leg) => toUsd(leg.price));
-  if (usd.some((u) => u === null)) return null;
-  return { amount: Math.round(usd.reduce((sum: number, u, j) => sum + u! * legs[j].people, 0)), currency: "USD" };
-}
 
 const durationOf = (o: Offer) => {
   const first = o.segments[0];
@@ -134,7 +128,19 @@ function bestOffer(offers: Offer[], minimize: MeetupQuery["minimize"]): Offer | 
 }
 
 /** Phase 2: real searches for the shortlist, then the final ranking. */
-export async function findMeetup(q: MeetupQuery, search: Search, all?: readonly City[]): Promise<MeetupResult> {
+export async function findMeetup(q: MeetupQuery, search: Search, all?: readonly City[], signal?: AbortSignal): Promise<MeetupResult> {
+  if (q.groups.length > MAX_MEETUP_GROUPS) throw new Error("Too many meetup origins");
+  const run = createLimiter(MEETUP_CONCURRENCY);
+  const pending = new Map<string, Promise<Offer[]>>();
+  const searchOnce = (query: SearchQuery) => {
+    const key = JSON.stringify([query.from.lat, query.from.lng, query.to.lat, query.to.lng, query.date, query.currency, query.passengers]);
+    let result = pending.get(key);
+    if (!result) {
+      result = run(() => { searched++; return search(query); }, signal);
+      pending.set(key, result);
+    }
+    return result;
+  };
   const ranked = shortlist(q, all);
   const pool = ranked.slice(0, VERIFY + SPARE);
   let searched = 0;
@@ -143,8 +149,7 @@ export async function findMeetup(q: MeetupQuery, search: Search, all?: readonly 
     pool.map(async ({ city }) => {
       const legs = await Promise.all(
         q.groups.map(async (g): Promise<MeetupLeg | null> => {
-          searched++;
-          const offers = await search({
+          const offers = await searchOnce({
             from: { name: g.place.name, lat: g.place.lat, lng: g.place.lng },
             to: { name: city.name, lat: city.lat, lng: city.lng },
             date: q.date,

@@ -71,3 +71,24 @@ describe("soloEnding", () => {
     expect(soloEnding("The cheapest is", did({ aborted: true }))).toMatch(/ran out of time/);
   });
 });
+
+describe("planning latency and cancellation", () => {
+  it("publishes a multi-leg plan without waiting for globe animation", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubEnv("DEEPSEEK_API_KEY", "");
+      const events: SoloEvent[] = [];
+      await runSolo({ messages: [{ role: "user", text: "Hong Kong to Shanghai to Tokyo on 2026-11-15" }], trip: [], name: "Ana", nationalities: [] }, (event) => events.push(event), new AbortController().signal);
+      expect(events.find((e) => e.t === "trip")).toMatchObject({ legs: expect.any(Array) });
+      expect(events.at(-1)).toEqual({ t: "done" });
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { vi.useRealTimers(); }
+  });
+  it("a cancelled fallback cannot restore a trip or emit a late failure", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "");
+    const abort = new AbortController(); abort.abort();
+    const events: SoloEvent[] = [];
+    await runSolo({ messages: [{ role: "user", text: "Hong Kong to Tokyo" }], trip: [], name: "Ana", nationalities: [] }, (event) => events.push(event), abort.signal);
+    expect(events).toEqual([]);
+  });
+});

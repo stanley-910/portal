@@ -1,5 +1,6 @@
 // The Portal globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
+import { recordTiming } from "@/lib/performance";
 import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
 import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
@@ -354,10 +355,20 @@ export class GlobeEngine {
   private pinCuts: { x: number; y: number; r: number; bx: number; by: number }[] = [];
   /** Where a route is drawn when pins stand, so they can be cut out of it. */
   private routeLayer: HTMLCanvasElement | null = null;
+  private texSkyFallback: WebGLTexture | null = null;
   private texEarth: WebGLTexture | null = null;
   private texBorders: WebGLTexture | null = null;
   private texProvinces: WebGLTexture | null = null;
   private sky: Sky | null = null;
+  private buffers: WebGLBuffer[] = [];
+  private assetAbort: AbortController | null = null;
+  private assetImages = new Set<HTMLImageElement>();
+  private startupTimer: ReturnType<typeof setTimeout> | null = null;
+  private startupPending = false;
+  private started = false;
+  private readyRecorded = false;
+  private earthReady = false;
+  private sleeping = true;
   private skySeed: string | number = randomSeed();
   private cam: Camera | null = null;
   private P: Palette = PALETTES.light;
@@ -405,8 +416,25 @@ export class GlobeEngine {
   private groundArc: ArcBuffer = { points: [], pool: [] };
   private airArc: ArcBuffer = { points: [], pool: [] };
   private hitArc: ArcBuffer = { points: [], pool: [] };
-  private glDirty = true;
-  private hudDirty = true;
+  private _glDirty = true;
+  private _hudDirty = true;
+  private get glDirty() { return this._glDirty; }
+  private set glDirty(value: boolean) { this._glDirty = value; if (value) this.requestFrame(); }
+  private get hudDirty() { return this._hudDirty; }
+  private set hudDirty(value: boolean) { this._hudDirty = value; if (value) this.requestFrame(); }
+  private inFrame = false;
+  private obscured = false;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private searching = false;
+  private labelsLayer: HTMLCanvasElement | null = null;
+  private labelsKey = "";
+  private labelsDirty = true;
+  private routeGeometry = new Map<string, { ground: (ScreenPoint | null)[]; air: (ScreenPoint | null)[] }>();
+  private routeView = "";
+  private pinShadowA = new Float32Array(MAX_PIN_SHADOWS * 4);
+  private pinShadowB = new Float32Array(MAX_PIN_SHADOWS * 4);
+  private cityWon = new Uint8Array(CITIES.length);
   private scene: number[] = [];
   private lastScene: number[] = [];
   private hudX = NaN;
@@ -462,6 +490,7 @@ export class GlobeEngine {
   private destinationName: string | null = null;
   private hoverName: string | null = null;
   private hoverNameAt = -Infinity;
+  private hoverNamePoint: Vec3 | null = null;
   private hoverHub: Hub | null = null;
   // the land mask for guessing a leg's vehicle, and the guess waiting to hold
   private landAt: LandAt | null = null;
@@ -559,14 +588,18 @@ export class GlobeEngine {
     const gl = this.glEl.getContext("webgl2", { antialias: true, alpha: false, depth: true });
     if (!gl) return false;
     this.gl = gl;
+    this.started = true;
+    this.assetAbort = new AbortController();
+    this.glEl.addEventListener("webglcontextlost", this.onContextLost);
+    this.glEl.addEventListener("webglcontextrestored", this.onContextRestored);
     this.pGlobe = this.program(gl, VS_QUAD, FS_GLOBE, ["aPos"]);
     this.pPlane = this.program(gl, VS_PLANE, FS_PLANE, ["aPos", "aNrm", "aSm", "aPart"]);
 
     this.vaoQuad = gl.createVertexArray();
     gl.bindVertexArray(this.vaoQuad);
     this.attrib(gl, 0, new Float32Array([-1, -1, 3, -1, -1, 3]), 2);
-    this.sky = new Sky(gl, (vs, fs, attrs) => this.program(gl, vs, fs, attrs));
-    this.sky.setSeed(this.skySeed, this.vaoQuad);
+    // The optional procedural sky is prepared after the first usable frame.
+    this.startupPending = true;
 
     for (const v of VEHICLES) {
       const m = buildVehicle(v);
@@ -601,9 +634,13 @@ export class GlobeEngine {
     gl.bindVertexArray(null);
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    this.texSkyFallback = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.texSkyFallback);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
     // all sea until the texture arrives
-    this.texEarth = this.dataTexture(gl, this.earthUrl, [0, 255, 255, 255]);
-    this.loadLand();
+    this.earthReady = false;
+    this.texEarth = this.dataTexture(gl, this.earthUrl, [0, 255, 255, 255], (source) => { this.earthReady = true; this.loadLand(source); });
     // one country, so no borders, until the texture arrives
     this.texBorders = this.dataTexture(gl, this.bordersUrl, [0, 0, 0, 255]);
     // one province, so no lines, until it arrives
@@ -618,29 +655,87 @@ export class GlobeEngine {
     this.root.addEventListener("gesturechange", this.onGesture as EventListener);
     document.fonts?.addEventListener("loadingdone", this.onFontsLoaded);
 
-    this.raf = requestAnimationFrame(this.tick);
+    this.resize();
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(this.onResize);
+      this.resizeObserver.observe(this.root);
+    }
+    window.addEventListener("resize", this.onResize);
+    document.addEventListener("visibilitychange", this.onVisibility);
+    this.requestFrame();
     return true;
   }
 
   destroy() {
+    this.started = false;
     cancelAnimationFrame(this.raf);
     this.raf = 0;
+    if (this.idleTimer !== null) clearTimeout(this.idleTimer);
+    this.idleTimer = null;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    window.removeEventListener("resize", this.onResize);
+    document.removeEventListener("visibilitychange", this.onVisibility);
     this.motionQuery?.removeEventListener("change", this.onMotionChange);
     this.root.removeEventListener("wheel", this.onWheel);
     this.root.removeEventListener("gesturestart", this.onGesture as EventListener);
     this.root.removeEventListener("gesturechange", this.onGesture as EventListener);
     document.fonts?.removeEventListener("loadingdone", this.onFontsLoaded);
-    this.sky?.dispose();
-    this.sky = null;
+    this.glEl.removeEventListener("webglcontextlost", this.onContextLost);
+    this.glEl.removeEventListener("webglcontextrestored", this.onContextRestored);
+    this.releaseGL();
     // Not loseContext(): React Strict Mode remounts onto the same canvas, which would hand back the lost context.
     this.gl = null;
   }
+
+  private releaseGL() {
+    this.assetAbort?.abort();
+    this.assetAbort = null;
+    for (const image of this.assetImages) { image.onload = null; image.src = ""; }
+    this.assetImages.clear();
+    if (this.startupTimer !== null) clearTimeout(this.startupTimer);
+    this.startupTimer = null;
+    this.startupPending = false;
+    const gl = this.gl;
+    this.sky?.dispose();
+    this.sky = null;
+    if (gl) {
+      for (const texture of [this.texEarth, this.texBorders, this.texProvinces, this.texSkyFallback]) gl.deleteTexture(texture);
+      for (const buffer of this.buffers) gl.deleteBuffer(buffer);
+      for (const vao of [this.vaoQuad, this.vaoPin?.vao, this.vaoUfo?.vao, ...[...this.vaoVehicle.values()].map((v) => v.vao)]) {
+        if (vao) gl.deleteVertexArray(vao);
+      }
+      if (this.pGlobe) gl.deleteProgram(this.pGlobe.p);
+      if (this.pPlane) gl.deleteProgram(this.pPlane.p);
+    }
+    this.buffers = [];
+    this.vaoVehicle.clear();
+    this.vaoQuad = null;
+    this.vaoPin = this.vaoUfo = null;
+    this.texEarth = this.texBorders = this.texProvinces = this.texSkyFallback = null;
+  }
+
+  private onContextLost = (event: Event) => {
+    event.preventDefault();
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    this.releaseGL();
+    this.gl = null;
+  };
+
+  private onContextRestored = () => {
+    // Reuse scene, route, presence and camera state; replace only browser resources.
+    this.destroy();
+    this._glDirty = this._hudDirty = this.labelsDirty = true;
+    this.start();
+  };
 
   setTheme(theme: ThemeId) {
     this.P = PALETTES[theme];
     this.glDirty = this.hudDirty = true;
     this.nameSprites.clear();
     this.citySprites.clear();
+    this.labelsDirty = true;
     const fell = getComputedStyle(this.root).getPropertyValue("--font-fell").trim();
     if (fell && fell !== this.cityFamily) {
       this.cityFamily = fell;
@@ -662,6 +757,7 @@ export class GlobeEngine {
     this.nameSprites.clear();
     this.cityWidths.clear();
     this.citySprites.clear();
+    this.labelsDirty = true;
     this.hudDirty = true;
   };
 
@@ -673,6 +769,43 @@ export class GlobeEngine {
     this.glDirty = true;
   }
 
+  setSearching(searching: boolean) {
+    if (this.searching === searching) return;
+    this.searching = searching;
+    this.hudDirty = true;
+  }
+
+  /** Request one update; the loop continues only while the scene is changing. */
+  requestFrame = () => {
+    if (!this.gl || this.raf || this.inFrame || this.obscured ||
+        (typeof document !== "undefined" && document.visibilityState === "hidden")) return;
+    if (this.idleTimer !== null) clearTimeout(this.idleTimer);
+    this.idleTimer = null;
+    if (this.started && this.sleeping) this.t = performance.now() / 1000;
+    this.sleeping = false;
+    this.raf = requestAnimationFrame(this.tick);
+  };
+
+  setObscured(obscured: boolean) {
+    this.obscured = obscured;
+    this.onVisibility();
+  }
+
+  private onVisibility = () => {
+    if (this.obscured || document.visibilityState === "hidden") {
+      cancelAnimationFrame(this.raf);
+      this.raf = 0;
+      this.sleeping = true;
+      if (this.idleTimer !== null) clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    } else this.requestFrame();
+  };
+
+  private onResize = () => {
+    this.resize();
+    this.requestFrame();
+  };
+
   getMode() {
     return this.mode;
   }
@@ -680,6 +813,7 @@ export class GlobeEngine {
   // ---------- input (wired to the root element's pointer events) ----------
 
   pointerDown(e: PointerEvent) {
+    this.requestFrame();
     if (e.button !== undefined && e.button !== 0) return;
     const [x, y] = this.pos(e);
     if (e.pointerType === "touch") {
@@ -720,6 +854,7 @@ export class GlobeEngine {
   }
 
   pointerMove(e: PointerEvent) {
+    this.requestFrame();
     const [x, y] = this.pos(e);
     if (this.touches.has(e.pointerId)) this.touches.set(e.pointerId, [x, y]);
     if (this.pinch) {
@@ -761,6 +896,7 @@ export class GlobeEngine {
   }
 
   pointerUp(e: PointerEvent) {
+    this.requestFrame();
     this.touches.delete(e.pointerId);
     if (this.pinch) {
       // the gesture ends when the last finger lifts; a leftover finger never takes off
@@ -820,6 +956,7 @@ export class GlobeEngine {
   }
 
   pointerLeave() {
+    this.requestFrame();
     this.hasPointer = false;
     this.updatePreview(null, this.t * 1000);
   }
@@ -828,6 +965,7 @@ export class GlobeEngine {
 
   /** Zooms by a factor (below 1 zooms in) toward screen point (x, y), easing in. */
   zoomAt(x: number, y: number, factor: number) {
+    this.requestFrame();
     this.turn = null;
     this.autoFrame = null;
     this.lastInteract = this.t;
@@ -837,6 +975,7 @@ export class GlobeEngine {
   }
 
   private onWheel = (e: WheelEvent) => {
+    this.requestFrame();
     e.preventDefault();
     const [x, y] = this.pos(e);
     this.mx = x;
@@ -879,6 +1018,7 @@ export class GlobeEngine {
 
   // Safari reports trackpad pinches as gesture events instead of ctrl+wheel
   private onGesture = (e: Event & { scale: number; clientX: number; clientY: number }) => {
+    this.requestFrame();
     e.preventDefault();
     if (e.type === "gesturestart") this.gestureScale = 1;
     const [x, y] = this.pos(e);
@@ -948,6 +1088,7 @@ export class GlobeEngine {
   // ---------- trip ----------
 
   cancel() {
+    this.requestFrame();
     const wasActive = this.mode !== "idle";
     this.mode = "idle";
     this.autoFrame = null;
@@ -1008,6 +1149,7 @@ export class GlobeEngine {
    * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
    */
   showTrip(points: LatLng[], quiet = false) {
+    this.requestFrame();
     if (points.length < 2) return;
     const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
     const before = this.ownLegs();
@@ -1111,6 +1253,7 @@ export class GlobeEngine {
 
   private attrib(gl: WebGL2RenderingContext, loc: number, data: Float32Array, size: number) {
     const b = gl.createBuffer();
+    if (b) this.buffers.push(b);
     gl.bindBuffer(gl.ARRAY_BUFFER, b);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(loc);
@@ -1126,10 +1269,16 @@ export class GlobeEngine {
       return s;
     };
     const p = gl.createProgram();
-    gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
-    gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+    const vertex = sh(gl.VERTEX_SHADER, vs);
+    const fragment = sh(gl.FRAGMENT_SHADER, fs);
+    gl.attachShader(p, vertex);
+    gl.attachShader(p, fragment);
     attrs.forEach((a, i) => gl.bindAttribLocation(p, i, a));
     gl.linkProgram(p);
+    gl.detachShader(p, vertex);
+    gl.detachShader(p, fragment);
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error("[trip-globe] link", gl.getProgramInfoLog(p));
     const u: Program["u"] = {};
     const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS) as number;
@@ -1143,7 +1292,7 @@ export class GlobeEngine {
   // The textures are data, not pictures. Earth: r = land mask, g = distance from the coast, b = relief.
   // Borders: each country's 3-bit code, one bit per channel (see scripts/build-borders.mts).
   // They must be uploaded without colour-space conversion or premultiplication.
-  private dataTexture(gl: WebGL2RenderingContext, url: string, until: number[]) {
+  private dataTexture(gl: WebGL2RenderingContext, url: string, until: number[], consume?: (source: CanvasImageSource) => void) {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -1151,51 +1300,47 @@ export class GlobeEngine {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(until));
-    const put = (src: TexImageSource) => {
-      if (this.gl !== gl) return;
+    const signal = this.assetAbort!.signal;
+    const put = (src: TexImageSource & CanvasImageSource) => {
+      if (signal.aborted || this.gl !== gl) return;
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      try { consume?.(src); } catch { /* The optional CPU mask must not prevent the texture from drawing. */ }
       this.glDirty = true;
     };
     const viaImg = () => {
+      if (signal.aborted) return;
       const im = new Image();
-      im.onload = () => put(im);
+      this.assetImages.add(im);
+      im.onload = () => { this.assetImages.delete(im); put(im); };
+      im.onerror = () => this.assetImages.delete(im);
       im.src = url;
     };
     if (typeof createImageBitmap === "function") {
-      fetch(url)
-        .then((r) => r.blob())
+      fetch(url, { signal })
+        .then((r) => { if (!r.ok) throw new Error(`Texture ${r.status}`); return r.blob(); })
         .then((b) => createImageBitmap(b, { colorSpaceConversion: "none", premultiplyAlpha: "none" }))
         .then((bitmap) => {
-          put(bitmap);
-          bitmap.close();
+          try { put(bitmap); } finally { bitmap.close(); }
         })
         .catch(viaImg);
     } else viaImg();
     return tex;
   }
 
-  /** Reads the earth texture's land mask onto the CPU, small, for guessing a leg's vehicle. Browser only. */
-  private loadLand() {
-    if (this.landAt || typeof createImageBitmap !== "function" || typeof document === "undefined") return;
-    fetch(this.earthUrl)
-      .then((r) => r.blob())
-      .then((b) => createImageBitmap(b, { colorSpaceConversion: "none", premultiplyAlpha: "none" }))
-      .then((bitmap) => {
-        const canvas = document.createElement("canvas");
-        canvas.width = LAND_W;
-        canvas.height = LAND_H;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) return;
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(bitmap, 0, 0, LAND_W, LAND_H);
-        bitmap.close();
-        this.landAt = landMask(ctx.getImageData(0, 0, LAND_W, LAND_H).data, LAND_W, LAND_H);
-      })
-      // without the mask every leg counts as over land
-      .catch(() => {});
+  /** The same decoded data texture feeds the GPU and the small CPU vehicle mask. */
+  private loadLand(source: CanvasImageSource) {
+    if (this.landAt) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = LAND_W;
+    canvas.height = LAND_H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(source, 0, 0, LAND_W, LAND_H);
+    this.landAt = landMask(ctx.getImageData(0, 0, LAND_W, LAND_H).data, LAND_W, LAND_H);
   }
 
   private onMotionChange = (e: MediaQueryListEvent) => {
@@ -1208,7 +1353,11 @@ export class GlobeEngine {
     const H = this.root.clientHeight || 1;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     if (W !== this.W || H !== this.H || dpr !== this.dpr) {
-      if (dpr !== this.dpr) this.nameSprites.clear();
+      if (dpr !== this.dpr) {
+        this.nameSprites.clear();
+        this.citySprites.clear();
+      }
+      this.labelsDirty = true;
       this.glDirty = this.hudDirty = true;
       this.W = W;
       this.H = H;
@@ -1591,6 +1740,7 @@ export class GlobeEngine {
    * plane is landing, they wait until it has gone. Pins sharing a stop stand in a ring round it.
    */
   setPins(list: GlobePin[]) {
+    this.requestFrame();
     const t = this.t;
     const seen = new Set<string>();
     const stops = new Map<string, GlobePin[]>();
@@ -1677,6 +1827,7 @@ export class GlobeEngine {
 
   /** Replaces the other members' flights. Planes move steadily between updates rather than jumping. */
   setRemoteFlights(flights: RemoteFlight[]) {
+    this.requestFrame();
     const now = performance.now() / 1000;
     const seen = new Set<string>();
     for (const f of flights) {
@@ -1762,6 +1913,7 @@ export class GlobeEngine {
    * along the great circle to each new place, facing where it's going. Sent away, it flies off the top of the screen.
    */
   setAgent(at: LatLng | null) {
+    this.requestFrame();
     const a = this.agent;
     if (!at) {
       if (a?.on) {
@@ -1797,6 +1949,7 @@ export class GlobeEngine {
    * or pinches the globe, or takes off (onFollowEnd). Zooming keeps following.
    */
   setFollow(on: boolean) {
+    this.requestFrame();
     if (on === this.follow) return;
     this.follow = on;
     this.followSpot = null;
@@ -1891,6 +2044,7 @@ export class GlobeEngine {
    * the place is marked on the ground and named, whether or not the map prints it, until the next click on the globe.
    */
   flyTo(ll: LatLng, spanDeg: number, name?: string) {
+    this.requestFrame();
     this.placeMark = name ? { v: vecOf(ll.lat * D2R, ll.lng * D2R), name } : null;
     this.hudDirty = true;
     const to = { lon: ll.lng * D2R, lat: clamp(ll.lat * D2R, -LAT_MAX, LAT_MAX), range: this.fitRange(spanDeg * D2R) };
@@ -1957,6 +2111,7 @@ export class GlobeEngine {
    * came in. Does nothing once someone has moved the globe since landing.
    */
   reframe() {
+    this.requestFrame();
     const f = this.autoFrame;
     if (!f || this.mode !== "landed" || this.turn?.frame) return;
     const area = this.events.freeArea?.() ?? null;
@@ -1983,7 +2138,9 @@ export class GlobeEngine {
 
   private sim(dt: number, t: number) {
     const k = (r: number) => 1 - Math.exp(-dt * r);
-    this.nameInk += ((this.mode === "idle" ? 1 : 0.7) - this.nameInk) * (this.reduceMotion ? 1 : k(6));
+    const nameTarget = this.mode === "idle" ? 1 : 0.7;
+    this.nameInk = this.reduceMotion || Math.abs(nameTarget - this.nameInk) < 0.001
+      ? nameTarget : this.nameInk + (nameTarget - this.nameInk) * k(6);
     // the landed country lights up as the plane touches down, and goes dark with the trip
     const hiTo = this.mode === "landed" && t - this.tLand > 0.3 ? 1 : 0;
     this.hi = this.reduceMotion || Math.abs(hiTo - this.hi) < 0.002 ? hiTo : this.hi + (hiTo - this.hi) * k(5);
@@ -1998,8 +2155,11 @@ export class GlobeEngine {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
       pl.n = this.reduceMotion ? r.target : (r.track.at(t) ?? r.target);
-      pl.f = tangent(lerp(pl.f, r.ft, a), pl.n);
-      pl.alt += ((r.landed ? 0 : ALT * this.planeScale * lift(pl)) - pl.alt) * k(8);
+      const heading = tangent(r.ft, pl.n);
+      pl.f = r.landed || angle(pl.f, heading) < 1e-5 ? heading : tangent(lerp(pl.f, r.ft, a), pl.n);
+      const altitude = r.landed ? 0 : ALT * this.planeScale * lift(pl);
+      pl.alt = r.landed || Math.abs(altitude - pl.alt) < 1e-5 ? altitude : pl.alt + (altitude - pl.alt) * k(8);
+      if (r.landed) pl.bank = 0;
       this.stepSwap(pl, dt);
     }
     if (this.turn) {
@@ -2094,8 +2254,9 @@ export class GlobeEngine {
       }
     } else if (this.mode === "landed") {
       // touchdown: the plane settles onto its shadow
-      pl.alt += (0 - pl.alt) * k(8);
-      pl.bank += (0 - pl.bank) * k(8);
+      const settled = this.reduceMotion || this.planeLeft(this.tLand) === 0;
+      pl.alt = settled ? 0 : pl.alt + (0 - pl.alt) * k(8);
+      pl.bank = settled ? 0 : pl.bank + (0 - pl.bank) * k(8);
     }
   }
 
@@ -2107,16 +2268,18 @@ export class GlobeEngine {
     state.length = 0;
     state.push(this.lon0, this.lat0, this.range, this.mode === "idle" ? 0 : this.mode === "flying" ? 1 : 2, this.hi);
     const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch, VEHICLES.indexOf(pl.vehicle), pl.swap);
-    if (this.pl) plane(this.pl);
+    if (this.pl && (this.mode === "flying" || this.planeLeft(this.tLand) > 0)) plane(this.pl);
     if (this.origin) state.push(...this.origin);
+    if (this.dest) state.push(...this.dest);
     for (const s of this.via) state.push(...s.v);
     for (const r of this.remotes.values()) {
-      state.push(...r.o, Number(r.landed));
-      plane(r.pl);
+      state.push(...r.o, Number(r.landed), r.color ?? -1);
+      if (!r.landed) plane(r.pl);
+      else state.push(...r.target);
     }
     state.push(this.planeLeft(this.tLand), this.ghosts.length);
     for (const g of this.ghosts) state.push(this.planeLeft(g.t0), ...g.pl.n, g.pl.alt);
-    for (const p of this.pins.values()) state.push(...p.g, p.fan, p.h === Infinity ? -1 : p.h, p.squash);
+    for (const p of this.pins.values()) state.push(...p.g, p.fan, p.h === Infinity ? -1 : p.h, p.squash, p.color ?? -1);
     const a = this.agent;
     if (a) state.push(...a.n, a.alt, a.bank, a.size, a.spin);
     const changed = state.length !== this.lastScene.length || state.some((v, i) => v !== this.lastScene[i]);
@@ -2127,11 +2290,12 @@ export class GlobeEngine {
 
   private tick = (ts: number) => {
     if (!this.gl) return;
-    this.raf = requestAnimationFrame(this.tick);
+    this.raf = 0;
+    this.inFrame = true;
     const t = ts / 1000;
     const dt = this.t ? clamp(t - this.t, 0, 0.05) : 0.016;
     this.t = t;
-    this.resize();
+    if (!this.resizeObserver) this.resize();
     const nameInk = this.nameInk;
     this.sim(dt, t);
     this.cam = this.camera();
@@ -2141,16 +2305,19 @@ export class GlobeEngine {
     this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
     const ownMoved = this.updateCursor(dt, t);
     const shadowMoved = this.updateRemoteCursors(dt, t) || ownMoved;
-    if (this.sceneChanged()) this.glDirty = true;
+    const changed = this.sceneChanged();
+    if (changed) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && (this.mode === "landed" || this.pinsMoving || this.reels.length > 0 || this.drawing(t) ||
+    const animated = !this.reduceMotion && ((this.mode === "landed" && (this.searching || t - this.tLand < TOUCHDOWN + VANISH)) || this.pinsMoving || this.reels.length > 0 || this.drawing(t) ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
     if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
     if (this.glDirty) {
       this.drawGL();
+      if (this.started && this.earthReady && !this.readyRecorded) { this.readyRecorded = true; recordTiming("globe-ready"); }
       this.glDirty = false;
     }
+    const painted = this.glDirty || this.hudDirty;
     if (this.hudDirty) {
       this.drawHud(t);
       this.cursorShadow();
@@ -2160,8 +2327,34 @@ export class GlobeEngine {
       this.hudX = this.mx;
       this.hudY = this.my;
     } else this.nameT = t;
-    // Remote DOM cursors ease independently of the canvases, so keep their frame callbacks running.
+    // Overlay callbacks run with active scene/input frames and can wake us when new work arrives.
     this.events.onFrame?.();
+    this.inFrame = false;
+    if (this.startupPending) {
+      this.startupPending = false;
+      const gl = this.gl;
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = null;
+        if (!gl || this.gl !== gl) return;
+        this.sky = new Sky(gl, (vs, fs, attrs) => this.program(gl, vs, fs, attrs));
+        this.sky.setSeed(this.skySeed, this.vaoQuad);
+        this.glDirty = true;
+      }, 0);
+    }
+    const drifting = this.mode === "idle" && !this.reduceMotion && this.pins.size === 0 && this.remotes.size === 0 && !this.agent;
+    const tracksMoving = !this.reduceMotion && ([...this.cursors.values()].some((r) => r.track.active(t)) ||
+      [...this.remotes.values()].some((r) => !r.landed && r.track.active(t)));
+    if (this.glDirty || this.hudDirty || changed || painted || animated || shadowMoved || this.namesMoving || tracksMoving || this.turn || this.mode === "flying" || this.agent) {
+      this.requestFrame();
+    } else {
+      this.sleeping = true;
+      if (drifting || [...this.pins.values()].some((p) => p.t0 > t)) {
+        const nextPin = Math.min(...[...this.pins.values()].filter((p) => p.t0 > t).map((p) => p.t0));
+        const next = Math.min(nextPin, drifting ? this.lastInteract + 2 : Infinity);
+        const wait = Math.max(1, (next - t) * 1000);
+        this.idleTimer = setTimeout(this.requestFrame, wait);
+      }
+    }
   };
 
   private updatePreview(point: Vec3 | null, nowMs: number) {
@@ -2170,7 +2363,9 @@ export class GlobeEngine {
     // the label names the city, not the hub, so it can change while the hub stays; look it up as often as the hub
     let name = this.hoverName;
     if (!ll || !next) name = null;
-    else if (next.id !== this.hoverHub?.id || nowMs - this.hoverNameAt >= 80) {
+    else if (next.id !== this.hoverHub?.id || (nowMs - this.hoverNameAt >= 80 &&
+      (!this.hoverNamePoint || point!.some((v, i) => v !== this.hoverNamePoint![i])))) {
+      this.hoverNamePoint = point && [...point];
       name = placeName(ll, next);
       this.hoverNameAt = nowMs;
     }
@@ -2474,7 +2669,7 @@ export class GlobeEngine {
     gl.uniform1i(u.uProvinces, 3);
     gl.uniform1f(u.uProv, smooth(PROVINCES_FROM, PROVINCES_FULL, this.zoom()));
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.sky?.texture ?? null);
+    gl.bindTexture(gl.TEXTURE_2D, this.sky?.texture ?? this.texSkyFallback);
     gl.uniform1i(u.uSky, 1);
     gl.uniform1f(u.uSkyInk, th.skyInk);
     gl.uniform2f(u.uRes, cw, ch);
@@ -2489,8 +2684,10 @@ export class GlobeEngine {
     gl.uniform1f(u.uShA, pl && shadow ? (0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt)) * left : 0);
     // the pins' shadows, nearest the camera first
     const pins = this.pinFrames(c, L, S * PIN_SCALE);
-    const pinA = new Float32Array(MAX_PIN_SHADOWS * 4);
-    const pinB = new Float32Array(MAX_PIN_SHADOWS * 4);
+    const pinA = this.pinShadowA;
+    const pinB = this.pinShadowB;
+    pinA.fill(0);
+    pinB.fill(0);
     // Pip's saucer casts a round shadow in a pin's slot: a head with no needle
     const agent = this.agent;
     const ufo = agent ? { at: mul(agent.n, 1 + agent.alt), S: S * UFO_SCALE * agent.size } : null;
@@ -2736,6 +2933,7 @@ export class GlobeEngine {
     g.globalAlpha = 1;
     g.fillStyle = P.ink;
     lines.forEach((line, i) => g.fillText(line, x, y + i * lh));
+    if (this.nameSprites.size >= 512) this.nameSprites.delete(this.nameSprites.keys().next().value!);
     this.nameSprites.set(key, c);
     return c;
   }
@@ -2910,6 +3108,7 @@ export class GlobeEngine {
     g.globalAlpha = 1;
     g.fillStyle = P.ink;
     g.fillText(name, pad, c.height / 2);
+    if (this.citySprites.size >= 512) this.citySprites.delete(this.citySprites.keys().next().value!);
     this.citySprites.set(key, c);
     return c;
   }
@@ -2969,7 +3168,8 @@ export class GlobeEngine {
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
       boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
       keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
-    const won = new Uint8Array(cands.length);
+    const won = this.cityWon;
+    won.fill(0, 0, cands.length);
     cands.forEach((i, k) => {
       if (boxes.length >= CITY_MAX) return;
       const showing = this.cityPlaced[i];
@@ -3004,7 +3204,7 @@ export class GlobeEngine {
       this.cityPlaced[i] = on ? 1 : 0;
       const prev = this.cityFade[i];
       const f = (this.cityFade[i] += ((on ? 1 : 0) - prev) * ease);
-      if (t < this.cityHold[i] || (!dt && f !== Number(on)) || (f !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
+      if (t < this.cityHold[i] || (!dt && f !== Number(on)) || (this.cityFade[i] !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
       const c = CITIES[i];
       const alpha = f * smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], Math.min(1, CITY_FROM[c.rank] + CITY_FADE), zoom);
       if (alpha < 0.01) return;
@@ -3125,8 +3325,18 @@ export class GlobeEngine {
     ctx: CanvasRenderingContext2D, origin: Vec3, { v: end, alt, cut }: RouteEnd, stroke: string, marching: boolean, t = 0, gone = 0, upTo = 1,
   ) {
     const P = this.P;
-    const ground = this.arc(origin, end, 0, 0, this.groundArc);
-    const air = this.arc(origin, end, 1, alt, this.airArc);
+    const view = `${this.lon0},${this.lat0},${this.range},${this.W},${this.H}`;
+    if (view !== this.routeView) { this.routeView = view; this.routeGeometry.clear(); }
+    const key = `${origin}|${end}|${alt}`;
+    let geometry = this.routeGeometry.get(key);
+    if (!geometry) {
+      const copy = (points: (ScreenPoint | null)[]) => points.map((p) => p && ({ ...p, w: p.w && [...p.w] as Vec3 }));
+      geometry = { ground: copy(this.arc(origin, end, 0, 0, this.groundArc)), air: copy(this.arc(origin, end, 1, alt, this.airArc)) };
+      if (this.routeGeometry.size >= 128) this.routeGeometry.delete(this.routeGeometry.keys().next().value!);
+      this.routeGeometry.set(key, geometry);
+    }
+    const ground = geometry.ground.slice();
+    const air = geometry.air.slice();
     // reeling in: the first `gone` of the way is already pulled off
     if (gone > 0) for (const pts of [ground, air]) pts.fill(null, 0, Math.floor(gone * pts.length));
     // drawing out: only the first `upTo` of the way is there yet
@@ -3137,21 +3347,6 @@ export class GlobeEngine {
       const w = air[i]?.w;
       if (!w || Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]) >= cut) break;
       air[i] = null;
-    }
-    // drawn on a layer of its own when pins stand, so the pins can be cut out of it: the route then reads as passing
-    // under them, though they're drawn on the globe's canvas below this one
-    const cuts = this.pinCuts;
-    const out = ctx;
-    if (cuts.length) {
-      const layer = (this.routeLayer ??= document.createElement("canvas"));
-      if (layer.width !== this.hudEl.width || layer.height !== this.hudEl.height) {
-        layer.width = this.hudEl.width;
-        layer.height = this.hudEl.height;
-      }
-      ctx = layer.getContext("2d")!;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, layer.width, layer.height);
-      ctx.setTransform(out.getTransform());
     }
     ctx.save();
     ctx.lineCap = "round";
@@ -3171,6 +3366,49 @@ export class GlobeEngine {
     ctx.strokeStyle = stroke;
     this.strokePts(ctx, air);
     ctx.restore();
+  }
+
+  /** Routes share one transparent layer and one pin mask, regardless of leg count. */
+  private drawRoutes(out: CanvasRenderingContext2D, t: number) {
+    let ctx = out;
+    const cuts = this.pinCuts;
+    if (cuts.length) {
+      const layer = this.routeLayer ??= document.createElement("canvas");
+      if (layer.width !== this.hudEl.width || layer.height !== this.hudEl.height) {
+        layer.width = this.hudEl.width;
+        layer.height = this.hudEl.height;
+      }
+      ctx = layer.getContext("2d")!;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, layer.width, layer.height);
+      ctx.setTransform(out.getTransform());
+    }
+    this.reels = this.reels.filter((r) => t - r.t0 < REEL);
+    for (const r of this.reels) {
+      const k = (t - r.t0) / REEL;
+      this.route(ctx, r.o, { v: this.groundEnd(r.target), alt: 0, cut: 0 }, this.routeColor(r.color), true, t * 3, k * k);
+    }
+    for (const r of this.remotes.values()) {
+      const target = this.lifted(r.target);
+      const end: RouteEnd = r.landed
+        ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0 }
+        : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
+      const k = (t - r.drawn) / DRAW;
+      this.route(ctx, this.lifted(r.o), end, this.routeColor(r.color), k < 1, t * 3, 0, k < 1 ? ease(Math.max(0, k)) : 1);
+    }
+    const pl = this.pl, origin = this.origin;
+    if (origin && pl && this.mode !== "idle") {
+      const marching = this.mode === "landed" && this.searching && !this.reduceMotion;
+      const stroke = this.routeColor(this.color);
+      this.via.forEach((s, i) => {
+        const raw = this.via[i + 1]?.v ?? origin;
+        const next = this.lifted(raw);
+        const upTo = this.ownDrawn(s.v, raw, t);
+        this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching || upTo < 1, t, 0, upTo);
+      });
+      const upTo = this.dest ? this.ownDrawn(origin, this.dest, t) : 1;
+      this.route(ctx, this.lifted(origin), this.ownEnd(pl), stroke, marching || upTo < 1, t, 0, upTo);
+    }
     if (ctx === out) return;
     ctx.save();
     ctx.globalCompositeOperation = "destination-out";
@@ -3233,8 +3471,28 @@ export class GlobeEngine {
       mark(this.origin);
       mark(mul(this.pl.n, 1 + this.pl.alt));
     }
-    this.countryNames(ctx, clear, t);
-    this.cityNames(ctx, clear, t);
+    const labels = this.labelsLayer ??= document.createElement("canvas");
+    const labelKey = `${this.lon0},${this.lat0},${this.range},${this.nameInk}|${clear.map((p) => `${p.x},${p.y}`).join(";")}`;
+    if (labels.width !== this.hudEl.width || labels.height !== this.hudEl.height) {
+      labels.width = this.hudEl.width;
+      labels.height = this.hudEl.height;
+      this.labelsDirty = true;
+    }
+    if (this.labelsDirty || this.namesMoving || this.labelsKey !== labelKey) {
+      const layer = labels.getContext("2d")!;
+      layer.setTransform(1, 0, 0, 1, 0, 0);
+      layer.clearRect(0, 0, labels.width, labels.height);
+      layer.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.countryNames(layer, clear, t);
+      this.cityNames(layer, clear, t);
+      this.labelsKey = labelKey;
+      this.labelsDirty = false;
+    } else { this.nameT = this.cityT = t; }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(labels, 0, 0);
+    ctx.restore();
+    this.drawRoutes(ctx, t);
 
 
     // the searched place first, so it keeps its spot and the hover tag gives way to it
@@ -3245,12 +3503,6 @@ export class GlobeEngine {
     }
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
-    // removed legs reeling in: the route pulls off its start, faster as it goes, its dashes running to the end
-    this.reels = this.reels.filter((r) => t - r.t0 < REEL);
-    for (const r of this.reels) {
-      const k = (t - r.t0) / REEL;
-      this.route(ctx, r.o, { v: this.groundEnd(r.target), alt: 0, cut: 0 }, this.routeColor(r.color), true, t * 3, k * k);
-    }
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
@@ -3258,13 +3510,6 @@ export class GlobeEngine {
       // a stop whose pins are being carried takes its routes' ends with it, up to the pins' points
       const o = this.lifted(r.o);
       const target = this.lifted(r.target);
-      const end: RouteEnd = r.landed
-        ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0 }
-        : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
-      // drawn out behind Pip's saucer, its dashes running on ahead
-      const k = (t - r.drawn) / DRAW;
-      if (k < 1) this.route(ctx, o, end, stroke, true, t * 3, 0, ease(Math.max(0, k)));
-      else this.route(ctx, o, end, stroke, false);
       const op = this.proj(o);
       if (op && op.vis) {
         if (!this.pinned(o)) this.startMark(ctx, o, op.x, op.y, stroke);
@@ -3310,18 +3555,7 @@ export class GlobeEngine {
     const pl = this.pl;
     const origin = this.origin;
     if (!origin || !pl || this.mode === "idle") return;
-    // legs already flown, each from a stop to the next, under the one ending at the plane
-    const marching = this.mode === "landed" && !this.reduceMotion;
     const stroke = this.routeColor(this.color);
-    // a leg Pip's saucer is drawing out shows only as far as it has got
-    this.via.forEach((s, i) => {
-      const raw = this.via[i + 1]?.v ?? origin;
-      const next = this.lifted(raw);
-      const upTo = this.ownDrawn(s.v, raw, t);
-      this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching || upTo < 1, t, 0, upTo);
-    });
-    const upTo = this.dest ? this.ownDrawn(origin, this.dest, t) : 1;
-    this.route(ctx, this.lifted(origin), this.ownEnd(pl), stroke, marching || upTo < 1, t, 0, upTo);
 
     const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;

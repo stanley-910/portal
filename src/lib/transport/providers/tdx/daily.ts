@@ -1,4 +1,5 @@
 import "server-only";
+import { createInFlight } from "../../../in-flight.ts";
 import { z } from "zod";
 import { ProviderFailure, type Offer, type Place, type SearchQuery } from "../../types.ts";
 
@@ -24,26 +25,32 @@ const failure = (status: number) => new ProviderFailure(status === 401 || status
 export function createDailyClient(credentials: { clientId?: string; clientSecret?: string }, fetcher: typeof fetch = fetch): DailyClient {
   let token: { value: string; expires: number } | undefined;
   const cache = new Map<string, { rows: Daily; expires: number }>();
+  const shareToken = createInFlight<{ value: string; expires: number }>(1);
+  const shareDate = createInFlight<Daily>(12);
+  const getToken = (signal: AbortSignal) => shareToken("token", signal, async (signal) => {
+    if (token && token.expires > Date.now()) return token;
+    const response = await fetcher(TOKEN_URL, {
+      method: "POST", signal, cache: "no-store",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: "client_credentials", client_id: credentials.clientId!, client_secret: credentials.clientSecret! }),
+    });
+    if (!response.ok) throw failure(response.status);
+    const parsed = z.object({ access_token: z.string().min(1), expires_in: z.number().positive() }).safeParse(await response.json());
+    if (!parsed.success) throw new ProviderFailure("BAD_RESPONSE");
+    token = { value: parsed.data.access_token, expires: Date.now() + Math.max(0, parsed.data.expires_in - 30) * 1000 };
+    return token;
+  });
   return async (date, signal) => {
     signal.throwIfAborted();
     if (!credentials.clientId || !credentials.clientSecret) throw new ProviderFailure("NOT_CONFIGURED");
     const cached = cache.get(date);
     if (cached && cached.expires > Date.now()) return cached.rows;
+    return shareDate(date, signal, async (signal) => {
     try {
-      if (!token || token.expires <= Date.now()) {
-        const response = await fetcher(TOKEN_URL, {
-          method: "POST", signal, cache: "no-store",
-          headers: { "content-type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ grant_type: "client_credentials", client_id: credentials.clientId, client_secret: credentials.clientSecret }),
-        });
-        if (!response.ok) throw failure(response.status);
-        const parsed = z.object({ access_token: z.string().min(1), expires_in: z.number().positive() }).safeParse(await response.json());
-        if (!parsed.success) throw new ProviderFailure("BAD_RESPONSE");
-        token = { value: parsed.data.access_token, expires: Date.now() + Math.max(0, parsed.data.expires_in - 30) * 1000 };
-      }
+      const authorization = await getToken(signal);
       const url = new URL(DAILY_URL + date);
       url.searchParams.set("$format", "JSON"); url.searchParams.set("$top", "1000");
-      const response = await fetcher(url, { signal, cache: "no-store", headers: { authorization: `Bearer ${token.value}` } });
+      const response = await fetcher(url, { signal, cache: "no-store", headers: { authorization: `Bearer ${authorization.value}` } });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) token = undefined;
         throw failure(response.status);
@@ -59,6 +66,7 @@ export function createDailyClient(credentials: { clientId?: string; clientSecret
       if (error instanceof ProviderFailure) throw error;
       throw new ProviderFailure(error instanceof SyntaxError ? "BAD_RESPONSE" : "UPSTREAM_ERROR", true);
     }
+    });
   };
 }
 const minutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5)) + Number(value.slice(6, 8) || 0) / 60;

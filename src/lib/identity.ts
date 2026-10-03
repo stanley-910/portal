@@ -1,7 +1,7 @@
 import "server-only";
 
 import { ensureGuest, readGuest } from "@/lib/guest";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getAccountClaims, getCurrentUser } from "@/lib/supabase/server";
 
 /**
  * Who is using the app: a signed-in account, or else a guest cookie. Guests can use the globe and join a trip from its
@@ -32,4 +32,14 @@ export async function ensurePerson(): Promise<Person> {
   if (person) return person;
   const guest = await ensureGuest();
   return { id: guest.id, name: guest.name, email: null, account: false, nationalities: guest.nationalities, color: guest.color };
+}
+
+/** Read-only display identity: locally verified claims, without remote profile enrichment.
+ * Mutations still use currentPerson/getUser and their existing authorization checks. */
+export async function displayPerson(): Promise<Person | null> {
+  const account = await getAccountClaims();
+  if (account) return { id: account.id, name: account.name, email: account.email, color: account.color,
+    account: true, nationalities: account.nationalities };
+  const guest = await readGuest();
+  return guest ? { id: guest.id, name: guest.name, email: null, account: false, nationalities: guest.nationalities, color: guest.color } : null;
 }

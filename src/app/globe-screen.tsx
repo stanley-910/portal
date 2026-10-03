@@ -1,19 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
 
 import { HomePip, type HomePipHandle } from "@/components/agent/home-pip";
 import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
-import { TicketSearch } from "@/components/ticket-search";
-import { SoloCheckout } from "@/components/ticket-search/solo-checkout";
+import type { TicketDraft } from "@/components/ticket-search/ticket-search";
+
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type LatLng, type TripGlobeHandle } from "@/components/trip-globe";
 import type { SoloLeg } from "@/lib/agent/solo";
 import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
 import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useCursorPref } from "@/lib/cursor-pref";
+import { recordTiming } from "@/lib/performance";
 import type { Person } from "@/lib/identity";
 import { isBookable } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
@@ -23,6 +25,9 @@ import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
 import { createTrip } from "./t/actions";
 import { saveSoloTrip } from "./t/save-actions";
 import { useBookAfterSave } from "./use-book-after-save";
+
+const TicketSearch = dynamic(() => import("@/components/ticket-search/ticket-search").then((m) => m.TicketSearch));
+const SoloCheckout = dynamic(() => import("@/components/ticket-search/solo-checkout").then((m) => m.SoloCheckout));
 
 /** A local Date as YYYY-MM-DD. */
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -54,6 +59,9 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   // the landed trip's legs, the one the popover shows, and what was picked on the legs before it
   const [legs, setLegs] = useState<LandedTrip[] | null>(null);
   const [active, setActive] = useState(0);
+  const [searching, setSearching] = useState(false);
+  const [drafts] = useState(() => new Map<number, TicketDraft>());
+  const restoring = useRef(false);
   // the ticket card minimised to a tag on the route
   const [collapsed, setCollapsed] = useState(false);
   // one per leg picked so far, plus one more for a round trip: the way back from the last stop to the first
@@ -113,6 +121,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   const book = useBookAfterSave(account);
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
+      const started = performance.now();
       const result = await saveSoloTrip(input).catch(() => ({ error: "failed" as const }));
       if ("error" in result) {
         book.cancel();
@@ -121,6 +130,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       const legs = (input as { legs?: { chosen?: string | null }[] }).legs;
       // No refresh: nothing on the globe screen shows saved trips, and /trips is dynamic, so it reads them fresh when
       // opened. A refresh here re-rendered the whole screen and held the button on "Saving" for another round trip.
+      recordTiming("save", started);
       setSaved({ id: result.id, offer: legs?.at(-1)?.chosen ?? null });
       if (book.after(result, input)) return;
     });
@@ -129,11 +139,25 @@ export function GlobeScreen({ person }: { person: Person | null }) {
     runSave(input);
   };
 
+  const resumeSave = useEffectEvent((input: Parameters<typeof saveSoloTrip>[0]) => runSave(input));
+
   // back from signing in: finish what sent them there
   useEffect(() => {
     if (!account) return;
     const pending = takePendingAction();
-    if (pending?.type === "save") runSave(pending.input);
+    if (pending?.type === "save") {
+      void import("@/lib/trip/restore-solo").then(({ restoreSolo }) => {
+        const restored = restoreSolo(pending.input);
+        if (!restored) { setSaveFailed(true); return; }
+        restoring.current = true;
+        pipDates.current = restored.picks.map((p) => p.depart);
+        setLegs(restored.legs);
+        setPicks(restored.picks);
+        setActive(restored.legs.length - 1);
+        globe.current?.showTrip([restored.legs[0].origin, ...restored.legs.map((l) => l.destination)], true);
+        resumeSave(restored.input);
+      }).catch(() => setSaveFailed(true));
+    }
     else if (pending?.type === "create") startSaving(() => createTrip());
     else if (pending?.type === "pip") pip.current?.ask(pending.text);
     // once, on load as an account
@@ -157,11 +181,13 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   return <main className="relative h-dvh w-full overflow-hidden">
     <TripGlobe
       ref={globe}
+      searching={searching}
       color={cursorPref.color}
       cursorShape={cursorPref.shape}
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
       onTakeoff={() => {
-        setLegs(null);
+        if (!restoring.current) setLegs(null);
+        setSearching(false);
         // Pip rebuilding the trip keeps the pins it doesn't move
         if (!pipDates.current) globe.current?.setPins([]);
       }}
@@ -173,6 +199,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         // your pin drops at each stop once your plane has landed and gone
         globe.current?.setPins(stopPins(landed, cursorPref.color, pinKeys.current));
         setLegs(landed);
+        if (restoring.current) { restoring.current = false; return; }
+        drafts.clear();
         setSaved(null);
         book.close();
         setActive(0);
@@ -227,6 +255,10 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       <TicketSearch
         key={`${active}:${trip.origin.lat},${trip.origin.lng}-${trip.destination.lat},${trip.destination.lng}@${trip.departDate.getTime()}`}
         trip={trip}
+        initialDraft={drafts.get(active)}
+        initialPick={picks[active]}
+        onDraft={(draft) => drafts.set(active, draft)}
+        onSearchingChange={setSearching}
         globe={globe}
         currency={currency}
         rates={rates}
@@ -242,7 +274,6 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           onBack:
             active > 0
               ? () => {
-                  setPicks(picks.slice(0, legs!.length));
                   setActive(active - 1);
                 }
               : undefined,
@@ -253,7 +284,11 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           setPicks(done);
           if (active < legs!.length - 1) {
             // the next leg leaves no earlier than the day after this one
-            setLegs(legs!.map((l, i) => (i === active + 1 ? { ...l, departDate: dayAfter(depart) } : l)));
+            setLegs(legs!.map((l, i) => {
+              if (i !== active + 1 || isoDay(l.departDate) > depart) return l;
+              drafts.delete(i);
+              return { ...l, departDate: dayAfter(depart) };
+            }));
             setActive(active + 1);
             return;
           }
@@ -286,6 +321,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         onExpand={() => setCollapsed(false)}
       />
     ) : null}
+    {!trip && saveFailed ? <p role="alert" className="type-body absolute bottom-(--space-6) left-1/2 -translate-x-1/2 bg-paper-raised p-(--space-3)">Couldn&apos;t restore the trip. Please select the route again.</p> : null}
     <HomePip
       globe={globe}
       account={account}
