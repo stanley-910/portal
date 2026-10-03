@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { Button } from "@/components/paper-atlas";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
+import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
 import { initials, MAX_NAME } from "@/lib/guest-name";
 
@@ -75,30 +75,31 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
 
 function Identity({ name, email, account, reloadOnRename }: { name: string | null; email: string | null; account: boolean; reloadOnRename?: boolean }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const openAuth = useOpenAuth();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   if (!account && !editing) {
-    const next = encodeURIComponent(pathname || "/");
     return (
-      <div className="pn-profile-who">
-        {name ? <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span> : null}
-        <span className="pn-menu-text">
-          <span>{name ?? "Guest"}</span>
-          <span className="pn-menu-detail">Sign in to save trips and ask Pip.</span>
-        </span>
-        {name ? (
-          <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
-            Rename
-          </Button>
-        ) : null}
+      <div className="pn-profile-guest">
+        <div className="pn-profile-who">
+          {name ? <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span> : null}
+          <span className="pn-menu-text">
+            <span>{name ?? "Guest"}</span>
+            <span className="pn-menu-detail">{name ? "Guest" : "Not signed in"}</span>
+          </span>
+          {name ? (
+            <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+              Rename
+            </Button>
+          ) : null}
+        </div>
         <div className="pn-profile-row">
-          <Link href={`/login?next=${next}`} className="pa-btn pa-btn-primary">
+          <Button className="flex-1" onClick={() => openAuth("signin")}>
             Sign in
-          </Link>
-          <Link href={`/signup?next=${next}`} className="pa-btn pa-btn-quiet">
+          </Button>
+          <Button variant="secondary" className="flex-1" onClick={() => openAuth("signup")}>
             Create account
-          </Link>
+          </Button>
         </div>
       </div>
     );
@@ -111,14 +112,16 @@ function Identity({ name, email, account, reloadOnRename }: { name: string | nul
           <span>{name}</span>
           {email ? <span className="pn-menu-detail">{email}</span> : null}
         </span>
-        <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
-          Rename
-        </Button>
-        <form action={signOut}>
-          <Button type="submit" variant="quiet" className="pn-profile-edit">
-            Sign out
+        <div className="pn-profile-row">
+          <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+            Rename
           </Button>
-        </form>
+          <form action={signOut}>
+            <Button type="submit" variant="quiet" className="pn-profile-edit">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </div>
     );
   }
