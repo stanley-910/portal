@@ -120,7 +120,7 @@ export function HomeScene({
               onMove={(place) => {
                 const points = [legs[0].origin, ...legs.map((l) => l.destination)];
                 points[i + 1] = place.at;
-                globe.current?.showTrip(points, true);
+                globe.current?.showTrip(points, "quiet");
                 return null;
               }}
             />
@@ -136,7 +136,8 @@ export function HomeScene({
         color={persona.color}
         settings={<CurrencySetting currency={currency} rates={rates} error={false} onChange={setCurrencyPref} />}
       >
-        <PlaceSearch globe={globe} />
+        {/* the flat globe lands the route at once, on tomorrow's date: the draw-out and the picked date are the real globe's */}
+        <PlaceSearch globe={globe} onRoute={(from, to) => globe.current?.showTrip([from, to], "draw")} />
         <form onSubmit={(e) => e.preventDefault()}>
           <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
         </form>

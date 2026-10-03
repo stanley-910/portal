@@ -740,10 +740,31 @@ describe("settled rendering", () => {
     expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
   });
 
+  it("draws a searched trip's routes out in turn while framing it, with no plane landing", () => {
+    const { engine, state, frames } = setup();
+    state.reduceMotion = false;
+    const onLand = vi.fn();
+    engine["events"].onLand = onLand;
+    const hk = { lat: 22.3, lng: 114.17 }, sha = { lat: 31.23, lng: 121.47 }, tyo = { lat: 35.68, lng: 139.77 };
+    engine.showTrip([hk, sha, tyo], "draw");
+    expect(onLand).toHaveBeenCalledTimes(1);
+    // it turns to frame the trip, and the plane is already gone
+    expect(engine["turn"]).not.toBeNull();
+    expect(engine["t"] - engine["tLand"]).toBeGreaterThanOrEqual(0.7 - 1e-9);
+    const draws = engine["ownDraws"] as { t0: number }[];
+    expect(draws).toHaveLength(2);
+    expect(draws[1].t0).toBeGreaterThan(draws[0].t0);
+    // nothing is drawn yet; a few seconds on, both legs are whole
+    const legs = engine["ownLegs"]();
+    expect(engine["ownDrawn"](legs[0][0], legs[0][1], engine["t"])).toBe(0);
+    frames(360);
+    expect(engine["ownDrawn"](legs[1][0], legs[1][1], engine["t"])).toBe(1);
+  });
+
   it("animates only searching routes and retains label geometry during dash motion", () => {
     const { engine, state, frames, drawGL, drawHud } = setup();
     state.reduceMotion = false;
-    engine.showTrip([{ lat: 22.3, lng: 114.17 }, { lat: 31.23, lng: 121.47 }], true);
+    engine.showTrip([{ lat: 22.3, lng: 114.17 }, { lat: 31.23, lng: 121.47 }], "quiet");
     frames(360);
     const names = vi.spyOn(engine, "countryNames" as never);
     const cities = vi.spyOn(engine, "cityNames" as never);
@@ -864,7 +885,7 @@ describe("GPU lifecycle", () => {
   it("restores rendering resources without losing a landed trip", () => {
     const { engine } = gpuSetup();
     engine.start();
-    engine.showTrip([{ lat: 22.3, lng: 114.17 }, { lat: 31.23, lng: 121.47 }], true);
+    engine.showTrip([{ lat: 22.3, lng: 114.17 }, { lat: 31.23, lng: 121.47 }], "quiet");
     const destination = engine["dest"];
     const preventDefault = vi.fn();
     engine["onContextLost"]({ preventDefault } as unknown as Event);

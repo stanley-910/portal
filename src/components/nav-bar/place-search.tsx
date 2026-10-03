@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject, type CSSProperties } from "react";
 
+import { addDays, dateLabel, localIso, MonthGrid } from "@/components/ticket-search/parts";
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { mergePlaces, searchPlaces, type PlaceKind, type PlaceResult } from "@/lib/places/search";
 
@@ -64,28 +65,57 @@ function useOnlinePlaces(query: string) {
   return { places: current ? found.places : [], pending: q.length >= ONLINE_MIN && !current };
 }
 
-/** A search field in the NavBar that turns the globe to a city, airport, station or country. `/` opens it. */
-export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null> }) {
+type End = "from" | "to";
+const OTHER: Record<End, End> = { from: "to", to: "from" };
+
+export interface PlaceSearchProps {
+  globe: RefObject<TripGlobeHandle | null>;
+  /**
+   * Makes it a From and To search with a date between them, where picking both puts the trip down (draws its route on
+   * the globe). Without it, it's one field that turns the globe to a place.
+   */
+  onRoute?: (from: PlaceResult, to: PlaceResult, date: string) => void;
+}
+
+/**
+ * A search in the NavBar that turns the globe to a city, airport, station or country. With `onRoute` it's a From and
+ * To search: one place picked turns the globe to it, the second puts the route down on the date between them. `/`
+ * opens it.
+ */
+export function PlaceSearch({ globe, onRoute }: PlaceSearchProps) {
+  const route = !!onRoute;
   const [open, setOpen] = useState(false);
   // folding back into the button: the panel stays for its closing animation, then goes
   const [closing, setClosing] = useState(false);
-  const [query, setQuery] = useState("");
+  const [field, setField] = useState<End>("from");
+  const [queries, setQueries] = useState<Record<End, string>>({ from: "", to: "" });
+  const [picked, setPicked] = useState<Record<End, PlaceResult | null>>({ from: null, to: null });
+  const [date, setDate] = useState(() => addDays(localIso(new Date()), 1));
+  const [calendar, setCalendar] = useState(false);
   const [active, setActive] = useState(0);
   const root = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLInputElement>(null);
+  const fromInput = useRef<HTMLInputElement>(null);
+  const toInput = useRef<HTMLInputElement>(null);
+  const inputs: Record<End, RefObject<HTMLInputElement | null>> = { from: fromInput, to: toInput };
   const toggle = useRef<HTMLButtonElement>(null);
   const id = useId();
+  // the field being typed in lists places; one showing what was picked in it lists none until it's typed in again
+  const query = picked[field] ? "" : queries[field];
   const local = useMemo(() => searchPlaces(query), [query]);
   const online = useOnlinePlaces(query);
   const results = useMemo(() => mergePlaces(local, online.places), [local, online.places]);
 
+  const reset = () => {
+    setQueries({ from: "", to: "" });
+    setPicked({ from: null, to: null });
+    setField("from");
+    setCalendar(false);
+    setActive(0);
+  };
   // opening again mid-close keeps it open
   const show = () => {
     // reopened while folding away: start fresh, as a closed search would
-    if (closing) {
-      setQuery("");
-      setActive(0);
-    }
+    if (closing) reset();
     setClosing(false);
     setOpen(true);
   };
@@ -99,23 +129,57 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
     const timer = window.setTimeout(() => {
       setOpen(false);
       setClosing(false);
-      setQuery("");
+      setQueries({ from: "", to: "" });
+      setPicked({ from: null, to: null });
+      setField("from");
+      setCalendar(false);
       setActive(0);
     }, still ? 0 : CLOSE_MS);
     return () => window.clearTimeout(timer);
   }, [closing]);
 
-  const pick = (place: PlaceResult) => {
-    // a city, airport or station is marked and named where it is, whether or not the map prints it; a country or
-    // region already has its name on the map
+  /** Turns the globe to a place. A city, airport or station is marked and named where it is; a country or region already has its name on the map. */
+  const flyTo = (place: PlaceResult) => {
     const mark = place.kind === "country" || place.kind === "region" ? undefined : place.name;
     globe.current?.flyTo({ lat: place.lat, lng: place.lng }, place.spanDeg, mark);
-    // focus goes back to the button rather than dropping to the page as the panel folds away
-    close(true);
+  };
+
+  const pick = (place: PlaceResult) => {
+    if (!onRoute) {
+      flyTo(place);
+      // focus goes back to the button rather than dropping to the page as the panel folds away
+      return close(true);
+    }
+    const both = { ...picked, [field]: place };
+    setPicked(both);
+    setQueries((q) => ({ ...q, [field]: place.name }));
+    setActive(0);
+    const other = both[OTHER[field]];
+    if (other) {
+      const [from, to] = field === "from" ? [place, other] : [other, place];
+      onRoute(from, to, date);
+      return close(true);
+    }
+    // one end: the globe turns to it, and the other end is next
+    flyTo(place);
+    setField(OTHER[field]);
+    inputs[OTHER[field]].current?.focus();
+  };
+
+  /** Search: both ends put the route down; one turns the globe to it. */
+  const go = () => {
+    const { from, to } = picked;
+    if (from && to && onRoute) {
+      onRoute(from, to, date);
+      close(true);
+    } else if (from ?? to) {
+      flyTo((from ?? to)!);
+      close(true);
+    }
   };
 
   useEffect(() => {
-    if (open && !closing) input.current?.focus();
+    if (open && !closing) fromInput.current?.focus();
   }, [open, closing]);
 
   // the shortcut listens once; it calls whichever `show` is current, which knows whether the panel is closing
@@ -126,7 +190,6 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
   useEffect(() => {
     const slash = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.defaultPrevented || document.querySelector('dialog[open], [aria-modal="true"]')) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
@@ -159,46 +222,108 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
       event.preventDefault();
       const place = results[active] ?? results[0];
       if (place) pick(place);
+      else go();
     }
   };
 
   const listId = `${id}-list`;
   const optionId = (i: number) => `${id}-opt-${i}`;
-  const showList = open && results.length > 0;
-  const waiting = open && !results.length && online.pending;
+  const showList = open && !calendar && results.length > 0;
+  const waiting = open && !calendar && !results.length && online.pending;
+
+  const input = (end: End, placeholder: string, label: string) => (
+    <input
+      ref={inputs[end]}
+      type="search"
+      role="combobox"
+      aria-label={label}
+      aria-expanded={showList && field === end}
+      aria-controls={listId}
+      aria-autocomplete="list"
+      aria-activedescendant={showList && field === end ? optionId(active) : undefined}
+      autoComplete="off"
+      spellCheck={false}
+      placeholder={placeholder}
+      data-picked={picked[end] ? "" : undefined}
+      value={queries[end]}
+      onFocus={(e) => {
+        setField(end);
+        setCalendar(false);
+        setActive(0);
+        // a picked place reads as one thing: selecting it all lets typing replace it
+        if (picked[end]) e.currentTarget.select();
+      }}
+      onChange={(event) => {
+        const text = event.target.value;
+        setQueries((q) => ({ ...q, [end]: text }));
+        setPicked((p) => (p[end] ? { ...p, [end]: null } : p));
+        setActive(0);
+      }}
+      onKeyDown={onKeyDown}
+    />
+  );
 
   return (
-    <div ref={root} className="pn-search">
+    <div ref={root} className="pn-search" data-route={route || undefined}>
       <button ref={toggle} type="button" className="pa-round" aria-label="Find a place" title="Find a place"
         aria-expanded={open && !closing} onClick={show}>
         <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
       </button>
       {open ? (
         <div data-globe-obstacle className="pn-search-panel" data-closing={closing || undefined}>
-          <label className="pn-search-field">
-            <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
-            <input
-              ref={input}
-              type="search"
-              role="combobox"
-              aria-label="Find a place"
-              aria-expanded={showList}
-              aria-controls={listId}
-              aria-autocomplete="list"
-              aria-activedescendant={showList ? optionId(active) : undefined}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="Find a city, airport or station"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setActive(0);
-              }}
-              onKeyDown={onKeyDown}
-            />
-          </label>
+          {route ? (
+            <div className="pn-search-field pn-route" role="group" aria-label="Find a route">
+              <span className="pn-route-end" data-active={field === "from" || undefined}>
+                <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden>
+                  <circle cx="8" cy="8" r="4" />
+                </svg>
+                {input("from", "From", "From")}
+              </span>
+              <button
+                type="button"
+                className="pn-route-date"
+                aria-label={`Date, ${dateLabel(date)}`}
+                aria-expanded={calendar}
+                onClick={() => setCalendar((c) => !c)}
+              >
+                {dateLabel(date)}
+              </button>
+              <span className="pn-route-end" data-active={field === "to" || undefined}>
+                <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden>
+                  <path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14Z" />
+                  <circle cx="8" cy="6.5" r="1.5" />
+                </svg>
+                {input("to", "To", "To")}
+              </span>
+              <button type="button" className="pn-route-go" aria-label="Search" title="Search" disabled={!picked.from && !picked.to} onClick={go}>
+                <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
+              </button>
+            </div>
+          ) : (
+            <label className="pn-search-field">
+              <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
+              {input("from", "Find a city, airport or station", "Find a place")}
+            </label>
+          )}
+          {calendar ? (
+            <div className="pn-menu pn-route-cal">
+              <MonthGrid
+                min={localIso(new Date())}
+                value={date}
+                label="Travel date"
+                onPick={(iso) => {
+                  setDate(iso);
+                  setCalendar(false);
+                  // on to whichever end is still empty
+                  const next: End = !picked.from ? "from" : "to";
+                  setField(next);
+                  inputs[next].current?.focus();
+                }}
+              />
+            </div>
+          ) : null}
           {showList ? (
-            <ul id={listId} className="pn-menu pn-search-list" role="listbox" aria-label="Places">
+            <ul id={listId} className="pn-menu pn-search-list" role="listbox" aria-label="Places" data-end={route ? field : undefined}>
               {results.map((place, i) => (
                 <li
                   key={place.id}

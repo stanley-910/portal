@@ -6,7 +6,7 @@ import { cursorUrl, memberColor, type CursorShape } from "@/components/paper-atl
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight, type ShowTrip } from "./engine";
 import { GlobeObstacles } from "./free-area";
 import type { ThemeId } from "./palette";
 
@@ -20,10 +20,10 @@ export interface TripGlobeHandle {
   /** Where a route's drawn arc is on screen, `t` of the way along (0.5, its peak, by default). */
   routePoint(from: LatLng, to: LatLng, t?: number): { x: number; y: number; visible: boolean } | null;
   /**
-   * Lands a whole trip at once, stops in order, as if it had been flown; onLand reports it. `quiet` moves the trip
-   * where it is instead, with no landing: a stop dragged to a new place.
+   * Lands a whole trip at once, stops in order, as if it had been flown; onLand reports it. "quiet" moves the trip
+   * where it is instead, with no landing (a stop dragged to a new place); "draw" frames it and draws its routes out.
    */
-  showTrip(points: LatLng[], quiet?: boolean): void;
+  showTrip(points: LatLng[], how?: ShowTrip): void;
   /** Wake a settled globe when an overlay has new animation work. */
   requestFrame(): void;
   /** Calls `cb` after an active frame, for overlays that track places. Returns an unsubscribe function. */
@@ -164,7 +164,7 @@ export function TripGlobe({
   // the pins last set, so an engine that starts later still gets them
   const pins = useRef<GlobePin[]>([]);
   const initialSkySeed = useRef(skySeed);
-  const pendingTrip = useRef<{ points: LatLng[]; quiet: boolean } | null>(null);
+  const pendingTrip = useRef<{ points: LatLng[]; how: ShowTrip } | null>(null);
   const obstacles = useRef<GlobeObstacles | null>(null);
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
@@ -250,7 +250,7 @@ export function TripGlobe({
     // pins set before the engine started
     if (pins.current.length) engine.setPins(pins.current);
     if (pendingTrip.current) {
-      engine.showTrip(pendingTrip.current.points, pendingTrip.current.quiet);
+      engine.showTrip(pendingTrip.current.points, pendingTrip.current.how);
       pendingTrip.current = null;
     }
     engine.setObscured(!!document.querySelector('dialog[open], [aria-modal="true"]'));
@@ -310,9 +310,9 @@ export function TripGlobe({
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
       flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
-      showTrip: (points, quiet = false) => {
-        if (engineRef.current) engineRef.current.showTrip(points, quiet);
-        else pendingTrip.current = { points, quiet };
+      showTrip: (points, how = "land") => {
+        if (engineRef.current) engineRef.current.showTrip(points, how);
+        else pendingTrip.current = { points, how };
       },
       setAgent: (at) => engineRef.current?.setAgent(at),
       agentSpot: () => engineRef.current?.agentSpot() ?? null,

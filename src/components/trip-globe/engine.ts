@@ -189,6 +189,8 @@ const UFO_EXIT_ARC = 0.9; // radians over the globe it comes from and heads off
 // One Pip adds draws out from its start behind the saucer over DRAW seconds, and the pins at its end drop after.
 const REEL = 0.9;
 const DRAW = 1.2;
+/** How `showTrip` puts a trip down: see there. */
+export type ShowTrip = "land" | "quiet" | "draw";
 const FOLLOW_EASE = 2.4;
 // close enough that Pip reads at a glance: about the view from Hong Kong to Taipei, a city or two either side
 const FOLLOW_SPAN = 9 * D2R;
@@ -1152,8 +1154,11 @@ export class GlobeEngine {
   /**
    * Lands a whole trip at once, as if it had been flown: the stops in order, at least two. Replaces any trip on the
    * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
+   * `how`: "land" brings the plane down at the end and turns to frame the trip; "quiet" moves the trip where it is,
+   * with no landing (a stop dragged to a new place); "draw" turns to frame it and draws its routes out instead, with
+   * no plane, the pins dropping once each is drawn (the From and To search).
    */
-  showTrip(points: LatLng[], quiet = false) {
+  showTrip(points: LatLng[], how: ShowTrip = "land") {
     this.requestFrame();
     if (points.length < 2) return;
     const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
@@ -1167,7 +1172,7 @@ export class GlobeEngine {
     // that are new draw out behind it, and legs that went reel in. A quiet one (a stop dragged to a new place) only
     // moves the trip, where it is.
     const pip = !!this.agent?.on && !this.reduceMotion;
-    if (!pip && !quiet) return;
+    if (!pip && how === "land") return;
     const t = this.t;
     if (pip) {
       const after = this.ownLegs();
@@ -1176,6 +1181,14 @@ export class GlobeEngine {
       for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
     }
     this.tLand = t - TOUCHDOWN - VANISH;
+    if (how === "draw" && !pip) {
+      // the view keeps its turn to frame the trip; each leg draws out in turn once the turn is well under way
+      if (!this.reduceMotion) {
+        const start = (this.turn?.t0 ?? t) + (this.turn?.dur ?? 0) * 0.4;
+        this.ownLegs().forEach((leg, i) => this.ownDraws.push({ a: leg[0], b: leg[1], t0: start + i * DRAW * 0.6 }));
+      }
+      return;
+    }
     this.turn = null;
     this.autoFrame = null;
   }
@@ -2027,7 +2040,7 @@ export class GlobeEngine {
   /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
   /**
    * Where a route's arc is on screen at fraction `t` from `from` to `to` (0.5 is its peak): the same lifted curve
-   * the globe draws, so a tag placed here sits on the line.
+   * the globe draws, so a tag placed here sits on the line. Not visible until a route drawing out has reached it.
    */
   routePoint(from: LatLng, to: LatLng, t = 0.5): { x: number; y: number; visible: boolean } | null {
     if (!this.cam) return null;
@@ -2036,7 +2049,9 @@ export class GlobeEngine {
     const w = angle(a, b);
     const h = Math.min(0.32, 0.03 * this.zoomScale + w * 0.11);
     const p = this.proj(mul(slerp(a, b, t), 1 + h * Math.sin(Math.PI * t)));
-    return p ? { x: p.x, y: p.y, visible: p.vis } : null;
+    // a route still drawing out hasn't reached a point past its pen yet, so whatever sits there waits for it
+    const drawn = this.ownDraws.length ? this.ownDrawn(a, b, this.t) : 1;
+    return p ? { x: p.x, y: p.y, visible: p.vis && drawn >= t } : null;
   }
 
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null {

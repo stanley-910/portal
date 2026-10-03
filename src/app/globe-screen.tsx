@@ -135,7 +135,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
     points[i + 1] = place.at;
     pinKeys.current.set(placeKey(place.at), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
     pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
-    globe.current?.showTrip(points, true);
+    globe.current?.showTrip(points, "quiet");
     return null;
   };
   const pip = useRef<HomePipHandle>(null);
@@ -182,7 +182,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
         setLegs(restored.legs);
         setPicks(restored.picks);
         setActive(restored.legs.length - 1);
-        globe.current?.showTrip([restored.legs[0].origin, ...restored.legs.map((l) => l.destination)], true);
+        globe.current?.showTrip([restored.legs[0].origin, ...restored.legs.map((l) => l.destination)], "quiet");
         resumeSave(restored.input);
       }).catch(() => setSaveFailed(true));
     }
@@ -270,7 +270,14 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       onTrips={() => library.setOpen(true)}
       settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrencyPref} />}
     >
-      <PlaceSearch globe={globe} />
+      <PlaceSearch
+        globe={globe}
+        onRoute={(from, to, date) => {
+          // the route draws out to the two places and lands on the picked date, like a trip Pip planned
+          pipDates.current = [date];
+          globe.current?.showTrip([from, to], "draw");
+        }}
+      />
       {account ? (
         <NavButton icon={NAV_ICONS.trips} label="Trips" aria-expanded={library.open} onClick={() => library.setOpen(!library.open)} />
       ) : null}

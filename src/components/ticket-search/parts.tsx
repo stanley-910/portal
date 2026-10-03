@@ -164,7 +164,7 @@ const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
  * picked is drawn as a dashed route, as the trip will be on the globe. Arrow keys move a day or a week, Page Up and
  * Page Down a month.
  */
-function MonthGrid({ min, value, from, label, onPick }: { min: string; value: string | null; from?: string; label: string; onPick: (iso: string) => void }) {
+export function MonthGrid({ min, value, from, label, onPick }: { min: string; value: string | null; from?: string; label: string; onPick: (iso: string) => void }) {
   const [focus, setFocus] = useState(() => (value && value >= min ? value : min));
   const month = focus.slice(0, 7);
   const grid = useRef<HTMLDivElement>(null);

@@ -172,6 +172,29 @@
   .pn-search-field, .pn-search-field svg, .pn-search-field input, .pn-search-list, .pn-search-option,
   .pn-search-panel[data-closing] .pn-search-field, .pn-search-panel[data-closing] .pn-search-list { animation: none; }
 }
+/* From and To, with the date between: one wide bar, its three parts split by hairlines, and Search at the end */
+.pn-search[data-route] .pn-search-panel { width: min(38rem, calc(100vw - 2 * var(--space-4))); }
+.pn-route { gap: 0; padding-inline: 0 4px; }
+.pn-route-end { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 100%; padding-inline: var(--space-3) var(--space-2); color: var(--ink-muted); }
+.pn-route-end[data-active] { color: var(--ink); }
+.pn-route-end input { color: var(--ink); }
+.pn-route-end input[data-picked] { font-weight: 600; }
+.pn-route-date { position: relative; flex: none; align-self: stretch; margin-block: 6px; padding: 0 var(--space-3); border: 0; border-inline: var(--line-hair) solid var(--line); background: transparent; color: var(--ink); font-family: var(--font-typewriter); font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.pn-route-date:hover, .pn-route-date[aria-expanded="true"] { background: var(--control-hover); }
+.pn-route-date:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.pn-route-go { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); cursor: pointer; }
+.pn-route-go:hover:not(:disabled) { background: var(--ink-hover); }
+.pn-route-go:disabled { background: transparent; color: var(--ink-muted); cursor: default; }
+.pn-route-go:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* the date picker drops from the date, the places list from whichever end is being typed in */
+.pn-route-cal { left: 50%; right: auto; width: 17rem; transform: translateX(-50%); }
+.pn-search[data-route] .pn-search-list { width: min(24rem, 100%); }
+.pn-search[data-route] .pn-search-list[data-end="to"] { left: auto; right: 0; }
+@media (max-width: 560px) {
+  .pn-route-end { padding-inline: var(--space-2) 4px; }
+  .pn-route-end svg { display: none; }
+  .pn-route-date { padding: 0 var(--space-2); font-size: 12px; }
+}
 .pn-search-list { left: 0; margin: var(--space-2) 0 0; list-style: none; max-height: min(26rem, 70dvh); overflow-y: auto; }
 .pn-search-option { display: flex; align-items: center; gap: var(--space-gap); min-height: 44px; padding: var(--space-2); border-radius: var(--radius-control); font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .pn-search-option[aria-selected="true"] { background: var(--control-hover); }
