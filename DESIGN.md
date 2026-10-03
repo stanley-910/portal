@@ -67,7 +67,7 @@ Paper Atlas is the look of Portal: a globe printed in halftone ink on paper, wit
 
 - The globe is the whole screen. The ticket sits bottom-centre, `space-6` from the bottom, tilted −1.2°.
 - Every interactive target is at least 44px. A `Button` inside a card is drawn compact (32px, `radius-tag` corners) and keeps its 44px tap area unseen. A round button over the globe is a `paper-raised` disc with a `control-border` border and the `shadow-float` shadow, so it reads against the map. Inside a panel (sign-in, Pip's chat) use the quiet one instead: the bare glyph in `ink-muted`, with no border or shadow, that fills with `control-hover` on hover.
-- Show keyboard focus as a solid 2px `focus` outline, offset 3px.
+- Show keyboard focus as a solid 2px `focus` outline, offset 3px. Never outline a selection: a picked, open or typed-in control fills with `control-hover` (or `ink`, for a picked choice), and its border stays `control-border`.
 
 ## Logo
 

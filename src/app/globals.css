@@ -107,6 +107,12 @@
     outline: 2px solid var(--focus);
     outline-offset: 3px;
   }
+  /* a field shows it's being typed in by filling (its own CSS), never by a ring: clicking into one would draw it */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
 }
 
 /* Demo build: Liveblocks injects its "Powered by" badge with inline styles, so only !important removes it. */

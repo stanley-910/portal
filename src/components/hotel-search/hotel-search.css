@@ -7,7 +7,7 @@
 .ts .hs-field { cursor: pointer; }
 .ts .hs-field select { width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--font-sans); appearance: none; cursor: inherit; text-overflow: ellipsis; }
 .ts .hs-field select[data-empty] { font-weight: 400; color: var(--ink-muted); }
-.ts .hs-field:focus-within { border-color: var(--ink); }
+.ts .hs-field:focus-within { background: var(--control-hover); }
 .hs-rows { max-height: 220px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
 .hs-option { display: grid; }
 /* a photo, when the provider has one, sits at the row's left across its lines */

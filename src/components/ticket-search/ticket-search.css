@@ -71,7 +71,8 @@
 /* Date fields */
 .ts-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .ts-field { height: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 4px 8px; text-align: left; background: transparent; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); }
-.ts-field[aria-expanded="true"] { border-color: var(--ink); }
+/* open, or being typed in: filled, never outlined */
+.ts-field[aria-expanded="true"], .ts-field:focus-within { background: var(--control-hover); }
 .ts-field-label { font-size: 10.5px; line-height: 13px; font-weight: 500; color: var(--ink-muted); }
 .ts-field-value { font-size: 12.5px; line-height: 16px; font-weight: 600; }
 .ts-field-value[data-empty] { font-weight: 400; color: var(--ink-muted); }

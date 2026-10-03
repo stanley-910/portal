@@ -86,7 +86,7 @@
 .pn-profile-guest { display: flex; flex-direction: column; gap: var(--space-1); padding-bottom: var(--space-1); }
 .pn-profile-guest .pa-btn, .pn-profile-guest .pa-btn > span { justify-content: center; padding-inline: var(--space-2); }
 .pn-profile-input { flex: 1; min-width: 0; height: 44px; box-sizing: border-box; padding-inline: var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font: inherit; font-size: 15px; }
-.pn-profile-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pn-profile-input:focus { outline: none; background: var(--control-hover); }
 /* Passport picker: chips, a search box, and a list of countries to tick */
 .pn-pp { display: flex; flex-direction: column; gap: var(--space-2); }
 .pn-pp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
@@ -97,7 +97,7 @@
 .pn-pp-remove:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-pp-remove svg, .pn-pp-search, .pn-pp-check svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
 .pn-pp-field { display: flex; align-items: center; gap: var(--space-2); height: 40px; padding: 0 6px 0 10px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
-.pn-pp-field:focus-within { border-color: var(--ink); }
+.pn-pp-field:focus-within { background: var(--control-hover); }
 .pn-pp-search { flex: none; color: var(--ink-muted); }
 .pn-pp-field input { flex: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: transparent; color: var(--ink); font-family: var(--font-sans); font-size: 14px; }
 .pn-pp-field input::placeholder { color: var(--ink-muted); }
@@ -113,7 +113,7 @@
 .pn-swatches { display: flex; justify-content: space-between; gap: 2px; padding: 2px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
 .pn-swatch { position: relative; flex: 1; height: 40px; border-radius: calc(var(--radius-control) - 2px); cursor: pointer; transition: background-color 150ms ease; }
 .pn-swatch:hover { background: var(--control-hover); }
-.pn-swatch:has(input:checked) { background: var(--control-hover); outline: var(--line-control) solid var(--ink); outline-offset: -1px; }
+.pn-swatch:has(input:checked) { background: var(--control-hover); }
 .pn-swatch:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-swatch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: inherit; }
 .pn-swatch .pn-swatch-cursor { left: calc(50% - 5px); top: 10px; pointer-events: none; }

@@ -67,7 +67,7 @@
   .ts .tp-vote, .tp-vote svg { transition: none; }
   .tp-vote:hover svg { transform: none; }
 }
-.tp-vote:hover { background: var(--control-hover); border-color: var(--ink); }
+.tp-vote:hover { background: var(--control-hover); }
 .tp-vote svg { fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
 .ts .tp-vote[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 

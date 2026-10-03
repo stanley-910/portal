@@ -19,7 +19,7 @@
 .au-form { display: flex; flex-direction: column; gap: var(--space-3); }
 .au-field { display: flex; flex-direction: column; gap: var(--space-1); font-size: 13px; font-weight: 600; }
 .au-input { height: 44px; box-sizing: border-box; padding-inline: var(--space-3); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font: inherit; font-size: 15px; font-weight: 400; }
-.au-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.au-input:focus { outline: none; background: var(--control-hover); }
 .au-hint { font-weight: 400; color: var(--ink-muted); }
 .au-message { margin: 0; padding: var(--space-2) var(--space-3); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); font-size: 14px; line-height: 20px; }
 .au-message[data-kind="error"] { border-color: var(--ink); }
