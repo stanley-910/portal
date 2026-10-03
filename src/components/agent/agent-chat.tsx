@@ -197,7 +197,7 @@ function Panel({ onClose }: { onClose: () => void }) {
   return (
     <section className="pip-panel" aria-label={`Trip chat with ${AGENT_NAME}`}>
       <header className="pip-head">
-        <PipSprite size={40} mood={mood} />
+        <PipSprite size={32} mood={mood} />
         <div className="min-w-0 flex-1">
           <p className="pip-head-name">{AGENT_NAME}</p>
           <p className="pip-head-sub">{context.line}</p>
@@ -434,7 +434,7 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
           to talk to {AGENT_NAME}.
         </p>
       ) : null}
-      <div className="pip-input-row">
+      <label className="pip-input-row">
         <input
           className="pip-input"
           value={draft}
@@ -448,7 +448,7 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
             <path d="M3 8 H13 M9 4 L13 8 L9 12" />
           </svg>
         </button>
-      </div>
+      </label>
     </form>
   );
 }

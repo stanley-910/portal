@@ -37,7 +37,7 @@ export function HomePip({ account }: { account: boolean }) {
   return (
     <section className="pip-panel" aria-label={`Plan a trip with ${AGENT_NAME}`}>
       <header className="pip-head">
-        <PipSprite size={40} />
+        <PipSprite size={32} />
         <div className="min-w-0 flex-1">
           <p className="pip-head-name">{AGENT_NAME}</p>
           <p className="pip-head-sub">New trip</p>

@@ -29,12 +29,9 @@
 /* Panel */
 /* sized to the conversation, growing up from the corner until it reaches the nav bar, then scrolling */
 .pip-panel { position: absolute; right: var(--space-6); bottom: var(--space-6); max-height: calc(100% - 92px - var(--space-6)); min-height: 280px; z-index: 30; display: flex; flex-direction: column; width: min(380px, calc(100vw - 48px)); background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--shadow-float); overflow: hidden; transform-origin: 100% 100%; animation: pip-open 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; will-change: transform, opacity; font-family: var(--font-sans); }
-.pip-head { position: relative; display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 var(--space-2) 0 var(--space-3); border-bottom: var(--line-control) solid var(--line); flex: none; }
-.pip-head::before { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: repeating-conic-gradient(var(--pip-dither) 0 25%, transparent 0 50%); background-size: 4px 4px; mask-image: linear-gradient(90deg, #000, transparent 70%); }
-.pip-head-name { font-size: 15px; line-height: 20px; font-weight: 600; }
-.pip-head-sub { font-size: 13px; line-height: 18px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* the head's content sits above its dither */
-.pip-head > * { position: relative; }
+.pip-head { position: relative; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 var(--space-2) 0 var(--space-3); border-bottom: var(--line-control) solid var(--line); flex: none; }
+.pip-head-name { font-size: 14px; line-height: 18px; font-weight: 600; }
+.pip-head-sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pip-close { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: var(--radius-control); background: none; color: var(--ink-muted); cursor: pointer; }
 .pip-close::before { content: ""; position: absolute; inset: -4px; }
 .pip-close:hover { background: var(--control-hover); color: var(--ink); }
@@ -95,10 +92,12 @@
 .pip-chip::before { content: ""; position: absolute; inset: -5px 0; }
 .pip-chip { position: relative; flex: none; height: 34px; padding: 0 12px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper-raised); color: var(--ink); font-size: 13px; line-height: 18px; font-weight: 500; cursor: pointer; }
 .pip-chip:hover:not(:disabled) { background: var(--control-hover); }
-.pip-input-row { display: flex; gap: 6px; }
-.pip-input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper); color: var(--ink); font-size: 15px; }
+/* the input and send look 36px; the row's padding (a label, so it focuses the input) and the button's ::before keep 44px tap areas */
+.pip-input-row { display: flex; gap: 6px; padding: 4px 0; margin: -4px 0; cursor: text; }
+.pip-input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper); color: var(--ink); font-size: 14px; }
 .pip-input::placeholder { color: var(--ink-muted); }
-.pip-send { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); border: 0; cursor: pointer; }
+.pip-send { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); border: 0; cursor: pointer; }
+.pip-send::before { content: ""; position: absolute; inset: -4px; }
 .pip-send:disabled { opacity: 0.45; cursor: not-allowed; }
 .pip-send svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
 .pip-chip:focus-visible, .pip-send:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
