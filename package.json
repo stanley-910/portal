@@ -17,10 +17,12 @@
     "srt:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-srt.mts"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^3.0.58",
     "@base-ui/react": "^1.8.0",
     "@liveblocks/client": "3.24.2",
     "@liveblocks/node": "3.24.2",
     "@liveblocks/react": "3.24.2",
+    "ai": "^7.0.127",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "d3-geo": "^3.1.1",
@@ -44,8 +46,8 @@
     "@types/topojson-client": "^3.1.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
-    "playwright": "1.58.2",
     "fflate": "^0.8.3",
+    "playwright": "1.58.2",
     "tailwindcss": "^4",
     "topojson-client": "^3.1.0",
     "typescript": "^5",

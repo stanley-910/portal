@@ -2,6 +2,8 @@
 
 import { shallow, useOthers, useSelf } from "@liveblocks/react";
 
+import { PipSprite } from "@/components/agent/pip-sprite";
+import { AGENT_ID, AGENT_NAME } from "@/lib/agent/types";
 import { memberColor, type MemberInfo } from "@/lib/liveblocks/types";
 
 const MAX_SHOWN = 5;
@@ -12,7 +14,8 @@ const MAX_SHOWN = 5;
  */
 export function AvatarStack() {
   const me = useSelf((self) => self.info);
-  const others = useOthers((list) => list.map((o) => ({ key: o.connectionId, info: o.info })), shallowList);
+  const others = useOthers((list) => list.filter((o) => o.id !== AGENT_ID).map((o) => ({ key: o.connectionId, info: o.info })), shallowList);
+  const pip = useOthers((list) => list.some((o) => o.id === AGENT_ID));
   const extra = Math.max(0, others.length - MAX_SHOWN);
 
   return (
@@ -21,6 +24,11 @@ export function AvatarStack() {
       {others.slice(0, MAX_SHOWN).map((o) => (
         <Avatar key={o.key} info={o.info} label={o.info.name} />
       ))}
+      {pip ? (
+        <li title={AGENT_NAME} aria-label={AGENT_NAME} className="pn-avatar -ml-(--space-2) border-2 border-sticker-ink bg-star-light">
+          <PipSprite size={24} />
+        </li>
+      ) : null}
       {extra ? (
         <li className="pn-avatar -ml-(--space-2) border-(length:--line-control) border-control-border">
           +{extra}

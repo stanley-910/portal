@@ -4,6 +4,8 @@ import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdat
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 
+import { AgentChat } from "@/components/agent/agent-chat";
+import { PipCursor } from "@/components/agent/pip-cursor";
 import { NavBar, PlaceSearch } from "@/components/nav-bar";
 import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
@@ -68,6 +70,7 @@ function TripScreen() {
       />
       <RemotePlanes globe={globe} hideLeg={landedLeg} />
       <RemoteCursors globe={globe} />
+      <PipCursor globe={globe} />
       <NavBar globe={globe}>
         <PlaceSearch globe={globe} />
         <AvatarStack />
@@ -77,6 +80,7 @@ function TripScreen() {
       <div className="absolute top-40 right-(--space-4)">
         <TripPlan />
       </div>
+      <AgentChat />
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">
           {status === "connecting" ? "Connecting" : "Reconnecting"}

@@ -1,4 +1,6 @@
-import type { LiveMap, LiveObject } from "@liveblocks/client";
+import type { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
+
+import type { AgentEvent, AgentRun, Changeset, ThreadMessage } from "@/lib/agent/types";
 
 // Shared shapes for the trip room. Decisions: docs/multiplayer/decisions.md (M3, M4, M8, M13, M14).
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
@@ -12,6 +14,8 @@ export type TripPresence = {
     ahead: { lat: number; lng: number };
     landed: boolean;
   } | null;
+  /** Only Pip sets this (from the server): what it's doing, shown beside its cursor. */
+  activity?: string | null;
 };
 
 export type MemberInfo = {
@@ -79,6 +83,12 @@ export type TripStorage = {
   members: LiveMap<string, LiveObject<MemberInfo>>;
   stops: LiveMap<string, LiveObject<Stop>>;
   legs: LiveMap<string, LiveObject<Leg>>;
+  /** The trip's one thread, people and Pip (M15). Missing in rooms made before it; created on first message. */
+  thread?: LiveList<LiveObject<ThreadMessage>>;
+  /** Pip's current run, if any. */
+  agentRun?: AgentRun | null;
+  /** Changeset id → the plan before that run changed it. */
+  changesets?: LiveMap<string, Changeset>;
 };
 
 declare global {
@@ -86,6 +96,7 @@ declare global {
     Presence: TripPresence;
     Storage: TripStorage;
     UserMeta: { id: string; info: MemberInfo };
+    RoomEvent: AgentEvent;
   }
 }
 

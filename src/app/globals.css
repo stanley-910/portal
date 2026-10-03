@@ -6,6 +6,7 @@
 @import "../components/nav-bar/nav-bar.css";
 @import "../components/ticket-search/ticket-search.css";
 @import "../components/multiplayer/trip-plan.css";
+@import "../components/agent/agent.css";
 
 @custom-variant dark (&:is(.dark *));
 

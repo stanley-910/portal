@@ -1,10 +1,11 @@
 "use client";
 
-import { useOther, useOthersConnectionIds, useRoom } from "@liveblocks/react";
+import { shallow, useOther, useOthers, useRoom } from "@liveblocks/react";
 import { useEffect, useRef, type RefObject } from "react";
 
 import { Cursor as StickerCursor, memberColor as paperMemberColor } from "@/components/paper-atlas";
 import type { TripGlobeHandle } from "@/components/trip-globe";
+import { AGENT_ID } from "@/lib/agent/types";
 
 /**
  * Everyone else's cursor, pinned to the place they point at (M14). React renders one element per person and only
@@ -13,7 +14,8 @@ import type { TripGlobeHandle } from "@/components/trip-globe";
  */
 export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | null> }) {
   const room = useRoom();
-  const ids = useOthersConnectionIds();
+  // Pip has its own pixel cursor (components/agent/pip-cursor)
+  const ids = useOthers((list) => list.filter((o) => o.id !== AGENT_ID).map((o) => o.connectionId), shallow);
   const els = useRef(new Map<number, HTMLElement>());
 
   useEffect(() => {

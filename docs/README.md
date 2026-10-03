@@ -12,7 +12,7 @@ Each area of the app has its own folder. Every folder has a `decisions.md`, plus
 | [trains](trains/decisions.md) | Train providers: China HSR, Taiwan THSR, Korail, Thai SRT, KTMB |
 | [buses](buses/decisions.md) | Bus providers: GTFS feeds, BusOnlineTicket, Taiwan and Korea coach seeds |
 | [ferries](ferries/decisions.md) | Ferry routes (12Go seed and link-out) |
-| [multiplayer](multiplayer/decisions.md) | The live layer, trip model, identity, the shared AI agent, and payments. Free-tier limits are in [free-tiers.md](multiplayer/free-tiers.md) |
+| [multiplayer](multiplayer/decisions.md) | The live layer, trip model, identity, the shared AI agent, and payments. Free-tier limits are in [free-tiers.md](multiplayer/free-tiers.md), and the agent harness (Pip) is in [agent-harness.md](multiplayer/agent-harness.md) |
 
 When a new area needs a folder (`flights`, `trains`, `planner` and so on), add `docs/<area>/decisions.md` and a row here.
 

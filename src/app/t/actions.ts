@@ -6,10 +6,12 @@ import { redirect } from "next/navigation";
 
 import { ensureGuest, MAX_NAME, readGuest, setGuestName } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";
-import { TRIP_ID, tripRoomId, type LegSearch } from "@/lib/liveblocks/types";
-import { searchFromCoordinates } from "@/lib/transport/hub-search";
-import { MAX_OFFERS, toStoredOffer } from "@/lib/trip/offers";
-import { stopToPlace } from "@/lib/trip/stops";
+import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
+import { editPlan, undoChangeset } from "@/lib/agent/edit";
+import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
+import { meetupOps } from "@/lib/agent/tools";
+import type { ThreadCard } from "@/lib/agent/types";
+import { runLegSearch } from "@/lib/trip/search-leg";
 
 /** Creates a trip room owned by the current guest and opens it. Its URL is the invite (M7). */
 export async function createTrip() {
@@ -30,43 +32,60 @@ export async function saveName(formData: FormData) {
   if (name) await setGuestName(name);
 }
 
-/**
- * Runs the route search for one leg and writes the results into the trip for everyone (M13). It runs on the server so
- * provider keys stay there (ADR-C01) and the results land even if whoever drew the leg closes the tab. `searchId` is
- * the search the caller started: if the leg was edited since, a newer search owns it and this one is dropped (M12).
- */
+/** Starts the route search for one leg on the server, so provider keys stay there (ADR-C01) and results land even if
+ * whoever drew the leg closes the tab. */
 export async function searchLeg(tripId: string, legId: string, searchId: string) {
   if (!TRIP_ID.test(tripId)) return;
   const roomId = tripRoomId(tripId);
   const guest = await readGuest();
-  const lb = liveblocks();
-  const room = await lb.getRoom(roomId).catch(() => null);
+  const room = await liveblocks().getRoom(roomId).catch(() => null);
   // the search spends provider quota, so only members can start one
   if (!guest || !room?.usersAccesses[guest.id]) return;
+  await runLegSearch(roomId, legId, searchId);
+}
 
-  const plan = await lb.getStorageDocument(roomId, "json");
-  const leg = plan.legs?.[legId];
-  const from = leg && plan.stops?.[leg.from];
-  const to = leg && plan.stops?.[leg.to];
-  if (!leg || !from || !to || leg.search.id !== searchId) return;
+/** Members only: the agent's changes and meet-ups are plan edits like any other. */
+async function memberRoom(tripId: string) {
+  if (!TRIP_ID.test(tripId)) return null;
+  const roomId = tripRoomId(tripId);
+  const guest = await readGuest();
+  const room = await liveblocks().getRoom(roomId).catch(() => null);
+  return guest && room?.usersAccesses[guest.id] ? { roomId, guest } : null;
+}
 
-  let search: LegSearch;
-  try {
-    const result = await searchFromCoordinates({
-      from: stopToPlace(from),
-      to: stopToPlace(to),
-      date: leg.date,
-      modes: [],
-      passengers: 1,
-      currency: "USD",
-    }, new AbortController().signal);
-    search = { id: searchId, status: "done", offers: result.offers.slice(0, MAX_OFFERS).map(toStoredOffer) };
-  } catch {
-    search = { id: searchId, status: "failed", offers: [] };
-  }
+/** Undo on a card: puts back what one of Pip's changes did, and marks the card undone. */
+export async function undoAgentChange(tripId: string, messageId: string, changesetId: string) {
+  const member = await memberRoom(tripId);
+  if (!member) return;
+  await undoChangeset(member.roomId, changesetId);
+  await markCard(member.roomId, messageId, (card) =>
+    (card.type === "changes" || card.type === "meetup") && card.changesetId === changesetId ? { ...card, undone: true } : card,
+  );
+}
 
-  await lb.mutateStorage(roomId, ({ root }) => {
-    const current = root.get("legs").get(legId);
-    if (current?.get("search").id === searchId) current.set("search", search);
+/** Apply on a meet-up card: adds one leg per group to the meeting city, without going through the model. */
+export async function applyMeetup(tripId: string, messageId: string, optionId: string) {
+  const member = await memberRoom(tripId);
+  if (!member) return;
+  const lb = liveblocks();
+  const plan = (await lb.getStorageDocument(member.roomId, "json")) as PlanJson;
+  const card = plan.thread
+    ?.find((m) => m.id === messageId)
+    ?.cards.find((c): c is Extract<ThreadCard, { type: "meetup" }> => c.type === "meetup" && c.options.some((o) => o.id === optionId));
+  const option = card?.options.find((o) => o.id === optionId);
+  if (!card || !option || (card.applied && !card.undone)) return;
+  const handles = handlesFor(plan);
+  const result = await editPlan(member.roomId, plan, handles, meetupOps(option, handles), member.guest.id);
+  await markCard(member.roomId, messageId, (c) =>
+    c === undefined || c.type !== "meetup" || !c.options.some((o) => o.id === optionId)
+      ? c
+      : { ...c, applied: optionId, changesetId: result.changesetId, undone: false },
+  );
+}
+
+async function markCard(roomId: string, messageId: string, update: (card: ThreadCard) => ThreadCard) {
+  await liveblocks().mutateStorage(roomId, ({ root }) => {
+    const message = root.get("thread")?.find((m) => m.get("id") === messageId);
+    if (message) message.set("cards", message.get("cards").map(update));
   });
 }

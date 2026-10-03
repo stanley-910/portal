@@ -17,6 +17,7 @@ We solve how to get between places. We are not a trip guide or an event planner,
 ## What exists in the repo today
 
 - `/` is the globe screen: a custom WebGL2 globe (`src/components/trip-globe`). Idle/in-flight hover previews use local bundled transport hubs; landing resolves exact clicked coordinates to hub pairs and searches provider offers through `/api/transport/search`. See `docs/transport/README.md` for coverage, credentials, and estimated-data limits. Taking off, flying, landing, pan, zoom and the landing ticket work.
+- `/t/<id>` trips have Pip, a shared agent in the trip thread (`src/lib/agent`, `src/components/agent`). It edits the plan with Undo and finds meet-up cities. Design and status: `docs/multiplayer/agent-harness.md`.
 - `/design` is the Paper Atlas design system gallery. The rules are in `DESIGN.md` and the tokens are in `src/design/tokens.json`.
 - `docs/<area>/` holds each area's decisions and research, for example `docs/multiplayer/decisions.md`. See `docs/README.md`.
 
@@ -34,7 +35,7 @@ All work is tracked in Linear: project "Hackathon MVP", team POR. Decisions made
 | Accounts and trips | Guest cookie plus Liveblocks ID token, no Supabase. The trip URL is the invite | POR-29, POR-30 (need rewriting) |
 | Money and AI | Per-member cost split | POR-37 |
 | Money and AI | Stripe test checkout per member, then a Duffel test order | POR-38 |
-| Money and AI | Shared agent in the trip thread, built on the Vercel AI SDK and Claude | POR-39 |
+| Money and AI | Shared agent in the trip thread (Pip), built on the Vercel AI SDK and DeepSeek V4.1 Flash | POR-39 |
 
 Some tickets predate the custom globe and mention react-globe.gl. Ignore that and use `<TripGlobe>`.
 

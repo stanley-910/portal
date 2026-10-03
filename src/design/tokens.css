@@ -21,6 +21,10 @@
   --star-light: #f6f0de;
   --star-edge: #c9bf9f;
   --roundel: #7f96cc;
+  --pip-body: #b8cc94;
+  --pip-shade: #8fad73;
+  --pip-cheek: #dbe6c4;
+  --pip-dither: rgba(40, 48, 32, 0.12);
   --member-1: #ec8a6c;
   --member-2: #9cb2ea;
   --member-3: #edc157;
@@ -46,6 +50,7 @@
   --shadow-tag: 2px 2px 0 rgba(40, 48, 32, 0.18);
   --shadow-control: 0 1px 2px rgba(40, 48, 32, 0.12);
   --shadow-float: 0 1px 2px rgba(40, 48, 32, 0.08), 0 10px 28px rgba(40, 48, 32, 0.14);
+  --shadow-pixel: 2px 2px 0 rgba(40, 48, 32, 0.35);
   --line-hair: 1.2px;
   --line-control: 1px;
   --line-ink: 1.5px;
@@ -75,11 +80,13 @@
   --sea-deep: #94abeb;
   --sage: #739463;
   --moss: #b8cc94;
+  --pip-dither: rgba(246, 240, 222, 0.22);
   --sticker-shadow: rgba(0, 0, 0, 0.5);
   --shadow-ticket: 4px 5px 0 rgba(0, 0, 0, 0.45);
   --shadow-tag: 2px 2px 0 rgba(0, 0, 0, 0.45);
   --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.5);
+  --shadow-pixel: 2px 2px 0 rgba(0, 0, 0, 0.5);
 }
 
 /* Font stacks at zero specificity, so the next/font variables set on <html> in src/app/fonts.ts win when present. */
@@ -111,6 +118,10 @@
   --color-star-light: var(--star-light);
   --color-star-edge: var(--star-edge);
   --color-roundel: var(--roundel);
+  --color-pip-body: var(--pip-body);
+  --color-pip-shade: var(--pip-shade);
+  --color-pip-cheek: var(--pip-cheek);
+  --color-pip-dither: var(--pip-dither);
   --color-member-1: var(--member-1);
   --color-member-2: var(--member-2);
   --color-member-3: var(--member-3);
@@ -243,4 +254,7 @@
 }
 @utility shadow-float {
   box-shadow: var(--shadow-float);
+}
+@utility shadow-pixel {
+  box-shadow: var(--shadow-pixel);
 }
