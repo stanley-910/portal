@@ -79,6 +79,20 @@ describe("ticket search options", () => {
     expect(shortPlace("Shanghai Hongqiao")).toBe("Shanghai Hongqiao");
   });
 
+  it.each([
+    ["2026-11-15T23:00:00+08:00", "2026-11-16T05:00:00+00:00", "+1", "Mon 16 Nov"],
+    ["2026-11-15T00:30:00+09:00", "2026-11-14T17:30:00-08:00", "-1", "Sat 14 Nov"],
+    ["2026-11-15T23:00:00-08:00", "2026-11-17T05:00:00+09:00", "+2", "Tue 17 Nov"],
+  ])("shows destination arrival date across midnight and the date line", (depart, arrive, offset, date) => {
+    const o = offer("overnight", "flight", 900, [seg("flight", "Origin", "Destination", depart, arrive, 600)], { kind: "live" });
+    for (const tab of ["best", "flight"] as const) {
+      const [row] = rowsFor([o], tab, null);
+      expect(row.description).toContain(`arrives ${date}`);
+      if (tab === "flight") expect(row.headline).toContain(offset);
+    }
+    expect(rowsFor([{ ...o, kind: "estimated" }], "flight", null)[0].description).not.toContain("arrives");
+  });
+
   it("prices one option, and a round trip as both picks together", () => {
     const out = direct("a", "train", 100);
     const back = direct("r1", "flight", 70);

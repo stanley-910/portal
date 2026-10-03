@@ -33,12 +33,12 @@ A hub's country is metadata about the hub. It's not a claim that the pointer is 
 
 ## Coverage and provenance
 
-The snapshot has **1,271 airports** (55 country and territory codes), **34 train stations**, **22 ferry terminals**
+The snapshot has **4,008 airports worldwide** (233 country and territory codes), **34 train stations**, **22 ferry terminals**
 and **32 directed surface connections**. Surface coverage is a curated subset. No airport-to-airport service graph is
 invented.
 
 [`src/lib/transport/hubs/DATA.md`](../../src/lib/transport/hubs/DATA.md) records the pinned OurAirports source,
-geography filter, licences and per-terminal caveats. The UI credits OurAirports, Wikidata and OpenStreetMap
+worldwide scope, licences and per-terminal caveats. The UI credits OurAirports, Wikidata and OpenStreetMap
 contributors. Resolving hubs makes no external geocoding request.
 
 ```sh
@@ -104,7 +104,7 @@ curl --get 'http://localhost:3000/api/transport/search' \
   it uses the bundled city catalogue or a deterministic local fallback, marked estimated.
   Results can be filtered to 2–5 stars or hostels, support 1–4 occupants, calculate the required rooms, and rank
   by a weighted nightly price and distance-to-city-centre score.
-- Duffel flight offers are live quotes from the airline, per passenger, shown without the Estimated badge. They
+- Duffel production flight offers are live quotes from the airline, per passenger, shown without the Estimated badge. Test-mode inventory is marked Estimated and explicitly attributed as test data. Production offers
   expire within minutes, so they're for showing and later booking, not for storing as a price. Without a token,
   Travelpayouts covers every flight leg on its own.
 - Travelpayouts fares are cached, per passenger, and not confirmed seats. Connecting summaries say intermediate legs
@@ -144,6 +144,8 @@ Rome2rio no longer accepts API partners, and Amadeus Self-Service shut down on 2
 pnpm test
 pnpm lint
 python3 scripts/snapshot-hubs.py --check
+node scripts/benchmark-hub-hover.mts  # offline hover scan and dataset size
+node --env-file-if-exists=.env.local scripts/smoke-long-haul.mts 2026-11-15  # Duffel + Travelpayouts adapters
 node --env-file-if-exists=.env.local scripts/smoke-flights.mts HKG PVG 2026-11-15  # real Travelpayouts call
 BASE_URL=http://localhost:3015 node scripts/smoke-globe.mjs                       # browser check against pnpm start
 ```
@@ -164,3 +166,69 @@ not route availability.
 | `src/lib/transport/search.ts` | Provider isolation, offer validation, ordering |
 | `src/app/api/transport/search/route.ts` | The search route |
 | `src/components/ticket-search/` | The landing ticket: offers, estimates, nearby hubs, attribution |
+
+## Long-haul coverage
+
+Global airports use the same pinned OurAirports source and bounded pair search. Overnight and date-line
+arrivals show their destination calendar date in both Best and Flights rows; unknown local clocks stay hidden.
+[Ticket D findings](findings/flights.md) record airline-access limits, source choices and live probe evidence.
+A Duffel test token proves API wiring only. A missing cached fare is not evidence that a route does not operate.
+
+## Live stays (Ticket E)
+
+`/api/hotels/search` runs optional Duffel Stays and LiteAPI searches in parallel within a shared 8-second deadline, preferring
+Duffel when it has matching hotels. `LITEAPI_API_KEY` is an optional **server-only** key from an owner-approved
+LiteAPI account. No key, missing guest nationality, sandbox credentials/results, provider errors, timeout, empty
+inventory or invalid quotes preserve the existing local hotel/hostel estimates. No account or key is needed to search.
+
+LiteAPI covers coordinate-based hotel searches in Hong Kong, Shanghai, Seoul, Tokyo and elsewhere, subject to actual
+inventory and account access. The hotel panel's optional guest-nationality selector supplies the required ISO-2
+nationality; it is never inferred from a destination. Each live rate identifies its provider, requested dates and party.
+Public selling-price floors and complete room allocations are checked. Rates with additional local charges are
+excluded until those charges can be displayed. Hotel details and rates are fetched without persistent caching.
+Live quotes are not linked to another seller's checkout. Hostels still show **Estimated**: no dedicated hostel source
+has been approved yet.
+
+[Research and rejected sources](findings/stays.md) records commercial/access gates, caching/display requirements and
+hostel follow-up. Tests use offline documentation-shaped fixtures, not claimed production availability. After the owner
+configures a permitted production key in the app server, run the read-only smoke check with actual dates/nationality:
+
+```sh
+node scripts/stays-smoke.mts http://localhost:3000 2027-01-15 2027-01-18 HK
+```
+
+It reports source/freshness for all four demo cities and exits 2 when any only returns estimates. It never books.
+
+## Train data refresh and remaining access gates
+
+[Train findings](findings/trains.md) records official and rejected sources for all seven brief corridors.
+No train provider currently confirms seats or sells a booking through an API. Train schedules remain `timetable`
+and display Estimated. China rail now omits its former duration-based invented fare; the source contains no price.
+China rail, Korail, THSR and SRT offers carry their actual seed source and checked date.
+
+- **KTMB:** independently refresh the published official GTFS without depending on Thailand's server:
+  `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/refresh-ktmb.mts`.
+  `--check --min-days=7` checks the bundled horizon offline; refresh also rejects an upstream calendar with fewer
+  than seven days left, an invalid feed or no usable rail pairs before writing anything. Other feeds survive,
+  withdrawn KTMB services are removed, and service dates are never extended. On 2026-10-03 the live official feed
+  still ends **2026-10-17** (18 city pairs, 163 departures); the November demo cannot use that feed yet.
+  The workflow `.github/workflows/refresh-ktmb.yml` prepares a daily artifact at 04:15 Malaysia time, with a SHA-256
+  download report. It has read-only repo permissions and does not commit, open a PR or deploy. A maintainer must
+  review/apply the artifact and deploy the snapshot to update the app. No API key is required.
+- **Vietnam:** `vietnam-rail` supplies five typical Hanoi → Saigon and five reverse departures from the operator's
+  published timetable. It preserves explicit next-day/two-day arrivals, including month/year boundaries. No price
+  is invented. The page does not establish a service calendar, so attribution tells users to confirm the date.
+  `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-vietnam-trains.mts` refreshes a cached
+  build-time snapshot (24-hour cache; `--fresh` bypasses it). Tests use recorded endpoint rows. Runtime never
+  scrapes or depends on the source being online. The source has no robots.txt (404 observed 2026-10-03) or linked
+  reuse terms; the script stops if robots.txt changes so its directives can be reviewed. This is not a claim of an
+  open-data licence or permission for bulk redistribution.
+- **Japan:** remains blocked for implementation; NAVITIME documents routing but requires licensed access, and the
+  official JR basic PDF is not a complete dated service calendar. Do not label route tariffs as live inventory.
+- **China/Korea/Taiwan/Thailand:** existing schedules remain available without keys. Genuine quotes/booking need
+  approved operator or rail reseller access. TDX and TAGO are schedule/data sources, not booking contracts.
+  A 12Go affiliate ID is insufficient: its API requires prior consent and separate confidential conditions.
+
+Offline Vietnam snapshot verification: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-vietnam-trains.mts --check`.
+GTFS metadata distinguishes per-feed `refreshedAt` from the bundle's assembly `builtAt`; a KTMB refresh does not
+claim a new Thailand download.

@@ -33,8 +33,8 @@ const FEEDS: FeedSource[] = [
     name: "KTMB (Keretapi Tanah Melayu)",
     url: "https://api.data.gov.my/gtfs-static/ktmb",
     country: "MY",
-    licence: "data.gov.my open data (exact licence unverified)",
-    attribution: "Data: KTMB via data.gov.my",
+    licence: "CC BY 4.0",
+    attribution: "Data: KTMB via data.gov.my, CC BY 4.0",
     routeTypes: [2],
   },
 ];

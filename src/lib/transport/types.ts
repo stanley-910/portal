@@ -1,7 +1,7 @@
 export type Mode = "flight" | "train" | "bus" | "ferry";
 export type ProviderId =
   | "travelpayouts" | "12go" | "tdx" | "korea-tago" | "china-rail"
-  | "busonlineticket" | "gtfs" | "srt" | "duffel";
+  | "busonlineticket" | "gtfs" | "srt" | "duffel" | "vietnam-rail";
 
 export interface Place {
   name: string;               // own spelling, accents kept (DESIGN.md)

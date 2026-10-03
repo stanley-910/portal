@@ -56,6 +56,8 @@ export interface FeedMeta {
   licence: string;
   attribution: string;
   version?: string;
+  /** Actual refresh time for this publisher; global builtAt only describes bundle assembly. */
+  refreshedAt?: string;
   calendarStart: string;
   calendarEnd: string;
 }

@@ -50,8 +50,17 @@ describe("coordinate resolution", () => {
   it("returns no distant fallback for an ocean or out-of-coverage click", () => {
     const result = resolveHubs(point(0, -140), point(51.5, -0.1));
     expect(result.from).toEqual([]);
-    expect(result.to).toEqual([]);
+    expect(result.to.some((candidate) => candidate.hub.iata === "LHR")).toBe(true);
     expect(result.pairs).toEqual([]);
+  });
+  it.each([["HKG", "LHR"], ["HND", "SFO"], ["SIN", "SYD"], ["JFK", "CDG"]])("resolves global flight pair %s–%s", (from, to) => {
+    const a = HUBS.find((hub) => hub.iata === from)!;
+    const b = HUBS.find((hub) => hub.iata === to)!;
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    const result = resolveHubs(a, b, ["flight"]);
+    expect(result.pairs.some((pair) => pair.from.hub.iata === from && pair.to.hub.iata === to)).toBe(true);
+    expect(result.pairs.length).toBeLessThanOrEqual(HUB_LIMITS.flightPairs);
   });
   it("keeps actual clicks and bounds flight pair fan-out", () => {
     const origin = point(22.305, 114.165);

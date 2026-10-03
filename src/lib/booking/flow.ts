@@ -103,7 +103,7 @@ export async function settleLeg(roomId: string, legId: string, actor: Actor, acc
     if (leg.booking) throw new BookingError("WRONG_STATE", "This leg is already settled.");
     if (!leg.riders.includes(actor.id)) throw new BookingError("NOT_ALLOWED", "Only a rider can settle a leg.");
     const chosen = leg.search.offers.find((o) => o.id === leg.chosen);
-    if (!chosen || chosen.provider !== "duffel") throw new BookingError("WRONG_STATE", "Pick a live flight first.");
+    if (!chosen || chosen.provider !== "duffel" || chosen.kind !== "live") throw new BookingError("WRONG_STATE", "Pick a live flight first.");
     const original = await getOffer(chosen.id.replace(/^duffel:/, ""));
     const fresh = await findOfferFor(original, leg.riders.length);
     if (!fresh) throw new BookingError("OFFER_GONE");

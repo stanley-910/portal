@@ -1,6 +1,7 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useRoom, useSelf, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useEventListener, useRoom, useSelf, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
@@ -17,17 +18,17 @@ import { LegTags } from "@/components/multiplayer/leg-tags";
 import { RiderPins } from "@/components/multiplayer/rider-pins";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { Button } from "@/components/paper-atlas";
-import { LeaveTripDialog } from "@/components/trip-plan/leave-trip";
+import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { initialTripStorage, useMemberColor, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
 
 type Me = { name: string; email: string | null; account: boolean; nationalities: string[] };
 
-export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
+export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: string | null } & Me) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
@@ -36,27 +37,34 @@ export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen tripId={tripId} {...me} />
+        <TripScreen tripId={tripId} {...me} hostId={hostId} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen({ tripId, name, email, account, nationalities }: { tripId: string } & Me) {
+function TripScreen({ tripId, name, email, account, nationalities, hostId }: { tripId: string; hostId: string | null } & Me) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
-  // your cursor's shape is yours; its colour is the one the room gave you
+  // your cursor's shape is yours; its colour is your colour in this trip, as the plan stores it
   const cursorShape = useCursorPref().shape;
   const updateMyPresence = useUpdateMyPresence();
+  const myId = useSelf((me) => me.id);
+  const tokenColor = useSelf((me) => me.info.color) ?? 1;
   // the room numbers colours from 1; the design system's slots count from 0
-  const color = useSelf((me) => me.info.color - 1) ?? 0;
+  const color = useMemberColor(myId, tokenColor) - 1;
+  // the owner as the plan has it, so it updates when they leave and the trip passes on; else whoever made the trip
+  const owner = useStorage((root) => root.owner) ?? hostId;
   const status = useStatus();
   // a trip started by talking to Pip on the home globe opens with the chat showing
   const pipOpen = useSearchParams().get("pip") === "open";
   const [full, setFull] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [ending, setEnding] = useState(false);
+  // the owner ended the trip: its room is gone, so there's nothing to reconnect to
+  const [ended, setEnded] = useState(false);
   const room = useRoom();
-  const { addLeg } = usePlanActions();
+  const { addLeg, setColor } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLegs, setLandedLegs] = useState<string[]>([]);
@@ -77,8 +85,30 @@ function TripScreen({ tripId, name, email, account, nationalities }: { tripId: s
   useRecordMember(nationalities);
 
   useErrorListener((error) => {
-    if (error.context.type === "ROOM_CONNECTION_ERROR" && error.context.code === 4005) setFull(true);
+    if (error.context.type !== "ROOM_CONNECTION_ERROR") return;
+    if (error.context.code === 4005) setFull(true);
+    // reconnecting after the room was deleted: the auth route answers 404, and Liveblocks stops retrying (code -1)
+    if (error.context.code === -1 && error.message.includes("(404 returned")) setEnded(true);
   });
+  // only the server sends this (`user` is null), so a member can't end the trip on anyone's screen
+  useEventListener(({ event, user }) => {
+    if (event.type !== "trip-ended" || user !== null) return;
+    room.disconnect();
+    setEnded(true);
+  });
+
+  if (ended) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-paper p-(--space-5)">
+        <div className="grid justify-items-center gap-(--space-3) text-center">
+          <p className="type-body">This trip has ended.</p>
+          <Link href="/" className="type-meta text-ink underline underline-offset-4">
+            Back to globe
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   if (full) {
     return (
@@ -112,11 +142,17 @@ function TripScreen({ tripId, name, email, account, nationalities }: { tripId: s
         account={account}
         nationalities={nationalities}
         reloadOnRename
+        tripColor={planReady ? { slot: color, onChange: (slot) => setColor(slot + 1) } : undefined}
         settings={
           <MenuSection title="This trip">
             <Button variant="quiet" onClick={() => setLeaving(true)}>
               Leave trip
             </Button>
+            {myId && myId === owner ? (
+              <Button variant="quiet" onClick={() => setEnding(true)}>
+                End trip
+              </Button>
+            ) : null}
           </MenuSection>
         }
       >
@@ -138,6 +174,14 @@ function TripScreen({ tripId, name, email, account, nationalities }: { tripId: s
           tripId={tripId}
           next={account ? "/trips" : "/"}
           onClose={() => setLeaving(false)}
+          connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
+        />
+      ) : null}
+      {ending ? (
+        <EndTripDialog
+          tripId={tripId}
+          next={account ? "/trips" : "/"}
+          onClose={() => setEnding(false)}
           connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
         />
       ) : null}

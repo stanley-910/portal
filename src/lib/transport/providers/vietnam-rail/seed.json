@@ -1,0 +1,76 @@
+{
+  "checked": "2026-10-03",
+  "source": "https://giotaugiave.dsvn.vn/",
+  "trains": [
+    {
+      "number": "SE7",
+      "from": "hanoi",
+      "to": "saigon",
+      "departMin": 360,
+      "arriveMin": 2460
+    },
+    {
+      "number": "SE5",
+      "from": "hanoi",
+      "to": "saigon",
+      "departMin": 480,
+      "arriveMin": 2540
+    },
+    {
+      "number": "SE9",
+      "from": "hanoi",
+      "to": "saigon",
+      "departMin": 780,
+      "arriveMin": 3086
+    },
+    {
+      "number": "SE3",
+      "from": "hanoi",
+      "to": "saigon",
+      "departMin": 1160,
+      "arriveMin": 3210
+    },
+    {
+      "number": "SE1",
+      "from": "hanoi",
+      "to": "saigon",
+      "departMin": 1305,
+      "arriveMin": 3270
+    },
+    {
+      "number": "SE8",
+      "from": "saigon",
+      "to": "hanoi",
+      "departMin": 360,
+      "arriveMin": 2420
+    },
+    {
+      "number": "SE6",
+      "from": "saigon",
+      "to": "hanoi",
+      "departMin": 525,
+      "arriveMin": 2594
+    },
+    {
+      "number": "SE10",
+      "from": "saigon",
+      "to": "hanoi",
+      "departMin": 795,
+      "arriveMin": 3100
+    },
+    {
+      "number": "SE4",
+      "from": "saigon",
+      "to": "hanoi",
+      "departMin": 1160,
+      "arriveMin": 3156
+    },
+    {
+      "number": "SE2",
+      "from": "saigon",
+      "to": "hanoi",
+      "departMin": 1235,
+      "arriveMin": 3222
+    }
+  ]
+}

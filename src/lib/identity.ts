@@ -8,14 +8,22 @@ import { getCurrentUser } from "@/lib/supabase/server";
  * link; saving a trip and asking Pip need an account. Supabase being off or down leaves everyone a guest, so trips
  * keep working.
  */
-export type Person = { id: string; name: string | null; email: string | null; account: boolean; nationalities: string[] };
+export type Person = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  account: boolean;
+  nationalities: string[];
+  /** The member colour they picked (1 to MEMBER_COLORS); null means each trip hands one out in join order. */
+  color: number | null;
+};
 
 /** The current person without creating a guest. Safe in Server Components. */
 export async function currentPerson(): Promise<Person | null> {
   const user = await getCurrentUser();
-  if (user) return { id: user.id, name: user.displayName, email: user.email, account: true, nationalities: user.nationalities };
+  if (user) return { id: user.id, name: user.displayName, email: user.email, account: true, nationalities: user.nationalities, color: user.color };
   const guest = await readGuest();
-  return guest ? { id: guest.id, name: guest.name, email: null, account: false, nationalities: guest.nationalities } : null;
+  return guest ? { id: guest.id, name: guest.name, email: null, account: false, nationalities: guest.nationalities, color: guest.color } : null;
 }
 
 /** The current person, creating a guest on first visit. Only in Server Functions and Route Handlers. */
@@ -23,5 +31,5 @@ export async function ensurePerson(): Promise<Person> {
   const person = await currentPerson();
   if (person) return person;
   const guest = await ensureGuest();
-  return { id: guest.id, name: guest.name, email: null, account: false, nationalities: guest.nationalities };
+  return { id: guest.id, name: guest.name, email: null, account: false, nationalities: guest.nationalities, color: guest.color };
 }

@@ -25,7 +25,6 @@ DATA = ROOT / "src/lib/transport/hubs"
 COMMIT = "ac08c301fd36bc1b9ea2bf4acfd4fef691360b5c"
 CSV_URL = f"https://raw.githubusercontent.com/davidmegginson/ourairports-data/{COMMIT}/airports.csv"
 CSV_SHA256 = "197c68d0520b01c35f03c7fa15bf3467bf8ed788b3ed5a128e86eccebf4465ef"
-EXTRA_COUNTRIES = {"RU", "TR", "GE", "AM", "AZ"}
 IMPORTANCE = {"small_airport": 1, "medium_airport": 2, "large_airport": 3}
 
 
@@ -38,8 +37,6 @@ def snapshot_airports():
         raise ValueError(f"Pinned CSV checksum mismatch: {digest}; refusing to write")
     hubs = []
     for row in csv.DictReader(io.StringIO(raw.decode("utf-8-sig"))):
-        if not (row["continent"] == "AS" or row["iso_country"] in EXTRA_COUNTRIES):
-            continue
         if row["scheduled_service"] != "yes" or not row["iata_code"] or row["type"] not in IMPORTANCE:
             continue
         code = row["iata_code"]

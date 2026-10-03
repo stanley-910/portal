@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { searchDuffelStays } from "@/lib/hotels/duffel";
-import { rankStays, searchHotels } from "@/lib/hotels/search";
+import { searchAvailableHotels } from "@/lib/hotels/live";
+import { iso2 } from "@/lib/entry/iso";
 import type { HotelFilter } from "@/lib/hotels/types";
 
 export const runtime = "nodejs";
@@ -12,6 +12,7 @@ const querySchema = z.object({
   checkIn: z.iso.date(),
   checkOut: z.iso.date(),
   occupants: z.coerce.number().int().min(1).max(4),
+  guestNationality: z.string().regex(/^[A-Z]{2}$/).refine((code) => !!iso2(code)).optional(),
   filter: z.union([z.literal("hostel"), z.coerce.number().int().min(2).max(5)]),
 }).superRefine((value, ctx) => {
   if (Date.parse(value.checkOut) <= Date.parse(value.checkIn)) {
@@ -26,7 +27,6 @@ export async function GET(request: Request) {
     return Response.json({ code: "BAD_QUERY", fields: parsed.error.issues.map((issue) => String(issue.path[0])) }, { status: 400 });
   }
   const query = { ...parsed.data, filter: parsed.data.filter as HotelFilter };
-  // live rates when Duffel has them, else the estimates
-  const live = await searchDuffelStays(query, request.signal);
-  return Response.json({ hotels: live ? rankStays(live, query) : searchHotels(query) });
+  const hotels = await searchAvailableHotels(query, request.signal);
+  return Response.json({ hotels }, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -66,6 +66,7 @@ export function createTrainSearch(seed: TrainSeed) {
             ],
             price: { amount: t.fareKrw, currency: "KRW", asOf: seed.checked },
             bookingUrl: KORAIL_BOOKING_URL,
+            attribution: `Korail typical timetable and standard fare, checked ${seed.checked}: ${t.source}; seats not checked`,
           })),
         )
         .sort((a, b) => Date.parse(a.segments[0].depart) - Date.parse(b.segments[0].depart));

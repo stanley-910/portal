@@ -8,7 +8,7 @@ import { Button, type ButtonProps } from "@/components/paper-atlas";
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { cn } from "@/lib/utils";
 
-import { ProfileMenu } from "./profile-menu";
+import { ProfileMenu, type TripColor } from "./profile-menu";
 
 // Defines <portal-logo-reveal>. It has the logo SVGs built in and does nothing on the server.
 import "../../../design-system/paper-atlas/components/LogoReveal/logo-reveal.js";
@@ -34,10 +34,14 @@ export interface NavBarProps {
   settings?: ReactNode;
   /** Your passports, ISO-3, for the profile menu. */
   nationalities?: string[];
+  /** The member colour you saved (1 to 6), or null, for the profile menu. */
+  color?: number | null;
+  /** Inside a trip: your colour there, for the profile menu to show and change. */
+  tripColor?: TripColor;
 }
 
 /** The top bar: the Portal logo on the left, controls on the right. The logo draws itself on at load. */
-export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings, nationalities }: NavBarProps) {
+export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings, nationalities, color, tripColor }: NavBarProps) {
   const compact = useCompact(globe);
   const { resolvedTheme } = useTheme();
   const logo = useRef<HTMLElement & { play(): void }>(null);
@@ -89,7 +93,15 @@ export function NavBar({ globe, children, name, email, account = false, reloadOn
       </Link>
       <div className="pn-controls">
         {children}
-        <ProfileMenu name={name} email={email ?? null} account={account} reloadOnRename={reloadOnRename} nationalities={nationalities}>
+        <ProfileMenu
+          name={name}
+          email={email ?? null}
+          account={account}
+          reloadOnRename={reloadOnRename}
+          nationalities={nationalities}
+          color={color}
+          tripColor={tripColor}
+        >
           {settings}
         </ProfileMenu>
       </div>

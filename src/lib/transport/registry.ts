@@ -9,6 +9,7 @@ import srt from "./providers/srt";
 import tdx from "./providers/tdx";
 import travelpayouts from "./providers/travelpayouts";
 import twelveGo from "./providers/12go";
+import vietnamRail from "./providers/vietnam-rail";
 
 // The provider list. Each provider lives in providers/<id>/index.ts; adding one never means editing the others.
 export const providers: readonly TransportProvider[] = [
@@ -21,4 +22,5 @@ export const providers: readonly TransportProvider[] = [
   busonlineticket,
   gtfs,
   srt,
+  vietnamRail,
 ];

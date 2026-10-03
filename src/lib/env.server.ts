@@ -11,6 +11,8 @@ const optional = z.preprocess(
 const schema = z.object({
   // live flight offers, bookable later; test-mode tokens only sell the fake Duffel Airways
   DUFFEL_ACCESS_TOKEN: optional,
+  // optional live hotel rates; docs/transport/findings/stays.md
+  LITEAPI_API_KEY: optional,
   // travelpayouts.md, 12go.md
   TRAVELPAYOUTS_TOKEN: optional,
   TRAVELPAYOUTS_MARKER: optional,

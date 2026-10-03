@@ -17,6 +17,9 @@ export interface Hotel {
   distanceKm: number;
   score: number;
   bookingUrl?: string;
+  source?: string;
+  sourceUrl?: string;
+  quote?: { checkIn: string; checkOut: string; occupants: number; quotedAt: string; guestNationality?: string };
 }
 
 export interface HotelSearchQuery {
@@ -27,6 +30,8 @@ export interface HotelSearchQuery {
   checkOut: string;
   occupants: number;
   filter: HotelFilter;
+  /** Explicit guest nationality, ISO-2; never inferred from the destination. */
+  guestNationality?: string;
 }
 
 export interface HotelResult extends Hotel {

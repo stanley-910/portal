@@ -78,11 +78,7 @@ export function createChinaRailProvider(seed: Seed): TransportProvider {
                   durationMin: t.durationMin,
                 },
               ],
-              price: {
-                amount: Math.round(t.durationMin * 1.9),
-                currency: "CNY",
-                asOf: seed.checked,
-              },
+              attribution: `Typical China rail timetable, checked ${seed.checked}: ${t.source}; fare and seats not checked`,
               bookingUrl: tripComTrainUrl(from, to, q.date),
             };
           }),

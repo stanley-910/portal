@@ -53,6 +53,8 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
     else if (account.get("leaves") === undefined && guest.get("leaves") !== undefined) account.set("leaves", guest.get("leaves"));
     members.delete(guestId);
   }
+  // a trip passed on to the guest stays theirs, as the room's metadata says too
+  if (root.get("owner") === guestId) root.set("owner", accountId);
 
   for (const leg of root.get("legs").values()) {
     const riders = leg.get("riders");

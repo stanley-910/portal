@@ -1,0 +1,20 @@
+{
+  "rates": {
+    "sandbox": false,
+    "data": [{
+      "hotelId": "lp-test-tokyo",
+      "roomTypes": [{
+        "offerId": "fixture-offer",
+        "offerRetailRate": { "amount": 400, "currency": "USD" },
+        "suggestedSellingPrice": { "amount": 480, "currency": "USD" },
+        "rates": [
+          { "occupancyNumber": 1, "adultCount": 2, "childCount": 0, "retailRate": { "total": [{ "amount": 200, "currency": "USD" }], "taxesAndFees": [{ "included": true }] } },
+          { "occupancyNumber": 2, "adultCount": 1, "childCount": 0, "retailRate": { "total": [{ "amount": 200, "currency": "USD" }], "taxesAndFees": [{ "included": true }] } }
+        ]
+      }]
+    }]
+  },
+  "detail": {
+    "data": { "id": "lp-test-tokyo", "name": "Fixture Hotel", "hotelType": "Hotel", "starRating": 4, "location": { "latitude": 35.67, "longitude": 139.76 } }
+  }
+}

@@ -60,7 +60,8 @@ describe("china-rail provider", () => {
       ],
     });
 
-    expect(g10?.price).toMatchObject({ amount: 505, currency: "CNY", asOf: "2026-10-02" });
+    expect(g10?.price).toBeUndefined();
+    expect(g10?.attribution).toContain("fare and seats not checked");
     expect(offers.every((o) => o.segments[0].number?.startsWith("G"))).toBe(true);
     const departs = offers.map((o) => Date.parse(o.segments[0].depart));
     expect(departs).toEqual([...departs].sort((a, b) => a - b));

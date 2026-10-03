@@ -1,0 +1,31 @@
+name: Refresh official KTMB timetable
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 20 * * *' # 04:15 Malaysia; official advice is refresh after 04:00.
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/refresh-ktmb.mts --min-days=7
+      - run: pnpm exec vitest run src/lib/transport/providers/gtfs
+      # Reviewable artifact only. This job never commits, creates a PR or deploys data.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ktmb-timetable
+          path: |
+            src/lib/transport/providers/gtfs/meta.json
+            src/lib/transport/providers/gtfs/pairs
+            .cache/ktmb-refresh/report.json
+          include-hidden-files: true
+          retention-days: 14

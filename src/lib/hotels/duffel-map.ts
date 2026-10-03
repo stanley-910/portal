@@ -8,6 +8,7 @@ export const roomsFor = (occupants: number) => Math.ceil(occupants / 2);
 
 const resultSchema = z.object({
   id: z.string().min(1),
+  live_mode: z.boolean().optional(),
   cheapest_rate_total_amount: z.string().regex(/^\d+(\.\d+)?$/),
   cheapest_rate_currency: z.string().regex(/^[A-Z]{3}$/),
   accommodation: z.object({
@@ -31,11 +32,12 @@ export function mapStays(raw: readonly unknown[], query: HotelSearchQuery): Live
   const stays: LiveStay[] = [];
   for (const item of raw) {
     const parsed = resultSchema.safeParse(item);
-    if (!parsed.success) continue;
+    if (!parsed.success || parsed.data.live_mode === false) continue;
     const r = parsed.data;
     const rating = r.accommodation.rating;
     const stars = rating && rating >= 2 && rating <= 5 ? (rating as 2 | 3 | 4 | 5) : undefined;
     const total = Number(r.cheapest_rate_total_amount);
+    if (!Number.isFinite(total) || total <= 0) continue;
     const stay: LiveStay = {
       id: `duffel:${r.id}`,
       name: r.accommodation.name,
@@ -47,6 +49,8 @@ export function mapStays(raw: readonly unknown[], query: HotelSearchQuery): Live
       bedsPerRoom: 2,
       pricePerNight: { amount: Math.round((total / nights / rooms) * 100) / 100, currency: r.cheapest_rate_currency },
       freshness: "live",
+      source: "Duffel", sourceUrl: "https://duffel.com/stays",
+      quote: { checkIn: query.checkIn, checkOut: query.checkOut, occupants: query.occupants, quotedAt: new Date().toISOString() },
       rooms,
       total,
     };

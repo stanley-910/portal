@@ -87,6 +87,7 @@ function createThsrSearch(seed: Seed) {
               },
             ],
             bookingUrl: THSR_BOOKING_URL,
+            attribution: `THSR typical timetable, checked ${seed.checked}: ${train.source}; seats not checked`,
           },
         ];
       });

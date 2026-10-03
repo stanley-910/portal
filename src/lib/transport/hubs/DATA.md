@@ -8,11 +8,11 @@ seeds**, not a timetable, bookable inventory, or a guarantee of current service.
 
 | File | Coverage |
 | --- | --- |
-| `airports.json` | 1,271 scheduled-service, IATA-coded airports; 55 country/territory codes |
+| `airports.json` | 4,008 scheduled-service, IATA-coded airports worldwide; 233 country/territory codes |
 | `surface-hubs.json` | 56 representative surface hubs: 34 train stations and 22 passenger ferry terminals/piers; 23 country/territory codes |
 | `connections.json` | 32 directed estimates (16 corridor pairs): 18 train edges and 14 ferry edges |
 
-The combined inventory has **1,327 unique hub IDs**. Airport coverage is broad;
+The combined inventory has **4,064 unique hub IDs**. Airport coverage is broad;
 surface coverage is deliberately incomplete. This is **not every Asian station
 or dock**, nor a complete route graph. Surface train examples span East,
 Southeast, South, Central and West Asia/the Caucasus. Ferry coverage is concentrated
@@ -30,12 +30,9 @@ Source: [OurAirports downloads and terms](https://ourairports.com/data/),
   (airports.csv update, 2026-10-02T01:53:13Z).
 - Exact input: <https://raw.githubusercontent.com/davidmegginson/ourairports-data/ac08c301fd36bc1b9ea2bf4acfd4fef691360b5c/airports.csv>
 - Input SHA-256: `197c68d0520b01c35f03c7fa15bf3467bf8ed788b3ed5a128e86eccebf4465ef`.
-- Geography: `continent == "AS"`, **or** `iso_country` in
-  `RU, TR, GE, AM, AZ`. This includes all of Russia and Turkey, not only their
-  Asian parts, to avoid dropping useful transcontinental gateways. Country and
-  continent assignments are OurAirports metadata, not a geopolitical judgement.
-  The filter also retains source-classified Asian airports in EG/GR and the
-  Indian Ocean territories CC/CX; it is not a hand-drawn continental boundary.
+- Geography: worldwide. The former Asia/transcontinental-country filter was removed on
+  2026-10-03; the upstream pin and checksum are unchanged. Country and continent
+  assignments are upstream metadata, not a geopolitical judgement.
 - Operational/type filter: `scheduled_service == "yes"`, a nonempty IATA code,
   and `type` in `small_airport`, `medium_airport`, `large_airport`.
 - Mapping: name, latitude, longitude, municipality (`city`), ISO country code,
@@ -43,8 +40,7 @@ Source: [OurAirports downloads and terms](https://ourairports.com/data/),
   `code = iata = <IATA>`. Coordinates retain upstream numeric precision.
 - `importance` is a heuristic from the upstream type: small = 1, medium = 2,
   large = 3. It is **not** measured passenger volume or connectivity.
-- Sixteen upstream municipalities are empty; `city` remains `""` rather than
-  fabricating a municipality. A display layer can fall back to the airport name.
+- 67 upstream municipalities are empty; `city` remains `""` rather than fabricating a municipality.
 - No airport timezone or flight graph is invented. OurAirports does not supply
   these in airports.csv. A scheduled-service flag can be stale; it does not prove
   a bookable flight exists on a particular date.

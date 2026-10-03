@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-02T18:10:04.807Z",
+  "builtAt": "2026-10-03T13:23:07.221Z",
   "feeds": [
     {
       "id": "namtang",
@@ -17,10 +17,11 @@
       "name": "KTMB (Keretapi Tanah Melayu)",
       "url": "https://api.data.gov.my/gtfs-static/ktmb",
       "country": "MY",
-      "licence": "data.gov.my open data (exact licence unverified)",
-      "attribution": "Data: KTMB via data.gov.my",
+      "licence": "CC BY 4.0",
+      "attribution": "Data: KTMB via data.gov.my, CC BY 4.0",
       "calendarStart": "20260818",
-      "calendarEnd": "20261017"
+      "calendarEnd": "20261017",
+      "refreshedAt": "2026-10-03T13:23:07.221Z"
     }
   ],
   "pairs": [

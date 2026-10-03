@@ -8,7 +8,7 @@ import { useEffect, useId, useRef, useState, useTransition, type ReactNode } fro
 import { Button, Cursor, MEMBER_COLORS, type CursorShape } from "@/components/paper-atlas";
 import { setCursorPref, useCursorPref } from "@/lib/cursor-pref";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
-import { saveNationalities } from "@/app/profile-actions";
+import { saveColor, saveNationalities } from "@/app/profile-actions";
 import { PassportPicker } from "./passport-picker";
 import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
@@ -25,16 +25,28 @@ export interface ProfileMenuProps {
   reloadOnRename?: boolean;
   /** The passports you hold, ISO-3. Entry requirements are worked out for these. */
   nationalities?: string[];
+  /** The member colour you saved (1 to 6), or null. This browser's cursor colour follows it. */
+  color?: number | null;
+  /** Inside a trip: your colour there, which a pick changes for everyone at once. */
+  tripColor?: TripColor;
   /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
   children?: ReactNode;
 }
 
+/** Your colour in the trip you're in, as a design-system slot (0 to 5), and how to change it there. */
+export type TripColor = { slot: number; onChange: (slot: number) => void };
+
 /** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
-export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], children }: ProfileMenuProps) {
+export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], color = null, tripColor, children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panelId = useId();
+
+  // this browser's cursor colour follows the one saved on you, e.g. one picked on another device
+  useEffect(() => {
+    if (color) setCursorPref({ color: color - 1 });
+  }, [color]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +85,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
           <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
           <PassportSetting saved={nationalities} />
           {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
-          <CursorSetting />
+          <CursorSetting trip={tripColor} />
           <ThemeSetting />
           {children}
         </div>
@@ -205,16 +217,32 @@ const CURSOR_SHAPES: readonly MenuChoice<CursorShape>[] = [
   { value: "map", label: "Map" },
 ];
 
-/** Your own cursor: its shape, and its colour wherever a trip hasn't given you one. */
-function CursorSetting() {
+/**
+ * Your cursor's shape, kept in this browser, and your colour, saved on you so every trip uses it: your cursor, plane,
+ * pins and routes there. In a trip the pick shows for everyone at once.
+ */
+function CursorSetting({ trip }: { trip?: TripColor }) {
+  const router = useRouter();
   const pref = useCursorPref();
+  const [, startTransition] = useTransition();
+  const pick = (slot: number) => {
+    setCursorPref({ color: slot });
+    trip?.onChange(slot);
+    startTransition(async () => {
+      // the room numbers colours from 1; the design system's slots count from 0
+      await saveColor(slot + 1);
+      // a trip has the pick already; elsewhere, refresh what the server knows of you
+      if (!trip) router.refresh();
+    });
+  };
+  const current = trip?.slot ?? pref.color;
   return (
     <MenuSection title="Cursor">
       <MenuChoices name="cursor-shape" label="Cursor shape" value={pref.shape} options={CURSOR_SHAPES} onChange={(shape) => setCursorPref({ shape })} />
       <div role="radiogroup" aria-label="Cursor colour" className="pn-swatches">
         {MEMBER_COLORS.map((color, i) => (
           <label key={color} className="pn-swatch" title={`Colour ${i + 1}`}>
-            <input type="radio" name="cursor-color" checked={pref.color === i} onChange={() => setCursorPref({ color: i })} aria-label={`Colour ${i + 1}`} />
+            <input type="radio" name="cursor-color" checked={current === i} onChange={() => pick(i)} aria-label={`Colour ${i + 1}`} />
             <Cursor shape={pref.shape} color={color} altitude={0} className="pn-swatch-cursor" />
           </label>
         ))}

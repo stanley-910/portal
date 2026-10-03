@@ -19,6 +19,7 @@ const placeSchema = z.object({
 const carrierSchema = z.object({ name: z.string().trim().min(1), iata_code: iata.nullish() });
 const offerSchema = z.object({
   id: z.string().min(1),
+  live_mode: z.boolean().optional(),
   total_amount: z.string().regex(/^\d+(\.\d+)?$/),
   total_currency: z.string().regex(/^[A-Z]{3}$/),
   owner: z.object({ name: z.string().trim().min(1) }),
@@ -79,6 +80,10 @@ export function mapOffers(raw: readonly unknown[], query: SearchQuery, origin: s
       });
     }
     if (segments.length !== legs.length || segments[0].depart.slice(0, 10) !== query.date) continue;
+    if (segments.some((segment, i) => i > 0 && (
+      segments[i - 1].to.iata !== segment.from.iata ||
+      Date.parse(segment.depart) < Date.parse(segments[i - 1].arrive)
+    ))) continue;
 
     const operators = [...new Set(segments.map((s) => s.carrier))].filter((c) => c !== o.owner.name);
     offers.push({
@@ -88,8 +93,8 @@ export function mapOffers(raw: readonly unknown[], query: SearchQuery, origin: s
       segments,
       // per passenger, like every other fare we show
       price: { amount: Math.round((Number(o.total_amount) / query.passengers) * 100) / 100, currency: o.total_currency },
-      kind: "live",
-      attribution: `Duffel — live fare from ${o.owner.name}` + (operators.length ? `; operated by ${operators.join(", ")}` : ""),
+      kind: o.live_mode === false ? "estimated" : "live",
+      attribution: o.live_mode === false ? "Duffel — test inventory; not a live fare or bookable real flight" : `Duffel — live fare from ${o.owner.name}` + (operators.length ? `; operated by ${operators.join(", ")}` : ""),
     });
   }
   return offers.sort((a, b) => a.price!.amount - b.price!.amount).slice(0, MAX_OFFERS);

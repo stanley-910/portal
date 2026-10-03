@@ -109,7 +109,7 @@ export function rankStays(stays: Array<CatalogStay & { rooms?: number; total?: n
         rooms,
         totalPrice: { amount: total ?? hotel.pricePerNight.amount * rooms * nights, currency: hotel.pricePerNight.currency },
         nights,
-        bookingUrl: bookingUrl(hotel, query.checkIn, query.checkOut, query.occupants),
+        bookingUrl: hotel.bookingUrl ?? (hotel.freshness === "estimated" ? bookingUrl(hotel, query.checkIn, query.checkOut, query.occupants) : undefined),
       };
     })
     .sort((a, b) => a.score - b.score || a.pricePerNight.amount - b.pricePerNight.amount || a.id.localeCompare(b.id));

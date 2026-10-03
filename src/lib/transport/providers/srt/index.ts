@@ -119,6 +119,7 @@ export function createSrtProvider(seed: Seed): TransportProvider {
                 },
               ],
               bookingUrl: SRT_BOOKING_URL,
+              attribution: `SRT typical timetable, checked ${seed.checked}: ${train.source}; fare and seats not checked`,
             },
           ];
         })

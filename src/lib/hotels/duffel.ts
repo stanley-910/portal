@@ -10,14 +10,14 @@ import type { HotelSearchQuery } from "./types";
 const RADIUS_KM = 5;
 const TIMEOUT_MS = 8_000;
 
-const responseSchema = z.object({ data: z.object({ results: z.array(z.unknown()) }) });
+const responseSchema = z.object({ data: z.object({ results: z.array(z.unknown()), live_mode: z.boolean().optional() }), live_mode: z.boolean().optional() });
 
 /**
  * Live stays from Duffel around the landed point, or null when there's no token, the call fails or nothing matches,
  * so the caller falls back to estimates. Duffel lists hotels, not hostels.
  */
 export async function searchDuffelStays(query: HotelSearchQuery, signal?: AbortSignal): Promise<LiveStay[] | null> {
-  if (!env.DUFFEL_ACCESS_TOKEN || query.filter === "hostel") return null;
+  if (!env.DUFFEL_ACCESS_TOKEN || env.DUFFEL_ACCESS_TOKEN.startsWith("duffel_test_") || query.filter === "hostel" || signal?.aborted) return null;
   try {
     const response = await fetch("https://api.duffel.com/stays/search", {
       method: "POST",
@@ -46,7 +46,7 @@ export async function searchDuffelStays(query: HotelSearchQuery, signal?: AbortS
       return null;
     }
     const parsed = responseSchema.safeParse(await response.json());
-    if (!parsed.success) return null;
+    if (!parsed.success || parsed.data.live_mode === false || parsed.data.data.live_mode === false) return null;
     const stays = mapStays(parsed.data.data.results, query);
     return stays.length ? stays : null;
   } catch {

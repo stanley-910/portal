@@ -88,7 +88,7 @@ function times(offer: Offer): string {
   const arr = wallClock(last.arrive);
   if (!arr) return `Leaves ${dep.time}`;
   const days = arr.day - dep.day;
-  return `${dep.time} – ${arr.time}${days > 0 ? ` +${days}` : ""}`;
+  return `${dep.time} – ${arr.time}${days !== 0 ? ` ${days > 0 ? "+" : ""}${days}` : ""}`;
 }
 
 /** "Ethiopian", or "CX flight" for a bare code, or "Flight" with no carrier. */
@@ -114,6 +114,13 @@ function describe(offer: Offer, tab: Tab): string {
   // Best's headline is the duration, so say when it leaves
   const dep = wallClock(first.depart);
   if (tab === "best" && dep && offer.kind !== "estimated") parts.push(`leaves ${dep.time}`);
+  const arr = wallClock(last.arrive);
+  if (offer.kind !== "estimated" && dep && arr && arr.day !== dep.day) {
+    const day = new Date(arr.day * 86_400_000).toLocaleDateString("en-GB", {
+      weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
+    });
+    parts.push(`arrives ${day}`);
+  }
   return parts.join(", ");
 }
 

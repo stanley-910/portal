@@ -4,28 +4,68 @@ import { revalidatePath } from "next/cache";
 
 import { currentPerson } from "@/lib/identity";
 import { isNotFound, liveblocks } from "@/lib/liveblocks/server";
-import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
-import { afterLeave, leaveChanges, tripOwner, type LeaveInput } from "@/lib/trip/leave";
+import { TRIP_ID, tripRoomId, type TripEvent } from "@/lib/liveblocks/types";
+import { afterLeave, applyLeave, leaveChanges, tripOwner, type LeaveInput } from "@/lib/trip/leave";
 
-/** The trip room, if the current person (account or guest) is in it. */
-async function myRoom(tripId: string) {
+/**
+ * The trip room, if the current person (account or guest) is in it. With `action`, says in the server log why not,
+ * since the dialogs that call these only say it failed.
+ */
+async function myRoom(tripId: string, action?: string) {
+  const refuse = (reason: string) => {
+    if (action) console.warn(`[trip] ${action} ${tripId}: ${reason}`);
+    return null;
+  };
   const person = await currentPerson();
-  if (!person || !TRIP_ID.test(tripId)) return null;
+  if (!person) return refuse("no account session and no guest cookie");
+  if (!TRIP_ID.test(tripId)) return refuse("not a trip id");
   const roomId = tripRoomId(tripId);
   const room = await liveblocks().getRoom(roomId).catch((error: unknown) => {
     if (isNotFound(error)) return null;
     throw error;
   });
-  return room?.usersAccesses[person.id] ? { person, roomId, room } : null;
+  if (!room) return refuse("the trip is gone");
+  if (!room.usersAccesses[person.id]) return refuse(`${person.id} is not a member`);
+  return { person, roomId, room };
 }
 
-/** Permanently removes a trip room. Only its owner can. */
+/** Deletes a trip room for everyone, telling anyone in it first so their screen can say the trip ended. */
+async function removeTrip(roomId: string) {
+  const lb = liveblocks();
+  // without this, people in the room stay "connected" to a room that no longer exists
+  await lb.broadcastEvent(roomId, { type: "trip-ended" } satisfies TripEvent).catch((error: unknown) => {
+    console.warn(`[trip] telling ${roomId} it ended failed:`, error);
+  });
+  await lb.deleteRoom(roomId);
+}
+
+/** Permanently removes a trip room from My trips. Only its owner can. */
 export async function deleteTrip(formData: FormData) {
-  const mine = await myRoom(String(formData.get("tripId") ?? ""));
+  const mine = await myRoom(String(formData.get("tripId") ?? ""), "deleting");
   if (!mine?.person.account || tripOwner(mine.room.metadata) !== mine.person.id) return;
 
-  await liveblocks().deleteRoom(mine.roomId);
+  await removeTrip(mine.roomId);
   revalidatePath("/trips");
+}
+
+/**
+ * Ends a trip for everyone from inside it: the plan, the thread and the room are deleted. Only the owner can, account
+ * or guest, since a trip can pass on to a guest.
+ */
+export async function endTrip(tripId: string): Promise<{ ok: boolean }> {
+  try {
+    const mine = await myRoom(tripId, "ending");
+    if (!mine) return { ok: false };
+    if (tripOwner(mine.room.metadata) !== mine.person.id) {
+      console.warn(`[trip] ending ${tripId}: ${mine.person.id} is not the owner`);
+      return { ok: false };
+    }
+    await removeTrip(mine.roomId);
+    return { ok: true };
+  } catch (error) {
+    console.error(`[trip] ending ${tripId} failed:`, error);
+    return { ok: false };
+  }
 }
 
 export type LeavePreview = { owner: boolean; nextOwner: string | null; last: boolean };
@@ -50,35 +90,25 @@ export async function leavePreview(tripId: string): Promise<LeavePreview | null>
  * leaving deletes it. Opening the link again joins afresh, since the link is the invite.
  */
 export async function leaveTrip(tripId: string): Promise<{ ok: boolean }> {
-  const mine = await myRoom(tripId);
-  if (!mine) return { ok: false };
-  const { person, roomId, room } = mine;
-  const lb = liveblocks();
-  const { members, owner } = afterLeave(room.metadata, person.id);
+  try {
+    const mine = await myRoom(tripId, "leaving");
+    if (!mine) return { ok: false };
+    const { person, roomId, room } = mine;
+    const lb = liveblocks();
+    const { members, owner } = afterLeave(room.metadata, person.id);
 
-  if (members.length === 0) {
-    await lb.deleteRoom(roomId);
-  } else {
-    const changes = leaveChanges((await lb.getStorageDocument(roomId, "json")) as LeaveInput, person.id);
-    await lb.mutateStorage(roomId, ({ root }) => {
-      const legs = root.get("legs");
-      const stops = root.get("stops");
-      const stays = root.get("stays");
-      for (const id of changes.legs) legs?.delete(id);
-      for (const [id, riders] of Object.entries(changes.riders)) legs?.get(id)?.set("riders", riders);
-      for (const id of changes.votes) legs?.get(id)?.get("votes").delete(person.id);
-      for (const id of changes.stops) {
-        stops?.delete(id);
-        stays?.delete(id);
-      }
-      const thread = root.get("thread");
-      if (thread) {
-        for (let i = thread.length - 1; i >= 0; i--) if (changes.messages.includes(thread.get(i)!.get("id"))) thread.delete(i);
-      }
-      root.get("members")?.delete(person.id);
-    });
-    await lb.updateRoom(roomId, { usersAccesses: { [person.id]: null }, metadata: { members, owner } });
+    if (members.length === 0) {
+      await removeTrip(roomId);
+    } else {
+      const changes = leaveChanges((await lb.getStorageDocument(roomId, "json")) as LeaveInput, person.id);
+      await lb.mutateStorage(roomId, ({ root }) => applyLeave(root, changes, person.id, owner));
+      await lb.updateRoom(roomId, { usersAccesses: { [person.id]: null }, metadata: { members, owner } });
+    }
+    // no revalidatePath: it would re-render the trip page you're on, and only reconnecting may join you again
+    return { ok: true };
+  } catch (error) {
+    // the dialog only says it failed, so the reason has to be in the server log
+    console.error(`[trip] leaving ${tripId} failed:`, error);
+    return { ok: false };
   }
-  // no revalidatePath: in a Server Function it re-renders the page you're on, and the trip page joins you again
-  return { ok: true };
 }
