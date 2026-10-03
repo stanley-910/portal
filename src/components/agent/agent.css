@@ -100,9 +100,9 @@
 .pip-changes-undone ul { text-decoration: line-through; color: var(--ink-muted); }
 
 /* Composer */
-.pip-composer { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; border-top: var(--line-control) solid var(--line); flex: none; }
+.pip-composer { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; flex: none; }
 /* Suggested messages: a drop-down stack of small "you" bubbles, right-aligned where your messages go */
-.pip-suggest { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.pip-suggest { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding: 4px 12px 6px; flex: none; }
 .pip-suggest-toggle { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--ink-muted); font-size: 12px; line-height: 16px; font-weight: 600; cursor: pointer; }
 .pip-suggest-toggle::before { content: ""; position: absolute; inset: -14px -8px; }
 .pip-suggest-toggle:hover { color: var(--ink); }

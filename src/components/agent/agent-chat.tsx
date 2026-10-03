@@ -464,13 +464,7 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
     }
   };
   return (
-    <form
-      className="pip-composer"
-      onSubmit={(e: FormEvent) => {
-        e.preventDefault();
-        submit(draft);
-      }}
-    >
+    <>
       {chips.length ? (
         <div className="pip-suggest">
           <button type="button" className="pip-suggest-toggle" aria-expanded={suggest} onClick={() => setSuggest(!suggest)}>
@@ -498,31 +492,39 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
           ) : null}
         </div>
       ) : null}
-      {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
-      {error === "sign-in" ? (
-        <p className="pip-caption" role="alert">
-          <button type="button" className="underline" onClick={() => openAuth("signin")}>
-            Sign in
-          </button>{" "}
-          to talk to {AGENT_NAME}.
-        </p>
-      ) : null}
-      <label className="pip-input-row">
-        <input
-          className="pip-input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={placeholder}
-          aria-label="Message"
-          maxLength={2000}
-        />
-        <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
-          <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-            <path d="M3 8 H13 M9 4 L13 8 L9 12" />
-          </svg>
-        </button>
-      </label>
-    </form>
+      <form
+        className="pip-composer"
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          void submit(draft);
+        }}
+      >
+        {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
+        {error === "sign-in" ? (
+          <p className="pip-caption" role="alert">
+            <button type="button" className="underline" onClick={() => openAuth("signin")}>
+              Sign in
+            </button>{" "}
+            to talk to {AGENT_NAME}.
+          </p>
+        ) : null}
+        <label className="pip-input-row">
+          <input
+            className="pip-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={placeholder}
+            aria-label="Message"
+            maxLength={2000}
+          />
+          <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
+            <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+              <path d="M3 8 H13 M9 4 L13 8 L9 12" />
+            </svg>
+          </button>
+        </label>
+      </form>
+    </>
   );
 }
 
