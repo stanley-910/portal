@@ -12,7 +12,8 @@ export function liveblocks() {
   if (!secret?.startsWith("sk_")) {
     throw new Error("LIVEBLOCKS_SECRET_KEY is missing or not a secret key. Add it to .env.local (see README).");
   }
-  client ??= new Liveblocks({ secret });
+  // set only by `pnpm dev:party`, which runs the local Liveblocks dev server
+  client ??= new Liveblocks({ secret, baseUrl: process.env.LIVEBLOCKS_BASE_URL });
   return client;
 }
 

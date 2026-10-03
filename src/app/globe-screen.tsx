@@ -1,15 +1,18 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
-import { HomePip, startTrip } from "@/components/agent/home-pip";
+import { HomePip, type HomePipHandle } from "@/components/agent/home-pip";
 import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch, type PickedStay } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
-import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
+import type { SoloLeg } from "@/lib/agent/solo";
+import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
+import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useCursorPref } from "@/lib/cursor-pref";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
@@ -27,6 +30,9 @@ function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
 }
 
 type LegPick = { offer: Offer | null; offers: Offer[]; depart: string; stay: PickedStay | null };
+
+/** A local Date as YYYY-MM-DD. */
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** The day after an ISO date, as a local Date: the earliest the next leg can leave. */
 function dayAfter(iso: string) {
@@ -46,10 +52,25 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   const [collapsed, setCollapsed] = useState(false);
   const [picks, setPicks] = useState<LegPick[]>([]);
   const trip = legs?.[active] ?? null;
-  // Save trip makes a new trip room and opens it. Guests sign in first, and the save carries on after.
+  // the legs on the globe as Pip sees them: each picked date, else the earliest it can leave
+  const soloTrip = useMemo<SoloLeg[]>(
+    () =>
+      legs?.map((l, i) => ({
+        from: stopFromPoint(l.origin, l.from),
+        to: stopFromPoint(l.destination, l.to),
+        date: picks[i]?.depart ?? isoDay(l.departDate),
+      })) ?? [],
+    [legs, picks],
+  );
+  // Save trip keeps the trip in your account and stays on the globe. Guests sign in first, and the save carries on after.
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
-  const [currency, setCurrency] = useState<Currency>("USD");
+  const [saved, setSaved] = useState<{ id: string; offer: string | null } | null>(null);
+  const router = useRouter();
+  // dates for the legs Pip just put on the globe, applied when the globe reports them landed
+  const pipDates = useRef<string[] | null>(null);
+  const pip = useRef<HomePipHandle>(null);
+  const currency = useCurrencyPref();
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [rateError, setRateError] = useState(false);
 
@@ -58,7 +79,11 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
       const result = await saveSoloTrip(input).catch(() => ({ error: "failed" as const }));
-      if (result?.error) setSaveFailed(true);
+      if ("error" in result) return setSaveFailed(true);
+      const legs = (input as { legs?: { chosen?: string | null }[] }).legs;
+      setSaved({ id: result.id, offer: legs?.at(-1)?.chosen ?? null });
+      // the trips list and anything else that shows them
+      router.refresh();
     });
   const save = (input: Parameters<typeof saveSoloTrip>[0]) => {
     setSaveFailed(false);
@@ -71,7 +96,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
     const pending = takePendingAction();
     if (pending?.type === "save") runSave(pending.input);
     else if (pending?.type === "create") startSaving(() => createTrip());
-    else if (pending?.type === "pip") startSaving(() => startTrip(pending.text));
+    else if (pending?.type === "pip") pip.current?.ask(pending.text);
     // once, on load as an account
   }, [account]);
 
@@ -96,15 +121,28 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       color={cursorPref.color}
       cursorShape={cursorPref.shape}
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
-      onTakeoff={() => setLegs(null)}
-      onLand={(landed) => {
+      onTakeoff={() => {
+        setLegs(null);
+        globe.current?.setPins([]);
+      }}
+      onLand={(flown) => {
+        // a trip Pip planned lands like a flown one, then takes Pip's dates
+        const dates = pipDates.current;
+        pipDates.current = null;
+        const landed = dates ? flown.map((l, i) => (dates[i] ? { ...l, departDate: new Date(`${dates[i]}T00:00`) } : l)) : flown;
+        // your pin drops at each stop once your plane has landed and gone
+        globe.current?.setPins(landed.map((leg, i) => ({ key: `you:${i}`, stop: `stop:${i}`, at: leg.destination, color: cursorPref.color })));
         setLegs(landed);
+        setSaved(null);
         setActive(0);
         setCollapsed(false);
         setPicks([]);
         setSaveFailed(false);
       }}
-      onCancel={() => setLegs(null)}
+      onCancel={() => {
+        setLegs(null);
+        globe.current?.setPins([]);
+      }}
       onRouteClick={() => setCollapsed(false)}
     />
     <NavBar
@@ -113,7 +151,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       email={person?.email ?? null}
       account={person?.account ?? false}
       nationalities={person?.nationalities}
-      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
+      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrencyPref} />}
     >
       <PlaceSearch globe={globe} />
       <form
@@ -136,6 +174,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         currency={currency}
         rates={rates}
         saving={saving}
+        addedId={saved?.offer ?? undefined}
+        savedHref={saved ? `/t/${saved.id}` : undefined}
         error={saveFailed ? "Couldn't save the trip. Please try again." : null}
         step={{ index: active, count: legs!.length, onBack: active > 0 ? () => setActive(active - 1) : undefined }}
         onAdd={({ offer, offers, depart, stay }) => {
@@ -162,12 +202,19 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           openAuth("signup");
         }}
         onDismiss={() => globe.current?.cancel()}
-        onChoiceMode={(mode) => globe.current?.setVehicle(mode ?? "flight")}
         collapsed={collapsed}
         onCollapse={() => setCollapsed(true)}
         onExpand={() => setCollapsed(false)}
       />
     ) : null}
-    <HomePip account={account} />
+    <HomePip
+      account={account}
+      trip={soloTrip}
+      onTrip={(planned) => {
+        pipDates.current = planned.map((l) => l.date);
+        globe.current?.showTrip([planned[0].from, ...planned.map((l) => l.to)]);
+      }}
+      ref={pip}
+    />
   </main>;
 }

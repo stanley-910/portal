@@ -37,6 +37,7 @@ describe("silentReply", () => {
 });
 
 const NOW = 1_000_000_000;
+const ASKER = { nationalities: [], currency: "USD" as const };
 const reply = (id: string, state: ThreadMessage["state"], at: number, startedAt?: number, seenAt?: number): ThreadMessage => ({
   id, at, author: { kind: "agent" }, text: "", state, cards: [], ...(startedAt ? { startedAt } : {}), ...(seenAt ? { seenAt } : {}),
 });
@@ -73,7 +74,7 @@ describe("runAgent", () => {
   it("marks a run that died as failed and answers the next message straight away", async () => {
     const long = Date.now() - 120_000;
     (root.get("thread") as LiveList<LiveObject<ThreadMessage>>).push(new LiveObject(reply("dead", "streaming", long, long)));
-    const { claim } = await postToPip("room", "u1", "where should we meet?");
+    const { claim } = await postToPip("room", "u1", "where should we meet?", ASKER);
     await runAgent("room", claim, "u1");
     const thread = (root.toJSON() as { thread: ThreadMessage[] }).thread;
     expect(thread.find((m) => m.id === "dead")).toMatchObject({ state: "failed", text: "I lost track of this one. Ask me again." });
@@ -82,7 +83,7 @@ describe("runAgent", () => {
 
   it("doesn't wait behind a queued reply whose request died", async () => {
     (root.get("thread") as LiveList<LiveObject<ThreadMessage>>).push(new LiveObject(reply("left", "queued", Date.now() - 60_000)));
-    const { claim } = await postToPip("room", "u1", "where should we meet?");
+    const { claim } = await postToPip("room", "u1", "where should we meet?", ASKER);
     await runAgent("room", claim, "u1");
     const thread = (root.toJSON() as { thread: ThreadMessage[] }).thread;
     expect(thread.find((m) => m.id === "left")?.state).toBe("failed");
@@ -90,7 +91,7 @@ describe("runAgent", () => {
   });
 
   it("stands down when another request took its reply for dead", async () => {
-    const { claim } = await postToPip("room", "u1", "where should we meet?");
+    const { claim } = await postToPip("room", "u1", "where should we meet?", ASKER);
     const thread = root.get("thread") as LiveList<LiveObject<ThreadMessage>>;
     thread.find((m) => m.get("id") === claim.replyId)!.update({ state: "failed", text: "I lost track of this one. Ask me again." });
     await runAgent("room", claim, "u1");
@@ -100,7 +101,7 @@ describe("runAgent", () => {
 
   it("posts behind a live run as queued", async () => {
     (root.get("thread") as LiveList<LiveObject<ThreadMessage>>).push(new LiveObject(reply("live", "streaming", Date.now(), Date.now())));
-    const { claim } = await postToPip("room", "u1", "and another thing");
+    const { claim } = await postToPip("room", "u1", "and another thing", ASKER);
     const thread = (root.toJSON() as { thread: ThreadMessage[] }).thread;
     expect(thread.find((m) => m.id === claim.replyId)?.state).toBe("queued");
   });
@@ -108,7 +109,7 @@ describe("runAgent", () => {
   it("waits for a room made before the thread to get one from a browser, rather than make it", async () => {
     root.delete("thread");
     setTimeout(() => root.set("thread", new LiveList([])), 200);
-    const { claim } = await postToPip("room", "u1", "hello");
+    const { claim } = await postToPip("room", "u1", "hello", ASKER);
     const thread = (root.toJSON() as { thread: ThreadMessage[] }).thread;
     expect(thread.map((m) => m.id)).toEqual([claim.messageId, claim.replyId]);
   });

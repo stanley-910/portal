@@ -1,5 +1,5 @@
 import type { ThreadMessage } from "@/lib/agent/types";
-import type { Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
+import type { LegBooking, Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
 
 // The plan as the model sees it: short handles (M1, S1, L1) instead of Liveblocks ids, rebuilt from Storage every
 // turn so the agent never trusts what it said earlier (harness: "Context: rebuilt every turn").
@@ -20,6 +20,8 @@ export type PlanJson = {
       votes: Record<string, string>;
       chosen: string | null;
       createdAt: number;
+      booking?: LegBooking | null;
+      bookingNotice?: string | null;
     }
   >;
   thread?: ThreadMessage[];
@@ -77,7 +79,8 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
   const members = Object.entries(plan.members ?? {});
   lines.push(members.length ? "Members:" : "Members: none yet.");
   for (const [id, m] of members) {
-    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
+    const passports = m.nationalities?.length ? ` · passports ${m.nationalities.join(", ")}` : " · passports not provided";
+    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${passports}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
   }
 
   const stops = Object.entries(plan.stops ?? {});
@@ -102,11 +105,24 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
           ? "search failed"
           : `${leg.search.offers.length} options${chosen ? `, chosen ${chosen.mode} ${chosen.carrier ?? ""}`.trimEnd() : ""}`;
     lines.push(
-      `  ${h.leg.get(id)} ${h.stop.get(leg.from)}→${h.stop.get(leg.to)} ${leg.date} (${showDate(leg.date)}) · riders ${riders} · ${search}`,
+      `  ${h.leg.get(id)} ${h.stop.get(leg.from)}→${h.stop.get(leg.to)} ${leg.date} (${showDate(leg.date)}) · riders ${riders} · ${search}${describeBooking(leg.booking, h)}`,
     );
   }
   if (plan.ends) lines.push(`Trip ends the morning of ${showDate(plan.ends)}.`);
   return lines.join("\n");
+}
+
+/** " · booking: group, 2 of 4 paid, deadline Sat 5 Oct" or "", so Pip can say who still owes without touching money. */
+function describeBooking(b: LegBooking | null | undefined, h: Handles): string {
+  if (!b) return "";
+  const seats = Object.entries(b.seats);
+  const paid = seats.filter(([, s]) => s.paid).length;
+  const owing = seats.filter(([, s]) => !s.paid).map(([id]) => h.member.get(id) ?? "?");
+  const money = `${b.total.currency} ${b.total.amount}`;
+  if (b.status === "booked") return ` · booked ${money}${b.reference ? ` ref ${b.reference}` : ""}`;
+  const stage = b.status === "details" ? `waiting for details from ${seats.filter(([, s]) => !s.details).map(([id]) => h.member.get(id) ?? "?").join(" ") || "nobody"}` : `${paid} of ${seats.length} paid${owing.length ? `, owing ${owing.join(" ")}` : ""}`;
+  const due = b.deadline ? `, deadline ${showDate(b.deadline.slice(0, 10))}` : "";
+  return ` · booking ${b.mode} ${money}: ${stage}${due}`;
 }
 
 /** The last few messages as plain text. Tool output from earlier turns isn't replayed (harness). */

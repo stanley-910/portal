@@ -6,9 +6,8 @@ import { cursorUrl, memberColor, type CursorShape } from "@/components/paper-atl
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import { openArea } from "./free-area";
-import type { Vehicle } from "./vehicle-models";
 import type { ThemeId } from "./palette";
 import { GlobeInfo } from "./globe-info";
 
@@ -21,6 +20,8 @@ export interface TripGlobeHandle {
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
   /** Where a route's drawn arc is on screen, `t` of the way along (0.5, its peak, by default). */
   routePoint(from: LatLng, to: LatLng, t?: number): { x: number; y: number; visible: boolean } | null;
+  /** Lands a whole trip at once, stops in order, as if it had been flown; onLand reports it. */
+  showTrip(points: LatLng[]): void;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
   /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
@@ -29,8 +30,13 @@ export interface TripGlobeHandle {
   setRemoteCursors(cursors: { id: string; at: LatLng | null }[]): void;
   /** Where another member's pointer is on screen and the matrix [a, b, c, d] that lays it on the ground there. */
   remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null;
-  /** What your landed trip parks as: the mode of the offer you picked. Ignored while flying. */
-  setVehicle(v: Vehicle): void;
+  /**
+   * The pins at the trip's stops, one per rider arriving. Replaces the previous list: new pins drop in, after your
+   * own plane has landed and gone when it's landing.
+   */
+  setPins(pins: GlobePin[]): void;
+  /** Where the pins at a stop stand on screen: the middle of their heads and a radius round them. Null when hidden. */
+  pinSpot(stop: string): { x: number; y: number; r: number } | null;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
@@ -125,6 +131,8 @@ export function TripGlobe({
   const glRef = useRef<HTMLCanvasElement>(null);
   const hudRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GlobeEngine | null>(null);
+  // the pins last set, so an engine that starts later still gets them
+  const pins = useRef<GlobePin[]>([]);
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -212,6 +220,8 @@ export function TripGlobe({
     });
     if (!engine.start()) setUnsupported(true);
     engineRef.current = engine;
+    // pins set before the engine started
+    if (pins.current.length) engine.setPins(pins.current);
     return () => {
       engine.destroy();
       engineRef.current = null;
@@ -246,7 +256,11 @@ export function TripGlobe({
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
       setRemoteCursors: (cursors) => engineRef.current?.setRemoteCursors(cursors),
       remoteCursor: (id) => engineRef.current?.remoteCursor(id) ?? null,
-      setVehicle: (v) => engineRef.current?.setVehicle(v),
+      setPins: (list) => {
+        pins.current = list;
+        engineRef.current?.setPins(list);
+      },
+      pinSpot: (stop) => engineRef.current?.pinSpot(stop) ?? null,
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
         const listeners = frameListeners.current;
@@ -255,6 +269,7 @@ export function TripGlobe({
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
       flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
+      showTrip: (points) => engineRef.current?.showTrip(points),
     }),
     [],
   );

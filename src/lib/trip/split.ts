@@ -18,6 +18,8 @@ export type SplitInput = {
       search: { offers: Pick<StoredOffer, "id" | "price" | "kind">[] };
       chosen: string | null;
       createdAt: number;
+      /** Once a leg is being bought, each rider's share is their fare, whatever the chosen option quoted. */
+      booking?: { seats: Record<string, { share: Money }> } | null;
     }
   >;
   stays?: Record<string, Stay>;
@@ -78,8 +80,10 @@ export function computeSplit(plan: SplitInput): Split {
     out[id] = split;
 
     for (const [legId, leg] of mine) {
+      const seat = leg.booking?.seats[id];
       const offer = leg.chosen ? leg.search.offers.find((o) => o.id === leg.chosen) : undefined;
-      split.fares.push({ leg: legId, price: offer?.price ?? null, kind: offer?.kind ?? null });
+      // a settled seat is the price the airline quoted for this rider; a quote from the search is only an estimate of it
+      split.fares.push(seat ? { leg: legId, price: seat.share, kind: "live" } : { leg: legId, price: offer?.price ?? null, kind: offer?.kind ?? null });
     }
 
     // After each leg they sleep at its destination until their next leg, they leave, or the trip ends.

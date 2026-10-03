@@ -9,7 +9,8 @@ import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } fr
 import { placeName } from "./place-name";
 import { chooseVehicle, landMask, type LandAt } from "./vehicle-choice";
 import { buildVehicle, VEHICLE_LENGTH, VEHICLES, type Vehicle } from "./vehicle-models";
-import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
+import { buildPin, PIN_HEAD_R, PIN_HEAD_Z } from "./pin-model";
+import { FS_GLOBE, FS_PLANE, MAX_PIN_SHADOWS, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
 import { Track } from "./track";
 import {
@@ -59,7 +60,7 @@ export interface FlightState {
   /** A point just ahead of the plane, which gives its heading. */
   ahead: LatLng;
   landed: boolean;
-  /** What it's riding: in the air, the globe's guess from the leg's shape; landed, what it parks as. */
+  /** What it's riding: the globe's guess from the shape of the leg being drawn. */
   vehicle?: Vehicle;
 }
 
@@ -68,6 +69,17 @@ export interface RemoteFlight extends FlightState {
   id: string;
   /** Their member colour slot (0 for `member-1`), which tints the route. Unset draws it in ink. */
   color?: number | null;
+}
+
+/**
+ * A pin at a stop: one rider arriving there, in their member colour slot (0 for `member-1`; null for sticker paper).
+ * Pins with the same `stop` stand together. A new key drops in; once this viewer's plane is landing, after it lands.
+ */
+export interface GlobePin {
+  key: string;
+  stop: string;
+  at: LatLng;
+  color: number | null;
 }
 
 export interface GlobeEvents {
@@ -109,8 +121,6 @@ const FIT = 0.9; // share of the view a framed route spans
 const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
-/** Parked vehicles closer than this, in radians (about 1 km), share a stop. */
-const PARK_SAME = 1.5e-4;
 /** Two tags with the same name for places closer than this on screen, in px, name one place. */
 const TAG_SAME = 40;
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
@@ -118,6 +128,24 @@ const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to gro
 // has to hold for VEHICLE_HOLD s before the vehicle changes, so sweeping past a coast doesn't flicker; it's checked
 // every VEHICLE_CHECK s. Ground vehicles fly GROUND_LIFT of the plane's height: low, but clear of the route's dots.
 const VEHICLE_HOLD = 0.3;
+// Landing: the plane settles onto the ground over TOUCHDOWN s, then shrinks away over VANISH s, and the trip's pins
+// drop in where it stood. Pins are PIN_SCALE of the plane's size and lean back PIN_LEAN rad from upright, so the
+// needle shows from above. One falls PIN_FALL of its size over PIN_DROP s, sinks its point PIN_SINK into the ground
+// and springs back over PIN_SETTLE s. Pins dropped together land PIN_STAGGER s apart. Several riders' pins at one
+// stop share its point and fan out sideways like a bunch, PIN_FAN rad apart and no wider than PIN_FAN_MAX across;
+// the further out a pin fans, the further over it leans, by PIN_SPLAY of its fan.
+const TOUCHDOWN = 0.45;
+const VANISH = 0.25;
+const PIN_SCALE = 1.1;
+const PIN_LEAN = 0.62;
+const PIN_FALL = 4;
+const PIN_DROP = 0.42;
+const PIN_SINK = 0.05;
+const PIN_SETTLE = 0.5;
+const PIN_STAGGER = 0.09;
+const PIN_FAN = 0.8;
+const PIN_FAN_MAX = 2.4;
+const PIN_SPLAY = 0.25;
 const VEHICLE_CHECK = 0.1;
 const GROUND_LIFT = 0.35;
 // The land mask's size, sampled once from the earth texture for the vehicle guess.
@@ -169,9 +197,6 @@ interface Plane {
 }
 
 const parked = (v: Vehicle): Pick<Plane, "vehicle" | "next" | "swap"> => ({ vehicle: v, next: v, swap: 0 });
-
-/** Vehicles parked at one stop, and where each goes round it (fanParked); null keeps one on the stop. */
-type ParkedGroup = { n: Vec3; e1: Vec3; e2: Vec3; pls: Plane[]; spots: (Vec3 | null)[]; own: boolean | null; spread: number };
 
 /** How high a vehicle flies, as a share of the plane's height: ground vehicles skim along low. */
 const lift = (pl: Plane) => (pl.next === "flight" ? 1 : GROUND_LIFT);
@@ -279,6 +304,7 @@ export class GlobeEngine {
   private pPlane!: Program;
   private vaoQuad: WebGLVertexArrayObject | null = null;
   private vaoVehicle = new Map<Vehicle, { vao: WebGLVertexArrayObject; count: number }>();
+  private vaoPin: { vao: WebGLVertexArrayObject; count: number } | null = null;
   private texEarth: WebGLTexture | null = null;
   private texBorders: WebGLTexture | null = null;
   private texProvinces: WebGLTexture | null = null;
@@ -405,14 +431,18 @@ export class GlobeEngine {
     originName: string | null; destinationName: string | null;
   }>();
 
+  // planes that just left the room's flights (someone landed, or stopped): each settles and shrinks away from t0
+  private ghosts: { pl: Plane; t0: number }[] = [];
+  // the pins at the trip's stops. `fan` is how far a pin leans to the side among its stop's bunch, in radians,
+  // easing to `to`; `h` and `squash` are how high it is and how squashed, worked out every frame. `head` is where
+  // its head was last drawn, for hit testing and keeping tags clear.
+  private pins = new Map<string, {
+    stop: string; g: Vec3; color: number | null; t0: number;
+    fan: number; to: number; h: number; squash: number; head: Vec3 | null;
+  }>();
+  private pinsMoving = false;
+
   // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
-  /**
-   * Parked vehicles grouped by stop (groupParked), so fanning them out doesn't regroup every frame; each group keeps
-   * where its vehicles go until ours lands or leaves there, or vehicles change size.
-   */
-  private parked: ParkedGroup[] = [];
-  /** The landed flights `parked` was grouped from, so presence that only moves cursors doesn't regroup. */
-  private parkedKey = "";
   /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
   private tagBoxes: { text: string; at: { x: number; y: number }; l: number; t: number; r: number; b: number }[] = [];
   /** A place searched for: marked on the ground with its name until the next click on the globe. */
@@ -481,6 +511,16 @@ export class GlobeEngine {
       this.attrib(gl, 2, m.sm, 3);
       this.attrib(gl, 3, m.part, 1);
       this.vaoVehicle.set(v, { vao, count: m.count });
+    }
+    {
+      const m = buildPin();
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      this.attrib(gl, 0, m.pos, 3);
+      this.attrib(gl, 1, m.nrm, 3);
+      this.attrib(gl, 2, m.sm, 3);
+      this.attrib(gl, 3, m.part, 1);
+      this.vaoPin = vao && { vao, count: m.count };
     }
     gl.bindVertexArray(null);
 
@@ -681,7 +721,7 @@ export class GlobeEngine {
       const stops = [...this.via.map((s) => s.v), origin, pl.n];
       for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? pl.alt : 0]);
     }
-    // landed routes end at the stop, as drawn, not at a vehicle fanned out beside it
+    // landed routes end at their stop, as drawn
     for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.target, 0]);
     for (const [from, to, alt] of legs) {
       for (const lift of [1, 0]) {
@@ -878,6 +918,20 @@ export class GlobeEngine {
     this.tTake = this.t;
     this.magnet = true;
     this.magnetT = this.t;
+  }
+
+  /**
+   * Lands a whole trip at once, as if it had been flown: the stops in order, at least two. Replaces any trip on the
+   * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
+   */
+  showTrip(points: LatLng[]) {
+    if (points.length < 2) return;
+    const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
+    if (this.mode !== "idle") this.cancel();
+    this.takeoff(vs[0]);
+    for (const v of vs.slice(1, -1)) this.addStop(v);
+    this.magnet = false;
+    this.land(vs[vs.length - 1]);
   }
 
   /** Lands the trip at the last stop, which ends the leg flown into it. */
@@ -1329,9 +1383,63 @@ export class GlobeEngine {
     };
   }
 
-  /** What this viewer's landed trip parks as: the mode of the offer they picked. Ignored unless landed. */
-  setVehicle(v: Vehicle) {
-    if (this.mode === "landed" && this.pl) retarget(this.pl, v);
+  /**
+   * Replaces the pins at the trip's stops. New ones drop in, one after another in list order; while this viewer's
+   * plane is landing, they wait until it has gone. Pins sharing a stop stand in a ring round it.
+   */
+  setPins(list: GlobePin[]) {
+    const t = this.t;
+    const seen = new Set<string>();
+    const stops = new Map<string, GlobePin[]>();
+    for (const p of list) {
+      const group = stops.get(p.stop);
+      if (group) group.push(p);
+      else stops.set(p.stop, [p]);
+    }
+    let fresh = 0;
+    for (const p of list) {
+      if (seen.has(p.key)) continue;
+      seen.add(p.key);
+      const group = stops.get(p.stop)!;
+      // the first rider leans furthest left, the last furthest right
+      const step = group.length > 1 ? Math.min(PIN_FAN, PIN_FAN_MAX / (group.length - 1)) : 0;
+      const to = (group.indexOf(p) - (group.length - 1) / 2) * step;
+      const g = vecOf(p.at.lat * D2R, p.at.lng * D2R);
+      const old = this.pins.get(p.key);
+      if (old) {
+        Object.assign(old, { stop: p.stop, g, color: p.color, to });
+        continue;
+      }
+      const t0 = this.reduceMotion ? -Infinity : Math.max(t, this.landingDone(g)) + PIN_STAGGER * fresh++;
+      this.pins.set(p.key, { stop: p.stop, g, color: p.color, t0, fan: to, to, h: -PIN_SINK, squash: 0, head: null });
+    }
+    for (const key of this.pins.keys()) if (!seen.has(key)) this.pins.delete(key);
+    this.glDirty = true;
+    this.hudDirty = true;
+  }
+
+  /** When a landing at or near v is over and its plane has gone: now or earlier when there's none. */
+  private landingDone(v: Vec3) {
+    let at = -Infinity;
+    // this viewer's own landing holds every pin it brings, so a trip's stops all drop once the plane has gone
+    if (this.mode === "landed") at = this.tLand + TOUCHDOWN + VANISH;
+    for (const g of this.ghosts) if (angle(g.pl.n, v) < 0.01) at = Math.max(at, g.t0 + TOUCHDOWN + VANISH);
+    return at;
+  }
+
+  /** Where the pins at a stop stand on screen: the middle of their heads, and how far round it they reach. */
+  pinSpot(stop: string): { x: number; y: number; r: number } | null {
+    const heads: ScreenPoint[] = [];
+    for (const p of this.pins.values()) {
+      if (p.stop !== stop || !p.head || this.t < p.t0) continue;
+      const q = this.proj(p.head);
+      if (q && q.vis) heads.push(q);
+    }
+    if (!heads.length) return null;
+    const x = heads.reduce((s, q) => s + q.x, 0) / heads.length;
+    const y = heads.reduce((s, q) => s + q.y, 0) / heads.length;
+    const r = Math.max(...heads.map((q) => Math.hypot(q.x - x, q.y - y)));
+    return { x, y, r: r + 10 };
   }
 
   /** The viewer's cursor shape, so the shadow the globe draws for it matches. */
@@ -1389,8 +1497,12 @@ export class GlobeEngine {
         });
       }
     }
-    for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
-    this.groupParked();
+    for (const [id, r] of this.remotes) {
+      if (seen.has(id)) continue;
+      // a plane still in the air settles and shrinks away rather than vanishing; a landed leg has no plane
+      if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: performance.now() / 1000 });
+      this.remotes.delete(id);
+    }
   }
 
   /** Replaces the other members' pointers; null `at` hides one. They move steadily between updates. */
@@ -1546,6 +1658,12 @@ export class GlobeEngine {
     // the landed country lights up as the plane touches down, and goes dark with the trip
     const hiTo = this.mode === "landed" && t - this.tLand > 0.3 ? 1 : 0;
     this.hi = this.reduceMotion || Math.abs(hiTo - this.hi) < 0.002 ? hiTo : this.hi + (hiTo - this.hi) * k(5);
+    this.ghosts = this.ghosts.filter((g) => t - g.t0 < TOUCHDOWN + VANISH);
+    for (const g of this.ghosts) {
+      g.pl.alt += (0 - g.pl.alt) * k(8);
+      g.pl.bank += (0 - g.pl.bank) * k(8);
+    }
+    this.stepPins(t, k);
     for (const r of this.remotes.values()) {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
@@ -1554,7 +1672,6 @@ export class GlobeEngine {
       pl.alt += ((r.landed ? 0 : ALT * this.planeScale * lift(pl)) - pl.alt) * k(8);
       this.stepSwap(pl, dt);
     }
-    this.fanParked();
     if (this.turn) {
       // fly the view to frame a finished route
       const tr = this.turn;
@@ -1657,6 +1774,9 @@ export class GlobeEngine {
       state.push(...r.o, Number(r.landed));
       plane(r.pl);
     }
+    state.push(this.planeLeft(this.tLand), this.ghosts.length);
+    for (const g of this.ghosts) state.push(this.planeLeft(g.t0), ...g.pl.n, g.pl.alt);
+    for (const p of this.pins.values()) state.push(...p.g, p.fan, p.h === Infinity ? -1 : p.h, p.squash);
     const changed = state.length !== this.lastScene.length || state.some((v, i) => v !== this.lastScene[i]);
     this.scene = this.lastScene;
     this.lastScene = state;
@@ -1681,7 +1801,7 @@ export class GlobeEngine {
     const shadowMoved = this.updateRemoteCursors(dt, t) || ownMoved;
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && (this.mode === "landed" ||
+    const animated = !this.reduceMotion && (this.mode === "landed" || this.pinsMoving ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
     if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
@@ -1719,54 +1839,29 @@ export class GlobeEngine {
     this.events.onPreviewChange?.(next, name);
   }
 
-  /**
-   * Vehicles parked at the same stop (two friends landing in one city, legs that end where another starts) would sit
-   * on top of each other. They fan out round the stop instead, a vehicle's length away; this viewer's own stays on it.
-   * Only the vehicle moves: its route still ends at the stop. Groups are made when the flights change (setRemoteFlights).
-   */
-  private fanParked() {
-    if (!this.parked.length) return;
-    const ownAt = this.mode === "landed" && this.pl ? this.pl.n : null;
-    const spread = S_PLANE * this.planeScale * 0.9;
-    for (const g of this.parked) {
-      const own = !!ownAt && angle(ownAt, g.n) < PARK_SAME;
-      if (own !== g.own || spread !== g.spread) {
-        // with no plane of ours there, the first keeps the stop and the rest ring it
-        const ring = own ? g.pls.length : g.pls.length - 1;
-        g.spots = g.pls.map((_, i) => {
-          const slot = own ? i : i - 1;
-          if (slot < 0 || ring < 1) return null;
-          const a = (2 * Math.PI * slot) / ring - Math.PI / 2;
-          return norm(add(g.n, add(mul(g.e1, Math.cos(a) * spread), mul(g.e2, Math.sin(a) * spread))));
-        });
-        g.own = own;
-        g.spread = spread;
-      }
-      // the sim moved them back onto their tracks this frame
-      g.pls.forEach((pl, i) => {
-        const at = g.spots[i];
-        if (at) pl.n = at;
-      });
-    }
+  /** Whether pins stand at v. */
+  private pinned(v: Vec3) {
+    for (const p of this.pins.values()) if (p.head && angle(p.g, v) < 1e-4) return true;
+    return false;
   }
 
-  /** Parked vehicles grouped by the stop they share, in a stable order, for fanParked. */
-  private groupParked() {
-    const landed = [...this.remotes].filter(([, r]) => r.landed).sort(([a], [b]) => (a < b ? -1 : 1));
-    const key = landed.map(([id, r]) => `${id}@${r.target.join()}`).join(";");
-    if (key === this.parkedKey) return;
-    this.parkedKey = key;
-    const groups: ParkedGroup[] = [];
-    for (const [, r] of landed) {
-      const g = groups.find((x) => angle(x.n, r.target) < PARK_SAME);
-      if (g) g.pls.push(r.pl);
-      else {
-        const e1 = tangent([0, 1, 0], r.target);
-        groups.push({ n: r.target, e1, e2: cross(r.target, e1), pls: [r.pl], spots: [], own: null, spread: 0 });
-      }
+  /** How high above a stop at screen point (x, y) its tag goes: 30px, or clear above the heads of pins there. */
+  private tagAbove(v: Vec3, y: number) {
+    let top = y - 30;
+    for (const p of this.pins.values()) {
+      if (!p.head || angle(p.g, v) >= 1e-4) continue;
+      const q = this.proj(p.head);
+      if (!q || !q.vis || !this.cam) continue;
+      // the head's radius on screen, then a gap
+      const rim = this.proj(add(p.head, mul(this.cam.U, PIN_HEAD_R * S_PLANE * this.planeScale * PIN_SCALE)));
+      top = Math.min(top, q.y - (rim?.vis ? Math.hypot(rim.x - q.x, rim.y - q.y) : 8) - 16);
     }
-    // a lone vehicle only matters if ours lands beside it, which fanParked checks each frame
-    this.parked = groups;
+    return top;
+  }
+
+  /** How much of a landing plane is left, 1 to 0: it touches down, then shrinks away. */
+  private planeLeft(t0: number) {
+    return this.reduceMotion ? 0 : 1 - ease(smooth(TOUCHDOWN, TOUCHDOWN + VANISH, this.t - t0));
   }
 
   /** Where a label under a plane goes: centred below it, clear of its wings whichever way it points. */
@@ -1796,6 +1891,30 @@ export class GlobeEngine {
       if (guess !== w.vehicle) Object.assign(w, { vehicle: guess, t });
     }
     if (w.vehicle !== pl.next && t - w.t >= VEHICLE_HOLD) retarget(pl, w.vehicle);
+  }
+
+  /**
+   * Leans each pin to its place in its stop's bunch, and takes it through its drop: it falls, its point sinks into
+   * the ground, and it squashes and springs back.
+   */
+  private stepPins(t: number, k: (r: number) => number) {
+    let moving = false;
+    for (const p of this.pins.values()) {
+      p.fan = this.reduceMotion || Math.abs(p.to - p.fan) < 1e-3 ? p.to : p.fan + (p.to - p.fan) * k(8);
+      const u = t - p.t0;
+      p.squash = 0;
+      if (u < 0) p.h = Infinity;
+      else if (u < PIN_DROP) {
+        const q = (u / PIN_DROP) ** 2;
+        p.h = PIN_FALL * (1 - q) - PIN_SINK * q;
+      } else {
+        p.h = -PIN_SINK;
+        const v = (u - PIN_DROP) / PIN_SETTLE;
+        if (v < 1) p.squash = Math.exp(-5 * v) * Math.cos(v * Math.PI * 3) * 0.3;
+      }
+      if (u > -0.1 && u < PIN_DROP + 0.8) moving = true;
+    }
+    this.pinsMoving = moving;
   }
 
   private stepSwap(pl: Plane, dt: number) {
@@ -1844,6 +1963,58 @@ export class GlobeEngine {
     return [x0, y0, x1 - x0, y1 - y0];
   }
 
+  /**
+   * Each pin that has started to drop and faces the camera, farthest first: where its point is, its axes (x and y
+   * across, z up the needle, each scaled to its size and squash), and where its point and head fall in shadow.
+   */
+  private pinFrames(c: Camera, L: Vec3, size: number) {
+    const ld = mul(L, -1);
+    // where the light through w lands on the ground, or w itself once it's in the ground
+    const shadowOf = (w: Vec3) => {
+      if (dot(w, w) <= 1) return norm(w);
+      const b = dot(w, ld);
+      const disc = b * b - (dot(w, w) - 1);
+      const t = -b - Math.sqrt(Math.max(disc, 0));
+      return disc > 0 && t > 0 ? norm(add(w, mul(ld, t))) : norm(w);
+    };
+    const out: {
+      tip: Vec3; X: Vec3; Y: Vec3; Z: Vec3; color: number | null; depth: number;
+      shadowTip: Vec3; shadowHead: Vec3; shadowA: number;
+    }[] = [];
+    for (const p of this.pins.values()) {
+      p.head = null;
+      if (p.h === Infinity) continue;
+      const g = p.g;
+      if (dot(g, sub(c.C, g)) <= 0) continue;
+      // lean back along the screen's up, so the needle stands out from the head seen from above, and out to the
+      // side by the pin's place in its bunch
+      const up = tangent(c.U, g);
+      const side = tangent(c.R, g);
+      const lean = norm(add(mul(up, Math.cos(p.fan)), mul(side, Math.sin(p.fan))));
+      const tilt = PIN_LEAN + PIN_SPLAY * Math.abs(p.fan);
+      const axis = norm(add(mul(g, Math.cos(tilt)), mul(lean, Math.sin(tilt))));
+      const across = tangent(c.R, axis);
+      const tall = size * (1 - p.squash);
+      const wide = size * (1 + p.squash * 0.6);
+      const tip = add(g, mul(axis, p.h * size));
+      const head = add(tip, mul(axis, PIN_HEAD_Z * tall));
+      p.head = head;
+      out.push({
+        tip,
+        X: mul(across, wide),
+        Y: mul(cross(axis, across), wide),
+        Z: mul(axis, tall),
+        color: p.color,
+        depth: dot(sub(tip, c.C), c.F),
+        shadowTip: shadowOf(tip),
+        shadowHead: shadowOf(head),
+        // fainter while it's high
+        shadowA: 0.9 - 0.6 * clamp(p.h / PIN_FALL, 0, 1),
+      });
+    }
+    return out.sort((a, b) => b.depth - a.depth);
+  }
+
   private drawGL() {
     const gl = this.gl!;
     const c = this.cam!;
@@ -1854,7 +2025,9 @@ export class GlobeEngine {
     // lit from the upper left
     const L = norm(add(add(mul(c.R, -0.5), mul(c.U, 0.55)), mul(c.F, -0.68)));
     const pl = this.pl;
-    const showPlane = !!pl && this.mode !== "idle";
+    // a landed plane touches down, then shrinks away and leaves its pins
+    const left = this.mode === "landed" ? this.planeLeft(this.tLand) : 1;
+    const showPlane = !!pl && this.mode !== "idle" && left > 0;
     const S = S_PLANE * this.planeScale;
     const pp = pl && showPlane ? mul(pl.n, 1 + pl.alt + 0.09 * S) : null;
     // the plane's shadow falls along the light onto the ground
@@ -1914,7 +2087,20 @@ export class GlobeEngine {
     gl.uniform3fv(u.uHiP, this.hiP);
     gl.uniform1f(u.uHi, this.hi);
     gl.uniform1f(u.uShR, S * 0.42);
-    gl.uniform1f(u.uShA, pl && shadow ? 0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt) : 0);
+    gl.uniform1f(u.uShA, pl && shadow ? (0.95 - 0.4 * smooth(0, ALT * this.planeScale, pl.alt)) * left : 0);
+    // the pins' shadows, nearest the camera first
+    const pins = this.pinFrames(c, L, S * PIN_SCALE);
+    const pinA = new Float32Array(MAX_PIN_SHADOWS * 4);
+    const pinB = new Float32Array(MAX_PIN_SHADOWS * 4);
+    const cast = pins.slice(-MAX_PIN_SHADOWS);
+    cast.forEach((f, i) => {
+      pinA.set([...f.shadowTip, f.shadowA], i * 4);
+      pinB.set([...f.shadowHead, PIN_HEAD_R * S * PIN_SCALE], i * 4);
+    });
+    gl.uniform4fv(u["uPinA[0]"], pinA);
+    gl.uniform4fv(u["uPinB[0]"], pinB);
+    gl.uniform1i(u.uPinN, cast.length);
+    gl.uniform1f(u.uPinW, 0.016 * S * PIN_SCALE);
     const [x, y, w, h] = this.surfaceBounds();
     if (w === cw && h === ch) {
       gl.uniform1i(u.uSurface, 1);
@@ -1937,12 +2123,16 @@ export class GlobeEngine {
     }
     this.sky?.draw(setCam, [cw, ch], dpr, th.gl.uInk, th.skyInk, 1);
 
-    // other members' planes first, so this viewer's own plane sits on top
-    const planes: { pl: Plane; pp: Vec3 }[] = [];
-    for (const r of this.remotes.values()) planes.push({ pl: r.pl, pp: mul(r.pl.n, 1 + r.pl.alt + 0.09 * S) });
-    if (pl && pp) planes.push({ pl, pp });
-    const shown = planes.filter(({ pp }) => this.proj(pp)?.vis);
-    if (!shown.length) return;
+    // pins first, under the planes; then other members' planes, so this viewer's own plane sits on top. A landed
+    // leg has no plane: its pins mark it.
+    const planes: { pl: Plane; pp: Vec3; left: number }[] = [];
+    for (const r of this.remotes.values()) {
+      if (!r.landed) planes.push({ pl: r.pl, pp: mul(r.pl.n, 1 + r.pl.alt + 0.09 * S), left: 1 });
+    }
+    for (const g of this.ghosts) planes.push({ pl: g.pl, pp: mul(g.pl.n, 1 + g.pl.alt + 0.09 * S), left: this.planeLeft(g.t0) });
+    if (pl && pp) planes.push({ pl, pp, left });
+    const shown = planes.filter(({ pp, left }) => left > 0 && this.proj(pp)?.vis);
+    if (!shown.length && !pins.length) return;
 
     P = this.pPlane;
     u = P.u;
@@ -1956,9 +2146,35 @@ export class GlobeEngine {
     gl.clearDepth(1);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-    for (const { pl, pp } of shown) {
+    const sticker = (count: number) => {
+      // each sticker covers an earlier one wholly
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+      // 1: the ink outline, which also draws inner edges
+      gl.uniform1f(u.uMode, 2);
+      gl.uniform1f(u.uHull, 1.1 * dpr);
+      gl.drawArrays(gl.TRIANGLES, 0, count);
+      // 2: the paper body
+      gl.uniform1f(u.uMode, 0);
+      gl.uniform1f(u.uHull, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, count);
+    };
+    if (this.vaoPin && pins.length) {
+      gl.bindVertexArray(this.vaoPin.vao);
+      gl.uniform1i(u.uVehicle, 4);
+      const members = th.memberGL;
+      for (const f of pins) {
+        const slot = f.color === null || !members.length ? null : ((Math.trunc(f.color) % members.length) + members.length) % members.length;
+        gl.uniform3fv(u.uPin, slot === null ? th.stickerGL.fill : members[slot]);
+        gl.uniform3fv(u.uPP, f.tip);
+        gl.uniform3fv(u.uPX, f.X);
+        gl.uniform3fv(u.uPY, f.Y);
+        gl.uniform3fv(u.uPZ, f.Z);
+        sticker(this.vaoPin.count);
+      }
+    }
+    for (const { pl, pp, left } of shown) {
       const mesh = this.vaoVehicle.get(pl.vehicle);
-      const s = S * (1 - Math.sin(Math.PI * pl.swap));
+      const s = S * (1 - Math.sin(Math.PI * pl.swap)) * left;
       if (!mesh || s < 1e-4) continue;
       const B = this.planeBasis(pl, s);
       gl.bindVertexArray(mesh.vao);
@@ -1967,16 +2183,7 @@ export class GlobeEngine {
       gl.uniform3fv(u.uPX, B.X);
       gl.uniform3fv(u.uPY, B.Y);
       gl.uniform3fv(u.uPZ, B.Z);
-      // each vehicle is its own sticker: a later one covers an earlier one wholly
-      gl.clear(gl.DEPTH_BUFFER_BIT);
-      // 1: the ink outline, which also draws inner edges
-      gl.uniform1f(u.uMode, 2);
-      gl.uniform1f(u.uHull, 1.1 * dpr);
-      gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
-      // 2: the paper body
-      gl.uniform1f(u.uMode, 0);
-      gl.uniform1f(u.uHull, 0);
-      gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+      sticker(mesh.count);
     }
     gl.disable(gl.DEPTH_TEST);
     gl.bindVertexArray(null);
@@ -2544,18 +2751,34 @@ export class GlobeEngine {
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
-      // a parked vehicle may be fanned out beside its stop (fanParked); the route still ends at the stop
+      // a landed route ends at its stop, not where the plane is easing to it
       this.route(ctx, r.o, r.landed ? r.target : r.pl.n, r.pl, stroke, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
-        this.startMark(ctx, r.o, op.x, op.y, stroke);
-        if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName, op);
+        if (!this.pinned(r.o)) this.startMark(ctx, r.o, op.x, op.y, stroke);
+        if (r.originName) this.tag(ctx, op.x, this.tagAbove(r.o, op.y), r.originName, op);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
       if (rp && rp.vis && r.destinationName) {
         const at = this.underPlane(r.pl, rp);
         // named for the stop, not the vehicle, which may be fanned out beside it
         this.tag(ctx, at.x, at.y, r.destinationName, this.proj(r.target) ?? rp);
+      }
+    }
+
+    // a ring spreads on the ground from each pin as its point goes in
+    if (!this.reduceMotion) {
+      for (const p of this.pins.values()) {
+        const k = (t - p.t0 - PIN_DROP) / 0.6;
+        const q = k >= 0 && k <= 1 ? this.proj(p.g) : null;
+        if (!q || !q.vis) continue;
+        ctx.save();
+        ctx.beginPath();
+        this.groundCircle(ctx, p.g, q.x, q.y, 4 + k * 22);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(${P.inkRGB},${(0.5 * (1 - k)).toFixed(3)})`;
+        ctx.stroke();
+        ctx.restore();
       }
     }
 
@@ -2582,16 +2805,16 @@ export class GlobeEngine {
     for (const s of this.via) {
       const sp = this.proj(s.v);
       if (!sp || !sp.vis) continue;
-      this.startMark(ctx, s.v, sp.x, sp.y, stroke);
-      if (s.name) this.tag(ctx, sp.x, sp.y - 30, s.name, sp);
+      if (!this.pinned(s.v)) this.startMark(ctx, s.v, sp.x, sp.y, stroke);
+      if (s.name) this.tag(ctx, sp.x, this.tagAbove(s.v, sp.y), s.name, sp);
     }
     const op = this.proj(origin);
     ripple(origin, op, this.tTake);
     if (op && op.vis) {
-      this.startMark(ctx, origin, op.x, op.y, stroke);
+      if (!this.pinned(origin)) this.startMark(ctx, origin, op.x, op.y, stroke);
       // Keep the origin label above its pin; the moving/landing preview is below
       // the plane, so short hops do not immediately stack the longer hub names.
-      if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName, op);
+      if (this.originName) this.tag(ctx, op.x, this.tagAbove(origin, op.y), this.originName, op);
     }
 
     const pp = this.proj(mul(pl.n, 1 + pl.alt));

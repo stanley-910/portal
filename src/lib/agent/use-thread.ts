@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { abandoned, LOST_REPLY, QUEUE_BEAT_MS, QUEUED_STALE_MS, waiting } from "@/lib/agent/queue";
 import { AGENT_ID, type ThreadMessage } from "@/lib/agent/types";
+import { readCurrencyPref } from "@/lib/currency-pref";
 
 // The trip's thread as the chat panel reads it. Messages live in Storage; Pip's text streams by broadcast
 // until its reply is written, so this merges the two. Only the streaming message is a new object per token; the
@@ -67,11 +68,12 @@ export function useSendMessage() {
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tripId, text }),
+        body: JSON.stringify({ tripId, text, currency: readCurrencyPref() }),
       });
       // asking Pip needs an account; guests get this instead of a reply
       if (res.status === 401) throw new Error(SIGN_IN_TO_ASK);
       if (!res.ok) throw new Error(`message failed: ${res.status}`);
+      return ((await res.json()) as { messageId: string }).messageId;
     },
     [tripId],
   );

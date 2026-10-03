@@ -8,16 +8,19 @@ import { dateIn } from "@/lib/agent/dates";
 import { bigCities } from "@/lib/agent/meetup";
 import { abandoned, LEASE_MS, LOST_REPLY, owed, QUEUE_BEAT_MS, waiting } from "@/lib/agent/queue";
 import { describePlan, describeThread, handlesFor, showDate, type Handles, type PlanJson } from "@/lib/agent/snapshot";
+import { stepLabel } from "@/lib/agent/steps";
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
+import { PERSONA, STYLE } from "@/lib/agent/voice";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { liveblocks } from "@/lib/liveblocks/server";
+import type { Currency } from "@/lib/currency";
 
 // One run of Pip in one trip room (harness G9): every message in the thread is to Pip. Posting it puts Pip's empty
 // reply under it in the same write; the run waits for that reply's turn, answers, writes the reply and its cards into
 // the thread, and lets go. Text streams by broadcast; Storage is written at tool boundaries only.
 
 // DeepSeek V4.1 Flash: `deepseek-flash` follows the latest Flash release (api-docs.deepseek.com, checked 2026-10-03)
-const MODEL = "deepseek-flash";
+export const MODEL = "deepseek-flash";
 const MAX_STEPS = 10;
 /**
  * How long a message waits for Pip to finish earlier ones, from when its request started. Then it runs for at most
@@ -45,7 +48,7 @@ const STREAM_MS = 120;
 const SYSTEM = `You are ${AGENT_NAME}, the travel agent inside Portal, a shared globe where friends plan how to get between places in Asia.
 Several people share this trip and see everything you write and change, live on their globes.
 
-Who you are: a small, friendly green alien who has hopped between more star systems than you can count, which makes you the best trip planner in the galaxy, and you know it. Earth travel charms you: bullet trains, overnight ferries, budget airlines, the queue at immigration. Asked who you are, say so with a bit of swagger. Otherwise give most replies one light touch of it, a word or a short aside ("even by galactic standards", "a classic Earth layover", "I've crossed nebulae with worse connections"), never more than one, and never in place of the answer. Be warm, curious about where people are headed, and a little smug when you find the cheap fare. The galaxy is flavour only: everything you say about Earth routes, prices and times still comes from your tools.
+${PERSONA}
 
 What you do: work out how to get between places. Add and change legs, find where people coming from different places should meet, compare routes.
 What you don't do: itineraries, sights, hotels, restaurants or reviews. Say so in one sentence if asked.
@@ -53,10 +56,11 @@ You can't vote, pick an option for people, or pay; they do that themselves.
 
 How to work:
 - Everyone in the trip talks to you in this thread; every message is to you. One person sent this one; the message below says who. Say "you" only to them, and name everyone else ("Joon's off the flight"), since everyone reads the thread.
-- The trip below is current as of this turn. Refer to members, stops and legs by name in your replies; use handles (M1, S2, L3) only in tool calls.
+- The trip below is current as of this turn; call get_trip only after something has changed it. Refer to members, stops and legs by name in your replies; use handles (M1, S2, L3) only in tool calls.
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
+- For visa, passport or entry questions, call check_entry for the relevant leg. Compare every party member with a passport recorded in the trip, say who has no passport recorded, and end with the official-source reminder.
 - For who pays what, call get_split and quote it. Never add up costs yourself.
 - Stays: you never estimate or look up what a stay costs. When someone says one ("our Shanghai flat is HKD 900 a night"), record it with set_stay_cost.
 - Someone leaving early ("Mei leaves after Shanghai"): set_leaves to the day they go, and take them off the legs after it with set_riders. If they say how they get home, add that leg too.
@@ -64,13 +68,16 @@ How to work:
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
 - Get every number from tools before you write; your words stream to everyone as you write them, so never correct yourself mid-reply.
-- Write like a friend who's good with timetables: one to three short sentences, plain words, no lists unless comparing, no emoji, and an exclamation mark only when something is genuinely good news. Cards already show the details, so don't repeat them.`;
+- ${STYLE}`;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const newId = () => crypto.randomUUID().slice(0, 8);
 
+/** Who asked, for their own entry and currency questions. Their passports aren't assumed to be anyone else's. */
+export type AgentRequester = { nationalities: string[]; currency: Currency };
+
 /** The reply a posted message is owed. */
-export type Claim = { messageId: string; replyId: string };
+export type Claim = { messageId: string; replyId: string; requester: AgentRequester };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -78,7 +85,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Appends a member's message and, in the same write, Pip's empty reply, so people see Pip pick it up as their message
  * lands. The reply starts now, or waits as "queued" behind replies Pip still owes.
  */
-export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim }> {
+export async function postToPip(
+  roomId: string,
+  authorId: string,
+  text: string,
+  requester: AgentRequester,
+): Promise<{ messageId: string; claim: Claim }> {
   const messageId = newId();
   const replyId = newId();
   let posted = false;
@@ -99,11 +111,11 @@ export async function postToPip(roomId: string, authorId: string, text: string):
     if (posted) break;
     if (Date.now() > giveUp) throw new Error("The trip has no thread to post to.");
   }
-  return { messageId, claim: { messageId, replyId } };
+  return { messageId, claim: { messageId, replyId, requester } };
 }
 
 /** Answers the message a claim was made for, after any asked before it. Resolves when the reply is written. */
-export async function runAgent(roomId: string, { messageId, replyId }: Claim, askedBy: string) {
+export async function runAgent(roomId: string, { messageId, replyId, requester }: Claim, askedBy: string) {
   const lb = liveblocks();
   const runId = newId();
 
@@ -259,7 +271,7 @@ export async function runAgent(roomId: string, { messageId, replyId }: Claim, as
         const asked = plan.thread?.find((m) => m.id === messageId);
         const result = streamText({
           model: deepseek(MODEL),
-          system: `${SYSTEM}\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
+          system: `${SYSTEM}\n\nThe member asking this question holds these passport(s): ${requester.nationalities.length ? requester.nationalities.join(", ") : "none recorded"}.\nTheir selected display currency is ${requester.currency}.\nUse this information only for this member's question and do not assume it applies to other members.\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
           prompt: `Recent thread:\n${describeThread(plan, handles)}\n\nAnswer this message from ${plan.members?.[askedBy]?.name ?? "a member"} (${handles.member.get(askedBy) ?? "?"}):\n${asked?.text ?? ""}`,
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
@@ -351,33 +363,6 @@ export function silentReply(did: RunRecord): string {
 }
 
 /**
- * How a tool call reads in the reply: what Pip's doing, then what it did. None for edit_plan, whose changes card
- * says it better.
- */
-function stepLabel(tool: string, output: unknown = null): { doing: string; done: string } | null {
-  const o = (output ?? {}) as { refused?: string; total?: number; searched?: number; options?: unknown[] };
-  const n = (count: number | undefined, one: string, many: string) => (count === undefined ? many : `${count} ${count === 1 ? one : many}`);
-  const failed = !!o.refused;
-  switch (tool) {
-    case "get_trip":
-      return { doing: "Reading the trip", done: "Read the trip" };
-    case "get_leg_options":
-      return { doing: "Checking fares", done: failed ? "Couldn't find that leg" : `Checked ${n(o.total, "fare", "fares")}` };
-    case "get_split":
-      return { doing: "Working out who pays what", done: "Worked out who pays what" };
-    case "find_meetup":
-      return {
-        doing: "Comparing places to meet",
-        done: failed ? "Couldn't place everyone" : o.options?.length ? `Compared ${n(o.searched, "route", "routes")}` : "No place works for everyone",
-      };
-    case "apply_meetup":
-      return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
-    default:
-      return null;
-  }
-}
-
-/**
  * Without a model key, Pip still answers the demo's one question, where to meet, from the same tools: the demo
  * must never hang on a provider (AGENTS.md). Everything else gets a plain "can't".
  */
@@ -427,7 +412,7 @@ async function fallbackReply(plan: PlanJson, handles: ReturnType<typeof handlesF
 }
 
 /** Big cities named in a message, in the order they appear; longer names first so "Hong Kong" beats "Kong". */
-function citiesIn(text: string): string[] {
+export function citiesIn(text: string): string[] {
   const lower = text.toLowerCase();
   const found: { name: string; at: number }[] = [];
   for (const city of [...bigCities()].sort((a, b) => b.name.length - a.name.length)) {
@@ -440,4 +425,3 @@ function citiesIn(text: string): string[] {
 
 /** A week from today, YYYY-MM-DD: a date to compare fares on when nobody gave one. */
 const nextWeek = () => new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
-

@@ -36,7 +36,7 @@ type Before = {
   ends?: { value: string | null };
 };
 
-export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE" | "OUT_OF_TIME"; reason: string; next: string };
+export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE" | "LOCKED" | "OUT_OF_TIME"; reason: string; next: string };
 
 export type EditResult = { applied: string[]; refused: Refusal[]; changesetId: string | null };
 
@@ -83,9 +83,9 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   // Resolve everything before writing, so a refusal never leaves half an op behind.
   type Planned =
     | { kind: "add"; op: number; from: string | Stop; to: string | Stop; date: string; riders: string[] }
-    | { kind: "date"; leg: string; date: string }
+    | { kind: "date"; op: number; leg: string; date: string }
     | { kind: "riders"; op: number; leg: string; riders: string[] }
-    | { kind: "remove"; leg: string }
+    | { kind: "remove"; op: number; leg: string }
     | { kind: "stay"; stop: string; stay: Stay | null }
     | { kind: "leaves"; member: string; date: string | null }
     | { kind: "ends"; date: string | null };
@@ -93,6 +93,13 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   ops.forEach((op, i) => {
     const refuse = (r: Omit<Refusal, "op">) => refused.push({ op: i, ...r });
     const unknown = (handle: string) => refuse({ code: "UNKNOWN_HANDLE", reason: `${handle} isn't in the trip.`, next: "Call get_trip and use its handles." });
+    // a leg being bought keeps its date, riders and place in the trip until a rider cancels the settle
+    const locked = (handle: string) => {
+      const id = legId(handle);
+      if (!id || !plan.legs?.[id]?.booking) return false;
+      refuse({ code: "LOCKED", reason: `${handle} is being booked, so it can't change.`, next: "Ask a rider to cancel the settle first." });
+      return true;
+    };
     const ref = (p: PlaceRef): string | Stop | null => {
       if ("at" in p) return p.at;
       if ("stop" in p) {
@@ -123,12 +130,14 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         return;
       }
       case "set_date": {
+        if (locked(op.leg)) return;
         const leg = legId(op.leg);
         if (!leg) return unknown(op.leg);
-        planned.push({ kind: "date", leg, date: op.date });
+        planned.push({ kind: "date", op: i, leg, date: op.date });
         return;
       }
       case "set_riders": {
+        if (locked(op.leg)) return;
         const leg = legId(op.leg);
         const who = riders(op.riders);
         if (!leg) return unknown(op.leg);
@@ -136,9 +145,10 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         return;
       }
       case "remove_leg": {
+        if (locked(op.leg)) return;
         const leg = legId(op.leg);
         if (!leg) return unknown(op.leg);
-        planned.push({ kind: "remove", leg });
+        planned.push({ kind: "remove", op: i, leg });
         return;
       }
       case "set_stay_cost": {
@@ -265,6 +275,11 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       }
       const leg = legs.get(p.leg);
       if (!leg) continue;
+      // a rider started buying it since the snapshot
+      if (leg.get("booking")) {
+        refused.push({ op: p.op, code: "LOCKED", reason: `${h.leg.get(p.leg) ?? "That leg"} is being booked, so it can't change.`, next: "Ask a rider to cancel the settle first." });
+        continue;
+      }
       remember(p.leg);
       const label = `${stopName(leg.get("from"))} → ${stopName(leg.get("to"))}`;
       if (p.kind === "date") {

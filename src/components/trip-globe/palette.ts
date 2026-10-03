@@ -56,6 +56,8 @@ export interface Palette {
   skyInk: number;
   gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
   stickerGL: { fill: RGB; ink: RGB; roundel: RGB };
+  /** Each member's sticker paper, by design slot, for their pins' heads. */
+  memberGL: RGB[];
 }
 
 // The tint of the plane's shadow on the ground. Not a token: it only exists inside the shader.
@@ -98,6 +100,7 @@ function build(theme: ThemeId): Palette {
       ink: rgb("sticker-ink", theme),
       roundel: rgb("roundel", theme),
     },
+    memberGL: MEMBER_TOKENS.map((n) => rgb(n, theme)),
   };
 }
 

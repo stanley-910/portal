@@ -4,6 +4,7 @@ import { useSelf } from "@liveblocks/react";
 import { Fragment, useState } from "react";
 
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
+import { LegBooking } from "@/components/multiplayer/leg-booking";
 import { RoundButton } from "@/components/paper-atlas";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
@@ -37,7 +38,7 @@ const describe = (o: StoredOffer) =>
     .join(", ");
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
-export function TripPlan({ hostId, onMinimise }: { hostId: string | null; onMinimise?: () => void }) {
+export function TripPlan({ hostId, email = null, nationalities = [], onMinimise }: { hostId: string | null; email?: string | null; nationalities?: string[]; onMinimise?: () => void }) {
   const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useMySplit();
@@ -76,15 +77,17 @@ export function TripPlan({ hostId, onMinimise }: { hostId: string | null; onMini
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
-          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} />
+          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} email={email} nationalities={nationalities} />
         </Fragment>
       ))}
     </section>
   );
 }
 
-function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number }) {
+function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number; email: string | null; nationalities: string[] }) {
   const me = useSelf((s) => s.id);
+  // a leg being bought keeps its date, riders and pick until a rider cancels the settle
+  const locked = !!leg.booking;
   const members = usePlanMembers();
   const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg, setLeave } = usePlanActions();
   const [picking, setPicking] = useState(false);
@@ -112,7 +115,7 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
       <RouteHeader from={{ code: leg.from.code, name: leg.from.name }} to={{ code: leg.to.code, name: leg.to.name }} />
 
       <div className="ts-dates">
-        <DateField label="Depart" value={leg.date} open={picking} onToggle={() => setPicking((p) => !p)} />
+        <DateField label="Depart" value={leg.date} open={picking} onToggle={() => !locked && setPicking((p) => !p)} />
         <div className="ts-field tp-riders">
           <span className="ts-field-label">Riders</span>
           <ul className="tp-rider-list">
@@ -124,6 +127,7 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
                       className="tp-rider"
                       aria-pressed={leg.riders.includes(id)}
                       title={info.name}
+                      disabled={locked}
                       onClick={() => toggleRider(leg.id, id)}
                       style={{ borderColor: memberColor(info.color) }}
                     >
@@ -155,10 +159,10 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
       ) : null}
       <div className="tp-edit-row">
         {stay ? <span className="type-meta text-ink-muted">Stay: {stay.label ?? "Hotel selected"}</span> : null}
-        <button type="button" className="ts-oneway" onClick={() => setEditing((value) => !value)}>{editing ? "Close edit" : "Edit trip"}</button>
+        {locked ? null : <button type="button" className="ts-oneway" onClick={() => setEditing((value) => !value)}>{editing ? "Close edit" : "Edit trip"}</button>}
       </div>
 
-      {editing ? (
+      {editing && !locked ? (
         <div className="tp-editor">
           <div className="ts-rows">
             {offers.map((o) => (
@@ -220,6 +224,7 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
                 className="ts-row"
                 aria-pressed={chosen}
                 title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
+                disabled={locked}
                 onClick={() => setPendingChoice(chosen ? null : o.id)}
               >
                 <span className="ts-head">
@@ -250,9 +255,13 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
         })}
       </div>
 
-      <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>
-        Remove leg
-      </button>
+      <LegBooking leg={leg} email={email} nationalities={nationalities} />
+
+      {locked ? null : (
+        <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>
+          Remove leg
+        </button>
+      )}
     </article>
   );
 }
