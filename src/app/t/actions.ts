@@ -2,9 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 
-import { LiveMap, LiveObject } from "@liveblocks/node";
 import { redirect } from "next/navigation";
-import { after } from "next/server";
 
 import { ensureGuest, MAX_NAME, setGuestName } from "@/lib/guest";
 import { currentPerson } from "@/lib/identity";
@@ -12,12 +10,10 @@ import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { editPlan, undoChangeset } from "@/lib/agent/edit";
-import { postToPip, runAgent } from "@/lib/agent/run";
 import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
 import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
 import { runLegSearch } from "@/lib/trip/search-leg";
-import { isCurrency, type Currency } from "@/lib/currency";
 
 /** Creates a trip room owned by the signed-in user and opens it. Its URL is the invite. Saving a trip needs an
  * account; friends who open the link can join as guests. */
@@ -31,36 +27,6 @@ export async function createTrip() {
     metadata: { members: [user.id], title: "New trip", updatedAt: new Date().toISOString() },
   });
   redirect(`/t/${id}`);
-}
-
-const MAX_TEXT = 2_000;
-
-/**
- * Starts a solo trip from the home globe with a first message to Pip, so you can plan before there's a trip
- * (harness: solo planners). Friends join later from the trip's URL as usual. Pip needs an account.
- */
-export async function startTripWithPip(text: string, currency: Currency = "USD") {
-  const message = text.trim().slice(0, MAX_TEXT);
-  if (!message) return;
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/");
-  const id = randomBytes(12).toString("base64url");
-  const roomId = tripRoomId(id);
-  await liveblocks().createRoom(roomId, {
-    defaultAccesses: [],
-    usersAccesses: { [user.id]: ["room:write"] },
-    metadata: { members: [user.id], title: "New trip", updatedAt: new Date().toISOString() },
-  });
-  await liveblocks().mutateStorage(roomId, ({ root }) => {
-    // a new room's Storage is empty until a client loads it; lay out the trip so the server can write to it
-    if (!root.get("members")) root.set("members", new LiveMap([[user.id, new LiveObject({ name: user.displayName, color: 1, nationalities: user.nationalities })]]));
-    if (!root.get("stops")) root.set("stops", new LiveMap());
-    if (!root.get("legs")) root.set("legs", new LiveMap());
-  });
-  const requester = { nationalities: user.nationalities, currency: isCurrency(currency) ? currency : "USD" };
-  const { claim } = await postToPip(roomId, user.id, message, requester);
-  after(() => runAgent(roomId, claim, user.id));
-  redirect(`/t/${id}?pip=open`);
 }
 
 /** Saves the name a guest's friends see on their cursor and avatar. Accounts rename through their profile. */

@@ -7,7 +7,9 @@ import { isStepCount, streamText } from "ai";
 import { dateIn } from "@/lib/agent/dates";
 import { bigCities } from "@/lib/agent/meetup";
 import { describePlan, describeThread, handlesFor, showDate, type Handles, type PlanJson } from "@/lib/agent/snapshot";
+import { stepLabel } from "@/lib/agent/steps";
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
+import { PERSONA, STYLE } from "@/lib/agent/voice";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { Currency } from "@/lib/currency";
@@ -17,7 +19,7 @@ import type { Currency } from "@/lib/currency";
 // the thread, and lets go. Text streams by broadcast; Storage is written at tool boundaries only.
 
 // DeepSeek V4.1 Flash: `deepseek-flash` follows the latest Flash release (api-docs.deepseek.com, checked 2026-10-03)
-const MODEL = "deepseek-flash";
+export const MODEL = "deepseek-flash";
 const MAX_STEPS = 10;
 const LEASE_MS = 90_000;
 /** How long a message waits for Pip to finish earlier ones. With a run's lease, it fits the route's 300 s. */
@@ -43,7 +45,7 @@ const STREAM_MS = 120;
 const SYSTEM = `You are ${AGENT_NAME}, the travel agent inside Portal, a shared globe where friends plan how to get between places in Asia.
 Several people share this trip and see everything you write and change, live on their globes.
 
-Who you are: a small, friendly green alien who has hopped between more star systems than you can count, which makes you the best trip planner in the galaxy, and you know it. Earth travel charms you: bullet trains, overnight ferries, budget airlines, the queue at immigration. Asked who you are, say so with a bit of swagger. Otherwise give most replies one light touch of it, a word or a short aside ("even by galactic standards", "a classic Earth layover", "I've crossed nebulae with worse connections"), never more than one, and never in place of the answer. Be warm, curious about where people are headed, and a little smug when you find the cheap fare. The galaxy is flavour only: everything you say about Earth routes, prices and times still comes from your tools.
+${PERSONA}
 
 What you do: work out how to get between places. Add and change legs, find where people coming from different places should meet, compare routes.
 What you don't do: itineraries, sights, hotels, restaurants or reviews. Say so in one sentence if asked.
@@ -51,7 +53,7 @@ You can't vote, pick an option for people, or pay; they do that themselves.
 
 How to work:
 - Everyone in the trip talks to you in this thread; every message is to you. One person sent this one; the message below says who. Say "you" only to them, and name everyone else ("Joon's off the flight"), since everyone reads the thread.
-- The trip below is current as of this turn. Refer to members, stops and legs by name in your replies; use handles (M1, S2, L3) only in tool calls.
+- The trip below is current as of this turn; call get_trip only after something has changed it. Refer to members, stops and legs by name in your replies; use handles (M1, S2, L3) only in tool calls.
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
@@ -63,7 +65,7 @@ How to work:
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
 - Get every number from tools before you write; your words stream to everyone as you write them, so never correct yourself mid-reply.
-- Write like a friend who's good with timetables: one to three short sentences, plain words, no lists unless comparing, no emoji, and an exclamation mark only when something is genuinely good news. Cards already show the details, so don't repeat them.`;
+- ${STYLE}`;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const newId = () => crypto.randomUUID().slice(0, 8);
@@ -316,33 +318,6 @@ export function silentReply(did: RunRecord): string {
 }
 
 /**
- * How a tool call reads in the reply: what Pip's doing, then what it did. None for edit_plan, whose changes card
- * says it better.
- */
-function stepLabel(tool: string, output: unknown = null): { doing: string; done: string } | null {
-  const o = (output ?? {}) as { refused?: string; total?: number; searched?: number; options?: unknown[] };
-  const n = (count: number | undefined, one: string, many: string) => (count === undefined ? many : `${count} ${count === 1 ? one : many}`);
-  const failed = !!o.refused;
-  switch (tool) {
-    case "get_trip":
-      return { doing: "Reading the trip", done: "Read the trip" };
-    case "get_leg_options":
-      return { doing: "Checking fares", done: failed ? "Couldn't find that leg" : `Checked ${n(o.total, "fare", "fares")}` };
-    case "get_split":
-      return { doing: "Working out who pays what", done: "Worked out who pays what" };
-    case "find_meetup":
-      return {
-        doing: "Comparing places to meet",
-        done: failed ? "Couldn't place everyone" : o.options?.length ? `Compared ${n(o.searched, "route", "routes")}` : "No place works for everyone",
-      };
-    case "apply_meetup":
-      return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
-    default:
-      return null;
-  }
-}
-
-/**
  * Without a model key, Pip still answers the demo's one question, where to meet, from the same tools: the demo
  * must never hang on a provider (AGENTS.md). Everything else gets a plain "can't".
  */
@@ -392,7 +367,7 @@ async function fallbackReply(plan: PlanJson, handles: ReturnType<typeof handlesF
 }
 
 /** Big cities named in a message, in the order they appear; longer names first so "Hong Kong" beats "Kong". */
-function citiesIn(text: string): string[] {
+export function citiesIn(text: string): string[] {
   const lower = text.toLowerCase();
   const found: { name: string; at: number }[] = [];
   for (const city of [...bigCities()].sort((a, b) => b.name.length - a.name.length)) {

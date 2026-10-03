@@ -76,13 +76,13 @@ const editOp = z.discriminatedUnion("op", [
 ]);
 
 /** How fresh a price is, said the same way every time so the model can't guess. */
-const KIND = { live: "live fare", cached: "cached fare", timetable: "timetable fare", estimated: "estimated" } as const;
+export const KIND = { live: "live fare", cached: "cached fare", timetable: "timetable fare", estimated: "estimated" } as const;
 
 /** Amounts per currency, never converted: "HKD 1,240 + USD 67". */
 const money = (sums: Record<string, number>) =>
   Object.entries(sums).map(([c, n]) => `${c} ${n.toLocaleString("en-GB")}`).join(" + ");
 
-const fmt = (o: MeetupOption) => {
+export const fmt = (o: MeetupOption) => {
   const legs = o.legs
     .map((l) => {
       const price = l.price ? `${l.price.currency} ${Math.round(l.price.amount)}` : "no price";
