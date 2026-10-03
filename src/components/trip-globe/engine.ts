@@ -74,7 +74,14 @@ export interface GlobeEvents {
   onCursorChange?: (cursor: GlobeCursor) => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
   onFrame?: () => void;
+  /**
+   * The part of the globe's box the page leaves open, in CSS px. A landed route or a searched place is framed
+   * there instead of the middle of the screen. Asked once per turn, as it starts, so panels that open on landing count.
+   */
+  freeArea?: () => FreeArea | null;
 }
+
+export type FreeArea = { x: number; y: number; w: number; h: number };
 
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
 const ALT = 0.03; // flying altitude, fully zoomed out
@@ -297,7 +304,13 @@ export class GlobeEngine {
     hop: number;
     t0: number;
     dur: number;
+    /** What to frame, worked out as the turn starts: ground point p, w radians of arc, no closer than minRange. */
+    frame?: { p: Vec3; w: number; minRange: number };
   } | null = null;
+  // The landed route, kept framed in the open part of the screen as panels open and grow, until someone moves the
+  // globe themselves. `area` is the open area it was last framed in.
+  private autoFrame: { p: Vec3; w: number; minRange: number } | null = null;
+  private frameArea: FreeArea | null = null;
 
   // trip
   private mode: GlobeMode = "idle";
@@ -507,6 +520,7 @@ export class GlobeEngine {
     if (!d || this.mode === "flying" || this.turn) return;
     if (!d.drag && Math.hypot(x - d.x, y - d.y) > 6) d.drag = true;
     if (d.drag) {
+      this.autoFrame = null;
       const now = performance.now();
       const lon = this.lon0;
       const lat = this.lat0;
@@ -563,6 +577,7 @@ export class GlobeEngine {
   /** Zooms by a factor (below 1 zooms in) toward screen point (x, y), easing in. */
   zoomAt(x: number, y: number, factor: number) {
     this.turn = null;
+    this.autoFrame = null;
     this.lastInteract = this.t;
     this.rangeTarget = clamp(this.rangeTarget * factor, RANGE_MIN, RANGE_MAX);
     const p = this.pick(x, y);
@@ -587,6 +602,7 @@ export class GlobeEngine {
    */
   private scrollPan(e: WheelEvent) {
     this.turn = null;
+    this.autoFrame = null;
     this.zoomAnchor = null;
     this.lastInteract = this.t;
     this.cam = this.camera();
@@ -623,6 +639,7 @@ export class GlobeEngine {
     const y = (ay + by) / 2;
     this.down = null;
     this.turn = null;
+    this.autoFrame = null;
     this.pinch = { d0: Math.hypot(ax - bx, ay - by) || 1, range0: this.range, p: this.pick(x, y) };
   }
 
@@ -654,9 +671,11 @@ export class GlobeEngine {
     this.cam = this.camera();
   }
 
-  /** The camera range that fits a route of angular length w comfortably on screen. */
-  private fitRange(w: number) {
-    const half = Math.atan(this.tan0 * Math.min(1, this.asp)) * 0.6;
+  /** The camera range that fits a route of angular length w comfortably on screen, or in `area` of it. */
+  private fitRange(w: number, area?: FreeArea) {
+    const fx = area ? area.w / this.W : 1;
+    const fy = area ? area.h / this.H : 1;
+    const half = Math.atan(this.tan0 * Math.min(this.asp * fx, fy)) * 0.6;
     const a = w / 2 + 0.03;
     return clamp(Math.sin(a) / Math.tan(half) + Math.cos(a) - 1, RANGE_MIN, RANGE_MAX);
   }
@@ -676,6 +695,7 @@ export class GlobeEngine {
   cancel() {
     const wasActive = this.mode !== "idle";
     this.mode = "idle";
+    this.autoFrame = null;
     this.origin = null;
     this.dest = null;
     this.pl = null;
@@ -720,7 +740,8 @@ export class GlobeEngine {
     this.hiP = hub ? vecOf(hub.lat * D2R, hub.lng * D2R) : v;
     // turn the globe to frame the whole route
     // and back out if the whole route doesn't fit, rising mid-way like a fly-to
-    const mid = llOf(slerp(origin, v, 0.5));
+    const midV = slerp(origin, v, 0.5);
+    const mid = llOf(midV);
     const range = Math.max(this.range, this.fitRange(angle(origin, v)));
     this.zoomAnchor = null;
     this.turn = {
@@ -729,7 +750,11 @@ export class GlobeEngine {
       hop: this.range < 1.2 && !this.reduceMotion ? Math.min(0.5, 0.25 * angle(origin, v) + 0.08) : 0,
       t0: this.t + (this.reduceMotion ? 0 : 0.5),
       dur: this.reduceMotion ? 0.001 : 1.5,
+      // the trip's panel opens as the plane lands; by the time the turn starts it's there to frame around
+      // zooms in to fit the route in the open space, so a short trip fills it rather than sitting on a far-off globe
+      frame: { p: midV, w: angle(origin, v), minRange: RANGE_MIN },
     };
+    this.autoFrame = { ...this.turn.frame! };
     const depart = new Date();
     depart.setDate(depart.getDate() + 1);
     this.events.onModeChange?.("landed", this.originHub);
@@ -1115,8 +1140,70 @@ export class GlobeEngine {
       hop: this.reduceMotion ? 0 : Math.max(0, Math.min(0.6, 0.35 * far) - (this.range - Math.min(this.range, to.range)) * 0.5),
       t0: this.t,
       dur,
+      frame: { p: vecOf(to.lat, to.lon), w: spanDeg * D2R, minRange: RANGE_MIN },
     };
     // hold the idle drift until well after it arrives
+    this.lastInteract = this.t + dur;
+  }
+
+  /**
+   * Where the camera should end up to show ground point p and w radians around it in the open part of the screen:
+   * zoomed to fit the open area, and turned so p sits at its middle. With no panels in the way, p is centred as before.
+   */
+  private framed({ p, w, minRange }: { p: Vec3; w: number; minRange: number }) {
+    const ll = llOf(p);
+    const centred = { lon: ll.lon, lat: clamp(ll.lat, -LAT_MAX, LAT_MAX) };
+    const area = this.events.freeArea?.() ?? null;
+    this.frameArea = area;
+    if (!area || (area.w >= this.W - 1 && area.h >= this.H - 1)) {
+      return { ...centred, range: Math.max(minRange, this.fitRange(w)) };
+    }
+    const keep = { lon: this.lon0, lat: this.lat0, range: this.range };
+    const x = area.x + area.w / 2;
+    const y = area.y + area.h / 2;
+    // Zoomed out, the globe can only turn, not slide, so the open area's middle may be off the disc or near its
+    // edge, where a route would sit foreshortened at the horizon. Zoom in until the disc reaches it comfortably;
+    // a route too long to fit that close is centred on the whole screen instead.
+    const fit = this.fitRange(w, area);
+    let range = Math.max(minRange, fit);
+    let reached = false;
+    for (let i = 0; i < 12 && range >= RANGE_MIN && range >= fit * 0.6; i++) {
+      Object.assign(this, { lon0: centred.lon, lat0: centred.lat, range });
+      this.cam = this.camera();
+      const c = this.disc();
+      // past the screen's size the globe fills the view, so it reaches anywhere
+      if (c.r >= Math.min(this.W, this.H) / 2 || Math.hypot(x - c.x, y - c.y) <= c.r * 0.6) {
+        reached = true;
+        break;
+      }
+      range *= 0.85;
+    }
+    let to = { ...centred, range: Math.max(keep.range, this.fitRange(w)) };
+    if (reached) {
+      this.anchor(p, x, y);
+      to = { lon: this.lon0, lat: this.lat0, range: this.range };
+    }
+    Object.assign(this, keep);
+    this.cam = this.camera();
+    return to;
+  }
+
+  /**
+   * Frames the landed route again when the open part of the screen has changed, say a panel grew once its results
+   * came in. Does nothing once someone has moved the globe since landing.
+   */
+  reframe() {
+    const f = this.autoFrame;
+    if (!f || this.mode !== "landed" || this.turn?.frame) return;
+    const area = this.events.freeArea?.() ?? null;
+    const was = this.frameArea;
+    const near = (a: number, b: number) => Math.abs(a - b) < 24;
+    if (area === was || (area && was && near(area.x, was.x) && near(area.y, was.y) && near(area.w, was.w) && near(area.h, was.h))) return;
+    const dur = this.reduceMotion ? 0.001 : 0.8;
+    const here = { lon: this.lon0, lat: this.lat0, range: this.range };
+    this.zoomAnchor = null;
+    this.vlon = this.vlat = 0;
+    this.turn = { from: here, to: here, hop: 0, t0: this.t, dur, frame: { ...f } };
     this.lastInteract = this.t + dur;
   }
 
@@ -1143,6 +1230,10 @@ export class GlobeEngine {
     if (this.turn) {
       // fly the view to frame a finished route
       const tr = this.turn;
+      if (tr.frame && t >= tr.t0) {
+        tr.to = this.framed(tr.frame);
+        tr.frame = undefined;
+      }
       const e = ease((t - tr.t0) / tr.dur);
       this.lon0 = tr.from.lon + wrapPi(tr.to.lon - tr.from.lon) * e;
       this.lat0 = tr.from.lat + (tr.to.lat - tr.from.lat) * e;
