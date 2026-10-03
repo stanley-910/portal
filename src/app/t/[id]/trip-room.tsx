@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useSelf, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
@@ -38,6 +38,8 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
+  // the room numbers colours from 1; the design system's slots count from 0
+  const color = useSelf((me) => me.info.color - 1) ?? 0;
   const status = useStatus();
   // a trip started by talking to Pip on the home globe opens with the chat showing
   const pipOpen = useSearchParams().get("pip") === "open";
@@ -45,16 +47,19 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
-  const [landedLeg, setLandedLeg] = useState<string | null>(null);
-  // whether that leg is still on the trip, with both its stops: Pip or a friend may have taken it off
-  const landedOnTrip = useStorage((root) => {
-    const leg = landedLeg ? root.legs[landedLeg] : undefined;
-    return !!leg && !!root.stops[leg.from] && !!root.stops[leg.to];
-  });
+  const [landedLegs, setLandedLegs] = useState<string[]>([]);
+  // whether those legs are all still on the trip, with their stops: Pip or a friend may have taken one off
+  const landedOnTrip = useStorage((root) =>
+    landedLegs.every((id) => {
+      const leg = root.legs[id];
+      return !!leg && !!root.stops[leg.from] && !!root.stops[leg.to];
+    }),
+  );
   useEffect(() => {
-    // your plane would keep its route and lit country for a leg that's gone, so put it away
-    if (landedLeg && landedOnTrip === false) globe.current?.cancel();
-  }, [landedLeg, landedOnTrip]);
+    // your plane would keep its route and lit country for a leg that's gone, so put it away; the legs left on
+    // the trip are drawn like everyone else's again
+    if (landedLegs.length && landedOnTrip === false) globe.current?.cancel();
+  }, [landedLegs, landedOnTrip]);
   useRecordMember();
 
   useErrorListener((error) => {
@@ -73,14 +78,15 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
     <main className="relative h-dvh w-full overflow-hidden">
       <TripGlobe
         ref={globe}
+        color={color}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
-        onLand={(trip) => planReady && setLandedLeg(addLeg(trip))}
-        onTakeoff={() => setLandedLeg(null)}
-        onCancel={() => setLandedLeg(null)}
+        onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
+        onTakeoff={() => setLandedLegs([])}
+        onCancel={() => setLandedLegs([])}
       />
-      <RemotePlanes globe={globe} hideLeg={landedLeg} />
+      <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
       <NavBar globe={globe} name={name} email={email} account={account} reloadOnRename>

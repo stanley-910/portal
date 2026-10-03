@@ -12,7 +12,7 @@ import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { editPlan, undoChangeset } from "@/lib/agent/edit";
-import { postMessage, runAgent } from "@/lib/agent/run";
+import { postToPip, runAgent } from "@/lib/agent/run";
 import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
 import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
@@ -36,8 +36,7 @@ const MAX_TEXT = 2_000;
 
 /**
  * Starts a solo trip from the home globe with a first message to Pip, so you can plan before there's a trip
- * (harness: solo planners). Pip answers every message in a solo trip, so it wakes without an @mention; friends
- * join later from the trip's URL as usual. Pip needs an account.
+ * (harness: solo planners). Friends join later from the trip's URL as usual. Pip needs an account.
  */
 export async function startTripWithPip(text: string) {
   const message = text.trim().slice(0, MAX_TEXT);
@@ -57,8 +56,8 @@ export async function startTripWithPip(text: string) {
     if (!root.get("stops")) root.set("stops", new LiveMap());
     if (!root.get("legs")) root.set("legs", new LiveMap());
   });
-  const messageId = await postMessage(roomId, user.id, message);
-  after(() => runAgent(roomId, messageId, user.id));
+  const { claim } = await postToPip(roomId, user.id, message);
+  after(() => runAgent(roomId, claim, user.id));
   redirect(`/t/${id}?pip=open`);
 }
 

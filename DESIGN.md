@@ -46,11 +46,11 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 - Two stickers exist: the **plane** (the cursor while flying) and the **star pin**. On the globe, only the plane is used; a trip's start is marked with a small `ink` ring at the foot of the route. Draw each sticker as its face with a `sticker-ink` outline at `line-ink`, and no cut border. Set it off the page with the cast shadow below.
 - **Cast shadow.** A sticker casts its shadow in `sticker-shadow`, down and to the right along the light. How far off and how soft it falls depends on altitude, from 0 (on the page) to 1 (high): about `1.5px 2px`, blurred 1px, at 0, out to `10.5px 14px`, blurred 3.5px, at 1. Star pins sit at 0, the plane sticker at 0.5 and cursors at 0.5. On a textured globe, lower the altitude over high terrain so the shadow closes in on mountain tops.
 - While flying, the plane casts a soft shadow offset down and to the right. On landing, the shadow slides in under the plane and the plane shrinks to about 70%: a touchdown.
-- Draw a route as a great-circle arc that rises off the surface, dashed in `ink` at `line-route` with `dash-route`. Under it, draw the surface path dotted in `rule` with `dash-ground`. Hide any part that passes behind the globe.
+- Draw a route as a great-circle arc that rises off the surface, dashed at `line-route` with `dash-route`. The route and its start ring take the colour of the member who drew it, the same as their cursor, mixed toward `ink` (45% on light paper, 20% at night) so a thin line still reads against the page. A leg no member drew (Pip's) stays `ink`. Under it, draw the surface path dotted in `rule` with `dash-ground`. Hide any part that passes behind the globe.
 
 ## Cursors and members
 
-- Each trip member gets a colour of sticker paper, `member-1` to `member-6`, handed out in that order (`memberColor(slot)`; a seventh member starts again at `member-1`). These are the only colours that tell people apart. Never use them for anything but a member's cursor and name label.
+- Each trip member gets a colour of sticker paper, `member-1` to `member-6`, handed out in that order (`memberColor(slot)`; a seventh member starts again at `member-1`). These are the only colours that tell people apart. Never use them for anything but a member's cursor, name label and the routes they draw.
 - A member's cursor is a sticker in their colour, with the tip as the hotspot: `arrow` (plain pointer), `compass` (needle with a coloured north half) or `map` (the arrow folded like a road map). Use one shape for everyone in a room.
 - Beside the cursor sits their name on a label in the `tag` style, `sticker-ink` on their colour, tilted −1.2°. Cursor and label cast one shadow together (`altitude`, default 0.5). Jade, cornflower and orchid have the same lightness, so the name, not the hue, is what tells members apart.
 - Other members' cursors are DOM stickers (`<Cursor>`). To turn the viewer's own pointer into one, use `cursorUrl(shape, colour, theme)` as the CSS `cursor`.
@@ -64,7 +64,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 ## Layout and controls
 
 - The globe is the whole screen. The ticket sits bottom-centre, `space-6` from the bottom, tilted −1.2°.
-- Every interactive target is at least 44px. Round buttons are `paper-raised` discs with an `ink` border and the `shadow-tag` shadow.
+- Every interactive target is at least 44px. A round button over the globe is a `paper-raised` disc with a `control-border` border and the `shadow-float` shadow, so it reads against the map. Inside a panel (sign-in, Pip's chat) use the quiet one instead: the bare glyph in `ink-muted`, with no border or shadow, that fills with `control-hover` on hover.
 - Show keyboard focus as a solid 2px `focus` outline, offset 3px.
 
 ## Logo

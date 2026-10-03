@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Offer } from "@/lib/transport/types";
 
-import { buildSoloStorage, soloSaveSchema, toStorageLson, toTripSummaries } from "./server";
+import { buildSoloStorage, soloLegSchema, soloSaveSchema, toStorageLson, toTripSummaries } from "./server";
 import { planTitle } from "./title";
 
 const room = (id: string, metadata: Record<string, string | string[]>, createdAt = "2026-10-01T00:00:00.000Z", lastConnectionAt?: string) => ({
@@ -73,8 +73,13 @@ const PVG = { lat: 31.14, lng: 121.81, hub: "air:PVG", code: "PVG", name: "Shang
 const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
 const input = { from: HKG, to: PVG, date: tomorrow, offers: [offer("tp:a"), offer("tp:b")], chosen: "tp:b" };
 const user = { id: "u1", displayName: "Ada" };
-const ids = { from: "s1", to: "s2", leg: "l1", search: "q1" };
-const solo = () => buildSoloStorage(soloSaveSchema.parse(input), user, ids, 1_000);
+// ids in the order the builder asks: each new stop, then the leg and its search
+const ids = () => {
+  const queue = ["s1", "s2", "l1", "q1", "s3", "l2", "q2"];
+  return () => queue.shift()!;
+};
+const save = (...legs: object[]) => soloSaveSchema.parse({ legs });
+const solo = () => buildSoloStorage(save(input), user, ids(), 1_000);
 
 const hasUndefined = (v: unknown): boolean =>
   v === undefined || (typeof v === "object" && v !== null && Object.values(v).some(hasUndefined));
@@ -104,16 +109,27 @@ describe("buildSoloStorage", () => {
   it("stores a stop without a code as null", () => {
     const noCode: Partial<typeof HKG> = { ...HKG };
     delete noCode.code;
-    const doc = buildSoloStorage(soloSaveSchema.parse({ ...input, from: noCode }), user, ids, 1);
+    const doc = buildSoloStorage(save({ ...input, from: noCode }), user, ids(), 1);
     expect(doc.stops.s1.code).toBeNull();
   });
 
   it("saves a picked hotel as the destination's stay, marked estimated", () => {
     const stay = { label: "4★ hotel, Nanjing Road", nightly: { amount: 112, currency: "USD" } };
-    const doc = buildSoloStorage(soloSaveSchema.parse({ ...input, stay }), user, ids, 1);
+    const doc = buildSoloStorage(save({ ...input, stay }), user, ids(), 1);
     expect(doc.stays).toEqual({ s2: { ...stay, estimated: true } });
     const lson = toStorageLson(doc).data as Record<string, { liveblocksType: string }>;
     expect(lson.stays.liveblocksType).toBe("LiveMap");
+  });
+
+  it("chains legs through a shared stop, in the order they were flown", () => {
+    const NRT = { lat: 35.77, lng: 140.39, hub: "air:NRT", code: "NRT", name: "Tokyo" };
+    const after = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+    const next = { from: PVG, to: NRT, date: after, offers: [offer("tp:c")], chosen: "tp:c" };
+    const doc = buildSoloStorage(save(input, next), user, ids(), 1_000);
+    expect(doc.stops).toEqual({ s1: HKG, s2: PVG, s3: NRT });
+    expect(doc.legs.l2).toMatchObject({ from: "s2", to: "s3", date: after, chosen: "tp:c", createdAt: 1_001 });
+    expect(soloSaveSchema.safeParse({ legs: [next, input] }).success).toBe(false);
+    expect(soloSaveSchema.safeParse({ legs: [] }).success).toBe(false);
   });
 
   it("leaves stays out when no hotel was picked", () => {
@@ -139,11 +155,11 @@ describe("toStorageLson", () => {
   });
 });
 
-describe("soloSaveSchema", () => {
-  const rejects = (patch: object) => expect(soloSaveSchema.safeParse({ ...input, ...patch }).success).toBe(false);
+describe("soloLegSchema", () => {
+  const rejects = (patch: object) => expect(soloLegSchema.safeParse({ ...input, ...patch }).success).toBe(false);
 
   it("accepts a landed leg and strips unknown fields", () => {
-    const r = soloSaveSchema.parse({ ...input, evil: 1, offers: [{ ...offer("tp:b"), evil: "<script>" }] });
+    const r = soloLegSchema.parse({ ...input, evil: 1, offers: [{ ...offer("tp:b"), evil: "<script>" }] });
     expect(r).not.toHaveProperty("evil");
     expect(r.offers[0]).not.toHaveProperty("evil");
   });
@@ -181,5 +197,6 @@ describe("soloSaveSchema", () => {
     bad({ segments: [{ ...seg, depart: "soon" }] });
     rejects({ offers: "not an offer" });
     expect(soloSaveSchema.safeParse("nope").success).toBe(false);
+    expect(soloSaveSchema.safeParse(input).success).toBe(false);
   });
 });

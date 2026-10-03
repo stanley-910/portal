@@ -1,46 +1,74 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
 import { useOpenAuth } from "@/components/auth/links";
-import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
-import { Button, RoundButton } from "@/components/paper-atlas";
+import { arrival, ARRIVAL_MS, PipArrival } from "@/components/agent/pip-arrival";
+import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
+import { Button } from "@/components/paper-atlas";
+import { tripContext } from "@/lib/agent/context";
+import { inOrder } from "@/lib/agent/parts";
 import { showDate } from "@/lib/agent/snapshot";
 import { AGENT_NAME, type MeetupLeg, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
-import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, useSendMessage, useThread } from "@/lib/agent/use-thread";
+import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, usePipReplies, useSendMessage, useThread } from "@/lib/agent/use-thread";
 import { memberColor } from "@/lib/liveblocks/types";
 
 // The trip's thread with Pip in it, rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
 // a chat panel. Pip's surfaces are starlight pixels; people's are Paper Atlas print (handoff: "what Pip makes").
 
-const CHIPS = ["@Pip where should we meet?", "@Pip somewhere fair in the middle", "@Pip what's on the trip so far?"];
-const NUDGE = `Hi, I'm ${AGENT_NAME}. Tell me where everyone's starting from and I'll find where to meet.`;
+// Pip's hello in a trip: one of these, picked at random once per page load
+const NUDGES = [
+  `Hi, I'm ${AGENT_NAME}. Where's everyone starting from?`,
+  "Greetings, Earthlings. Need somewhere to meet?",
+  `Hi, I'm ${AGENT_NAME}, galactic trip planner. Ask away.`,
+];
 const NUDGE_DELAY_MS = 900;
 // how long the nudge stays once typed out; it shows once per page load
 const NUDGE_HOLD_MS = 5000;
 const nudged = new Set<string>();
+// the hello each list picked this page load, so closing and reopening the chat doesn't change it
+const picked = new Map<string, string>();
 const TYPE_MS = 34;
 
 export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
   const [open, setOpen] = useState(initialOpen);
-  const thread = useThread();
-  // messages read up to when the panel last closed
-  const [seen, setSeen] = useState(0);
-  const unread = !open && thread.slice(seen).some((m) => m.author.kind === "agent");
+  // the thread is only read with the panel open; closed, a count of finished replies is enough for the dot
+  const replies = usePipReplies();
+  // replies seen when the panel last closed; whatever was there when the room loaded counts as seen
+  const [seen, setSeen] = useState<number | null>(null);
+  if (seen === null && replies !== null) setSeen(replies);
+  const unread = !open && replies !== null && seen !== null && replies > seen;
   const toggle = (next: boolean) => {
     setOpen(next);
-    setSeen(thread.length);
+    setSeen(replies);
   };
 
-  return open ? <Panel thread={thread} onClose={() => toggle(false)} /> : <Launcher unread={unread} onOpen={() => toggle(true)} />;
+  return open ? <Panel onClose={() => toggle(false)} /> : <Launcher unread={unread} onOpen={() => toggle(true)} />;
 }
 
-export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; onOpen: () => void; nudge?: string }) {
+export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean; onOpen: () => void; nudges?: readonly string[] }) {
+  // the text only renders after mount (typing starts in an effect), so a random pick can't mismatch the server's
+  const [nudge] = useState(() => {
+    const key = nudges.join("\n");
+    if (!picked.has(key)) picked.set(key, nudges[Math.floor(Math.random() * nudges.length)]);
+    return picked.get(key)!;
+  });
   const [hover, setHover] = useState(false);
+  // the first launcher of a page load arrives by saucer; the nudge waits for it
+  const [arriving, setArriving] = useState(() => !arrival.played);
+  // the saucer is this launcher's entrance, so its own zoom-in doesn't play after it
+  const [entrance] = useState(arriving);
+  useEffect(() => {
+    if (!arriving) return;
+    arrival.played = true;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => setArriving(false), still ? 0 : ARRIVAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [arriving]);
   const [done, setDone] = useState(() => nudged.has(nudge));
-  const typed = useTyping(done ? null : nudge);
+  const typed = useTyping(done || arriving ? null : nudge);
   const finished = typed === nudge;
   useEffect(() => {
     if (!finished) return;
@@ -49,7 +77,8 @@ export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; o
     return () => window.clearTimeout(timer);
   }, [finished, nudge]);
   return (
-    <div className="pip-launcher">
+    <div className={`pip-launcher${entrance ? " pip-launcher-arriving" : ""}`}>
+      {arriving ? <PipArrival /> : null}
       {typed !== null && !done ? (
         <button type="button" className="pip-nudge" onClick={onOpen}>
           <span className="pip-nudge-inner">
@@ -61,7 +90,7 @@ export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; o
               </span>
             </span>
           </span>
-          <span aria-hidden className="pip-nudge-tail" />
+          <NudgeTail />
         </button>
       ) : null}
       <button
@@ -72,10 +101,46 @@ export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; o
         onPointerEnter={() => setHover(true)}
         onPointerLeave={() => setHover(false)}
       >
-        <PipSprite size={40} mood={hover ? "talk" : "idle"} />
+        <PipSprite size={40} mood={hover ? "talk" : "idle"} className={arriving ? "pip-hidden" : undefined} />
         {unread ? <span aria-label="New reply" className="pip-unread" /> : null}
       </button>
     </div>
+  );
+}
+
+// The speech bubble's tail: a pixel wedge from the box's bottom edge to a point at Pip. Each row of light cells runs
+// from a(y) to b(y), the left edge leaning in faster than the right so it narrows to a point down and to the right;
+// ink outlines it like the box. Row 0 overlaps the box's border so the two read as one shape.
+const TAIL_CELL = 2;
+const TAIL_LIGHT = new Set<string>();
+for (let y = 0; ; y++) {
+  const a = Math.round(y * 1.7);
+  const b = 8 + Math.round(y * 0.9);
+  if (a > b) break;
+  for (let x = a; x <= b; x++) TAIL_LIGHT.add(`${x},${y}`);
+}
+const TAIL_INK = new Set<string>();
+for (const cell of TAIL_LIGHT) {
+  const [x, y] = cell.split(",").map(Number);
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1]]) if (!TAIL_LIGHT.has(`${x + dx},${y + dy}`)) TAIL_INK.add(`${x + dx},${y + dy}`);
+}
+const tailCells = (set: Set<string>) => [...set].map((c) => c.split(",").map(Number) as [number, number]);
+const TAIL_W = Math.max(...tailCells(TAIL_INK).map(([x]) => x)) + 2;
+const TAIL_H = Math.max(...tailCells(TAIL_INK).map(([, y]) => y)) + 1;
+
+function NudgeTail() {
+  return (
+    <svg
+      aria-hidden
+      className="pip-nudge-tail"
+      width={TAIL_W * TAIL_CELL}
+      height={TAIL_H * TAIL_CELL}
+      viewBox={`-1 0 ${TAIL_W} ${TAIL_H}`}
+      shapeRendering="crispEdges"
+    >
+      {tailCells(TAIL_INK).map(([x, y]) => <rect key={`k${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-ink" />)}
+      {tailCells(TAIL_LIGHT).map(([x, y]) => <rect key={`l${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-light" />)}
+    </svg>
   );
 }
 
@@ -103,42 +168,62 @@ function useTyping(text: string | null): string | null {
   return n === null || text === null ? null : text.slice(0, n);
 }
 
-function Panel({ thread, onClose }: { thread: ThreadMessage[]; onClose: () => void }) {
+function Panel({ onClose }: { onClose: () => void }) {
+  const thread = useThread();
+  // a trip that opens with the chat showing has no entrance to play when it's closed
+  useEffect(() => {
+    arrival.played = true;
+  }, []);
   const members = useStorage((root) => root.members);
   const me = useSelf((s) => s.id) ?? undefined;
   const activity = usePipActivity();
   const busy = usePipBusy();
   const scroller = useRef<HTMLDivElement>(null);
+  // follows new text only while you're at the bottom, so reading back isn't yanked down every token
+  const stuck = useRef(true);
   const send = useSendMessage();
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming?.text ? "talk" : busy || activity ? "think" : "idle";
-  const others = Object.entries(members ?? {}).filter(([id]) => id !== me).map(([, m]) => m.name);
+  const stops = useStorage((root) => root.stops);
+  const legs = useStorage((root) => root.legs);
+  const context = useMemo(() => tripContext({ members, stops, legs }, me), [members, stops, legs, me]);
 
-  useEffect(() => {
-    scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
+  // before paint, so the panel opens at the latest message instead of jumping there
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (el && stuck.current) el.scrollTop = el.scrollHeight;
   }, [thread, activity]);
 
   return (
     <section className="pip-panel" aria-label={`Trip chat with ${AGENT_NAME}`}>
       <header className="pip-head">
-        <PipSprite size={40} mood={mood} />
+        <PipSprite size={32} mood={mood} />
         <div className="min-w-0 flex-1">
           <p className="pip-head-name">{AGENT_NAME}</p>
-          <p className="pip-head-sub">{others.length ? `This trip · with ${list(others)}` : "This trip · just you so far"}</p>
+          <p className="pip-head-sub">{context.line}</p>
         </div>
-        <RoundButton label="Minimise chat" onClick={onClose} />
+        <PipClose onClick={onClose} />
       </header>
 
-      <div ref={scroller} className="pip-messages" role="log" aria-live="polite">
+      <div
+        ref={scroller}
+        className="pip-messages"
+        role="log"
+        aria-live="polite"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+      >
         {thread.length === 0 ? (
-          <p className="pip-empty">Ask {AGENT_NAME} with @{AGENT_NAME}, or talk to the group.</p>
+          <p className="pip-empty">Ask {AGENT_NAME} how to get somewhere, or where everyone should meet. Everyone in the trip sees the chat.</p>
         ) : null}
         {thread.map((m) => (
-          <Message key={m.id} message={m} me={me} members={members ?? {}} activity={m.state === "streaming" ? activity : null} />
+          <Message key={m.id} message={m} me={me} members={members ?? NO_MEMBERS} activity={m.state === "streaming" ? activity : null} />
         ))}
       </div>
 
-      <Composer send={send} />
+      <Composer send={send} chips={context.chips} />
     </section>
   );
 }
@@ -146,23 +231,33 @@ function Panel({ thread, onClose }: { thread: ThreadMessage[]; onClose: () => vo
 const list = (names: string[]) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
 
 type Members = Record<string, { name: string; color: number }>;
+const NO_MEMBERS: Members = {};
 
-function Message({ message: m, me, members, activity }: { message: ThreadMessage; me: string | undefined; members: Members; activity: string | null }) {
+// Memoised: a streamed token changes only the streaming message, so the rest of the thread doesn't re-render.
+const Message = memo(function Message({ message: m, me, members, activity }: { message: ThreadMessage; me: string | undefined; members: Members; activity: string | null }) {
   if (m.author.kind === "agent") {
+    const streaming = m.state === "streaming";
+    const parts = inOrder(m.text, m.cards);
+    const working = m.cards.some((c) => c.type === "status" && !c.done);
     return (
       <div className="pip-msg-agent">
-        <PipSprite size={30} mood={m.state === "streaming" ? (m.text ? "talk" : "think") : "idle"} />
         <div className="pip-msg-agent-body">
           <span className="pip-label">{AGENT_NAME}</span>
-          {m.text ? <p className="pip-text">{m.text}</p> : null}
-          {m.state === "streaming" && !m.text ? (
-            activity ? <Status label={activity} /> : <span className="pa-dots" aria-label="Pip is thinking"><span /><span /><span /></span>
+          {parts.map((part) =>
+            part.kind === "text" ? (
+              <p key={`t${part.at}`} className="pip-text">{part.text}</p>
+            ) : (
+              <Card key={part.index} card={part.card} messageId={m.id} members={members} activity={activity} />
+            ),
+          )}
+          {/* before its first tool or word: the saucer, and what Pip is doing once it says */}
+          {streaming && !working && !parts.length ? (
+            <div className="pip-thinking">
+              <PipUfo size={44} />
+              {activity ? <Step label={activity} running /> : null}
+            </div>
           ) : null}
-          {m.state === "streaming" && m.text && activity ? <Status label={activity} /> : null}
-          {m.state === "queued" ? <Status label="next in line" /> : null}
-          {m.cards.map((card, i) => (
-            <Card key={i} card={card} messageId={m.id} members={members} />
-          ))}
+          {m.state === "queued" ? <Step label="Next in line" /> : null}
         </div>
       </div>
     );
@@ -177,23 +272,23 @@ function Message({ message: m, me, members, activity }: { message: ThreadMessage
       <p className="pip-bubble">{m.text}</p>
     </div>
   );
-}
+});
 
-function Status({ label }: { label: string }) {
+/** One thing Pip did with a tool. While it runs, what it's doing right now follows the label. */
+function Step({ label, running = false, detail = null }: { label: string; running?: boolean; detail?: string | null }) {
   return (
-    <div className="pip-status" role="status">
-      <span className="pip-status-label">{label}</span>
-      <span aria-hidden className="pip-status-bar">
-        <span />
-      </span>
-    </div>
+    <p className={`pip-step${running ? " pip-step-running" : ""}`} role={running ? "status" : undefined}>
+      <span aria-hidden className="pip-step-mark" />
+      <span>{label}</span>
+      {detail && detail.toLowerCase() !== label.toLowerCase() ? <span className="pip-step-detail">· {detail}</span> : null}
+    </p>
   );
 }
 
-function Card({ card, messageId, members }: { card: ThreadCard; messageId: string; members: Members }) {
+function Card({ card, messageId, members, activity }: { card: ThreadCard; messageId: string; members: Members; activity: string | null }) {
   if (card.type === "meetup") return <MeetupCard card={card} messageId={messageId} members={members} />;
   if (card.type === "changes") return <ChangesCard card={card} messageId={messageId} />;
-  return <Status label={card.label} />;
+  return <Step label={card.label} running={!card.done} detail={card.done ? null : activity} />;
 }
 
 function useTripId() {
@@ -286,8 +381,19 @@ function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "c
   );
 }
 
+/** Minimises the chat back to the launcher: a pixel cross, in Pip's style rather than Paper Atlas's round button. */
+export function PipClose({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="pip-close" aria-label="Minimise chat" onClick={onClick}>
+      <svg width={14} height={14} viewBox="0 0 7 7" shapeRendering="crispEdges" aria-hidden>
+        <path d="M0 0h1v1H0zM1 1h1v1H1zM2 2h1v1H2zM3 3h1v1H3zM4 4h1v1H4zM5 5h1v1H5zM6 6h1v1H6zM6 0h1v1H6zM5 1h1v1H5zM4 2h1v1H4zM2 4h1v1H2zM1 5h1v1H1zM0 6h1v1H0z" />
+      </svg>
+    </button>
+  );
+}
+
 /** The message box and chips. `send` posts to a trip, or (on the home globe) starts one. */
-export function Composer({ send, chips = CHIPS, placeholder = `Message the group, or ask @${AGENT_NAME}` }: { send: (text: string) => Promise<void>; chips?: string[]; placeholder?: string }) {
+export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }: { send: (text: string) => Promise<void>; chips: string[]; placeholder?: string }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<"failed" | "sign-in" | null>(null);
   const [pending, start] = useTransition();
@@ -316,7 +422,7 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
       <div className="pip-chips">
         {chips.map((chip) => (
           <button key={chip} type="button" className="pip-chip" disabled={pending} onClick={() => submit(chip)}>
-            {chip.replace(/^@Pip /, "")}
+            {chip}
           </button>
         ))}
       </div>
@@ -326,10 +432,10 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
           <button type="button" className="underline" onClick={() => openAuth("signin")}>
             Sign in
           </button>{" "}
-          to ask {AGENT_NAME}.
+          to talk to {AGENT_NAME}.
         </p>
       ) : null}
-      <div className="pip-input-row">
+      <label className="pip-input-row">
         <input
           className="pip-input"
           value={draft}
@@ -343,7 +449,7 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
             <path d="M3 8 H13 M9 4 L13 8 L9 12" />
           </svg>
         </button>
-      </div>
+      </label>
     </form>
   );
 }
