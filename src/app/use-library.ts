@@ -17,6 +17,12 @@ const EMPTY: LibraryOverlay = { flights: [], pins: [] };
  */
 export function useLibrary(account: boolean, openAtFirst = false) {
   const [open, setOpenState] = useState(account && openAtFirst);
+  // `/?trips` arriving again while the globe is up opens it again
+  const [asked, setAsked] = useState(openAtFirst);
+  if (openAtFirst !== asked) {
+    setAsked(openAtFirst);
+    if (openAtFirst && account) setOpenState(true);
+  }
   const [data, setData] = useState<{ userId: string; trips: LibraryTrip[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -47,10 +53,9 @@ export function useLibrary(account: boolean, openAtFirst = false) {
   );
 
   // opened by the page's address: load it as opening it would
-  const first = useRef(account && openAtFirst);
   useEffect(() => {
-    if (first.current) load();
-  }, [load]);
+    if (account && openAtFirst) load();
+  }, [account, openAtFirst, load]);
 
   /** Takes a trip off the list once you've left or deleted it, letting go of it if it was picked. */
   const remove = useCallback((id: string) => {

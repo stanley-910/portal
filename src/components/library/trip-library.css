@@ -127,7 +127,8 @@
 .lib-foot a.pa-btn { text-decoration: none; }
 /* Leave and Delete stay quiet on the left; Open trip is the one big button, on the right */
 .lib-foot-actions { display: flex; align-items: center; gap: 4px; }
-.lib-action { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-tag); background: transparent; color: var(--ink-muted); font-size: 13px; line-height: 16px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.lib-action { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-tag); background: transparent; color: var(--ink-muted); font-size: 13px; line-height: 16px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.lib-action::before { content: ""; position: absolute; inset: -8px 0; }
 .lib-action:hover { background: var(--control-hover); color: var(--ink); }
 .lib-action svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
 .lib-open { margin-left: auto; }

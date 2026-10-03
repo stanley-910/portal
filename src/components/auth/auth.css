@@ -1,6 +1,8 @@
 /* The sign-in panel: a v2 panel (like the profile menu's) over the current screen, which shows through a
    paper wash so you can see you haven't left it. */
 .au-layer { margin: 0; border: 0; width: 100%; height: 100%; max-width: none; max-height: none; background: transparent; position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--space-4); }
+/* the wash is the scrim below, so the native backdrop stays clear */
+.au-layer::backdrop { background: transparent; }
 .au-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--paper) 55%, transparent); backdrop-filter: blur(3px); animation: au-fade 160ms ease both; }
 /* Pip's pixel panel: a 2px frame with stepped corners round the paper, and a hard shadow that follows the steps.
    The frame and paper are layers under the content, which scrolls inside them. */

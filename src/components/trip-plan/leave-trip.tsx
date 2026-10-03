@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
 
 import "@/components/auth/auth.css";
 import { Button } from "@/components/paper-atlas";
@@ -65,17 +65,47 @@ function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, bu
   onConfirm: () => void;
 }) {
   const titleId = useId();
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !pending && onCancel();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel, pending]);
+  // a native modal: it keeps focus inside, hands it back on closing, and its Escape stops here, so a fare card or
+  // panel behind it doesn't close too
+  const dialog = useRef<HTMLDialogElement>(null);
+  // what had focus as it opened, read before the Stay button takes it: React removes the dialog before closing it,
+  // so focus goes back there by hand
+  const [opener] = useState(() => (typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null));
+  useLayoutEffect(() => {
+    const el = dialog.current;
+    if (el && !el.open) el.showModal();
+    return () => {
+      el?.close();
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [opener]);
+  const dismiss = () => {
+    if (!pending) onCancel();
+  };
 
   return (
     // marked so a press in it doesn't put the library away behind it
-    <div className="au-layer" data-library-keep>
-      <div className="au-scrim" aria-hidden onClick={() => !pending && onCancel()} />
-      <section className="au-panel" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-body`}>
+    <dialog
+      ref={dialog}
+      className="au-layer"
+      data-library-keep
+      role="alertdialog"
+      aria-labelledby={titleId}
+      aria-describedby={`${titleId}-body`}
+      onCancel={(e) => {
+        e.preventDefault();
+        dismiss();
+      }}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Escape") {
+          e.preventDefault();
+          dismiss();
+        }
+      }}
+    >
+      <div className="au-scrim" aria-hidden onClick={dismiss} />
+      <section className="au-panel">
         <div className="au-body">
         <div>
           <h2 id={titleId} className="au-title">
@@ -100,7 +130,7 @@ function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, bu
         </div>
         </div>
       </section>
-    </div>
+    </dialog>
   );
 }
 
