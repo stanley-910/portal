@@ -84,6 +84,16 @@ describe("downloaded rail schedules", () => {
     expect(offers.some((o) => o.segments[0].number === "G900")).toBe(true);
     expect(offers.every((o) => o.kind === "timetable" && !o.price && o.attribution?.includes("Fares and seats not checked"))).toBe(true);
   });
+  it("offers each train run once, between the stations nearest the clicks", async () => {
+    const provider = createRailCacheProvider(cache);
+    const query = { from: { name: "Seoul", lat: 37.5547, lng: 126.9707 }, to: { name: "Busan", lat: 35.1151, lng: 129.0422 },
+      date: "2026-10-06", modes: ["train" as const], passengers: 1, currency: "USD" };
+    const offers = await provider.search(query, new AbortController().signal);
+    const runs = offers.map((o) => `${o.id.split(":")[1]}|${o.segments[0].number}`);
+    expect(new Set(runs).size).toBe(runs.length);
+    const ktx = offers.filter((o) => o.segments[0].from.name === "Seoul" && o.segments[0].to.name === "Busan");
+    expect(ktx.length).toBeGreaterThan(20);
+  });
   it("has valid station references and strictly ordered source times", () => {
     for (const trip of cache.trips) {
       expect(cache.sources[trip.source], trip.id).toBeDefined();

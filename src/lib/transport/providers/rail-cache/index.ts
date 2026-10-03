@@ -2,7 +2,7 @@ import "server-only";
 import { ProviderFailure, type Place, type SearchQuery, type TransportProvider, type Offer } from "../../types";
 import { distanceKm } from "../gtfs/geo";
 import { matchRadiusKm } from "../match-radius";
-import { createScheduleSearch } from "./search";
+import { addDays, createScheduleSearch, type CachedJourney } from "./search";
 import type { ScheduleCache } from "./schema";
 import cacheJson from "./cache.json";
 
@@ -18,7 +18,18 @@ export function createRailCacheProvider(cache: ScheduleCache): TransportProvider
   function journeys(q: SearchQuery) {
     if (q.modes.length && !q.modes.includes("train")) return [];
     const radius = matchRadiusKm(q.from, q.to, 15);
-    return search(matches(q.from, radius), matches(q.to, radius), q.date);
+    // A wide radius catches several stops of the same train; offer each run once, boarding
+    // nearest the origin click and alighting nearest the destination click.
+    const best = new Map<string, { journey: CachedJourney; km: number }>();
+    for (const journey of search(matches(q.from, radius), matches(q.to, radius), q.date)) {
+      const from = cache.stations[journey.from], to = cache.stations[journey.to];
+      const km = distanceKm(q.from.lat, q.from.lng, from.lat!, from.lng!) + distanceKm(q.to.lat, q.to.lng, to.lat!, to.lng!);
+      const boarding = journey.trip.stops.find((s) => s.station === journey.from)!.departure!;
+      const run = `${journey.trip.id}|${addDays(journey.depart.slice(0, 10), -Math.floor(boarding / 86400))}`;
+      const kept = best.get(run);
+      if (!kept || km < kept.km) best.set(run, { journey, km });
+    }
+    return [...best.values()].map(({ journey }) => journey).sort((a, b) => a.depart.localeCompare(b.depart) || a.durationMin - b.durationMin);
   }
   function place(id: string): Place {
     const s = cache.stations[id];
