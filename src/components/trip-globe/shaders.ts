@@ -297,13 +297,15 @@ void main() {
     if (side && o.y > -0.06 && o.y < -0.045) base = uRoundel;
     if (o.z > 0.38 && o.y > -0.035) base = mix(base, uInkS, 0.85);
   } else if (uVehicle == 2) {
-    // bus: window band and a roundel stripe down each side, windscreen in front, ink wheels
-    bool side = abs(o.x) > 0.1;
+    // bus: window band and a roundel stripe down each side and round the roof, a raked windscreen, ink wheels
+    bool side = abs(o.x) > 0.12;
     if (part == 2) base = uInkS;
-    else {
-      if (side && o.y > 0.03 && o.y < 0.09 && o.z > -0.33 && o.z < 0.3 && fract(o.z * 12.0) < 0.8) base = uInkS;
+    else if (part == 0) {
+      if (side && o.y > 0.03 && o.y < 0.09 && o.z > -0.42 && o.z < 0.34 && fract(o.z * 12.0) < 0.8) base = uInkS;
       if (side && o.y > -0.03 && o.y < -0.005) base = uRoundel;
-      if (o.z > 0.39 && o.y > 0.0) base = mix(base, uInkS, 0.85);
+      // the same stripe trims the roof's edges, so it shows from above
+      if (o.y > 0.115 && abs(o.x) > 0.095 && o.z > -0.47 && o.z < 0.38) base = uRoundel;
+      if (o.z > 0.38 && o.y > 0.04) base = mix(base, uInkS, 0.85);
     }
   } else {
     // ferry: a roundel funnel, a row of windows along each deck

@@ -10,7 +10,7 @@ export type Vehicle = Mode;
 export const VEHICLES: readonly Vehicle[] = ["flight", "train", "bus", "ferry"];
 
 /** Nose to tail in object units, for spacing the tag under a vehicle. */
-export const VEHICLE_LENGTH: Record<Vehicle, number> = { flight: 1, train: 1, bus: 0.8, ferry: 0.93 };
+export const VEHICLE_LENGTH: Record<Vehicle, number> = { flight: 1, train: 1, bus: 1, ferry: 0.93 };
 
 const FLOOR = -0.09;
 
@@ -37,20 +37,30 @@ export function buildTrain(): VehicleMesh {
   return b.build();
 }
 
-/** A coach: a rounded box on four wheels. Parts: 0 body, 2 wheels. */
+/**
+ * A coach: a long box on four wheels. Seen from above it must still read as a bus, so the windscreen rakes back
+ * onto the roof, the wheels stand proud of the sides at the four corners, and the roof carries two vents and a
+ * roundel trim along its edges.
+ * Parts: 0 body, 2 wheels, 3 roof vents.
+ */
 export function buildBus(): VehicleMesh {
   const b = new MeshBuilder();
-  const side = { w: 0.11, y0: -0.07, y1: 0.12 };
+  const side = { w: 0.13, y0: -0.07, y1: 0.12 };
   b.loft(0, [
-    { z: -0.4, w: 0.1, y0: -0.07, y1: 0.11 },
-    { z: -0.38, ...side },
-    { z: 0.36, ...side },
-    { z: 0.4, w: 0.1, y0: -0.07, y1: 0.1 },
+    { z: -0.5, w: 0.12, y0: -0.07, y1: 0.11 },
+    { z: -0.47, ...side },
+    { z: 0.38, ...side },
+    // raked windscreen, then the bumper
+    { z: 0.46, w: 0.125, y0: -0.07, y1: 0.05 },
+    { z: 0.5, w: 0.12, y0: -0.07, y1: 0 },
   ]);
-  for (const x of [0.105, -0.105]) {
-    for (const zc of [0.26, -0.26]) {
-      b.slab(2, [[x, FLOOR, zc - 0.05], [x, FLOOR, zc + 0.05], [x, -0.04, zc + 0.05], [x, -0.04, zc - 0.05]], [0.03, 0, 0]);
+  for (const x of [0.15, -0.15]) {
+    for (const zc of [0.32, -0.32]) {
+      b.slab(2, [[x, FLOOR, zc - 0.07], [x, FLOOR, zc + 0.07], [x, -0.02, zc + 0.07], [x, -0.02, zc - 0.07]], [0.06, 0, 0]);
     }
+  }
+  for (const zc of [-0.18, 0.1]) {
+    b.slab(3, [[-0.06, 0.1325, zc - 0.05], [0.06, 0.1325, zc - 0.05], [0.06, 0.1325, zc + 0.05], [-0.06, 0.1325, zc + 0.05]], [0, 0.025, 0]);
   }
   return b.build();
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildVehicle, VEHICLE_LENGTH, VEHICLES } from "./vehicle-models";
 
-const PARTS = { flight: [0, 1, 2, 3, 4], train: [0], bus: [0, 2], ferry: [0, 1, 2] } as const;
+const PARTS = { flight: [0, 1, 2, 3, 4], train: [0], bus: [0, 2, 3], ferry: [0, 1, 2] } as const;
 
 describe.each(VEHICLES)("%s mesh", (v) => {
   const m = buildVehicle(v);
