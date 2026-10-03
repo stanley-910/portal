@@ -5,6 +5,7 @@ import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 
 import { memberColor as paperMemberColor } from "@/components/paper-atlas";
 import type { RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
+import { useMemberColor, useMemberColors } from "@/lib/trip/plan";
 import { storedFlights } from "./stored-flights";
 
 /**
@@ -18,6 +19,8 @@ import { storedFlights } from "./stored-flights";
 export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHandle | null>; hideLegs: string[] }) {
   const room = useRoom();
   const legs = useStorage((root) => storedFlights(root), shallowFlights);
+  // colours from the plan, so one picked in the room shows on a plane already in the air
+  const colors = useMemberColors();
   // only while in the air: once they land, their cursor and its label come back
   const flying = useOthers(
     (list) => list.filter((o) => o.presence.flight && !o.presence.flight.landed).map((o) => o.connectionId),
@@ -34,7 +37,7 @@ export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHa
       for (const o of room.getOthers()) {
         const f = o.presence.flight;
         // the room numbers colours from 1; the design system's slots count from 0
-        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f, color: o.info.color - 1 });
+        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f, color: (colors?.[o.id] ?? o.info.color) - 1 });
       }
       handle.setRemoteFlights(flights);
     };
@@ -52,7 +55,7 @@ export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHa
       stopFrames();
       handle.setRemoteFlights([]);
     };
-  }, [globe, room, legs, hideLegs]);
+  }, [globe, room, legs, hideLegs, colors]);
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -72,13 +75,14 @@ export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHa
 
 /** The member's name beside their plane, in the cursor's name-label style (DESIGN.md, Cursors and members). */
 function PlaneLabel({ connectionId, ref }: { connectionId: number; ref: (el: HTMLElement | null) => void }) {
-  const info = useOther(connectionId, (o) => o.info);
+  const who = useOther(connectionId, (o) => ({ id: o.id, name: o.info.name, color: o.info.color }), shallow);
+  const color = useMemberColor(who.id, who.color);
   // the room numbers colours from 1; the design system's slots count from 0
-  const style = { "--member": `var(--${paperMemberColor(info.color - 1)})` } as CSSProperties;
+  const style = { "--member": `var(--${paperMemberColor(color - 1)})` } as CSSProperties;
   return (
     <div ref={ref} className="absolute top-0 left-0 opacity-0 will-change-transform" style={style}>
       <span className="pa-cursor-name" style={{ top: -36, left: 14 }}>
-        {info.name}
+        {who.name}
       </span>
     </div>
   );

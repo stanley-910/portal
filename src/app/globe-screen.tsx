@@ -151,6 +151,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       email={person?.email ?? null}
       account={person?.account ?? false}
       nationalities={person?.nationalities}
+      color={person?.color}
       settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrencyPref} />}
     >
       <PlaceSearch globe={globe} />

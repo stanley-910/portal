@@ -6,6 +6,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { Cursor as StickerCursor, memberColor as paperMemberColor } from "@/components/paper-atlas";
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { AGENT_ID } from "@/lib/agent/types";
+import { useMemberColor } from "@/lib/trip/plan";
 
 /**
  * Everyone else's cursor, pinned to the place they point at. React renders one element per person and only
@@ -66,12 +67,13 @@ export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | nu
 }
 
 function Cursor({ connectionId, ref }: { connectionId: number; ref: (el: HTMLElement | null) => void }) {
-  const info = useOther(connectionId, (o) => o.info);
-  // the room numbers colours from 1; the design system's slots count from 0
+  const who = useOther(connectionId, (o) => ({ id: o.id, name: o.info.name, color: o.info.color }), shallow);
+  // the plan's colour, so one picked in the room shows at once; the room numbers colours from 1, slots from 0
+  const color = useMemberColor(who.id, who.color);
   return (
     <div ref={ref} className="absolute top-0 left-0 opacity-0 transition-opacity duration-150 will-change-transform">
       {/* the globe draws its shadow */}
-      <StickerCursor color={paperMemberColor(info.color - 1)} name={info.name} cast={false} />
+      <StickerCursor color={paperMemberColor(color - 1)} name={who.name} cast={false} />
     </div>
   );
 }

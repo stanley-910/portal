@@ -2,7 +2,7 @@
 
 import { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 import { shallow, useMutation, useRoom, useSelf, useStorage } from "@liveblocks/react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { searchLeg } from "@/app/t/actions";
 import { refreshTripTitle } from "@/app/t/title-actions";
@@ -108,32 +108,59 @@ export function usePlanEnd() {
   return useStorage((root) => root.ends ?? null);
 }
 
-/** Records you in the trip's member list, and keeps your name and colour there current. Call once in the room. */
+/**
+ * Records you in the trip's member list and keeps your name and passports there current. Your colour is written
+ * when you join and whenever the room hands you a new one (your saved colour, or one in join order); a colour you
+ * pick in the room since then (`setColor`) stands. Call once in the room.
+ */
 export function useRecordMember(nationalities: string[] = []) {
   const ready = usePlanReady();
   const me = useSelf((self) => ({ id: self.id, name: self.info.name, color: self.info.color }), shallow);
-  const record = useMutation(({ storage }, who: { id: string; name: string; color: number; nationalities: string[] }) => {
-    const members = storage.get("members");
-    const current = members.get(who.id);
-    if (!current) members.set(who.id, new LiveObject({ name: who.name, color: who.color, nationalities: who.nationalities }));
-    else if (
-      current.get("name") !== who.name ||
-      current.get("color") !== who.color ||
-      (current.get("nationalities") ?? []).join(",") !== who.nationalities.join(",")
-    ) {
-      current.update({ name: who.name, color: who.color, nationalities: who.nationalities });
-    }
-  }, []);
+  const record = useMutation(
+    ({ storage }, who: { id: string; name: string; color: number; nationalities: string[] }, withColor: boolean) => {
+      const members = storage.get("members");
+      const current = members.get(who.id);
+      if (!current) {
+        members.set(who.id, new LiveObject({ name: who.name, color: who.color, nationalities: who.nationalities }));
+        return;
+      }
+      const patch: { name?: string; color?: number; nationalities?: string[] } = {};
+      if (current.get("name") !== who.name) patch.name = who.name;
+      if ((current.get("nationalities") ?? []).join(",") !== who.nationalities.join(",")) patch.nationalities = who.nationalities;
+      if (withColor && current.get("color") !== who.color) patch.color = who.color;
+      if (Object.keys(patch).length) current.update(patch);
+    },
+    [],
+  );
   const id = me?.id;
   const name = me?.name;
   const color = me?.color;
+  // the colour last written from the room's token, so a rename or passport change doesn't undo a colour picked since
+  const written = useRef<number | null>(null);
   // by value: a new array each render would otherwise rerun this every render
   const passports = nationalities.join(",");
   useEffect(() => {
     if (ready && id && name !== undefined && color !== undefined) {
-      record({ id, name, color, nationalities: passports ? passports.split(",") : [] });
+      record({ id, name, color, nationalities: passports ? passports.split(",") : [] }, written.current !== color);
+      written.current = color;
     }
   }, [record, ready, id, name, color, passports]);
+}
+
+/**
+ * Everyone's member colour (1 to MEMBER_COLORS) as the trip stores it. The plan is where colours live in a room:
+ * a colour picked there shows for everyone at once, which the colour on someone's connection can't.
+ */
+export function useMemberColors(): Record<string, number> | null {
+  return useStorage(
+    (root) => Object.fromEntries(Object.entries(root.members).map(([id, member]) => [id, member.color])),
+    shallow,
+  );
+}
+
+/** One member's colour (1 to MEMBER_COLORS): the stored one, else `fallback` (their connection's) until it's recorded. */
+export function useMemberColor(id: string | null | undefined, fallback: number): number {
+  return useStorage((root) => (id ? root.members[id]?.color : undefined)) ?? fallback;
 }
 
 /** False until the plan has loaded. Edits before then throw, so gate them on this. */
@@ -232,6 +259,10 @@ export function usePlanActions() {
   const setLeaveMutation = useMutation(({ storage, self }, date: string | null) => {
     storage.get("members").get(self.id)?.set("leaves", date);
   }, []);
+  /** Your member colour in this trip, 1 to MEMBER_COLORS. Saving it on you, for other trips, is the caller's job. */
+  const setColorMutation = useMutation(({ storage, self }, color: number) => {
+    storage.get("members").get(self.id)?.set("color", color);
+  }, []);
   const setEndsMutation = useMutation(({ storage }, date: string | null) => {
     storage.set("ends", date);
   }, []);
@@ -268,6 +299,7 @@ export function usePlanActions() {
     setStay: setStayMutation,
     toggleRider: toggleRiderMutation,
     setLeave: (date: string | null) => setLeaveMutation(date),
+    setColor: (color: number) => setColorMutation(color),
     setEnds: (date: string | null) => setEndsMutation(date),
     removeLeg: (legId: string) => {
       removeLegMutation(legId);

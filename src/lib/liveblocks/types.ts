@@ -24,7 +24,7 @@ export type TripPresence = {
 export type MemberInfo = {
   /** The account or guest display name. */
   name: string;
-  /** 1 to MEMBER_COLORS, in join order. Rendered as `var(--member-<n>)`. */
+  /** 1 to MEMBER_COLORS: the colour they picked, else one handed out in join order. Rendered as `var(--member-<n>)`. */
   color: number;
 };
 
@@ -191,6 +191,12 @@ export const tripRoomId = (tripId: string) => `trip:${tripId}`;
 
 /** 16 base64url characters: 96 random bits. */
 export const TRIP_ID = /^[A-Za-z0-9_-]{16}$/;
+
+/** A saved member colour (1 to MEMBER_COLORS), from a number or a cookie's string; null when it isn't one. */
+export function asMemberColor(value: unknown): number | null {
+  const n = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= MEMBER_COLORS ? n : null;
+}
 
 /** The member's colour, falling back to ink until the design system defines member colours. */
 export const memberColor = (n: number) => `var(--member-${n}, var(--ink))`;

@@ -4,8 +4,9 @@ import { useSyncExternalStore } from "react";
 
 import { MEMBER_COLORS, type CursorShape } from "@/components/paper-atlas/cursor";
 
-// Your own cursor's shape and default colour, kept in this browser: a personal convenience, so local storage rather
-// than the account. In a trip room the room's colour still wins, so members stay told apart.
+// Your own cursor's shape and colour, kept in this browser. The shape is a personal convenience, so it stays here.
+// The colour is also saved on you (`saveColor`), which is what trips use; this copy follows it, and is what the home
+// globe draws with, so a pick shows there at once.
 
 export type CursorPref = { shape: CursorShape; color: number };
 

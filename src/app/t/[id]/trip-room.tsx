@@ -21,7 +21,7 @@ import { Button } from "@/components/paper-atlas";
 import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { initialTripStorage, useMemberColor, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
@@ -46,12 +46,13 @@ export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: st
 function TripScreen({ tripId, name, email, account, nationalities, hostId }: { tripId: string; hostId: string | null } & Me) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
-  // your cursor's shape is yours; its colour is the one the room gave you
+  // your cursor's shape is yours; its colour is your colour in this trip, as the plan stores it
   const cursorShape = useCursorPref().shape;
   const updateMyPresence = useUpdateMyPresence();
-  // the room numbers colours from 1; the design system's slots count from 0
-  const color = useSelf((me) => me.info.color - 1) ?? 0;
   const myId = useSelf((me) => me.id);
+  const tokenColor = useSelf((me) => me.info.color) ?? 1;
+  // the room numbers colours from 1; the design system's slots count from 0
+  const color = useMemberColor(myId, tokenColor) - 1;
   // the owner as the plan has it, so it updates when they leave and the trip passes on; else whoever made the trip
   const owner = useStorage((root) => root.owner) ?? hostId;
   const status = useStatus();
@@ -63,7 +64,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   // the owner ended the trip: its room is gone, so there's nothing to reconnect to
   const [ended, setEnded] = useState(false);
   const room = useRoom();
-  const { addLeg } = usePlanActions();
+  const { addLeg, setColor } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLegs, setLandedLegs] = useState<string[]>([]);
@@ -141,6 +142,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
         account={account}
         nationalities={nationalities}
         reloadOnRename
+        tripColor={planReady ? { slot: color, onChange: (slot) => setColor(slot + 1) } : undefined}
         settings={
           <MenuSection title="This trip">
             <Button variant="quiet" onClick={() => setLeaving(true)}>
