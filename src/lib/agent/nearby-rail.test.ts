@@ -81,7 +81,7 @@ it("lets shared-trip Pip search an existing leg without changing it", async () =
     b: { name: "Kunshan", lat: 31.38, lng: 120.98, hub: null, code: null },
   }, legs: { leg: { from: "a", to: "b", date: "2027-05-01", createdBy: "m", riders: ["m"], search: { id: "s", status: "done", offers: [] }, votes: {}, chosen: null, createdAt: 1 } } };
   const original = JSON.stringify(plan);
-  const ctx: ToolContext = { roomId: "test", agentId: "pip", today: "2026-10-04", askedBy: "m", load: async () => ({ plan, handles: handlesFor(plan) }), addCard: vi.fn(), activity: vi.fn(), markMeetup: vi.fn(), meetups: new Map(), until: Date.now() + 20_000 };
+  const ctx: ToolContext = { roomId: "test", agentId: "pip", today: "2026-10-04", askedBy: "m", load: async () => ({ plan, handles: handlesFor(plan) }), addCard: vi.fn(), activity: vi.fn(), marks: vi.fn(), markMeetup: vi.fn(), meetups: new Map(), until: Date.now() + 20_000 };
   const result = await agentTools(ctx).search_nearby_trains.execute!({ leg: "L1", ...prefs }, { toolCallId: "nearby", messages: [], context: {} });
   expect(result).toMatchObject({ from: { name: "Langfang" }, to: { name: "Kunshan" }, options: expect.arrayContaining([expect.objectContaining({ date: "2027-05-01", railFareBudget: "unknown" })]) });
   expect(JSON.stringify(plan)).toBe(original);
