@@ -35,8 +35,8 @@ export interface TripGlobeHandle {
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
   zoom(): number;
-  /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. */
-  flyTo(ll: LatLng, spanDeg: number): void;
+  /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. A `name` marks and names it there. */
+  flyTo(ll: LatLng, spanDeg: number, name?: string): void;
 }
 
 export interface TripGlobeProps {
@@ -254,7 +254,7 @@ export function TripGlobe({
         return () => listeners.delete(cb);
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
-      flyTo: (ll, spanDeg) => engineRef.current?.flyTo(ll, spanDeg),
+      flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
     }),
     [],
   );
