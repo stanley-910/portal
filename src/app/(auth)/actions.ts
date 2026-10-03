@@ -2,11 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { safeNext } from "@/lib/auth/next";
 import { MAX_NAME } from "@/lib/auth/limits";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
-export type AuthState = { error?: string; notice?: string };
+/** `ok`: signed in, so the panel reloads the page as the new account. */
+export type AuthState = { error?: string; notice?: string; ok?: boolean };
 
 const MSG = {
   wrong: "Email or password is wrong.",
@@ -52,7 +52,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   // With "Confirm email" on, an already-registered address returns an obfuscated user with no identities.
   if (data.user && data.user.identities?.length === 0) return { error: MSG.taken };
   if (!data.session) return { notice: MSG.confirm };
-  redirect(safeNext(field(formData, "next")));
+  return { ok: true };
 }
 
 export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -62,7 +62,7 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   if (!supabase) return { error: MSG.off };
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: error.status && error.status >= 500 ? MSG.generic : MSG.wrong };
-  redirect(safeNext(field(formData, "next")));
+  return { ok: true };
 }
 
 export async function signOut(): Promise<void> {

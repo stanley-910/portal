@@ -82,6 +82,8 @@
 .pn-profile-form { display: flex; flex-direction: column; gap: var(--space-1); padding-block: var(--space-2); }
 .pn-profile-form .pn-profile-edit { align-self: flex-start; }
 .pn-profile-row { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
+.pn-profile-guest { display: flex; flex-direction: column; gap: var(--space-1); padding-bottom: var(--space-1); }
+.pn-profile-guest .pa-btn, .pn-profile-guest .pa-btn > span { justify-content: center; padding-inline: var(--space-2); }
 .pn-profile-input { flex: 1; min-width: 0; height: 44px; box-sizing: border-box; padding-inline: var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font: inherit; font-size: 15px; }
 .pn-profile-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-profile-section { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); margin-top: var(--space-2); border-top: var(--line-hair) solid var(--line); }

@@ -1,11 +1,10 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
+import { useOpenAuth } from "@/components/auth/links";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import { Button, RoundButton } from "@/components/paper-atlas";
 import { showDate } from "@/lib/agent/snapshot";
@@ -280,7 +279,7 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<"failed" | "sign-in" | null>(null);
   const [pending, start] = useTransition();
-  const pathname = usePathname();
+  const openAuth = useOpenAuth();
   const submit = (text: string) => {
     const t = text.trim();
     if (!t) return;
@@ -312,9 +311,9 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
       {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
       {error === "sign-in" ? (
         <p className="pip-caption" role="alert">
-          <Link href={`/login?next=${encodeURIComponent(pathname || "/")}`} className="underline">
+          <button type="button" className="underline" onClick={() => openAuth("signin")}>
             Sign in
-          </Link>{" "}
+          </button>{" "}
           to ask {AGENT_NAME}.
         </p>
       ) : null}

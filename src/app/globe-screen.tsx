@@ -3,7 +3,8 @@
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { HomePip } from "@/components/agent/home-pip";
+import { HomePip, startTrip } from "@/components/agent/home-pip";
+import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { MyTrips } from "@/components/trip-plan/my-trips";
 import { TicketSearch } from "@/components/ticket-search";
@@ -30,12 +31,34 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
-  // Save trip makes a new trip room and opens it; without an account, the action sends you to sign in
+  // Save trip makes a new trip room and opens it. Guests sign in first, and the save carries on after.
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
   const [currency, setCurrency] = useState<Currency>("USD");
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [rateError, setRateError] = useState(false);
+
+  const account = person?.account ?? false;
+  const openAuth = useOpenAuth();
+  const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
+    startSaving(async () => {
+      const result = await saveSoloTrip(input).catch(() => ({ error: "failed" as const }));
+      if (result?.error) setSaveFailed(true);
+    });
+  const save = (input: Parameters<typeof saveSoloTrip>[0]) => {
+    setSaveFailed(false);
+    runSave(input);
+  };
+
+  // back from signing in: finish what sent them there
+  useEffect(() => {
+    if (!account) return;
+    const pending = takePendingAction();
+    if (pending?.type === "save") runSave(pending.input);
+    else if (pending?.type === "create") startSaving(() => createTrip());
+    else if (pending?.type === "pip") startSaving(() => startTrip(pending.text));
+    // once, on load as an account
+  }, [account]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -71,7 +94,15 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
       settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
     >
       <PlaceSearch globe={globe} />
-      <form action={createTrip}>
+      <form
+        action={createTrip}
+        onSubmit={(e) => {
+          if (account) return;
+          e.preventDefault();
+          setPendingAction({ type: "create" });
+          openAuth("signup");
+        }}
+      >
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
     </NavBar>
@@ -88,22 +119,21 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
         saving={saving}
         error={saveFailed ? "Couldn't save the trip. Please try again." : null}
         onAdd={({ offer, offers, depart }) => {
-          setSaveFailed(false);
-          startSaving(async () => {
-            const result = await saveSoloTrip({
-              from: stopFromPoint(trip.origin, trip.from),
-              to: stopFromPoint(trip.destination, trip.to),
-              date: depart,
-              offers: savedOptions(offer, offers),
-              chosen: offer.id,
-            }).catch(() => ({ error: "failed" as const }));
-            if (result?.error) setSaveFailed(true);
-          });
+          const input = {
+            from: stopFromPoint(trip.origin, trip.from),
+            to: stopFromPoint(trip.destination, trip.to),
+            date: depart,
+            offers: savedOptions(offer, offers),
+            chosen: offer.id,
+          };
+          if (account) return save(input);
+          setPendingAction({ type: "save", input });
+          openAuth("signup");
         }}
         onDismiss={() => globe.current?.cancel()}
       />
     ) : null}
-    <HomePip />
+    <HomePip account={account} />
   </main>;
 }
 
