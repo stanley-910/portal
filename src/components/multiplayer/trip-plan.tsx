@@ -27,7 +27,7 @@ import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
-import { isBookable, shownOffers } from "@/lib/trip/offers";
+import { isBookable, refundNote, shownOffers } from "@/lib/trip/offers";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
@@ -351,6 +351,7 @@ function LegCard({
                     {chosen ? <span className="ts-badge">Picked</span> : null}
                     {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
                     {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
+                    {o.refund ? <span className="ts-badge ts-badge-quiet" title={refundNote(o)}>Refundable</span> : null}
                   </span>
                   <span className="ts-price" data-none={!price || undefined}>
                     {price ?? "No fare"}

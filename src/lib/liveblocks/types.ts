@@ -84,8 +84,10 @@ export type StoredOffer = {
   provider: string;
   mode: "flight" | "train" | "bus" | "ferry";
   kind: "live" | "cached" | "timetable" | "estimated";
-  /** The provider's test inventory: bookable in its sandbox, shown with a Sandbox badge, never a real flight. */
+  /** The provider's test inventory: bookable in its sandbox, never a real flight. Carries no badge. */
   sandbox?: boolean;
+  /** Refundable before departure, for this fee per passenger (null: free). Absent: not refundable, or not said. */
+  refund?: { fee: { amount: number; currency: string } | null };
   price: { amount: number; currency: string } | null;
   carrier: string | null;
   /** The first segment's airline IATA code, for its logo. Absent on older rooms and non-flights. */

@@ -23,6 +23,13 @@ const offerSchema = z.object({
   total_amount: z.string().regex(/^\d+(\.\d+)?$/),
   total_currency: z.string().regex(/^[A-Z]{3}$/),
   owner: z.object({ name: z.string().trim().min(1) }),
+  conditions: z
+    .object({
+      refund_before_departure: z
+        .object({ allowed: z.boolean(), penalty_amount: z.string().regex(/^\d+(\.\d+)?$/).nullish(), penalty_currency: z.string().regex(/^[A-Z]{3}$/).nullish() })
+        .nullish(),
+    })
+    .nullish(),
   slices: z.array(z.object({
     segments: z.array(z.object({
       departing_at: z.string(),
@@ -35,6 +42,13 @@ const offerSchema = z.object({
     })).min(1),
   })).min(1),
 });
+
+/** The airline's refund rule as one passenger's fee; absent when the fare can't be refunded or doesn't say. */
+function refundOf(rule: { allowed: boolean; penalty_amount?: string | null; penalty_currency?: string | null } | null | undefined, passengers: number): Pick<Offer, "refund"> {
+  if (!rule?.allowed) return {};
+  const fee = rule.penalty_amount && rule.penalty_currency ? Math.round((Number(rule.penalty_amount) / passengers) * 100) / 100 : 0;
+  return { refund: { fee: fee > 0 ? { amount: fee, currency: rule.penalty_currency! } : null } };
+}
 
 function place(p: z.infer<typeof placeSchema>, fallback: Place): Place {
   return {
@@ -98,6 +112,7 @@ export function mapOffers(raw: readonly unknown[], query: SearchQuery, origin: s
       // sandbox fares are quoted and bookable like live ones, only against Duffel's test airlines; the flag keeps that visible
       kind: "live",
       ...(o.live_mode === false ? { sandbox: true } : {}),
+      ...refundOf(o.conditions?.refund_before_departure, query.passengers),
       attribution: o.live_mode === false ? "Duffel — sandbox fare; bookable in test mode, not a real flight" : `Duffel — live fare from ${o.owner.name}` + (operators.length ? `; operated by ${operators.join(", ")}` : ""),
     });
   }

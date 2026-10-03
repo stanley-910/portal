@@ -307,4 +307,6 @@ while a replacement query runs. Saved stays are **planning estimates** because t
 only a nightly budget, not a provider quote's date, occupancy and rate restrictions. New hotel picks do not imply
 live rates after a trip is retimed. Duffel test inventory is a live-kind fare flagged `sandbox`, with no badge, and
 bookable like any live Duffel fare against the test airlines; the server still rejects estimated, cached
-and timetable choices at booking settlement.
+and timetable choices at booking settlement. A Duffel fare the airline lets you refund before departure
+(`conditions.refund_before_departure.allowed`) carries `refund` with its fee per passenger and shows a Refundable
+badge, whose tooltip gives the fee; fares that aren't refundable, or don't say, show none.

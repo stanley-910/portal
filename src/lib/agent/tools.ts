@@ -158,7 +158,7 @@ export function agentTools(ctx: ToolContext) {
         const options = ranked(l.search.offers).map((o, i) => {
           const price = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
           const time = o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`;
-          const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
+          const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", o.refund ? (o.refund.fee ? `refundable for a ${o.refund.fee.currency} ${o.refund.fee.amount} fee` : "refundable free") : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
         return { leg, total: l.search.offers.length, options, note: "Quote these exactly. Prices in different currencies are ordered by a rough conversion." };
