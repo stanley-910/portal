@@ -1,6 +1,8 @@
 export const CURRENCIES = ["USD", "EUR", "CNY", "HKD"] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
+export const isCurrency = (value: unknown): value is Currency => CURRENCIES.includes(value as Currency);
+
 export type ExchangeRates = Partial<Record<string, number>> & Record<Currency, number>;
 
 export function convertCurrency(amount: number, from: string, to: Currency, rates: ExchangeRates): number | null {

@@ -107,21 +107,31 @@ export function usePlanEnd() {
 }
 
 /** Records you in the trip's member list, and keeps your name and colour there current. Call once in the room. */
-export function useRecordMember() {
+export function useRecordMember(nationalities: string[] = []) {
   const ready = usePlanReady();
   const me = useSelf((self) => ({ id: self.id, name: self.info.name, color: self.info.color }), shallow);
-  const record = useMutation(({ storage }, who: { id: string; name: string; color: number }) => {
+  const record = useMutation(({ storage }, who: { id: string; name: string; color: number; nationalities: string[] }) => {
     const members = storage.get("members");
     const current = members.get(who.id);
-    if (!current) members.set(who.id, new LiveObject({ name: who.name, color: who.color }));
-    else if (current.get("name") !== who.name || current.get("color") !== who.color) current.update({ name: who.name, color: who.color });
+    if (!current) members.set(who.id, new LiveObject({ name: who.name, color: who.color, nationalities: who.nationalities }));
+    else if (
+      current.get("name") !== who.name ||
+      current.get("color") !== who.color ||
+      (current.get("nationalities") ?? []).join(",") !== who.nationalities.join(",")
+    ) {
+      current.update({ name: who.name, color: who.color, nationalities: who.nationalities });
+    }
   }, []);
   const id = me?.id;
   const name = me?.name;
   const color = me?.color;
+  // by value: a new array each render would otherwise rerun this every render
+  const passports = nationalities.join(",");
   useEffect(() => {
-    if (ready && id && name !== undefined && color !== undefined) record({ id, name, color });
-  }, [record, ready, id, name, color]);
+    if (ready && id && name !== undefined && color !== undefined) {
+      record({ id, name, color, nationalities: passports ? passports.split(",") : [] });
+    }
+  }, [record, ready, id, name, color, passports]);
 }
 
 /** False until the plan has loaded. Edits before then throw, so gate them on this. */

@@ -11,7 +11,8 @@ import { TicketSearch, type PickedStay } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import type { SoloLeg } from "@/lib/agent/solo";
-import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
+import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
+import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useCursorPref } from "@/lib/cursor-pref";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
@@ -69,7 +70,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   // dates for the legs Pip just put on the globe, applied when the globe reports them landed
   const pipDates = useRef<string[] | null>(null);
   const pip = useRef<HomePipHandle>(null);
-  const [currency, setCurrency] = useState<Currency>("USD");
+  const currency = useCurrencyPref();
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [rateError, setRateError] = useState(false);
 
@@ -142,7 +143,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       email={person?.email ?? null}
       account={person?.account ?? false}
       nationalities={person?.nationalities}
-      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
+      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrencyPref} />}
     >
       <PlaceSearch globe={globe} />
       <form

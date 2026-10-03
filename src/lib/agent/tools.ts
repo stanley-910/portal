@@ -9,6 +9,9 @@ import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
+import { entry } from "@/lib/entry";
+
+const OFFICIAL_ENTRY_REMINDER = "Check official government sources before travelling.";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -121,6 +124,41 @@ export function agentTools(ctx: ToolContext) {
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
         return { leg, total: l.search.offers.length, options, note: "Quote these exactly. Prices in different currencies are ordered by a rough conversion." };
+      },
+    }),
+
+    check_entry: tool({
+      description:
+        "Compare entry requirements for every member with a passport recorded in the trip for one leg. Use this for visa, entry or passport questions. Say when a member has no passport recorded, identify the passport used and quote sources and freshness exactly. Always remind the group to check official government sources.",
+      inputSchema: z.object({ leg: z.string().describe("Leg handle from get_trip, e.g. L2") }),
+      execute: async ({ leg }) => {
+        const { plan, handles } = await ctx.load();
+        const legId = handles.id.get(leg);
+        const selected = legId ? plan.legs?.[legId] : undefined;
+        if (!selected) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+
+        const members = Object.entries(plan.members ?? {});
+        const results = members.map(([id, member]) => {
+          const passports = member.nationalities ?? [];
+          if (!passports.length) return { member: member.name, passports: [], status: "passport_not_provided" as const };
+          const rows = entry.getLegEntry(
+            { fromHub: plan.stops?.[selected.from]?.hub ?? undefined, toHub: plan.stops?.[selected.to]?.hub ?? undefined },
+            [{ id, name: member.name, passport: passports[0]!, passports: passports.slice(1) }],
+          );
+          const row = rows[0];
+          return {
+            member: member.name,
+            passports,
+            passportUsed: row?.passport ?? passports[0],
+            kind: row?.rule?.kind ?? "home",
+            allowedDays: row?.rule?.allowedDays ?? null,
+            conditions: row?.rule?.conditions ?? [],
+            links: row?.rule?.links ?? [],
+            verifiedAt: row?.rule?.verifiedAt ?? null,
+            freshness: row?.rule?.freshness ?? null,
+          };
+        });
+        return { leg, from: plan.stops?.[selected.from]?.name ?? "unknown", to: plan.stops?.[selected.to]?.name ?? "unknown", members: results, note: OFFICIAL_ENTRY_REMINDER };
       },
     }),
 

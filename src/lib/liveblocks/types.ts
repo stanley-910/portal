@@ -30,6 +30,8 @@ export type MemberInfo = {
 
 /** A member as the trip stores them: what others see, plus their plan. */
 export type TripMember = MemberInfo & {
+  /** ISO-3 passport countries the member may travel on. Shared so Pip can compare entry rules per person. */
+  nationalities?: string[];
   /** YYYY-MM-DD they leave the trip; the last night they pay for is the one before. Unset means they stay to the end. */
   leaves?: string | null;
 };
