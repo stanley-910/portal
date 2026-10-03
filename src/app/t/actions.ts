@@ -17,6 +17,7 @@ import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
 import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
 import { runLegSearch } from "@/lib/trip/search-leg";
+import { CURRENCIES, type Currency } from "@/lib/currency";
 
 /** Creates a trip room owned by the signed-in user and opens it. Its URL is the invite. Saving a trip needs an
  * account; friends who open the link can join as guests. */
@@ -38,7 +39,7 @@ const MAX_TEXT = 2_000;
  * Starts a solo trip from the home globe with a first message to Pip, so you can plan before there's a trip
  * (harness: solo planners). Friends join later from the trip's URL as usual. Pip needs an account.
  */
-export async function startTripWithPip(text: string) {
+export async function startTripWithPip(text: string, currency: Currency = "USD") {
   const message = text.trim().slice(0, MAX_TEXT);
   if (!message) return;
   const user = await getCurrentUser();
@@ -56,7 +57,12 @@ export async function startTripWithPip(text: string) {
     if (!root.get("stops")) root.set("stops", new LiveMap());
     if (!root.get("legs")) root.set("legs", new LiveMap());
   });
-  const { claim } = await postToPip(roomId, user.id, message);
+  const person = await currentPerson();
+  const selectedCurrency = CURRENCIES.includes(currency) ? currency : "USD";
+  const { claim } = await postToPip(roomId, user.id, message, {
+    nationalities: person?.nationalities ?? [],
+    currency: selectedCurrency,
+  });
   if (claim) after(() => runAgent(roomId, claim, user.id));
   redirect(`/t/${id}?pip=open`);
 }

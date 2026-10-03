@@ -64,7 +64,8 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
   const members = Object.entries(plan.members ?? {});
   lines.push(members.length ? "Members:" : "Members: none yet.");
   for (const [id, m] of members) {
-    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
+    const passports = m.nationalities?.length ? ` · passports ${m.nationalities.join(", ")}` : " · passports not provided";
+    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${passports}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
   }
 
   const stops = Object.entries(plan.stops ?? {});

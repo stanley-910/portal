@@ -47,11 +47,19 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   // Save trip makes a new trip room and opens it. Guests sign in first, and the save carries on after.
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
-  const [currency, setCurrency] = useState<Currency>("USD");
+  const [currency, setCurrency] = useState<Currency>(() => {
+    if (typeof window === "undefined") return "USD";
+    const stored = window.localStorage.getItem("portal-currency");
+    return CURRENCIES.includes(stored as Currency) ? stored as Currency : "USD";
+  });
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [rateError, setRateError] = useState(false);
 
   const account = person?.account ?? false;
+  const changeCurrency = (next: Currency) => {
+    setCurrency(next);
+    window.localStorage.setItem("portal-currency", next);
+  };
   const openAuth = useOpenAuth();
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
@@ -109,7 +117,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       email={person?.email ?? null}
       account={person?.account ?? false}
       nationalities={person?.nationalities}
-      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
+      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={changeCurrency} />}
     >
       <PlaceSearch globe={globe} />
       <form

@@ -5,6 +5,7 @@ import { postToPip, runAgent } from "@/lib/agent/run";
 import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 import { currentPerson } from "@/lib/identity";
+import { CURRENCIES, type Currency } from "@/lib/currency";
 
 // Posts a message to a trip's thread. Every message is to Pip, so every one wakes it. The reply arrives through the
 // room, not this response: everyone in the trip sees it at once.
@@ -26,7 +27,11 @@ function allowWake(personId: string, now = Date.now()) {
   if (recent.size > 5_000) recent.delete(recent.keys().next().value!);
   return true;
 }
-const Body = z.object({ tripId: z.string().regex(TRIP_ID), text: z.string().trim().min(1).max(MAX_TEXT) });
+const Body = z.object({
+  tripId: z.string().regex(TRIP_ID),
+  text: z.string().trim().min(1).max(MAX_TEXT),
+  currency: z.enum(CURRENCIES).default("USD"),
+});
 
 export async function POST(request: Request) {
   const body = Body.safeParse(await request.json().catch(() => null));
@@ -41,7 +46,10 @@ export async function POST(request: Request) {
   // talking to Pip needs an account; checked before posting, so a guest's message isn't left unanswered
   if (!user.account) return Response.json({ code: "SIGN_IN" }, { status: 401 });
   if (!allowWake(user.id)) return Response.json({ code: "RATE_LIMITED" }, { status: 429, headers: { "retry-after": "60" } });
-  const { messageId, claim } = await postToPip(roomId, user.id, body.data.text);
+  const { messageId, claim } = await postToPip(roomId, user.id, body.data.text, {
+    nationalities: user.nationalities,
+    currency: body.data.currency as Currency,
+  });
   if (claim) after(() => runAgent(roomId, claim, user.id));
   return Response.json({ messageId, agent: !!claim });
 }
