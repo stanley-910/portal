@@ -13,6 +13,7 @@ const resultSchema = z.object({
   cheapest_rate_currency: z.string().regex(/^[A-Z]{3}$/),
   accommodation: z.object({
     name: z.string().trim().min(1),
+    photos: z.array(z.object({ url: z.string().url() })).nullish(),
     rating: z.number().int().nullish(),
     location: z.object({
       geographic_coordinates: z.object({ latitude: z.number(), longitude: z.number() }),
@@ -49,6 +50,7 @@ export function mapStays(raw: readonly unknown[], query: HotelSearchQuery): Live
       bedsPerRoom: 2,
       pricePerNight: { amount: Math.round((total / nights / rooms) * 100) / 100, currency: r.cheapest_rate_currency },
       freshness: "live",
+      ...(r.accommodation.photos?.[0] ? { photoUrl: r.accommodation.photos[0].url } : {}),
       source: "Duffel", sourceUrl: "https://duffel.com/stays",
       quote: { checkIn: query.checkIn, checkOut: query.checkOut, occupants: query.occupants, quotedAt: new Date().toISOString() },
       rooms,

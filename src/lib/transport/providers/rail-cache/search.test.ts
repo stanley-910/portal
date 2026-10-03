@@ -24,11 +24,32 @@ describe("downloaded rail schedules", () => {
   it("does not sell the sleeper's prohibited short HK–Shenzhen segment", () => {
     expect(search(hk, station("Shenzhenbei", "CN"), "2026-10-04").some((j) => j.trip.number === "G900")).toBe(false);
   });
-  it("keeps 12306 observations on their actual travel date", () => {
+  it("reuses 12306 observations indefinitely forward for demo dates", () => {
     const from = station("VNP", "CN"), to = station("AOH", "CN");
     const find = (date: string) => search(from, to, date).filter((j) => cache.sources[j.trip.source].group === "china-12306-sample");
     expect(find("2026-10-04").some((j) => j.trip.number === "G1" && j.durationMin === 294)).toBe(true);
-    expect(find("2026-10-05")).toHaveLength(0);
+    expect(find("2026-10-04").every((j) => !j.demoReuse)).toBe(true);
+    expect(find("2026-10-03")).toHaveLength(0);
+    for (const date of ["2026-10-05", "2027-05-01", "2036-10-04"]) {
+      const trip = find(date).find((j) => j.trip.number === "G1")!;
+      expect(trip).toBeDefined();
+      expect(trip.demoReuse).toBe(true);
+      expect(trip.durationMin).toBe(294);
+      expect(trip.depart.slice(0, 10)).toBe(date);
+      expect(trip.trip.calendar.dates).toEqual(["2026-10-04"]);
+    }
+  });
+  it("labels future China demo offers as estimated and preserves source dates", async () => {
+    const fromId = [...station("VNP", "CN")][0], toId = [...station("AOH", "CN")][0];
+    const place = (id: string) => ({ name: cache.stations[id].name, lat: cache.stations[id].lat!,
+      lng: cache.stations[id].lng!, providerIds: { "rail-cache": id } });
+    const provider = createRailCacheProvider(cache);
+    const query = { from: place(fromId), to: place(toId), date: "2036-10-04", modes: ["train" as const], passengers: 1, currency: "USD" };
+    expect(provider.covers(query)).toBe(true);
+    const offers = await provider.search(query, new AbortController().signal);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((o) => o.kind === "estimated" && !o.price &&
+      o.attribution?.includes("Demo schedule reused from 2026-10-04; operating date unverified"))).toBe(true);
   });
   it("uses the train's origin date when boarding after midnight", () => {
     const found = search(station("Yiwu", "CN"), hk, "2026-10-07").filter((j) => j.trip.number === "G895");

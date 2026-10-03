@@ -36,14 +36,30 @@ export type TripMember = MemberInfo & {
   leaves?: string | null;
 };
 
-/** What a stop's lodging costs the group: typed in by a member or Pip, or the hotel picked when saving from `/`. */
+/**
+ * Somewhere some of the group sleep: a stop, the nights there, who stays and what it costs. Apart from the legs, so
+ * people can ride a leg without staying, stay without riding it, and leave one without the other.
+ *
+ * Rooms made before stays had their own guests and dates have entries keyed by stop id with only `nightly`, `label`
+ * and `estimated`; their nights came from who rode in. Read stays through `staysOf` (`@/lib/trip/split`), which turns
+ * those into whole stays, and write whole stays back.
+ */
 export type Stay = {
-  /** For the whole group per night, split among whoever is there that night. Null means not known yet. */
+  /** The stop it's at. */
+  stop?: string;
+  /** YYYY-MM-DD, the first night. */
+  checkIn?: string;
+  /** YYYY-MM-DD, the morning they leave: the last night is the one before. */
+  checkOut?: string;
+  /** Member ids sleeping there. Each night's cost is split among them. */
+  guests?: string[];
+  /** For the whole stay per night, split among its guests. Null means not known yet. */
   nightly: { amount: number; currency: string } | null;
   /** e.g. "Shinjuku apartment". */
   label: string | null;
   /** True when `nightly` is the hotel search's estimate rather than a price someone gave. */
   estimated?: boolean;
+  createdAt?: number;
 };
 
 /** An exact clicked place legs start or end at; preview hubs never move the point. */
@@ -68,6 +84,8 @@ export type StoredOffer = {
   kind: "live" | "cached" | "timetable" | "estimated";
   price: { amount: number; currency: string } | null;
   carrier: string | null;
+  /** The first segment's airline IATA code, for its logo. Absent on older rooms and non-flights. */
+  carrierCode?: string;
   depart: string;
   arrive: string;
   durationMin: number;
@@ -156,14 +174,14 @@ export type TripStorage = {
   members: LiveMap<string, LiveObject<TripMember>>;
   stops: LiveMap<string, LiveObject<Stop>>;
   legs: LiveMap<string, LiveObject<Leg>>;
-  /** Stop id → its lodging cost. Missing in older rooms and for stops nobody has priced. */
+  /** Stay id → where some of the group sleep (`Stay`). Missing in rooms nobody has added a stay to. */
   stays?: LiveMap<string, LiveObject<Stay>>;
   /**
    * Who owns the trip, kept here so the room sees it pass on live. The room's metadata is what the server trusts;
    * leaving writes both. Unset in rooms whose owner never changed: then it's whoever made the trip.
    */
   owner?: string | null;
-  /** YYYY-MM-DD the trip ends: the morning after its last night. Unset means the latest leg or leave date. */
+  /** YYYY-MM-DD the trip ends. Only rooms from before stays had their own dates read it, for their nights. */
   ends?: string | null;
   /** The trip's one thread, people and Pip. Missing in rooms made before it; created on first message. */
   thread?: LiveList<LiveObject<ThreadMessage>>;

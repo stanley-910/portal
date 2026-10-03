@@ -1,22 +1,31 @@
 "use client";
 
 import { useSelf } from "@liveblocks/react";
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from "react";
 
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import { LegBooking } from "@/components/multiplayer/leg-booking";
-import { TripSplit } from "@/components/multiplayer/trip-split";
+import { BesidePanel, BesideProvider, useBeside } from "@/components/multiplayer/beside";
+import { CardBill } from "@/components/multiplayer/split-bill";
+import { StayCard } from "@/components/multiplayer/stay-card";
+import { legOffer } from "@/components/multiplayer/leg-tags";
 import { RoundButton } from "@/components/paper-atlas";
-import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
+import { reveal, useAnchor } from "@/components/ticket-search/anchor";
+import type { TripGlobeHandle } from "@/components/trip-globe";
+import { addDays, dateLabel, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
+import { AirlineLogo } from "@/components/ticket-search/airline-logo";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
-import type { Currency, ExchangeRates } from "@/lib/currency";
+import { formatMoney, inCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import { useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
-import { memberColor, type Stay, type StoredOffer } from "@/lib/liveblocks/types";
-import { lastLegDate, leaveBounds, legBefore } from "@/lib/trip/dates";
+import { memberColor, type Stop, type StoredOffer } from "@/lib/liveblocks/types";
+import type { PlanStay } from "@/lib/trip/split";
+import { legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
-import { editorChoice, stayDates } from "@/lib/trip/leg-edit";
-import { usePlanActions, usePlanDates, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, useSplit, type EditResult, type PlanLeg } from "@/lib/trip/plan";
+import { HUBS } from "@/lib/transport/hubs/catalog";
+import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import { stayDates } from "@/lib/trip/leg-edit";
+import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
 import { isBookable, shownOffers } from "@/lib/trip/offers";
 
@@ -25,12 +34,12 @@ import { isBookable, shownOffers } from "@/lib/trip/offers";
 
 const SHOWN = 3;
 
+const HUB_COUNTRY = new Map(HUBS.map((hub) => [hub.id, hub.country]));
+/** A stop's country for its flag: its hub's, else the nearest hub's, for stops saved without one. */
+const stopCountry = (stop: Stop) => (stop.hub && HUB_COUNTRY.get(stop.hub)) || nearestPreviewHub(stop)?.country || null;
+
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
-const formatMoney = (m: { amount: number; currency: string }) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: m.currency, maximumFractionDigits: 0 }).format(m.amount);
-/** "$152", "CN¥553" */
-const money = (o: StoredOffer) => (o.price ? formatMoney(o.price) : null);
 /** Departure time as the provider wrote it. Arrivals are left out: some providers give them in UTC, not local time. */
 const time = (iso: string) => iso.slice(11, 16);
 
@@ -61,54 +70,70 @@ function stripStart(date: string, after: string | null | undefined) {
   return centred > floor ? centred : floor;
 }
 
-/**
- * A native date field that commits in-range dates as they're picked. One typed out of range waits for blur, so typing a
- * year digit by digit isn't snapped to the bounds halfway; the plan clamps it then.
- */
-function DateInput({ value, min, max, onCommit }: { value: string | null; min: string | null; max: string | null; onCommit: (date: string | null) => void }) {
-  const [draft, setDraft] = useState<string | null>(null);
+type TripPlanProps = { email?: string | null; nationalities?: string[]; bookLeg?: string | null; onMinimise?: () => void };
+/** The header is a handle that moves the card; see `FloatingTripPlan`. */
+type DragProps = { onDrag?: (event: PointerEvent<HTMLElement>) => void };
+
+/** The plan as a card floating beside the trip's stops on the globe, like the solo ticket search, and clear of Pip. */
+export function FloatingTripPlan({ globe, bill, ...props }: TripPlanProps & { globe: RefObject<TripGlobeHandle | null>; bill: { open: boolean; set: (open: boolean) => void } }) {
+  const legs = usePlanLegs();
+  const points = useMemo(() => (legs ?? []).flatMap((l) => [l.from, l.to]), [legs]);
+  const { root, at, moveTo } = useAnchor(globe, points, (anchor) => reveal(anchor.firstElementChild as HTMLElement | null));
+  /** Dragging the card by its header leaves it where it's dropped, until it's minimised and opened again. */
+  const drag = (event: PointerEvent<HTMLElement>) => {
+    const start = at.current;
+    if (!start || event.button !== 0 || (event.target as Element).closest("button")) return;
+    event.preventDefault();
+    const handle = event.currentTarget;
+    const from = { x: event.clientX, y: event.clientY };
+    // best effort: a pointer that's already gone can't be captured, and the drag works without it
+    try {
+      handle.setPointerCapture(event.pointerId);
+    } catch {}
+    handle.dataset.dragging = "";
+    const move = (e: globalThis.PointerEvent) => moveTo(start.x + e.clientX - from.x, start.y + e.clientY - from.y);
+    const end = () => {
+      delete handle.dataset.dragging;
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", end);
+      handle.removeEventListener("pointercancel", end);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", end);
+    handle.addEventListener("pointercancel", end);
+  };
+  if (!legs?.length) return null;
   return (
-    <input
-      type="date"
-      value={draft ?? value ?? ""}
-      min={min ?? undefined}
-      max={max ?? undefined}
-      onChange={(event) => {
-        const date = event.target.value || null;
-        if (!date || ((!min || date >= min) && (!max || date <= max))) {
-          setDraft(null);
-          onCommit(date);
-        } else setDraft(date);
-      }}
-      onBlur={() => {
-        if (draft) onCommit(draft);
-        setDraft(null);
-      }}
-    />
+    <div ref={root} data-globe-follow className="ts-anchor" style={{ "--alt": 0.8, visibility: "hidden" } as CSSProperties}>
+      <BesideProvider bill={bill}>
+        <TripPlan {...props} onDrag={drag} />
+      </BesideProvider>
+    </div>
   );
 }
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
 /** `bookLeg` is a leg to open at its booking, as Book on the home globe asks. */
-export function TripPlan({ email = null, nationalities = [], bookLeg = null, onMinimise }: { email?: string | null; nationalities?: string[]; bookLeg?: string | null; onMinimise?: () => void }) {
-  const me = useSelf((s) => s.id);
+export function TripPlan({ email = null, nationalities = [], bookLeg = null, onMinimise, onDrag }: TripPlanProps & DragProps) {
   const legs = usePlanLegs();
-  const split = useSplit();
-  const mine = me ? split?.members[me] : null;
-  const end = usePlanEnd();
-  const dates = usePlanDates();
-  const { setEnds, setLeave } = usePlanActions();
-  const members = usePlanMembers();
   const stays = usePlanStays();
   const currency = useCurrencyPref();
   const rates = useExchangeRates();
   if (!legs?.length) return null;
-  const stopLegs = legs.map((l) => ({ from: l.from.id, date: l.date }));
+  const legDates = legs.map((l) => ({ from: l.from.id, date: l.date, riders: l.riders }));
+  // the stays at a leg's destination from its arrival until the next leg into that stop, so a group arriving on
+  // different legs each sees the stay they share
+  const staysFor = (leg: PlanLeg) => {
+    const arrival = arrivalDate(leg.date, leg.chosen);
+    const next = legs.filter((l) => l.to.id === leg.to.id && l.date > leg.date).map((l) => l.date).sort()[0];
+    return (stays ?? []).filter((s) => s.stop === leg.to.id && s.checkOut > arrival && (!next || s.checkIn < next));
+  };
   return (
-    <section aria-label="Trip plan" className="ts tp">
+    <section aria-label="Trip plan" className="ts pa-cast tp-card tp">
       {onMinimise ? (
-        <div className="ts-topbar tp-bar">
-          <span className="ts-step">Trip plan</span>
+        <div className="ts-topbar tp-bar tp-head" data-draggable={onDrag ? "" : undefined} onPointerDown={onDrag} title={onDrag ? "Drag to move" : undefined}>
+          <span className="tp-total">Your trip</span>
+          <CardBill />
           <RoundButton
             label="Minimise"
             variant="quiet"
@@ -122,35 +147,13 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, onM
           />
         </div>
       ) : null}
-      {mine?.totals && Object.keys(mine.totals).length ? (
-        <div className="tp-total">
-          Your share: {Object.entries(mine.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
-        </div>
-      ) : null}
-      {split && members ? <TripSplit split={split} legs={legs} members={members} stays={stays ?? {}} me={me ?? null} currency={currency} rates={rates} /> : null}
-      <div className="tp-trip-dates">
-        <label className="tp-end">
-          Trip ends
-          <DateInput value={end} min={dates ? lastLegDate(dates) : null} max={null} onCommit={setEnds} />
-        </label>
-        <p className="tp-hint type-meta text-ink-muted">The morning everyone checks out of the last stay.</p>
-        {me ? (
-          <>
-            <label className="tp-end">
-              My leave date
-              <DateInput value={members?.[me]?.leaves ?? null} {...(dates ? leaveBounds(dates, me) : { min: null, max: null })} onCommit={setLeave} />
-            </label>
-            <p className="tp-hint type-meta text-ink-muted">Only if you leave early. Your share of nights stops the night before.</p>
-          </>
-        ) : null}
-      </div>
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
           <LegCard
             leg={leg}
-            stay={stays?.[leg.to.id] ?? null}
-            hotelDatesFor={(offer) => stayDates({ nights: split?.nights ?? [], ends: split?.ends ?? end, legs: stopLegs }, { to: leg.to.id, date: leg.date, arrival: arrivalDate(leg.date, offer), riders: leg.riders })}
+            stays={staysFor(leg)}
+            hotelDatesFor={(offer) => stayDates(legDates, { to: leg.to.id, date: leg.date, arrival: arrivalDate(leg.date, offer), riders: leg.riders })}
             currency={currency}
             rates={rates}
             email={email}
@@ -165,7 +168,7 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, onM
 
 function LegCard({
   leg,
-  stay,
+  stays,
   hotelDatesFor,
   currency,
   rates,
@@ -174,8 +177,9 @@ function LegCard({
   focusBooking = false,
 }: {
   leg: PlanLeg;
-  stay: Readonly<Stay> | null;
-  /** The nights a hotel at this leg's destination is for (`stayDates`). */
+  /** The stays at this leg's destination around its arrival. */
+  stays: PlanStay[];
+  /** The nights a new stay at this leg's destination starts with (`stayDates`). */
   hotelDatesFor: (offer: StoredOffer | null) => { checkIn: string; checkOut: string; people: number };
   currency: Currency;
   rates: ExchangeRates | null;
@@ -183,154 +187,219 @@ function LegCard({
   nationalities: string[];
   focusBooking?: boolean;
 }) {
+  // every price in the picked currency, or as it came when there are no rates for it
+  const shown = (price: { amount: number; currency: string }) => formatMoney(inCurrency(price, currency, rates));
+  const money = (o: StoredOffer) => (o.price ? shown(o.price) : null);
+  // folded to its route and a line of what's settled, so the other legs stay in view; a leg opened to book starts open
+  const [open, setOpen] = useState(focusBooking);
   const me = useSelf((s) => s.id);
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
   const locked = !!leg.booking;
   const members = usePlanMembers();
   const dates = usePlanDates();
-  const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg } = usePlanActions();
+  const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg } = usePlanActions();
   const [picking, setPicking] = useState(false);
   const [dateBlocked, setDateBlocked] = useState(false);
-  const [editing, setEditing] = useState(false);
-  // the option this member clicked in the editor; undefined until they do, so the editor follows picks made by others
-  const [draft, setDraft] = useState<string | null | undefined>(undefined);
-  const [hotelSelection, setHotelSelection] = useState<{ hotel: HotelResult; scope: string } | null>(null);
+  // the hotel search for this leg's destination, beside the card; a pick saves straight away
+  const findStay = useBeside(`stay:${leg.id}`);
+  const findButton = useRef<HTMLButtonElement>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // the pick shows even when it's further down the options
   const offers = shownOffers(leg.search.offers, leg.chosen?.id, SHOWN);
+  const hotelDates = hotelDatesFor(leg.chosen);
 
-  const stored = leg.chosen?.id ?? null;
-  const choice = editorChoice(draft, stored, leg.search.offers.map((o) => o.id));
-  const choiceChanged = !locked && choice !== stored;
-  const hotelDates = hotelDatesFor(leg.search.offers.find((offer) => offer.id === choice) ?? null);
-  const hotelScope = `${choice}/${hotelDates.checkIn}/${hotelDates.checkOut}/${hotelDates.people}`;
-  const pendingHotel = hotelSelection?.scope === hotelScope ? hotelSelection.hotel : null;
-  const setPendingHotel = (hotel: HotelResult | null) => setHotelSelection(hotel ? { hotel, scope: hotelScope } : null);
-  const changed = choiceChanged || pendingHotel !== null;
-
-  const toggleEditor = () => {
-    setDraft(undefined);
-    setPendingHotel(null);
-    setNotice(null);
-    setEditing((value) => !value);
-  };
   /** Picks an option for everyone straight from the list. */
   const pick = (offerId: string | null) => {
     const result = choose(leg.id, offerId);
     setNotice(result === "ok" ? null : REFUSED[result]);
   };
-  const commit = () => {
+  /** Adds a hotel from the search as a stay for this leg's riders, from their arrival; its guests and dates are its own. */
+  const pickStay = (hotel: HotelResult | null) => {
+    if (!hotel) return;
     try {
-      const chose = choiceChanged ? choose(leg.id, choice) : "ok";
-      const stayed = pendingHotel
-        ? setStay(leg.to.id, {
-            label: pendingHotel.name,
-            // the stay is the whole group's cost a night: every room it needs
-            nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
-            // Stored nightly budgets cannot retain the quote's date/party restrictions.
-            estimated: true,
-          })
-        : "ok";
-      if (stayed === "ok") setPendingHotel(null);
-      if (chose === "ok") setDraft(undefined);
-      const refused = chose !== "ok" ? chose : stayed !== "ok" ? stayed : null;
-      setNotice(refused ? REFUSED[refused] : null);
-      if (!refused) setEditing(false);
+      const result = addStay({
+        stop: leg.to.id,
+        checkIn: hotel.quote?.checkIn ?? hotelDates.checkIn,
+        checkOut: hotel.quote?.checkOut ?? hotelDates.checkOut,
+        guests: leg.riders.length ? leg.riders : me ? [me] : [],
+        label: hotel.name,
+        // the stay's cost a night: every room it needs
+        nightly: { amount: hotel.pricePerNight.amount * hotel.rooms, currency: hotel.pricePerNight.currency },
+        // Stored nightly budgets cannot retain the quote's date/party restrictions.
+        estimated: true,
+      });
+      setNotice(result === "ok" ? null : REFUSED[result]);
+      if (result === "ok") findStay.close();
     } catch {
       // the room isn't connected or loaded yet
       setNotice("Couldn't save. Try again.");
     }
   };
 
+  const lead = legOffer(leg);
+  const summary = [
+    dateLabel(leg.date),
+    lead ? `${carrierLabel(lead.carrier, lead.mode)}, ${money(lead) ?? "no fare"}` : "No pick yet",
+    `${leg.riders.length} rider${leg.riders.length === 1 ? "" : "s"}`,
+  ].join(" · ");
+
   return (
     <article className="tp-leg">
-      <RouteHeader from={{ code: leg.from.code, name: leg.from.name }} to={{ code: leg.to.code, name: leg.to.name }} />
-
-      <div className="ts-dates">
-        <DateField label="Depart" value={leg.date} open={picking} onToggle={() => !locked && setPicking((p) => !p)} />
-        <div className="ts-field tp-riders">
-          <span className="ts-field-label">Riders</span>
-          <ul className="tp-rider-list">
-            {members
-              ? Object.entries(members).map(([id, info]) => (
-                  <li key={id}>
-                    <button
-                      type="button"
-                      className="tp-rider"
-                      aria-pressed={leg.riders.includes(id)}
-                      title={info.name}
-                      disabled={locked}
-                      onClick={() => toggleRider(leg.id, id)}
-                      style={{ borderColor: memberColor(info.color) }}
-                    >
-                      {info.name.slice(0, 1).toUpperCase()}
-                    </button>
-                  </li>
-                ))
-              : null}
-          </ul>
-        </div>
-      </div>
-
-      {picking ? (
-        <DayStrip
-          start={stripStart(leg.date, dates ? legBefore(dates, leg.id)?.date : null)}
-          value={leg.date}
-          label="Departure date"
-          onPick={(iso) => {
-            setPicking(false);
-            setDateBlocked(iso !== leg.date && !setDate(leg.id, iso));
-          }}
+      <button type="button" className="tp-leg-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <RouteHeader
+          from={{ code: leg.from.code, name: leg.from.name, country: stopCountry(leg.from) }}
+          to={{ code: leg.to.code, name: leg.to.name, country: stopCountry(leg.to) }}
+          mode={lead?.mode ?? null}
         />
-      ) : null}
-      {dateBlocked ? <p className="tp-hint type-meta text-ink-muted">A later leg is being booked, so this one can’t move past it.</p> : null}
-      <div className="tp-edit-row">
-        {stay ? (
-          <span className="tp-stay">
-            Stay: {stay.label ?? "Hotel selected"}
-            {stay.nightly ? `, ${formatMoney(stay.nightly)} a night` : null}
-            {stay.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+        <span className="tp-leg-summary">
+          <span>
+            {lead ? <AirlineLogo code={lead.carrierCode} className="mr-1" /> : null}
+            {summary}
           </span>
-        ) : null}
-        <button type="button" className="ts-oneway" aria-expanded={editing} onClick={toggleEditor}>
-          {editing ? "Close edit" : "Edit trip"}
-        </button>
-      </div>
-      {notice ? (
-        <p className="tp-refused" role="status">
-          {notice}
-        </p>
-      ) : null}
+          <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden>
+            <path d={open ? "M2 6.5 5 3.5 8 6.5" : "M2 3.5 5 6.5 8 3.5"} />
+          </svg>
+        </span>
+      </button>
+      {open ? (
+        <>
 
-      {editing ? (
-        <div className="tp-editor">
-          {locked ? (
-            <p className="ts-empty">Being booked, so the pick is fixed.</p>
-          ) : (
-            <div className="ts-rows">
-              {offers.map((o) => (
+        <div className="ts-dates">
+          <DateField label="Depart" value={leg.date} open={picking} onToggle={() => !locked && setPicking((p) => !p)} />
+          <div className="ts-field tp-riders">
+            <span className="ts-field-label">Riders</span>
+            <ul className="tp-rider-list">
+              {members
+                ? Object.entries(members).map(([id, info]) => (
+                    <li key={id}>
+                      <button
+                        type="button"
+                        className="tp-rider"
+                        aria-pressed={leg.riders.includes(id)}
+                        title={info.name}
+                        disabled={locked}
+                        onClick={() => toggleRider(leg.id, id)}
+                        style={{ borderColor: memberColor(info.color) }}
+                      >
+                        {info.name.slice(0, 1).toUpperCase()}
+                      </button>
+                    </li>
+                  ))
+                : null}
+            </ul>
+          </div>
+        </div>
+
+        {picking ? (
+          <DayStrip
+            start={stripStart(leg.date, dates ? legBefore(dates, leg.id)?.date : null)}
+            value={leg.date}
+            label="Departure date"
+            onPick={(iso) => {
+              setPicking(false);
+              setDateBlocked(iso !== leg.date && !setDate(leg.id, iso));
+            }}
+          />
+        ) : null}
+        {dateBlocked ? <p className="tp-hint type-meta text-ink-muted">A later leg is being booked, so this one can’t move past it.</p> : null}
+        {notice ? (
+          <p className="tp-refused" role="status">
+            {notice}
+          </p>
+        ) : null}
+        <div className="ts-rows">
+          {leg.search.status === "searching"
+            ? [0, 1, 2].map((i) => (
+                <div key={i} className="ts-row ts-row-ghost" aria-hidden>
+                  <span className="ts-ghost ts-ghost-head" />
+                  <span className="ts-ghost ts-ghost-price" />
+                  <span className="ts-ghost ts-ghost-desc" />
+                  <span className="ts-ghost ts-ghost-line" />
+                </div>
+              ))
+            : null}
+          {leg.search.status === "failed" ? (
+            <p className="ts-empty">
+              Search failed.{" "}
+              <button type="button" className="ts-oneway" onClick={() => retrySearch(leg.id)}>
+                Try again
+              </button>
+            </p>
+          ) : null}
+          {leg.search.status === "done" && offers.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
+          {offers.map((o) => {
+            const voters = leg.votes[o.id] ?? [];
+            const chosen = leg.chosen?.id === o.id;
+            const price = money(o);
+            return (
+              <div key={o.id} className="tp-offer">
                 <button
-                  key={o.id}
                   type="button"
                   className="ts-row"
-                  aria-pressed={choice === o.id}
-                  onClick={() => {
-                    setNotice(null);
-                    setDraft(choice === o.id ? null : o.id);
-                  }}
+                  aria-pressed={chosen}
+                  title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
+                  disabled={locked}
+                  onClick={() => pick(chosen ? null : o.id)}
                 >
                   <span className="ts-head">
+                    <AirlineLogo code={o.carrierCode} />
                     {duration(o.durationMin)}
-                    {choice === o.id ? <span className="ts-badge">Selected</span> : null}
+                    {chosen ? <span className="ts-badge">Picked</span> : null}
+                    {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                    {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
                   </span>
-                  <span className="ts-price">{money(o) ?? "No fare"}</span>
+                  <span className="ts-price" data-none={!price || undefined}>
+                    {price ?? "No fare"}
+                  </span>
                   <span className="ts-desc">{describe(o)}</span>
+                  <Timeline legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]} />
                 </button>
-              ))}
-            </div>
-          )}
+                <button
+                  type="button"
+                  className="tp-vote"
+                  aria-pressed={!!me && voters.includes(me)}
+                  aria-label={`Vote, ${voters.length} so far`}
+                  title={voters.length ? voters.map((v) => members?.[v]?.name ?? "Someone").join(", ") : "Vote"}
+                  onClick={() => vote(leg.id, o.id)}
+                >
+                  <svg width={12} height={12} viewBox="0 0 16 16" aria-hidden>
+                    <path d="M3.5 10.5L8 6l4.5 4.5" />
+                  </svg>
+                  <span className="tp-vote-n">{voters.length}</span>
+                  {/* who voted, in their colours, a few at most */}
+                  {voters.length ? (
+                    <span className="tp-voters" aria-hidden>
+                      {voters.slice(0, 3).map((v) => (
+                        <i key={v} style={{ background: memberColor(members?.[v]?.color ?? 1) }} />
+                      ))}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {stays.map((stay) => (
+          <StayCard
+            key={stay.id}
+            stay={stay}
+            members={members}
+            currency={currency}
+            rates={rates}
+            onChange={(patch) => updateStay(stay.id, patch)}
+            onRemove={() => removeStay(stay.id)}
+          />
+        ))}
+        <div className="tp-edit-row">
+          <span className="tp-stay">{stays.length ? null : `No stay in ${leg.to.name} yet`}</span>
+          <button ref={findButton} type="button" className="ts-oneway" aria-expanded={findStay.open} aria-controls={`stays-${leg.id}`} onClick={findStay.toggle}>
+            Find a stay
+          </button>
+        </div>
+        {findStay.open ? (
+          <BesidePanel id={`stays-${leg.id}`} label={`Stays in ${leg.to.name}`} align={findButton} trigger={findButton} onClose={findStay.close}>
           <HotelSearch
-            key={hotelScope}
             city={leg.to.name}
             lat={leg.to.lat}
             lng={leg.to.lng}
@@ -338,89 +407,22 @@ function LegCard({
             checkOut={hotelDates.checkOut}
             currency={currency}
             rates={rates}
-            picked={pendingHotel}
-            onPick={(hotel) => {
-              setNotice(null);
-              setPendingHotel(hotel);
-            }}
+            picked={null}
+            onPick={pickStay}
             defaultOccupants={Math.min(4, Math.max(1, hotelDates.people))}
           />
-          <button type="button" className="ts-oneway" disabled={!changed} onClick={commit}>
-            Save changes
-          </button>
-        </div>
-      ) : null}
-
-      <div className="ts-rows">
-        {leg.search.status === "searching"
-          ? [0, 1, 2].map((i) => (
-              <div key={i} className="ts-row ts-row-ghost" aria-hidden>
-                <span className="ts-ghost ts-ghost-head" />
-                <span className="ts-ghost ts-ghost-price" />
-                <span className="ts-ghost ts-ghost-desc" />
-                <span className="ts-ghost ts-ghost-line" />
-              </div>
-            ))
-          : null}
-        {leg.search.status === "failed" ? (
-          <p className="ts-empty">
-            Search failed.{" "}
-            <button type="button" className="ts-oneway" onClick={() => retrySearch(leg.id)}>
-              Try again
-            </button>
-          </p>
+          </BesidePanel>
         ) : null}
-        {leg.search.status === "done" && offers.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
-        {offers.map((o) => {
-          const voters = leg.votes[o.id] ?? [];
-          const chosen = leg.chosen?.id === o.id;
-          const price = money(o);
-          return (
-            <div key={o.id} className="tp-offer">
-              <button
-                type="button"
-                className="ts-row"
-                aria-pressed={chosen}
-                title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
-                disabled={locked}
-                onClick={() => pick(chosen ? null : o.id)}
-              >
-                <span className="ts-head">
-                  {duration(o.durationMin)}
-                  {chosen ? <span className="ts-badge">Picked</span> : null}
-                  {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
-                  {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
-                </span>
-                <span className="ts-price" data-none={!price || undefined}>
-                  {price ?? "No fare"}
-                </span>
-                <span className="ts-desc">{describe(o)}</span>
-                <Timeline legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]} />
-              </button>
-              <button
-                type="button"
-                className="tp-vote"
-                aria-pressed={!!me && voters.includes(me)}
-                aria-label={`Vote, ${voters.length} so far`}
-                onClick={() => vote(leg.id, o.id)}
-              >
-                <svg width={12} height={12} viewBox="0 0 16 16" aria-hidden>
-                  <path d="M3.5 10.5L8 6l4.5 4.5" />
-                </svg>
-                {voters.length}
-              </button>
-            </div>
-          );
-        })}
-      </div>
 
-      <LegBooking leg={leg} email={email} nationalities={nationalities} focus={focusBooking} />
+        <LegBooking leg={leg} email={email} nationalities={nationalities} focus={focusBooking} />
 
-      {locked ? null : (
-        <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>
-          Remove leg
-        </button>
-      )}
+        {locked ? null : (
+          <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>
+            Remove leg
+          </button>
+        )}
+        </>
+      ) : null}
     </article>
   );
 }

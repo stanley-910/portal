@@ -4,6 +4,9 @@ import type { CSSProperties, RefObject } from "react";
 
 import { TripTag, useTagOnRoute } from "@/components/ticket-search/trip-tag";
 import type { TripGlobeHandle } from "@/components/trip-globe";
+import { formatMoney, inCurrency } from "@/lib/currency";
+import { useCurrencyPref } from "@/lib/currency-pref";
+import { useExchangeRates } from "@/lib/exchange-rates";
 import type { StoredOffer } from "@/lib/liveblocks/types";
 import { usePlanLegs, type PlanLeg } from "@/lib/trip/plan";
 
@@ -19,12 +22,7 @@ export function legOffer(leg: Pick<PlanLeg, "chosen" | "votes" | "search">): Sto
   return best;
 }
 
-const money = (o: StoredOffer | null) =>
-  o?.price
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: o.price.currency, maximumFractionDigits: 0 }).format(o.price.amount)
-    : null;
-
-function LegTag({ leg, globe, onOpen }: { leg: PlanLeg; globe: RefObject<TripGlobeHandle | null>; onOpen: () => void }) {
+function LegTag({ leg, globe, onOpen, money }: { leg: PlanLeg; globe: RefObject<TripGlobeHandle | null>; onOpen: () => void; money: (o: StoredOffer | null) => string | null }) {
   const tag = useTagOnRoute(globe, leg.from, leg.to);
   const offer = legOffer(leg);
   return (
@@ -45,11 +43,14 @@ function LegTag({ leg, globe, onOpen }: { leg: PlanLeg; globe: RefObject<TripGlo
 /** Every stored leg's ticket stub, riding on its route. Each opens the trip plan. */
 export function LegTags({ globe, onOpen }: { globe: RefObject<TripGlobeHandle | null>; onOpen: () => void }) {
   const legs = usePlanLegs();
+  const currency = useCurrencyPref();
+  const rates = useExchangeRates();
   if (!legs?.length) return null;
+  const money = (o: StoredOffer | null) => (o?.price ? formatMoney(inCurrency(o.price, currency, rates)) : null);
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 isolate overflow-hidden">
       {legs.map((leg) => (
-        <LegTag key={leg.id} leg={leg} globe={globe} onOpen={onOpen} />
+        <LegTag key={leg.id} leg={leg} globe={globe} onOpen={onOpen} money={money} />
       ))}
     </div>
   );

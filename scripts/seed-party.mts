@@ -145,8 +145,9 @@ const root = new LiveObject({
     ]),
   ),
   stays: new LiveMap([
-    ["sha", new LiveObject({ label: "Jing'an apartment", nightly: { amount: 980, currency: "CNY" }, estimated: true })],
-    ["tyo", new LiveObject({ label: "Asakusa guesthouse", nightly: { amount: 32000, currency: "JPY" }, estimated: true })],
+    // each stay has its own guests and nights, apart from who rides there; nobody has one in Osaka yet
+    ["st_sha", new LiveObject({ stop: "sha", checkIn: day(14), checkOut: day(17), guests: ["g_mei", "g_ada", "g_joon"], label: "Jing'an apartment", nightly: { amount: 980, currency: "CNY" }, estimated: true, createdAt: 1 })],
+    ["st_tyo", new LiveObject({ stop: "tyo", checkIn: day(17), checkOut: day(20), guests: ["g_mei", "g_ada", "g_joon", "g_sam"], label: "Asakusa guesthouse", nightly: { amount: 32000, currency: "JPY" }, estimated: true, createdAt: 2 })],
   ]),
   // made with the room, so posts to Pip never race to create it (src/lib/agent/run.ts)
   thread: new LiveList([]),

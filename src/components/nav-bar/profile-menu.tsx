@@ -9,6 +9,7 @@ import { Button, Cursor, MEMBER_COLORS, type CursorShape } from "@/components/pa
 import { setCursorPref, useCursorPref } from "@/lib/cursor-pref";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
 import { saveColor, saveNationalities } from "@/app/profile-actions";
+import { About } from "./about";
 import { PassportPicker } from "./passport-picker";
 import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
@@ -36,9 +37,15 @@ export interface ProfileMenuProps {
 /** Your colour in the trip you're in, as a design-system slot (0 to 5), and how to change it there. */
 export type TripColor = { slot: number; onChange: (slot: number) => void };
 
+const TABS = [
+  { value: "profile", label: "Profile" },
+  { value: "about", label: "About" },
+] as const;
+
 /** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
 export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], color = null, tripColor, children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"profile" | "about">("profile");
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panelId = useId();
@@ -82,12 +89,25 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
       </button>
       {open ? (
         <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
-          <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
-          <PassportSetting saved={nationalities} />
-          {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
-          <CursorSetting trip={tripColor} />
-          <ThemeSetting />
-          {children}
+          <div className="pn-tabs" role="tablist" aria-label="Menu">
+            {TABS.map((t) => (
+              <button key={t.value} type="button" role="tab" aria-selected={t.value === tab} className="pn-tab" onClick={() => setTab(t.value)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {tab === "about" ? (
+            <About />
+          ) : (
+            <>
+              <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
+              <PassportSetting saved={nationalities} />
+              {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
+              <CursorSetting trip={tripColor} />
+              <ThemeSetting />
+              {children}
+            </>
+          )}
         </div>
       ) : null}
     </div>

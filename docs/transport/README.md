@@ -51,8 +51,8 @@ and **36 directed surface connections**. Surface coverage is a curated subset. N
 invented.
 
 [`src/lib/transport/hubs/DATA.md`](../../src/lib/transport/hubs/DATA.md) records the pinned OurAirports source,
-worldwide scope, licences and per-terminal caveats. The UI credits OurAirports, Wikidata and OpenStreetMap
-contributors. Resolving hubs makes no external geocoding request.
+worldwide scope, licences and per-terminal caveats. The profile menu's About tab credits OurAirports,
+Wikidata and OpenStreetMap contributors. Resolving hubs makes no external geocoding request.
 
 ```sh
 python3 scripts/snapshot-hubs.py --check  # offline validation

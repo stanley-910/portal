@@ -82,6 +82,8 @@ export async function createHoldCheckout(input: {
   const now = Math.floor(Date.now() / 1000);
   return stripe<CheckoutSession>("POST", "/checkout/sessions", {
     mode: "payment",
+    // a hold that is captured days later needs a card; wallets and bank debits would be taken at once or not at all
+    payment_method_types: ["card"],
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,
     customer_email: input.email ?? undefined,
@@ -89,6 +91,9 @@ export async function createHoldCheckout(input: {
     line_items: [{ quantity: 1, price_data: { currency: input.share.currency.toLowerCase(), unit_amount: minorUnits(input.share), product_data: { name: input.name, description: input.description } } }],
     payment_intent_data: { capture_method: "manual", description: input.description, metadata: input.metadata },
     metadata: input.metadata,
+    // Stripe's Managed Payments (on by default for new accounts) makes Stripe the merchant of record and needs a tax
+    // code per product. The airline sells the ticket, so it's off here.
+    managed_payments: { enabled: false },
   });
 }
 
