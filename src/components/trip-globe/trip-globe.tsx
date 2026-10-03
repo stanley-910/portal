@@ -171,7 +171,12 @@ export function TripGlobe({
         setLanded(legs);
         handlers.current.onLand?.(legs);
       },
-      onCancel: () => handlers.current.onCancel?.(),
+      onCancel: () => {
+        // Clear the rendered route as part of cancellation, not only through the mode-change callback.
+        // This keeps the map clear when a cancel is triggered by an overlay or imperative handle.
+        setLanded(null);
+        handlers.current.onCancel?.();
+      },
       onRouteClick: () => handlers.current.onRouteClick?.(),
       // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
       // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that

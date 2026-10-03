@@ -37,11 +37,13 @@ const describe = (o: StoredOffer) =>
     .join(", ");
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
-export function TripPlan({ onMinimise }: { onMinimise?: () => void }) {
+export function TripPlan({ hostId, onMinimise }: { hostId: string | null; onMinimise?: () => void }) {
+  const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useMySplit();
   const end = usePlanEnd();
   const { setEnds } = usePlanActions();
+  const members = usePlanMembers();
   const stays = usePlanStays();
   if (!legs?.length) return null;
   return (
@@ -74,14 +76,14 @@ export function TripPlan({ onMinimise }: { onMinimise?: () => void }) {
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
-          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} />
+          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} />
         </Fragment>
       ))}
     </section>
   );
 }
 
-function LegCard({ leg, stay }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null }) {
+function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number }) {
   const me = useSelf((s) => s.id);
   const members = usePlanMembers();
   const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg, setLeave } = usePlanActions();
@@ -166,17 +168,20 @@ function LegCard({ leg, stay }: { leg: PlanLeg; stay: { label: string | null; ni
               </button>
             ))}
           </div>
-          <HotelSearch
-            city={leg.to.name}
-            lat={leg.to.lat}
-            lng={leg.to.lng}
-            checkIn={leg.date}
-            checkOut={addDays(leg.date, 1)}
-            currency="USD"
-            rates={null}
-            picked={pendingHotel}
-            onPick={setPendingHotel}
-          />
+          {isHost ? (
+            <HotelSearch
+              city={leg.to.name}
+              lat={leg.to.lat}
+              lng={leg.to.lng}
+              checkIn={leg.date}
+              checkOut={addDays(leg.date, 1)}
+              currency="USD"
+              rates={null}
+              picked={pendingHotel}
+              onPick={setPendingHotel}
+              defaultOccupants={Math.min(4, Math.max(1, memberCount))}
+            />
+          ) : null}
           <button type="button" className="ts-oneway" disabled={(!pendingChoice && !pendingHotel && !stay) || !changed} onClick={commit}>
             Save changes
           </button>
