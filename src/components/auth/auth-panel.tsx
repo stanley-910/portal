@@ -66,7 +66,7 @@ function Panel({ mode, notice }: { mode: AuthMode; notice?: string }) {
             </h2>
             <p className="au-sub">Save trips and ask Pip. Friends can join without one.</p>
           </div>
-          <RoundButton label="Close" onClick={close} className="au-close" />
+          <RoundButton label="Close" variant="quiet" onClick={close} className="au-close" />
         </header>
         <GoogleButton />
         <div className="au-or" aria-hidden>

@@ -160,10 +160,17 @@ export interface TicketSearchProps {
   error?: string | null;
   /** Esc, with no date strip open. A click outside is the globe's own cancel. */
   onDismiss: () => void;
+  /**
+   * Which leg of a trip with stops this is. Before the last leg the button moves on to the next instead of saving,
+   * and there is no return date. `onBack` goes back to the leg before.
+   */
+  step?: { index: number; count: number; onBack?: () => void };
 }
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
-export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, saving = false, error, onDismiss }: TicketSearchProps) {
+export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, saving = false, error, onDismiss, step }: TicketSearchProps) {
+  const multi = !!step && step.count > 1;
+  const next = !!step && step.index < step.count - 1;
   const card = useRef<HTMLElement>(null);
   const [firstDay] = useState(() => localIso(trip.departDate));
   const [depart, setDepart] = useState(firstDay);
@@ -218,6 +225,18 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
     <div ref={root} className="ts-anchor" style={{ visibility: "hidden" }}>
       <section ref={card} className="ts" aria-label={`Trip from ${ends.from.name} to ${ends.to.name}`}>
         <div className="ts-top">
+          {multi ? (
+            <div className="ts-step">
+              <span>
+                Leg {step.index + 1} of {step.count}
+              </span>
+              {step.onBack ? (
+                <button type="button" className="ts-oneway" onClick={step.onBack}>
+                  Back
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           <RouteHeader from={ends.from} to={ends.to} distanceKm={trip.distanceKm} />
 
           <div className="ts-dates">
@@ -227,12 +246,14 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
               open={openField === "depart"}
               onToggle={() => setOpenField((f) => (f === "depart" ? null : "depart"))}
             />
-            <DateField
-              label="Return"
-              value={returnDate}
-              open={openField === "return"}
-              onToggle={() => setOpenField((f) => (f === "return" ? null : "return"))}
-            />
+            {multi ? null : (
+              <DateField
+                label="Return"
+                value={returnDate}
+                open={openField === "return"}
+                onToggle={() => setOpenField((f) => (f === "return" ? null : "return"))}
+              />
+            )}
           </div>
 
           {openField ? (
@@ -358,7 +379,13 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
             aria-busy={saving || undefined}
             onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null })}
           >
-            {saving ? "Saving trip…" : choice && choice.offer.id === addedId ? "Saved" : hotel ? "Save trip with stay" : "Save trip"}
+            {saving
+              ? "Saving trip…"
+              : choice && choice.offer.id === addedId
+                ? "Saved"
+                : next
+                  ? hotel ? "Next leg with stay" : "Next leg"
+                  : hotel ? "Save trip with stay" : "Save trip"}
           </Button>
           {error && !saving ? (
             <p className="ts-empty" role="alert">

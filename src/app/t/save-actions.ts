@@ -15,7 +15,7 @@ export type SaveSoloTripResult = { error: "invalid" | "failed" };
 const shortId = () => randomBytes(6).toString("base64url");
 
 /**
- * Saves the leg landed on `/`, with the picked option chosen, as a new trip and opens it. Without an
+ * Saves the legs landed on `/`, each with its picked option chosen, as a new trip and opens it. Without an
  * account, goes to sign in. Invalid input or a Liveblocks failure returns an error instead, and leaves no room behind.
  */
 export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> {
@@ -25,7 +25,7 @@ export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> 
   if (!parsed.success) return { error: "invalid" };
 
   const now = Date.now();
-  const storage = buildSoloStorage(parsed.data, user, { from: shortId(), to: shortId(), leg: shortId(), search: shortId() }, now);
+  const storage = buildSoloStorage(parsed.data, user, shortId, now);
   const id = randomBytes(12).toString("base64url");
   const roomId = tripRoomId(id);
   const lb = liveblocks();

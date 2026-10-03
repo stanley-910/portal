@@ -34,6 +34,7 @@ export interface LatLng {
   lng: number;
 }
 
+/** One leg of a landed trip. A trip with stops lands as several, in order, each starting where the last ended. */
 export interface LandedTrip {
   /** Nearest local preview hub, or null outside coverage. Search still resolves pairs from the clicks. */
   from: Hub | null;
@@ -43,13 +44,13 @@ export interface LandedTrip {
   destination: LatLng;
   /** Great-circle distance between the actual clicked points, not a snapped route. */
   distanceKm: number;
-  /** Earliest departure: tomorrow, local time. */
+  /** Earliest departure, local time: tomorrow for the first leg, a day later for each leg after. */
   departDate: Date;
 }
 
-/** A trip being flown or landed, as other people in the room see it. All places as lat/lng. */
+/** The leg being flown or landed, as other people in the room see it. All places as lat/lng. */
 export interface FlightState {
-  /** Where the trip took off. */
+  /** Where this leg took off. */
   origin: LatLng;
   /** Where the plane is now. */
   at: LatLng;
@@ -61,6 +62,8 @@ export interface FlightState {
 /** Another member's flight. `id` is stable while they stay in the room. */
 export interface RemoteFlight extends FlightState {
   id: string;
+  /** Their member colour slot (0 for `member-1`), which tints the route. Unset draws it in ink. */
+  color?: number | null;
 }
 
 export interface GlobeEvents {
@@ -68,7 +71,8 @@ export interface GlobeEvents {
   /** Only when the local hover hub changes. Never triggers a provider search. */
   /** The hub in range of the pointer, and the city the label names. */
   onPreviewChange?: (hub: Hub | null, name: string | null) => void;
-  onLand?: (trip: LandedTrip) => void;
+  /** The trip's legs, in order: one per click while flying, ended by clicking the last stop again. */
+  onLand?: (legs: LandedTrip[]) => void;
   onCancel?: () => void;
   /** When the pointer's lie on the ground under it changes, so it can be drawn flat on the globe. */
   onCursorChange?: (cursor: GlobeCursor) => void;
@@ -105,6 +109,7 @@ const LAT_MAX = 1.25; // how far the view can turn toward a pole
 const RANGE_MAX = DG - 1; // the whole-globe view
 const RANGE_MIN = 0.2; // about 1,300 km up: the 2048px earth texture still prints cleanly here
 const TILT_MAX = 0.8; // radians from straight down, at RANGE_MIN
+const STOP_HIT = 16; // px: a click this close to the stop the plane just left ends the trip there
 const FLY_SCROLL = 2.5; // two-finger scroll turns the globe this much faster while a route is being plotted
 
 interface Camera {
@@ -318,6 +323,8 @@ export class GlobeEngine {
   private dest: Vec3 | null = null;
   private originHub: Hub | null = null;
   private destinationHub: Hub | null = null;
+  /** Stops before `origin`, from takeoff on: each click while flying ends a leg there and starts the next. */
+  private via: { v: Vec3; hub: Hub | null; name: string | null }[] = [];
   /** The cities the labels name: where the trip starts, where it landed, and what's under the pointer or plane. */
   private originName: string | null = null;
   private destinationName: string | null = null;
@@ -329,9 +336,11 @@ export class GlobeEngine {
   private hi = 0;
   private hiP: Vec3 = [0, 1, 0];
   private pl: Plane | null = null;
+  /** This viewer's member colour slot, which tints their own route. Null draws it in ink. */
+  private color: number | null = null;
   // other members' flights: where presence says they are, and where we draw them (eased toward that)
   private remotes = new Map<string, {
-    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane;
+    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
     originHub: Hub | null; destinationHub: Hub | null;
     originName: string | null; destinationName: string | null;
   }>();
@@ -490,10 +499,16 @@ export class GlobeEngine {
     this.hasPointer = true;
     this.lastInteract = this.t;
     if (this.mode === "flying") {
-      // clicking down picks the landing spot
+      // clicking the stop the plane just left (a double click, or a second click later) lands the trip there
+      if (this.nearOrigin(x, y)) {
+        if (this.via.length) this.finish();
+        return;
+      }
       if (this.t - this.tTake < 0.25) return;
+      // any other click ends a leg and flies on; off the globe, it lands at the last stop, or cancels without one
       const hit = this.pick(x, y);
-      if (hit) this.land(hit);
+      if (hit) this.addStop(hit);
+      else if (this.via.length) this.finish();
       else this.cancel();
       return;
     }
@@ -698,6 +713,7 @@ export class GlobeEngine {
     this.autoFrame = null;
     this.origin = null;
     this.dest = null;
+    this.via = [];
     this.pl = null;
     this.turn = null;
     this.originHub = this.destinationHub = null;
@@ -713,6 +729,7 @@ export class GlobeEngine {
     this.mode = "flying";
     this.origin = o;
     this.dest = null;
+    this.via = [];
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
@@ -724,9 +741,36 @@ export class GlobeEngine {
     this.events.onModeChange?.("flying", this.originHub);
   }
 
+  /** Whether screen point (x, y) is on the stop the plane is flying from. */
+  private nearOrigin(x: number, y: number) {
+    const p = this.origin && this.proj(this.origin);
+    return !!p && p.vis && Math.hypot(p.x - x, p.y - y) < STOP_HIT;
+  }
+
+  /** Ends the leg being flown at v, and takes off again from there. */
+  private addStop(v: Vec3) {
+    this.via.push({ v: this.origin!, hub: this.originHub, name: this.originName });
+    this.origin = v;
+    this.originHub = nearestPreviewHub(toLatLng(v));
+    this.originName = this.originHub && placeName(toLatLng(v), this.originHub);
+    // the plane touches down and lifts off again, with the takeoff ripple
+    this.tTake = this.t;
+  }
+
+  /** Lands the trip at the last stop, which ends the leg flown into it. */
+  private finish() {
+    const end = this.origin!;
+    const last = this.via.pop()!;
+    this.origin = last.v;
+    this.originHub = last.hub;
+    this.originName = last.name;
+    this.land(end);
+  }
+
   private land(v: Vec3) {
     const pl = this.pl!;
     const origin = this.origin!;
+    const stops = [...this.via.map((s) => s.v), origin, v];
     this.mode = "landed";
     this.tLand = this.t;
     this.dest = v;
@@ -740,32 +784,38 @@ export class GlobeEngine {
     this.hiP = hub ? vecOf(hub.lat * D2R, hub.lng * D2R) : v;
     // turn the globe to frame the whole route
     // and back out if the whole route doesn't fit, rising mid-way like a fly-to
-    const midV = slerp(origin, v, 0.5);
+    let span = 0;
+    for (const a of stops) for (const b of stops) span = Math.max(span, angle(a, b));
+    const midV = stops.length === 2 ? slerp(origin, v, 0.5) : norm(stops.reduce((a, b) => add(a, b)));
     const mid = llOf(midV);
-    const range = Math.max(this.range, this.fitRange(angle(origin, v)));
+    const range = Math.max(this.range, this.fitRange(span));
     this.zoomAnchor = null;
     this.turn = {
       from: { lon: this.lon0, lat: this.lat0, range: this.range },
       to: { lon: mid.lon, lat: clamp(mid.lat, -1, 1), range },
-      hop: this.range < 1.2 && !this.reduceMotion ? Math.min(0.5, 0.25 * angle(origin, v) + 0.08) : 0,
+      hop: this.range < 1.2 && !this.reduceMotion ? Math.min(0.5, 0.25 * span + 0.08) : 0,
       t0: this.t + (this.reduceMotion ? 0 : 0.5),
       dur: this.reduceMotion ? 0.001 : 1.5,
       // the trip's panel opens as the plane lands; by the time the turn starts it's there to frame around
       // zooms in to fit the route in the open space, so a short trip fills it rather than sitting on a far-off globe
-      frame: { p: midV, w: angle(origin, v), minRange: RANGE_MIN },
+      frame: { p: midV, w: span, minRange: RANGE_MIN },
     };
     this.autoFrame = { ...this.turn.frame! };
-    const depart = new Date();
-    depart.setDate(depart.getDate() + 1);
-    this.events.onModeChange?.("landed", this.originHub);
-    this.events.onLand?.({
-      from: this.originHub,
-      to: this.destinationHub,
-      origin: toLatLng(origin),
-      destination: toLatLng(v),
-      distanceKm: Math.round(EARTH_RADIUS_KM * angle(origin, v)),
-      departDate: depart,
-    });
+    const hubs = [...this.via.map((s) => s.hub), this.originHub, this.destinationHub];
+    this.events.onModeChange?.("landed", hubs[0]);
+    this.events.onLand?.(stops.slice(1).map((b, i) => {
+      const a = stops[i];
+      const depart = new Date();
+      depart.setDate(depart.getDate() + 1 + i);
+      return {
+        from: hubs[i],
+        to: hubs[i + 1],
+        origin: toLatLng(a),
+        destination: toLatLng(b),
+        distanceKm: Math.round(EARTH_RADIUS_KM * angle(a, b)),
+        departDate: depart,
+      };
+    }));
   }
 
   // ---------- GL setup ----------
@@ -1084,6 +1134,18 @@ export class GlobeEngine {
     };
   }
 
+  /** Sets the member colour slot this viewer's own route is drawn in; null for ink. */
+  setColor(slot: number | null) {
+    this.color = slot;
+    this.hudDirty = true;
+  }
+
+  /** A member's route colour for a slot, wrapping past the last like `memberColor`; ink when there's no slot. */
+  private routeColor(slot: number | null) {
+    const c = this.P.memberRoutes;
+    return slot === null || !c.length ? this.P.ink : c[((Math.trunc(slot) % c.length) + c.length) % c.length];
+  }
+
   /** Replaces the other members' flights. Planes ease toward each update rather than jumping. */
   setRemoteFlights(flights: RemoteFlight[]) {
     const seen = new Set<string>();
@@ -1104,9 +1166,10 @@ export class GlobeEngine {
       const originName = originHub && (r?.originHub === originHub ? r.originName : placeName(f.origin, originHub));
       const destinationName = destinationHub &&
         (r?.destinationHub === destinationHub ? r.destinationName : placeName(f.at, destinationHub));
-      if (r) Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName });
+      const color = f.color ?? null;
+      if (r) Object.assign(r, { o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName });
       else this.remotes.set(f.id, {
-        o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName,
+        o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
         pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 },
       });
     }
@@ -1310,6 +1373,7 @@ export class GlobeEngine {
     const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch);
     if (this.pl) plane(this.pl);
     if (this.origin) state.push(...this.origin);
+    for (const s of this.via) state.push(...s.v);
     for (const r of this.remotes.values()) {
       state.push(...r.o, Number(r.landed));
       plane(r.pl);
@@ -1978,7 +2042,7 @@ export class GlobeEngine {
   }
 
   /** The route's start: a small ring at the foot of the line. */
-  private startMark(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number) {
+  private startMark(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number, stroke: string) {
     const P = this.P;
     ctx.save();
     ctx.beginPath();
@@ -1986,7 +2050,7 @@ export class GlobeEngine {
     ctx.fillStyle = P.raised;
     ctx.fill();
     ctx.lineWidth = 2; // line-route
-    ctx.strokeStyle = P.ink;
+    ctx.strokeStyle = stroke;
     ctx.stroke();
     ctx.restore();
   }
@@ -2028,15 +2092,20 @@ export class GlobeEngine {
     return out;
   }
 
-  /** A trip's route: a great-circle arc that lifts off the surface, and its dotted ground track. */
-  private route(ctx: CanvasRenderingContext2D, origin: Vec3, pl: Plane, marching: boolean, t = 0) {
+  /**
+   * A leg's route: a great-circle arc that lifts off the surface, and its dotted ground track. With a plane at the
+   * end, the arc rises to its altitude and stops just short of it.
+   */
+  private route(
+    ctx: CanvasRenderingContext2D, origin: Vec3, end: Vec3, pl: Plane | null, stroke: string, marching: boolean, t = 0,
+  ) {
     const P = this.P;
-    const end = pl.n;
+    const alt = pl ? pl.alt : 0;
     const ground = this.arc(origin, end, 0, 0, this.groundArc);
-    const air = this.arc(origin, end, 1, pl.alt, this.airArc);
+    const air = this.arc(origin, end, 1, alt, this.airArc);
     // stop the dashes just short of the plane
-    const cut = S_PLANE * this.planeScale * 0.45;
-    const tip = mul(end, 1 + pl.alt);
+    const cut = pl ? S_PLANE * this.planeScale * 0.45 : 0;
+    const tip = mul(end, 1 + alt);
     for (let i = air.length - 1; i >= 0; i--) {
       const w = air[i]?.w;
       if (!w || Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]) >= cut) break;
@@ -2051,7 +2120,7 @@ export class GlobeEngine {
     ctx.setLineDash([7, 6]); // dash-route; marches while the search runs
     ctx.lineDashOffset = marching ? -t * 22 : 0;
     ctx.lineWidth = 2; // line-route
-    ctx.strokeStyle = P.ink;
+    ctx.strokeStyle = stroke;
     this.strokePts(ctx, air);
     ctx.restore();
   }
@@ -2075,6 +2144,7 @@ export class GlobeEngine {
       mark(mul(r.pl.n, 1 + r.pl.alt));
     }
     if (this.mode !== "idle" && this.pl) {
+      for (const s of this.via) mark(s.v);
       mark(this.origin);
       mark(mul(this.pl.n, 1 + this.pl.alt));
     }
@@ -2086,10 +2156,11 @@ export class GlobeEngine {
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
-      this.route(ctx, r.o, r.pl, false);
+      const stroke = this.routeColor(r.color);
+      this.route(ctx, r.o, r.pl.n, r.pl, stroke, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
-        this.startMark(ctx, r.o, op.x, op.y);
+        this.startMark(ctx, r.o, op.x, op.y, stroke);
         if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
@@ -2102,7 +2173,11 @@ export class GlobeEngine {
     const pl = this.pl;
     const origin = this.origin;
     if (!origin || !pl || this.mode === "idle") return;
-    this.route(ctx, origin, pl, this.mode === "landed" && !this.reduceMotion, t);
+    // legs already flown, each from a stop to the next, under the one ending at the plane
+    const marching = this.mode === "landed" && !this.reduceMotion;
+    const stroke = this.routeColor(this.color);
+    this.via.forEach((s, i) => this.route(ctx, s.v, this.via[i + 1]?.v ?? origin, null, stroke, marching, t));
+    this.route(ctx, origin, pl.n, pl, stroke, marching, t);
 
     const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;
@@ -2115,10 +2190,16 @@ export class GlobeEngine {
       ctx.stroke();
       ctx.restore();
     };
+    for (const s of this.via) {
+      const sp = this.proj(s.v);
+      if (!sp || !sp.vis) continue;
+      this.startMark(ctx, s.v, sp.x, sp.y, stroke);
+      if (s.name) this.tag(ctx, sp.x, sp.y - 30, s.name);
+    }
     const op = this.proj(origin);
     ripple(origin, op, this.tTake);
     if (op && op.vis) {
-      this.startMark(ctx, origin, op.x, op.y);
+      this.startMark(ctx, origin, op.x, op.y, stroke);
       // Keep the origin label above its pin; the moving/landing preview is below
       // the plane, so short hops do not immediately stack the longer hub names.
       if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName);
