@@ -197,10 +197,10 @@ export function usePlanActions() {
   const chooseMutation = useMutation(({ storage }, legId: string, offerId: string | null) => {
     storage.get("legs").get(legId)?.set("chosen", offerId);
   }, []);
-  const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string } } | null) => {
+  const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string }; estimated?: boolean } | null) => {
     let stays = storage.get("stays");
     if (!stays) storage.set("stays", (stays = new LiveMap()));
-    if (stay) stays.set(stopId, new LiveObject({ ...stay, estimated: true }));
+    if (stay) stays.set(stopId, new LiveObject({ ...stay, estimated: stay.estimated ?? true }));
     else stays.delete(stopId);
   }, []);
 

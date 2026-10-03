@@ -100,6 +100,7 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
       setStay(leg.to.id, {
         label: pendingHotel.name,
         nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
+        estimated: pendingHotel.freshness !== "live",
       });
     }
     setPendingHotel(null);
