@@ -22,7 +22,7 @@ import { Glyph } from "./glyphs";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "./parts";
 import { TripTag, useTagOnRoute } from "./trip-tag";
 import { useOffers } from "./use-offers";
-import { reveal, useAnchor } from "./anchor";
+import { dragAnchor, reveal, useAnchor } from "./anchor";
 
 // The ticket search popover (design handoff "Ticket search popover", turn 3): the route, depart and return dates,
 // and the three best options per tab. It anchors beside the landed route on the globe.
@@ -269,7 +269,7 @@ export function TicketSearch({
   const homeEnd = home && !samePoint(home.origin, trip.origin) ? placeEnd(home.from, home.origin) : ends.from;
 
   const anchorPoints = useMemo(() => [trip.origin, trip.destination], [trip.origin, trip.destination]);
-  const { root } = useAnchor(globe, anchorPoints, () => reveal(card.current));
+  const { root, at, moveTo } = useAnchor(globe, anchorPoints, () => reveal(card.current));
   const chip = useTagOnRoute(globe, trip.origin, trip.destination);
   // opening it again replays the reveal
   const wasCollapsed = useRef(collapsed);
@@ -361,7 +361,8 @@ export function TicketSearch({
       <BesideProvider>
       <section ref={card} className="ts" aria-label={`Trip from ${ends.from.name} to ${ends.to.name}`}>
         <div className="ts-top">
-          <div className="ts-topbar">
+          {/* dragged by its top bar, it stays where it's dropped */}
+          <div className="ts-topbar" data-draggable="" title="Drag to move" onPointerDown={(e) => dragAnchor(e, at, moveTo)}>
             <RoundButton label="Delete flight" variant="quiet" className="ts-dismiss" onClick={onDismiss} />
             {multi ? (
               <div className="ts-step">

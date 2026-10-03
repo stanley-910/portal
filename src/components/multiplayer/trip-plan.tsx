@@ -12,7 +12,7 @@ import { CardBill } from "@/components/multiplayer/split-bill";
 import { StayCard, TrashGlyph } from "@/components/multiplayer/stay-card";
 import { legOffer } from "@/components/multiplayer/leg-tags";
 import { RoundButton } from "@/components/paper-atlas";
-import { reveal, useAnchor } from "@/components/ticket-search/anchor";
+import { dragAnchor, reveal, useAnchor } from "@/components/ticket-search/anchor";
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { addDays, dateLabel, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { AirlineLogo } from "@/components/ticket-search/airline-logo";
@@ -82,30 +82,7 @@ export function FloatingTripPlan({ globe, bill, ...props }: TripPlanProps & { gl
   const points = useMemo(() => (legs ?? []).flatMap((l) => [l.from, l.to]), [legs]);
   const { root, at, moveTo } = useAnchor(globe, points, (anchor) => reveal(anchor.firstElementChild as HTMLElement | null));
   /** Dragging the card by its header leaves it where it's dropped, until it's minimised and opened again. */
-  const drag = (event: PointerEvent<HTMLElement>) => {
-    const start = at.current;
-    // the bill's panel is a portal from inside the header, so its clicks bubble here through React: they're not drags
-    const target = event.target as Element;
-    if (!start || event.button !== 0 || !event.currentTarget.contains(target) || target.closest("button")) return;
-    event.preventDefault();
-    const handle = event.currentTarget;
-    const from = { x: event.clientX, y: event.clientY };
-    // best effort: a pointer that's already gone can't be captured, and the drag works without it
-    try {
-      handle.setPointerCapture(event.pointerId);
-    } catch {}
-    handle.dataset.dragging = "";
-    const move = (e: globalThis.PointerEvent) => moveTo(start.x + e.clientX - from.x, start.y + e.clientY - from.y);
-    const end = () => {
-      delete handle.dataset.dragging;
-      handle.removeEventListener("pointermove", move);
-      handle.removeEventListener("pointerup", end);
-      handle.removeEventListener("pointercancel", end);
-    };
-    handle.addEventListener("pointermove", move);
-    handle.addEventListener("pointerup", end);
-    handle.addEventListener("pointercancel", end);
-  };
+  const drag = (event: PointerEvent<HTMLElement>) => dragAnchor(event, at, moveTo);
   if (!legs?.length) return null;
   return (
     <div ref={root} data-globe-follow className="ts-anchor" style={{ "--alt": 0.8, visibility: "hidden" } as CSSProperties}>

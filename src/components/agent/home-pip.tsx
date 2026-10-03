@@ -5,6 +5,7 @@ import { Activity, useCallback, useEffect, useImperativeHandle, useLayoutEffect,
 import { CardActionsContext, Composer, Launcher, PipClose, Suggestions, ThreadLog, useComposer, type CardActions, type Members } from "@/components/agent/agent-chat";
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { pipPlace } from "@/components/agent/pip-arrival";
+import { usePipFrame } from "@/components/agent/pip-frame";
 import { PipSaucer, type PipSaucerHandle } from "@/components/agent/pip-saucer";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
@@ -56,6 +57,8 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   const [open, setOpen] = useState(false);
   const openAuth = useOpenAuth();
   const saucer = useRef<PipSaucerHandle>(null);
+  // moved by its header, sized from its corner
+  const { panel: framed, style: frameStyle, placed, onMove, onSize } = usePipFrame();
   const { thread, activity, at, send, apply, busy, stop, retry, appliedReplies } = useSoloPip(trip, onTrip, (marks) => saucer.current?.play(marks));
 
   const ask = async (text: string) => {
@@ -86,8 +89,8 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
       {flying}
       {!open ? <Launcher unread={false} nudges={NUDGES} onOpen={() => setOpen(true)} /> : null}
       <Activity mode={open ? "visible" : "hidden"}>
-      <section data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
-        <header className="pip-head">
+      <section ref={framed} style={frameStyle} data-placed={placed || undefined} data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
+        <header className="pip-head" data-draggable="" onPointerDown={onMove}>
           <PipSprite size={32} mood={mood} />
           <div className="min-w-0 flex-1">
             <p className="pip-head-name">{AGENT_NAME}</p>
@@ -107,6 +110,8 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
         </CardActionsContext>
         {busy ? <button type="button" className="pip-action pip-stop" onClick={stop}>Stop reply</button> : null}
         <Composer composer={composer} placeholder={`Tell ${AGENT_NAME} where you're going`} />
+        {/* drag to resize */}
+        <span className="pip-grip" aria-hidden onPointerDown={onSize} />
       </section>
       </Activity>
     </>

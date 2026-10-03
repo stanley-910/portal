@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type PointerEvent, type RefObject } from "react";
 
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
 
@@ -124,6 +124,35 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
     placeNow.current();
   }, []);
   return { root, at, moveTo };
+}
+
+/**
+ * Drags an anchored card by a handle (its header): the card follows the pointer and stays where it's dropped
+ * (`moveTo`). Presses on buttons, links and fields in the handle are theirs, not drags.
+ */
+export function dragAnchor(event: PointerEvent<HTMLElement>, at: RefObject<{ x: number; y: number } | null>, moveTo: (x: number, y: number) => void) {
+  const start = at.current;
+  // a panel portalled from inside the handle bubbles its clicks here through React: they're not drags
+  const target = event.target as Element;
+  if (!start || event.button !== 0 || !event.currentTarget.contains(target) || target.closest("button, a, input, select, textarea, [role='button']")) return;
+  event.preventDefault();
+  const handle = event.currentTarget;
+  const from = { x: event.clientX, y: event.clientY };
+  // best effort: a pointer that's already gone can't be captured, and the drag works without it
+  try {
+    handle.setPointerCapture(event.pointerId);
+  } catch {}
+  handle.dataset.dragging = "";
+  const move = (e: globalThis.PointerEvent) => moveTo(start.x + e.clientX - from.x, start.y + e.clientY - from.y);
+  const end = () => {
+    delete handle.dataset.dragging;
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", end);
+    handle.removeEventListener("pointercancel", end);
+  };
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", end);
+  handle.addEventListener("pointercancel", end);
 }
 
 /** Clip-reveal from the top plus an 8 px drop. Skipped under reduced motion. */

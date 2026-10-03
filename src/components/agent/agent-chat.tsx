@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 const CheckoutCard = dynamic(() => import("@/components/agent/checkout-card").then((m) => m.CheckoutCard), { loading: () => <p className="pip-caption" role="status">Loading checkout…</p> });
 import { useOpenAuth } from "@/components/auth/links";
 import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
+import { usePipFrame } from "@/components/agent/pip-frame";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
 import { Button, PixelIcon } from "@/components/paper-atlas";
 import { tripContext } from "@/lib/agent/context";
@@ -180,6 +181,8 @@ function useTyping(text: string | null): string | null {
 
 function Panel({ onClose }: { onClose: () => void }) {
   const thread = useThread();
+  // moved by its header, sized from its corner
+  const { panel: framed, style: frameStyle, placed, onMove, onSize } = usePipFrame();
   // a trip that opens with the chat showing has no entrance to play when it's closed
   useEffect(() => {
     arrival.played = true;
@@ -223,8 +226,8 @@ function Panel({ onClose }: { onClose: () => void }) {
   const composer = useComposer(send);
 
   return (
-    <section data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
-      <header className="pip-head">
+    <section ref={framed} style={frameStyle} data-placed={placed || undefined} data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
+      <header className="pip-head" data-draggable="" onPointerDown={onMove}>
         <PipSprite size={32} mood={mood} />
         <div className="min-w-0 flex-1">
           <p className="pip-head-name">{AGENT_NAME}</p>
@@ -240,6 +243,8 @@ function Panel({ onClose }: { onClose: () => void }) {
       </CardActionsContext>
 
       <Composer composer={composer} />
+      {/* drag to resize */}
+      <span className="pip-grip" aria-hidden onPointerDown={onSize} />
     </section>
   );
 }
