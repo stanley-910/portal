@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import type { TripSummary } from "@/lib/trip/server";
 import { DeleteTripButton } from "./delete-trip-button";
+import { LeaveTripButton } from "./leave-trip";
 
 // UTC so the server and the browser print the same day.
 const day = new Intl.DateTimeFormat("en", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -48,7 +49,8 @@ export function MyTrips({ trips }: { trips: TripSummary[] }) {
                 </CostGroup>
                 <div className="flex flex-wrap items-center gap-(--space-3)">
                   <Link href={`/t/${trip.id}`} className="type-meta text-ink underline underline-offset-4">Open trip</Link>
-                  <DeleteTripButton tripId={trip.id} />
+                  <LeaveTripButton tripId={trip.id} />
+                  {trip.owner ? <DeleteTripButton tripId={trip.id} /> : null}
                 </div>
               </div>
             </details>

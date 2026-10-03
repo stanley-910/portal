@@ -7,12 +7,14 @@ import { useEffect, useRef, useState } from "react";
 
 import { AgentChat } from "@/components/agent/agent-chat";
 import { PipCursor } from "@/components/agent/pip-cursor";
-import { NavBar, PlaceSearch } from "@/components/nav-bar";
+import { MenuSection, NavBar, PlaceSearch } from "@/components/nav-bar";
 import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
 import { RemotePlanes } from "@/components/multiplayer/remote-planes";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
+import { Button } from "@/components/paper-atlas";
+import { LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
 import { initialTripStorage, usePlanActions, usePlanLegs, usePlanReady, useRecordMember } from "@/lib/trip/plan";
@@ -30,13 +32,13 @@ export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen {...me} />
+        <TripScreen tripId={tripId} {...me} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen({ name, email, account, nationalities }: Me) {
+function TripScreen({ tripId, name, email, account, nationalities }: { tripId: string } & Me) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
@@ -46,6 +48,7 @@ function TripScreen({ name, email, account, nationalities }: Me) {
   // a trip started by talking to Pip on the home globe opens with the chat showing
   const pipOpen = useSearchParams().get("pip") === "open";
   const [full, setFull] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
@@ -83,7 +86,21 @@ function TripScreen({ name, email, account, nationalities }: Me) {
       <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
-      <NavBar globe={globe} name={name} email={email} account={account} nationalities={nationalities} reloadOnRename>
+      <NavBar
+        globe={globe}
+        name={name}
+        email={email}
+        account={account}
+        nationalities={nationalities}
+        reloadOnRename
+        settings={
+          <MenuSection title="This trip">
+            <Button variant="quiet" onClick={() => setLeaving(true)}>
+              Leave trip
+            </Button>
+          </MenuSection>
+        }
+      >
         <PlaceSearch globe={globe} />
         <AvatarStack />
         <InviteButton />
@@ -93,6 +110,7 @@ function TripScreen({ name, email, account, nationalities }: Me) {
         <TripPlan />
       </div>
       <AgentChat initialOpen={pipOpen} />
+      {leaving ? <LeaveTripDialog tripId={tripId} next={account ? "/trips" : "/"} onClose={() => setLeaving(false)} /> : null}
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">
           {status === "connecting" ? "Connecting" : "Reconnecting"}
