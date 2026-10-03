@@ -12,7 +12,6 @@ import { distanceKm } from "@/lib/transport/hubs/geo";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { Mode, Offer } from "@/lib/transport/types";
 import type { PickedStay, ReturnPick } from "@/lib/trip/solo-input";
-import { HIDE_SANDBOX_BADGE } from "@/lib/demo";
 import { isBookable } from "@/lib/trip/offers";
 
 import { credits, formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
@@ -144,7 +143,6 @@ function OptionList({
               {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
               {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
             {isBookable(row.offer) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
-            {row.offer.sandbox && !HIDE_SANDBOX_BADGE ? <span className="ts-badge ts-badge-quiet">Sandbox</span> : null}
             </span>
             <span className="ts-price" data-none={price === null || undefined}>
               {priceText(price, currency)}

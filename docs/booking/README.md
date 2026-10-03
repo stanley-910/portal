@@ -162,13 +162,11 @@ Keys in `.env.local` (all optional; see `.env.example`):
 
 | Var | Without it |
 | --- | --- |
-| `DUFFEL_ACCESS_TOKEN` | No Duffel offers, so nothing to settle. A test token sells Duffel's sandbox airlines: those fares are Bookable like live ones, carry a Sandbox badge (hidden while `NEXT_PUBLIC_HIDE_SANDBOX_BADGE=1`, for recordings), and hold every fare. |
+| `DUFFEL_ACCESS_TOKEN` | No Duffel offers, so nothing to settle. A test token sells Duffel's sandbox airlines: those fares are Bookable like live ones and hold every fare. They carry a `sandbox` flag but no badge. |
 | `STRIPE_SECRET_KEY` | "Pay my share" is a no-charge test checkout: the seat is held at once and nobody's card is touched. Only with a Duffel test token; with a live one, paying is refused until Stripe is set. |
 | `STRIPE_WEBHOOK_SECRET` | The webhook refuses everything; the return route alone confirms holds. Locally: `stripe listen --forward-to localhost:3000/api/booking/stripe --events checkout.session.completed,checkout.session.async_payment_succeeded,payment_intent.canceled`. |
 | `SUPABASE_SECRET_KEY` + `BOOKING_ENCRYPTION_KEY` | Details, payments and leases stay in memory. Run `pnpm db:migrate` once the key is set. |
 | `CRON_SECRET` | The scheduled sweep refuses every call, so only trip visits and booking actions expire bookings. Set this secret in the deployment configuration. |
-
-Demo mode (`NEXT_PUBLIC_DEMO_BOOKING=1`, `src/lib/demo.ts`) is stagecraft for a recording and off otherwise: every priced option shows Bookable, settling a pick that isn't a Duffel offer books the cheapest holdable Duffel sandbox flight between the stops' codes on the leg's date, the price the leg showed is what riders pay (price-rise checks are off), every booking is a group hold, and Duffel Airways sandbox fares are left out of search. The Duffel reference on the leg is the sandbox order's.
 
 Checkout sessions are card only (`payment_method_types: ["card"]`, a hold needs a card) and opt out of Stripe's Managed Payments, which new accounts have on by default and which refuses line items without a tax code. A fresh Stripe sandbox needs no other settings.
 

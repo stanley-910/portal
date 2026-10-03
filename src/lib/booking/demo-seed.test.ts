@@ -17,8 +17,6 @@ it.skipIf(!run)("seeds a demo trip", async () => {
   );
   expect(offers.length).toBeGreaterThan(0);
   const stored = offers.slice(0, 3).map((offer) => toStoredOffer({ ...offer, kind: "live" }));
-  // SEED_PICK=other: the pick is a priced option from another provider, which only demo mode can settle
-  if (process.env.SEED_PICK === "other") stored.unshift({ ...stored[0], id: "tp:demo", provider: "travelpayouts", kind: "cached", carrier: "Cathay Pacific", price: { amount: 42, currency: "USD" }, attribution: "Travelpayouts — demo", flights: undefined });
   const id = ("demo" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 16);
   const ann = "g_demoAnn";
   const bo = "g_demoBo";
