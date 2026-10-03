@@ -11,6 +11,7 @@
 @import "../components/agent/agent.css";
 @import "../components/entry/entry.css";
 @import "../components/library/trip-library.css";
+@import "../components/trip-globe/click-hint.css";
 
 @custom-variant dark (&:is(.dark *));
 

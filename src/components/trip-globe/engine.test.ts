@@ -224,13 +224,14 @@ describe("canvas invalidation", () => {
     const { engine, state, frames } = setup(2560, 1440, { onLand });
     frames(5);
     const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
-    const down = (x: number, y: number) =>
-      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const down = (x: number, y: number, button = 0) =>
+      engine.pointerDown({ clientX: x, clientY: y, button, pointerId: 1, pointerType: "mouse" } as PointerEvent);
     const plane = () => (engine as unknown as { pl: { n: Vec3 } }).pl.n;
     (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
     move(1280, 650);
     frames(30);
-    down(1280, 650); // drops a stop
+    // a right click drops the stop
+    down(1280, 650, 2); // drops a stop
     const stop = state.pick(1280, 650)!;
     move(1305, 650);
     frames(5);
@@ -246,21 +247,43 @@ describe("canvas invalidation", () => {
     const { engine, state, frames } = setup(2560, 1440, { onLand });
     frames(5);
     const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
-    const down = (x: number, y: number) =>
-      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const down = (x: number, y: number, button = 0) =>
+      engine.pointerDown({ clientX: x, clientY: y, button, pointerId: 1, pointerType: "mouse" } as PointerEvent);
     const plane = () => (engine as unknown as { pl: { n: Vec3 } }).pl.n;
     (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
     move(1280, 650);
     frames(30);
-    down(1280, 650);
+    // a right click drops the stop
+    down(1280, 650, 2);
     const stop = state.pick(1280, 650)!;
     move(1380, 650);
     frames(5);
     // 100 px off, the plane has left the stop and is back under the pointer
     expect(angle(plane(), stop)).toBeGreaterThan(angle(state.pick(1380, 650)!, stop) * 0.9);
-    down(1380, 650); // another stop, not a landing
+    down(1380, 650, 2); // another stop, not a landing
     expect(onLand).not.toHaveBeenCalled();
     expect(engine["mode"]).toBe("flying");
+    // a plain click lands the trip there, with both stops
+    move(1480, 650);
+    frames(30);
+    down(1480, 650);
+    expect(onLand).toHaveBeenCalledTimes(1);
+    expect(onLand.mock.calls[0][0]).toHaveLength(3);
+  });
+
+  it("lands a one-leg trip on the first click after takeoff, and ignores right clicks before it flies", () => {
+    const onLand = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onLand });
+    frames(5);
+    const at = { clientX: 1280, clientY: 650, pointerId: 1, pointerType: "mouse" };
+    engine.pointerDown({ ...at, button: 2 } as PointerEvent);
+    expect(engine["mode"]).toBe("idle");
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
+    engine.pointerMove({ ...at } as PointerEvent);
+    frames(30);
+    engine.pointerDown({ ...at, button: 0 } as PointerEvent);
+    expect(onLand).toHaveBeenCalledTimes(1);
+    expect(onLand.mock.calls[0][0]).toHaveLength(1);
   });
 
   it("follows Pip in close from the whole globe, and never pulls back out from closer", () => {

@@ -9,7 +9,7 @@ import { distanceKm } from "@/lib/transport/hubs/geo";
 
 // A flat stand-in for <TripGlobe> on the playground: East Asia on paper, no WebGL. It keeps the handle's contract, so
 // the real overlays (the ticket card, the route tag, pins, Pip) anchor to it exactly as they do on the globe. Click to
-// take off, click again to drop a stop, click the last stop again to land. Esc cancels.
+// take off, right-click to drop a stop, click again to land. Esc cancels.
 
 const BOX = { west: 92, east: 148, south: -8, north: 50 };
 const COS = Math.cos((21 * Math.PI) / 180);
@@ -243,9 +243,22 @@ export function FakeGlobe({ ref, zoom = 0, onTakeoff, onLand, onCancel, onRouteC
       events.current.onTakeoff?.();
       return;
     }
+    // a click on the stop just left lands there; anywhere else lands the trip where it's clicked
     const last = project(trip.points.at(-1)!);
-    if (trip.points.length > 1 && Math.hypot(p.x - last.x, p.y - last.y) < LAND_SLOP) return land(trip.points);
-    setTrip({ points: [...trip.points, at], landed: false });
+    if (Math.hypot(p.x - last.x, p.y - last.y) < LAND_SLOP) {
+      if (trip.points.length > 1) land(trip.points);
+      return;
+    }
+    land([...trip.points, at]);
+  };
+  // a right click while flying drops a stop and flies on
+  const rightClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!trip || trip.landed) return;
+    const p = local(e);
+    const last = project(trip.points.at(-1)!);
+    if (Math.hypot(p.x - last.x, p.y - last.y) < LAND_SLOP) return;
+    setTrip({ points: [...trip.points, unproject(p)], landed: false });
   };
 
   const onRoute = (p: Pt, points: LatLng[]) =>
@@ -286,6 +299,7 @@ export function FakeGlobe({ ref, zoom = 0, onTakeoff, onLand, onCancel, onRouteC
       ref={box}
       className="pg-globe absolute inset-0"
       onClick={click}
+      onContextMenu={rightClick}
       onPointerMove={(e) => (trip && !trip.landed ? setPointer(local(e)) : undefined)}
     >
       <svg width={w} height={h} className="absolute inset-0" aria-hidden>

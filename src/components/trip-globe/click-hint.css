@@ -1,0 +1,31 @@
+/* The first-run hint by the pointer (click-hint.tsx): a label in a member's cursor-label style, two pixel mice in
+   your cursor colour pressing in turn. The timings run off one clock: shown 4.6s, the left press from 0.5s and the
+   right from 1.4s, each held about 1.5s. */
+.ch { position: fixed; top: 0; left: 0; z-index: 40; pointer-events: none; opacity: 0; will-change: transform; }
+.ch[data-state="shown"] { animation: ch-life 4600ms linear both; }
+.ch[data-state="going"] { opacity: 0; transition: opacity 180ms ease-out; }
+.ch-card { display: grid; gap: 6px; padding: 6px var(--space-2) 6px 6px; background: var(--sticker-fill); color: var(--sticker-ink); border: var(--line-hair) solid var(--sticker-ink); border-radius: var(--radius-tag); box-shadow: var(--shadow-tag); transform: rotate(-1.2deg); }
+.ch-row { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; }
+.ch-mouse { flex: none; overflow: visible; }
+.ch-ink { fill: var(--sticker-ink); }
+.ch-body { fill: var(--sticker-fill); }
+.ch-key { fill: var(--sticker-fill); }
+/* left: pressed from 0.5s to 2s; right: from 1.4s to 2.9s */
+.ch-burst { opacity: 0; }
+/* the clock starts when it shows, not when it mounts: before the first move it's there but hidden */
+.ch[data-state="shown"] .ch-pressed { animation: ch-press-left 2000ms linear both; }
+.ch[data-state="shown"] .ch-row[data-second] .ch-pressed { animation-name: ch-press-right; animation-duration: 2900ms; }
+.ch[data-state="shown"] .ch-burst { animation: ch-burst 420ms steps(3, end) 500ms forwards; }
+.ch[data-state="shown"] .ch-row[data-second] .ch-burst { animation-delay: 1400ms; }
+/* fades in, stays, fades out */
+@keyframes ch-life { 0% { opacity: 0; } 5% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
+/* the button colours in on the press, holds it, and lets go */
+@keyframes ch-press-left { 0%, 24.9% { fill: var(--sticker-fill); } 25%, 99.9% { fill: var(--member); } 100% { fill: var(--sticker-fill); } }
+@keyframes ch-press-right { 0%, 48.2% { fill: var(--sticker-fill); } 48.3%, 99.9% { fill: var(--member); } 100% { fill: var(--sticker-fill); } }
+/* the click's burst: dashes pop off the top and fly up as they go */
+@keyframes ch-burst { 0% { opacity: 1; transform: translateY(1px); } 66% { opacity: 1; transform: translateY(-2px); } 100% { opacity: 0; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ch[data-state="shown"] { animation: none; opacity: 1; }
+  .ch[data-state="shown"] .ch-pressed { animation: none; fill: var(--member); }
+  .ch[data-state="shown"] .ch-burst { animation: none; }
+}

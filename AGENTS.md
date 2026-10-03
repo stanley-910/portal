@@ -4,7 +4,7 @@ A multiplayer globe for getting between places in Asia, built for the HKU Hackat
 
 ## What it does
 
-You click a point to take off. A paper plane follows your cursor with a dashed great-circle route. Each click on the way drops a stop and starts the next leg; clicking the last stop again (a double click) lands the trip, and the app finds the best flights, trains and buses for each leg between the nearest relevant hubs. Friends join the same trip from different origins. The app suggests where and when to meet, and splits costs by who is present for each leg and each night.
+You click a point to take off. A paper plane follows your cursor with a dashed great-circle route. Each right click on the way drops a stop and starts the next leg; a click lands the trip, and the app finds the best flights, trains and buses for each leg between the nearest relevant hubs. Friends join the same trip from different origins. The app suggests where and when to meet, and splits costs by who is present for each leg and each night.
 
 We solve how to get between places. We are not a trip guide or an event planner, so don't add itineraries, sights or reviews.
 

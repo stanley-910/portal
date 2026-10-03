@@ -11,7 +11,7 @@ import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar"
 import type { TicketDraft } from "@/components/ticket-search/ticket-search";
 
 import { CurrencySetting } from "@/components/transport/currency-selector";
-import { TripGlobe, type LandedTrip, type LatLng, type TripGlobeHandle } from "@/components/trip-globe";
+import { ClickHint, TripGlobe, type LandedTrip, type LatLng, type TripGlobeHandle } from "@/components/trip-globe";
 import type { SoloLeg } from "@/lib/agent/solo";
 import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
 import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
@@ -396,6 +396,8 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       }} onClose={() => setTripAction(null)} />
     ) : null}
     {!trip && saveFailed ? <p role="alert" className="type-body absolute bottom-(--space-6) left-1/2 -translate-x-1/2 bg-paper-raised p-(--space-3)">Couldn&apos;t restore the trip. Please select the route again.</p> : null}
+    {/* how to draw a trip, by the pointer for a few seconds after each load */}
+    <ClickHint color={cursorPref.color} />
     <HomePip
       globe={globe}
       account={account}

@@ -820,7 +820,10 @@ export class GlobeEngine {
 
   pointerDown(e: PointerEvent) {
     this.requestFrame();
-    if (e.button !== undefined && e.button !== 0) return;
+    // a right click while flying drops a stop and flies on; otherwise only the main button does anything
+    const right = e.button === 2;
+    if (e.button !== undefined && e.button !== 0 && !right) return;
+    if (right && this.mode !== "flying") return;
     const [x, y] = this.pos(e);
     if (e.pointerType === "touch") {
       this.touches.set(e.pointerId, [x, y]);
@@ -838,15 +841,21 @@ export class GlobeEngine {
       this.hudDirty = true;
     }
     if (this.mode === "flying") {
-      // clicking the stop the plane just left (a double click, or a second click later) lands the trip there
+      const hit = this.pick(x, y);
+      // a right click on the globe ends a leg there and flies on to the next
+      if (right) {
+        if (hit && !this.nearOrigin(x, y)) this.addStop(hit);
+        return;
+      }
+      // a click on the stop the plane just left lands the trip there; a click hard on the heels of takeoff is the
+      // same click landing twice, and does nothing
       if (this.nearOrigin(x, y)) {
         if (this.via.length) this.finish();
         return;
       }
       if (this.t - this.tTake < 0.25) return;
-      // any other click ends a leg and flies on; off the globe, it lands at the last stop, or cancels without one
-      const hit = this.pick(x, y);
-      if (hit) this.addStop(hit);
+      // any other click lands the trip there; off the globe, it lands at the last stop, or cancels without one
+      if (hit) this.land(hit);
       else if (this.via.length) this.finish();
       else this.cancel();
       return;

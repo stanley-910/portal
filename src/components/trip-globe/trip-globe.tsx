@@ -75,8 +75,8 @@ export interface TripGlobeProps {
   /** Called at takeoff, including uncovered points (null). Hub is a local preview, not a route result. */
   onTakeoff?: (from: Hub | null) => void;
   /**
-   * Called once the plane touches down, with the trip's legs in order. Each click while flying ends a leg and flies
-   * on; clicking that stop again (a double click) lands there. The search for the trip starts here.
+   * Called once the plane touches down, with the trip's legs in order. A right click while flying ends a leg and flies
+   * on; a click lands the trip there. The search for the trip starts here.
    */
   onLand?: (legs: LandedTrip[]) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
@@ -353,10 +353,9 @@ export function TripGlobe({
       onPointerUp={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
       onPointerCancel={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
       onPointerLeave={() => engineRef.current?.pointerLeave()}
+      // while flying, a right click drops a stop (on pointer down), so it opens no menu
       onContextMenu={(e) => {
-        if (mode !== "flying") return;
-        e.preventDefault();
-        engineRef.current?.cancel();
+        if (mode === "flying") e.preventDefault();
       }}
     >
       <canvas ref={glRef} role="img" aria-label={label} className="absolute inset-0 block size-full" />
