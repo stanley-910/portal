@@ -7,6 +7,7 @@ import { MAX_NAME } from "@/lib/guest";
 import { currentPerson } from "@/lib/identity";
 import { joinTrip, liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
+import { tripOwner } from "@/lib/trip/leave";
 
 import { saveName } from "../actions";
 import { TripRoom } from "./trip-room";
@@ -19,9 +20,8 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   if (!person?.name) return <NamePrompt tripPath={`/t/${id}`} />;
   const room = await liveblocks().getRoom(tripRoomId(id)).catch(() => null);
   if (!room) notFound();
-  const rawMembers = room.metadata.members;
-  const members = Array.isArray(rawMembers) ? rawMembers : rawMembers ? [rawMembers] : [];
-  const hostId = typeof members[0] === "string" ? members[0] : null;
+  // the owner: whoever made the trip, until they leave and it passes on
+  const hostId = tripOwner(room.metadata);
   if ((await joinTrip(tripRoomId(id), person.id)) === null) notFound();
   return <TripRoom tripId={id} hostId={hostId} name={person.name} email={person.email} account={person.account} nationalities={person.nationalities} />;
 }

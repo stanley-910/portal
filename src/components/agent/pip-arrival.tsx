@@ -167,9 +167,15 @@ const HOP_BACK = 5;
  * a portal and pops out there; once its home corner (bottom right) is clear again for a while, it hops back.
  * `paused` holds it still, say while it's arriving.
  */
-export function usePipCorner(launcher: RefObject<HTMLElement | null>, porthole: RefObject<HTMLElement | null>, paused: boolean) {
+export function usePipCorner(
+  launcher: RefObject<HTMLElement | null>,
+  porthole: RefObject<HTMLElement | null>,
+  paused: boolean,
+  /** "arrive" to start by rising out of a portal, as Pip does when the chat closes. */
+  start: "arrive" | null = null,
+) {
   const [side, setSide] = useState<PipSide>(pipPlace.side);
-  const [hop, setHop] = useState<"leave" | "arrive" | null>(null);
+  const [hop, setHop] = useState<"leave" | "arrive" | null>(start);
 
   useEffect(() => {
     if (paused || hop) return;

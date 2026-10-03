@@ -58,8 +58,10 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   const [hover, setHover] = useState(false);
   // the first launcher of a page load arrives, by saucer or by portal; the nudge waits for it
   const [arriving, setArriving] = useState(() => !arrival.played);
-  // the arrival is this launcher's entrance, so its own zoom-in doesn't play after it
-  const [entrance] = useState(arriving);
+  // a launcher after the first is Pip coming back from the chat: it rises out of a portal
+  const [returning] = useState(() => arrival.played);
+  // the arrival or the portal is this launcher's entrance, so its own zoom-in doesn't play
+  const [entrance] = useState(arriving || returning);
   // picked in the browser only: the server renders no entrance, so a random pick can't mismatch it
   const kind = useSyncExternalStore(noSubscribe, pickArrival, () => null);
   useEffect(() => {
@@ -72,7 +74,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   // trip cards and panels over Pip's corner send it through a portal to the other one
   const root = useRef<HTMLDivElement>(null);
   const porthole = useRef<HTMLButtonElement>(null);
-  const { side, hop } = usePipCorner(root, porthole, arriving);
+  const { side, hop } = usePipCorner(root, porthole, arriving, returning ? "arrive" : null);
   const hidden = arriving || !!hop;
   const [done, setDone] = useState(() => nudged.has(nudge));
   // the bubble's tail points right, at Pip in the right-hand corner
@@ -118,38 +120,26 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   );
 }
 
-// The speech bubble's tail: a pixel wedge from the box's bottom edge to a point at Pip. Each row of light cells runs
-// from a(y) to b(y), the left edge leaning in faster than the right so it narrows to a point down and to the right;
-// ink outlines it like the box. Row 0 overlaps the box's border so the two read as one shape.
-const TAIL_CELL = 2;
-const TAIL_LIGHT = new Set<string>();
-for (let y = 0; ; y++) {
-  const a = Math.round(y * 1.7);
-  const b = 8 + Math.round(y * 0.9);
-  if (a > b) break;
-  for (let x = a; x <= b; x++) TAIL_LIGHT.add(`${x},${y}`);
-}
-const TAIL_INK = new Set<string>();
-for (const cell of TAIL_LIGHT) {
-  const [x, y] = cell.split(",").map(Number);
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1]]) if (!TAIL_LIGHT.has(`${x + dx},${y + dy}`)) TAIL_INK.add(`${x + dx},${y + dy}`);
-}
-const tailCells = (set: Set<string>) => [...set].map((c) => c.split(",").map(Number) as [number, number]);
-const TAIL_W = Math.max(...tailCells(TAIL_INK).map(([x]) => x)) + 2;
-const TAIL_H = Math.max(...tailCells(TAIL_INK).map(([, y]) => y)) + 1;
+// The speech bubble's tail: a short, straight pixel wedge from under the bubble's right end to Pip's antenna, in 2px
+// cells. Row 0 sits over the bubble's bottom border, on its straight part clear of the stepped corner, so the two
+// read as one shape. K ink · L paper
+const TAIL = [
+  "KLLLLLK......",
+  ".KKLLLLK.....",
+  "...KKLLLK....",
+  ".....KKLLK...",
+  ".......KKLLK.",
+  ".........KKKK",
+];
 
 function NudgeTail() {
   return (
-    <svg
-      aria-hidden
-      className="pip-nudge-tail"
-      width={TAIL_W * TAIL_CELL}
-      height={TAIL_H * TAIL_CELL}
-      viewBox={`-1 0 ${TAIL_W} ${TAIL_H}`}
-      shapeRendering="crispEdges"
-    >
-      {tailCells(TAIL_INK).map(([x, y]) => <rect key={`k${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-ink" />)}
-      {tailCells(TAIL_LIGHT).map(([x, y]) => <rect key={`l${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-light" />)}
+    <svg aria-hidden className="pip-nudge-tail" width={TAIL[0].length * 2} height={TAIL.length * 2} viewBox={`0 0 ${TAIL[0].length} ${TAIL.length}`} shapeRendering="crispEdges">
+      {TAIL.flatMap((row, y) =>
+        [...row].map((c, x) =>
+          c === "." ? null : <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} className={c === "K" ? "pip-nudge-tail-ink" : "pip-nudge-tail-light"} />,
+        ),
+      )}
     </svg>
   );
 }
