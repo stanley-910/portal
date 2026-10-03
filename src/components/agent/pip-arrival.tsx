@@ -79,6 +79,7 @@ export function PipArrival() {
       width={W}
       height={H}
       aria-hidden
+      data-globe-float
       className="pip-sprite pip-arrival"
       style={{ width: W * SCALE, height: H * SCALE, right: -OVERHANG * SCALE }}
     />
@@ -130,6 +131,7 @@ export function PipHop({ way, side }: { way: "leave" | "arrive"; side: PipSide }
       width={HOP_W}
       height={HOP_H}
       aria-hidden
+      data-globe-float
       className="pip-sprite pip-hop"
       style={{ width: HOP_W * SCALE, height: HOP_H * SCALE, [side]: 0 }}
     />

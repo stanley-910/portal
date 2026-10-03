@@ -10,6 +10,7 @@ import { TicketSearch, type PickedStay } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
+import { useCursorPref } from "@/lib/cursor-pref";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
 import { MAX_OFFERS } from "@/lib/trip/offers";
@@ -37,6 +38,7 @@ function dayAfter(iso: string) {
 export function GlobeScreen({ person }: { person: Person | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
+  const cursorPref = useCursorPref();
   // the landed trip's legs, the one the popover shows, and what was picked on the legs before it
   const [legs, setLegs] = useState<LandedTrip[] | null>(null);
   const [active, setActive] = useState(0);
@@ -91,6 +93,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   return <main className="relative h-dvh w-full overflow-hidden">
     <TripGlobe
       ref={globe}
+      color={cursorPref.color}
+      cursorShape={cursorPref.shape}
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
       onTakeoff={() => setLegs(null)}
       onLand={(landed) => {

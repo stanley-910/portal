@@ -85,7 +85,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
     return () => window.clearTimeout(timer);
   }, [finished, nudge]);
   return (
-    <div ref={root} className={`pip-launcher${entrance ? " pip-launcher-arriving" : ""}${side === "left" ? " pip-launcher-left" : ""}`}>
+    <div ref={root} data-globe-float className={`pip-launcher${entrance ? " pip-launcher-arriving" : ""}${side === "left" ? " pip-launcher-left" : ""}`}>
       {arriving && kind ? kind === "ufo" ? <PipArrival /> : <PipHop way="arrive" side={side} /> : null}
       {hop ? <PipHop key={`${hop}-${side}`} way={hop} side={side} /> : null}
       {typed !== null && !done && !hop && side === "right" ? (

@@ -1,0 +1,51 @@
+[
+  {
+    "id": "off_0000AoqGfP1mD0Kp3cHk1",
+    "total_amount": "412.60",
+    "total_currency": "USD",
+    "expires_at": "2026-11-01T10:42:14.545Z",
+    "owner": { "name": "Cathay Pacific", "iata_code": "CX" },
+    "slices": [{
+      "duration": "PT2H35M",
+      "segments": [{
+        "departing_at": "2026-11-15T08:00:00",
+        "arriving_at": "2026-11-15T10:35:00",
+        "origin": { "iata_code": "HKG", "name": "Hong Kong International Airport", "city_name": "Hong Kong", "time_zone": "Asia/Hong_Kong", "latitude": 22.308, "longitude": 113.918, "iata_country_code": "HK" },
+        "destination": { "iata_code": "PVG", "name": "Shanghai Pudong International Airport", "city_name": "Shanghai", "time_zone": "Asia/Shanghai", "latitude": 31.143, "longitude": 121.805, "iata_country_code": "CN" },
+        "marketing_carrier": { "name": "Cathay Pacific", "iata_code": "CX" },
+        "marketing_carrier_flight_number": "364",
+        "operating_carrier": { "name": "Cathay Pacific", "iata_code": "CX" }
+      }]
+    }]
+  },
+  {
+    "id": "off_0000AoqGfP1mD0Kp3cHk2",
+    "total_amount": "268.00",
+    "total_currency": "USD",
+    "owner": { "name": "China Eastern", "iata_code": "MU" },
+    "slices": [{
+      "segments": [{
+        "departing_at": "2026-11-15T13:10:00",
+        "arriving_at": "2026-11-15T15:30:00",
+        "origin": { "iata_code": "HKG", "name": "Hong Kong International Airport", "time_zone": "Asia/Hong_Kong" },
+        "destination": { "iata_code": "PVG", "name": "Shanghai Pudong International Airport", "time_zone": "Asia/Shanghai" },
+        "marketing_carrier": { "name": "China Eastern", "iata_code": "MU" },
+        "marketing_carrier_flight_number": "5062",
+        "operating_carrier": { "name": "Shanghai Airlines", "iata_code": "FM" }
+      }]
+    }]
+  },
+  {
+    "id": "off_wrong_airport",
+    "total_amount": "199.00",
+    "total_currency": "USD",
+    "owner": { "name": "Spring Airlines" },
+    "slices": [{ "segments": [{
+      "departing_at": "2026-11-15T09:00:00", "arriving_at": "2026-11-15T11:20:00",
+      "origin": { "iata_code": "HKG", "name": "Hong Kong", "time_zone": "Asia/Hong_Kong" },
+      "destination": { "iata_code": "SHA", "name": "Hongqiao", "time_zone": "Asia/Shanghai" },
+      "marketing_carrier": { "name": "Spring Airlines", "iata_code": "9C" }
+    }] }]
+  },
+  { "id": "off_garbage", "total_amount": "free" }
+]
