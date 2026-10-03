@@ -121,13 +121,15 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
 }
 
 // The speech bubble's tail: a short, straight pixel wedge from under the bubble's right end to Pip's antenna, in 2px
-// cells. Row 0 sits over the bubble's bottom border, so the two read as one shape. K ink · L paper
+// cells. Row 0 sits over the bubble's bottom border, on its straight part clear of the stepped corner, so the two
+// read as one shape. K ink · L paper
 const TAIL = [
-  "KLLLLLK...",
-  ".KLLLLLK..",
-  "..KKLLLLK.",
-  "....KKLLLK",
-  "......KKKK",
+  "KLLLLLK......",
+  ".KKLLLLK.....",
+  "...KKLLLK....",
+  ".....KKLLK...",
+  ".......KKLLK.",
+  ".........KKKK",
 ];
 
 function NudgeTail() {
