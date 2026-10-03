@@ -21,7 +21,7 @@ export async function createTrip() {
   await liveblocks().createRoom(tripRoomId(id), {
     defaultAccesses: [],
     usersAccesses: { [user.id]: ["room:write"] },
-    metadata: { members: [user.id] },
+    metadata: { members: [user.id], title: "New trip", updatedAt: new Date().toISOString() },
   });
   redirect(`/t/${id}`);
 }
