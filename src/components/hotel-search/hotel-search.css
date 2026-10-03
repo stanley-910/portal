@@ -1,0 +1,15 @@
+.hotel-search { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: var(--line-control) solid var(--line); }
+.hotel-heading { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
+.hotel-heading h2 { margin: 0; font-family: var(--font-fell-sc); font-size: 20px; line-height: 22px; font-weight: 400; }
+.hotel-heading span, .hotel-row span, .hotel-row small { display: block; color: var(--ink-muted); font-size: 11px; line-height: 15px; }
+.hotel-occupants { display: flex; align-items: center; gap: 5px; color: var(--ink-muted); font-size: 11px; }
+.hotel-occupants select { min-height: 32px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); }
+.hotel-filters { display: flex; gap: 4px; }
+.hotel-filters button { min-height: 32px; flex: 1; padding: 3px 4px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-tag); background: transparent; font-size: 11px; }
+.hotel-filters button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.hotel-rows { display: flex; flex-direction: column; gap: 2px; max-height: 190px; overflow-y: auto; }
+.hotel-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 7px 6px; border-radius: var(--radius-tag); }
+.hotel-row:hover { background: var(--control-hover); }
+.hotel-row strong { display: block; font-size: 13px; line-height: 16px; }
+.hotel-price { text-align: right; white-space: nowrap; }
+.hotel-price small { font-size: 10px; }

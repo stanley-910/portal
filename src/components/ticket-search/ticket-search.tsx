@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 import { Button } from "@/components/paper-atlas";
+import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
@@ -21,6 +22,7 @@ const EDGE = 24;
 const GAP = 56;
 
 type Side = "right" | "left" | "under" | "pinned";
+type SearchTab = Tab | "hotels";
 
 /**
  * Keeps the popover beside the route as the globe turns: on the side with the most free space (right, left or
@@ -156,7 +158,7 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
   const [depart, setDepart] = useState(firstDay);
   const [returnDate, setReturnDate] = useState<string | null>(null);
   const [openField, setOpenField] = useState<"depart" | "return" | null>(null);
-  const [tab, setTab] = useState<Tab>("best");
+  const [tab, setTab] = useState<SearchTab>("best");
   const [selected, setSelected] = useState(0);
 
   const outbound = useOffers(trip.origin, trip.destination, depart);
@@ -181,10 +183,13 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
 
   const offers = outbound.status === "done" ? outbound.offers : [];
   const tabs = visibleTabs(offers);
-  const activeTab = tabs.includes(tab) ? tab : "best";
-  const rows = rowsFor(offers, activeTab, rates);
+  const activeTab: SearchTab = tab === "hotels" || (tab !== "hotels" && tabs.includes(tab)) ? tab : "best";
+  const rows = activeTab === "hotels" ? [] : rowsFor(offers, activeTab, rates);
   const choice = rows[Math.min(selected, rows.length - 1)];
   const returns = returnDate === null ? null : back.status === "done" ? back.offers : back.status === "failed" ? [] : undefined;
+  const hotelCheckOut = returnDate ?? addDays(depart, 1);
+  const hotelCity = ends.to.name;
+  const hotelPoint = outbound.result?.hubs.pairs[0]?.to.hub;
 
   const pickDay = (iso: string) => {
     if (openField === "return") setReturnDate(iso);
@@ -260,62 +265,86 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
                 {t.label}
               </button>
             ))}
+            <button
+              type="button"
+              role="tab"
+              className="ts-tab"
+              aria-selected={activeTab === "hotels"}
+              onClick={() => {
+                setTab("hotels");
+                setSelected(0);
+              }}
+            >
+              Hotels
+            </button>
           </div>
 
-          <div className="ts-rows" role="tabpanel">
-            {outbound.status === "searching" || outbound.status === "idle"
-              ? [0, 1, 2].map((i) => (
-                  <div key={i} className="ts-row ts-row-ghost" aria-hidden>
-                    <span className="ts-ghost ts-ghost-head" />
-                    <span className="ts-ghost ts-ghost-price" />
-                    <span className="ts-ghost ts-ghost-desc" />
-                    <span className="ts-ghost ts-ghost-line" />
-                  </div>
-                ))
-              : null}
-            {outbound.status === "failed" ? (
-              <p className="ts-empty">
-                Search failed.{" "}
-                <button type="button" className="ts-oneway" onClick={outbound.retry}>
-                  Try again
-                </button>
-              </p>
-            ) : null}
-            {outbound.status === "done" && rows.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
-            {rows.map((row, i) => {
-              const price = returns === undefined ? undefined : rowPrice(row.offer, returns, currency, rates);
-              return (
-                <button
-                  key={row.offer.id}
-                  type="button"
-                  className="ts-row"
-                  aria-pressed={row === choice}
-                  title={row.source}
-                  onClick={() => setSelected(i)}
-                >
-                  <span className="ts-head">
-                    {row.headline}
-                    {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
-                    {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
-                  </span>
-                  <span className="ts-price" data-none={price === null || undefined}>
-                    {price === undefined ? <span className="ts-ghost ts-ghost-price" /> : price === null ? "No fare" : formatPrice(price, currency)}
-                  </span>
-                  <span className="ts-desc">{row.description}</span>
-                  <Timeline legs={row.legs} />
-                </button>
-              );
-            })}
-          </div>
+          {activeTab === "hotels" ? (
+            <HotelSearch
+              city={hotelCity}
+              lat={hotelPoint?.lat ?? trip.destination.lat}
+              lng={hotelPoint?.lng ?? trip.destination.lng}
+              checkIn={depart}
+              checkOut={hotelCheckOut}
+              currency={currency}
+              rates={rates}
+            />
+          ) : (
+            <div className="ts-rows" role="tabpanel">
+              {outbound.status === "searching" || outbound.status === "idle"
+                ? [0, 1, 2].map((i) => (
+                    <div key={i} className="ts-row ts-row-ghost" aria-hidden>
+                      <span className="ts-ghost ts-ghost-head" />
+                      <span className="ts-ghost ts-ghost-price" />
+                      <span className="ts-ghost ts-ghost-desc" />
+                      <span className="ts-ghost ts-ghost-line" />
+                    </div>
+                  ))
+                : null}
+              {outbound.status === "failed" ? (
+                <p className="ts-empty">
+                  Search failed.{" "}
+                  <button type="button" className="ts-oneway" onClick={outbound.retry}>
+                    Try again
+                  </button>
+                </p>
+              ) : null}
+              {outbound.status === "done" && rows.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
+              {rows.map((row, i) => {
+                const price = returns === undefined ? undefined : rowPrice(row.offer, returns, currency, rates);
+                return (
+                  <button
+                    key={row.offer.id}
+                    type="button"
+                    className="ts-row"
+                    aria-pressed={row === choice}
+                    title={row.source}
+                    onClick={() => setSelected(i)}
+                  >
+                    <span className="ts-head">
+                      {row.headline}
+                      {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
+                      {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                    </span>
+                    <span className="ts-price" data-none={price === null || undefined}>
+                      {price === undefined ? <span className="ts-ghost ts-ghost-price" /> : price === null ? "No fare" : formatPrice(price, currency)}
+                    </span>
+                    <span className="ts-desc">{row.description}</span>
+                    <Timeline legs={row.legs} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          <Button
+          {activeTab !== "hotels" ? <Button
             block
             disabled={!choice || choice.offer.id === addedId || saving}
             aria-busy={saving || undefined}
             onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate })}
           >
             {saving ? "Saving trip…" : choice && choice.offer.id === addedId ? "Saved" : "Save trip"}
-          </Button>
+          </Button> : null}
           {error && !saving ? (
             <p className="ts-empty" role="alert">
               {error}

@@ -20,6 +20,7 @@ const CHIPS = ["@Pip where should we meet?", "@Pip somewhere fair in the middle"
 const NUDGE = "Tell me where everyone's starting from. I'll find where to meet.";
 const NUDGE_DELAY_MS = 900;
 const TYPE_MS = 34;
+const NUDGE_VISIBLE_MS = 2_000;
 
 export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
   const [open, setOpen] = useState(initialOpen);
@@ -77,17 +78,26 @@ function useTyping(text: string): string | null {
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let i = 0;
     let timer: number;
+    let hide: number;
+    const finish = () => {
+      setN(text.length);
+      hide = window.setTimeout(() => setN(null), NUDGE_VISIBLE_MS);
+    };
     const start = window.setTimeout(() => {
-      if (still) return setN(text.length);
+      if (still) return finish();
       timer = window.setInterval(() => {
         i++;
         setN(i);
-        if (i >= text.length) window.clearInterval(timer);
+        if (i >= text.length) {
+          window.clearInterval(timer);
+          hide = window.setTimeout(() => setN(null), NUDGE_VISIBLE_MS);
+        }
       }, TYPE_MS);
     }, still ? 0 : NUDGE_DELAY_MS);
     return () => {
       window.clearTimeout(start);
       window.clearInterval(timer);
+      window.clearTimeout(hide);
     };
   }, [text]);
   return n === null ? null : text.slice(0, n);
@@ -339,4 +349,3 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
 
 const hours = (min: number) => `${Math.floor(min / 60)}h ${String(Math.round(min % 60)).padStart(2, "0")}m`;
 const money = (amount: number, currency: string) => `${currency} ${Math.round(amount).toLocaleString("en-GB")}`;
-
