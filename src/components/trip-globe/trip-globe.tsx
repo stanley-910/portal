@@ -26,7 +26,7 @@ export interface TripGlobeHandle {
   /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
   setRemoteFlights(flights: RemoteFlight[]): void;
   /** Other members' pointers, by id; null `at` hides one. Replaces the previous list. Their shadows are drawn here. */
-  setRemoteCursors(cursors: { id: string; at: LatLng | null }[]): void;
+  setRemoteCursors(cursors: { id: string; at: LatLng | null; shape?: CursorShape }[]): void;
   /** Where another member's pointer is on screen and the matrix [a, b, c, d] that lays it on the ground there. */
   remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null;
   /**

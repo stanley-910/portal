@@ -1,5 +1,7 @@
 /* The stays section of a ticket card: built from the card's own parts (ticket-search.css), with only what's new here. */
 .hs { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: var(--line-control) solid var(--line); }
+/* as a tab's content, the tab row's own rule heads it */
+.hs[role="tabpanel"] { padding-top: 6px; border-top: 0; }
 .hs-caption { margin: 0; }
 .hs-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px; }
 .ts .hs-field { cursor: pointer; }

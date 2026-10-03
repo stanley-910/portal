@@ -77,7 +77,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
     ? [`What's cheapest from ${trip[0].from.name} to ${trip[0].to.name}?`, `How do I get back to ${trip[0].from.name}?`, "Add another stop"]
     : CHIPS;
 
-  const flying = <PipSaucer ref={saucer} globe={globe} at={at} busy={!!streaming} />;
+  const flying = <PipSaucer ref={saucer} globe={globe} at={at} busy={!!streaming} editing={activity === "planning the trip"} />;
   if (!open) {
     return (
       <>

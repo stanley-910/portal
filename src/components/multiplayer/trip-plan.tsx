@@ -82,7 +82,9 @@ export function FloatingTripPlan({ globe, bill, ...props }: TripPlanProps & { gl
   /** Dragging the card by its header leaves it where it's dropped, until it's minimised and opened again. */
   const drag = (event: PointerEvent<HTMLElement>) => {
     const start = at.current;
-    if (!start || event.button !== 0 || (event.target as Element).closest("button")) return;
+    // the bill's panel is a portal from inside the header, so its clicks bubble here through React: they're not drags
+    const target = event.target as Element;
+    if (!start || event.button !== 0 || !event.currentTarget.contains(target) || target.closest("button")) return;
     event.preventDefault();
     const handle = event.currentTarget;
     const from = { x: event.clientX, y: event.clientY };

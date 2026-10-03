@@ -19,6 +19,9 @@ const R = Math.PI / 180;
  */
 export const SAUCER_FLY_MS = 700;
 
+/** How long the saucer stays over a change once it lands, beaming it down, before Pip flies on to the next. */
+export const SAUCER_STAY_MS = 500;
+
 /** The middle of the great circle between two places: where a leg's mark goes. */
 export function midpoint(a: Point, b: Point): Point {
   const v = (p: Point) => [Math.cos(p.lat * R) * Math.sin(p.lng * R), Math.sin(p.lat * R), Math.cos(p.lat * R) * Math.cos(p.lng * R)];

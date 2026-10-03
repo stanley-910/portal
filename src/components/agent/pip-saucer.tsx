@@ -4,24 +4,27 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObj
 
 import { PipSprite } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
-import type { AgentMark } from "@/lib/agent/marks";
+import { SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 import { AGENT_NAME } from "@/lib/agent/types";
 
 // Pip at work on the globe: its saucer (the globe draws it, trip-globe/ufo-model.ts) flies to whatever Pip is
 // looking at, and the view follows it until someone moves the globe themselves.
-// Each change Pip makes pops up over where it happened, like a hit in a game, one at a time: the saucer flies
-// there, beams down, the change pops, and it moves on to the next. Positions are written to the DOM every frame.
+// Pip makes its changes one at a time (agent/tools.ts): the saucer flies to where each goes and beams down as it gets
+// there, the change lands and pops up over the place like a hit in a game, and the beam goes off as it moves on. Once
+// Pip is done, the saucer flies off the screen. Positions are written to the DOM every frame.
 
 /** A pop's whole life, rising and fading (matches the CSS animation). */
 const POP_MS = 1800;
-/** How long the saucer stays over a change after it pops, before flying to the next. */
-const HOLD_MS = 900;
+/** How long the saucer stays over a change after it pops, before flying to the next: as long as Pip waits. */
+const HOLD_MS = SAUCER_STAY_MS;
 /** The longest it waits to reach a place before popping anyway. */
 const REACH_MS = 2500;
 /** How long the saucer stays out after Pip stops, so it doesn't flicker between steps. */
-const LINGER_MS = 1500;
-/** How long the beam shows when a change pops. */
-const BEAM_MS = 600;
+const LINGER_MS = 1000;
+/** How long the beam stays on after a change pops. */
+const BEAM_MS = 350;
+/** The longest it beams down at a place, waiting for a change that doesn't come. */
+const BEAM_WAIT_MS = 1200;
 /** Pops float this far above the saucer. */
 const POP_RISE = 30;
 
@@ -38,10 +41,12 @@ type Props = {
   at: LatLng | null;
   /** Pip is working: the saucer stays out while this is on, at the last place it went. */
   busy: boolean;
+  /** Pip is changing the trip: the saucer beams down at each place it reaches. */
+  editing?: boolean;
   ref?: Ref<PipSaucerHandle>;
 };
 
-export function PipSaucer({ globe, at, busy, ref }: Props) {
+export function PipSaucer({ globe, at, busy, editing = false, ref }: Props) {
   const [pops, setPops] = useState<Pop[]>([]);
   const [out, setOut] = useState(false);
   // the viewer moved the globe while following: offer to follow again until the saucer goes
@@ -50,9 +55,9 @@ export function PipSaucer({ globe, at, busy, ref }: Props) {
   const beam = useRef<HTMLDivElement>(null);
   const popEls = useRef(new Map<number, HTMLDivElement>());
   // the latest props, for the frame loop
-  const live = useRef({ at, busy, pops });
+  const live = useRef({ at, busy, editing, pops });
   useEffect(() => {
-    live.current = { at, busy, pops };
+    live.current = { at, busy, editing, pops };
   });
   const queue = useRef<AgentMark[]>([]);
 
@@ -67,6 +72,8 @@ export function PipSaucer({ globe, at, busy, ref }: Props) {
     let shown = false;
     let lastBusy = -Infinity;
     let seq = 0;
+    // the place the saucer last got to, when, and when a change last popped there
+    let reached: { key: string; t: number; popped: number | null } | null = null;
     const born = new Map<number, number>();
     const send = (ll: LatLng | null) => {
       const key = ll ? `${ll.lat},${ll.lng}` : "";
@@ -80,7 +87,7 @@ export function PipSaucer({ globe, at, busy, ref }: Props) {
     };
     const stop = handle.onFrame(() => {
       const t = performance.now();
-      const { at, busy, pops } = live.current;
+      const { at, busy, editing, pops } = live.current;
       if (!current && queue.current.length) current = { mark: queue.current.shift()!, since: t, popped: null };
       if (current || busy) lastBusy = t;
       place = current?.mark.at ?? (current ? place : at) ?? place;
@@ -98,19 +105,25 @@ export function PipSaucer({ globe, at, busy, ref }: Props) {
       send(shown ? place : null);
 
       const spot = shown ? handle.agentSpot() : null;
+      const key = place ? `${place.lat},${place.lng}` : "";
+      if (!spot?.arrived) reached = null;
+      else if (reached?.key !== key) reached = { key, t, popped: null };
       if (current && current.popped === null && (!current.mark.at || spot?.arrived || t - current.since > REACH_MS)) {
         current.popped = t;
         const pop = { id: ++seq, mark: current.mark };
         born.set(pop.id, t);
         setPops((list) => [...list, pop]);
         setSaid(current.mark.text);
+        if (reached) reached.popped = t;
       }
       if (current?.popped != null && t - current.popped > HOLD_MS) current = null;
 
-      // the saucer's beam while a change pops
+      // the saucer's beam: down as it gets where a change goes, off just after the change lands
       const seen = !!spot?.visible;
       if (beam.current) {
-        const beaming = seen && !!spot && current?.popped != null && t - current.popped < BEAM_MS;
+        const landing = editing && !!reached && t - reached.t < BEAM_WAIT_MS && (reached.popped === null || t - reached.popped < BEAM_MS);
+        const popping = current?.popped != null && t - current.popped < BEAM_MS;
+        const beaming = seen && !!spot && (landing || popping);
         beam.current.style.opacity = beaming ? "1" : "0";
         if (beaming) {
           const h = Math.max(0, spot.ground.y - spot.y);

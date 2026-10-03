@@ -16,6 +16,8 @@ export type TripPresence = {
     /** What they're riding while they draw: the globe's guess from the leg's shape. */
     vehicle?: "flight" | "train" | "bus" | "ferry";
   } | null;
+  /** The cursor this member picked (profile menu), so others see theirs in it. Missing for older clients: the arrow. */
+  shape?: "arrow" | "compass" | "map";
   /** Only Pip sets this (from the server): what it's doing, shown beside its cursor. */
   activity?: string | null;
 };

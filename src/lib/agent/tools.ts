@@ -5,14 +5,14 @@ import { railPreferences, searchNearbyRail } from "./nearby-rail";
 import { stopToPlace } from "@/lib/trip/stops";
 import { z } from "zod";
 
-import { editPlan, editTarget, resolvePlace, type EditOp, type PlaceRef } from "@/lib/agent/edit";
+import { editPlan, editTarget, newChangeset, resolvePlace, type EditOp, type PlaceRef, type Refusal } from "@/lib/agent/edit";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
 import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { SAUCER_FLY_MS, type AgentMark } from "@/lib/agent/marks";
+import { SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -242,16 +242,27 @@ export function agentTools(ctx: ToolContext) {
       execute: async ({ ops }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
         const { plan, handles } = await ctx.load();
-        // send the saucer to where the change goes and let it get there, so the change lands under it
-        const target = editTarget(plan, handles, ops as EditOp[]);
-        ctx.activity("editing the trip", target ?? undefined);
-        if (target) await new Promise((done) => setTimeout(done, Math.min(SAUCER_FLY_MS, Math.max(0, ctx.until - Date.now() - 1000))));
-        const result = await editPlan(ctx.roomId, plan, handles, ops as EditOp[], ctx.agentId, ctx.until);
-        ctx.marks(result.marks);
-        if (result.changesetId) {
-          await ctx.addCard({ type: "changes", changesetId: result.changesetId, lines: result.applied, undone: false });
+        const wait = (ms: number) => new Promise((done) => setTimeout(done, Math.min(ms, Math.max(0, ctx.until - Date.now() - 1000))));
+        // One op at a time, in order, so everyone watches the trip built piece by piece: the saucer flies to where it
+        // goes, the change lands under it, and it stays a beat before the next. Every op reads the same snapshot, as
+        // one call did, and they share a changeset, so one Undo still puts back all of them.
+        const changeset = newChangeset();
+        const applied: string[] = [];
+        const refused: Refusal[] = [];
+        for (const [i, op] of (ops as EditOp[]).entries()) {
+          const target = editTarget(plan, handles, [op]);
+          ctx.activity("editing the trip", target ?? undefined);
+          if (target) await wait(SAUCER_FLY_MS);
+          const step = await editPlan(ctx.roomId, plan, handles, [op], ctx.agentId, ctx.until, changeset);
+          applied.push(...step.applied);
+          refused.push(...step.refused.map((r) => ({ ...r, op: i })));
+          ctx.marks(step.marks);
+          if (step.marks.length && i < ops.length - 1) await wait(SAUCER_STAY_MS);
         }
-        return { applied: result.applied, refused: result.refused };
+        if (applied.length) await ctx.addCard({ type: "changes", changesetId: changeset.id, lines: applied, undone: false });
+        // searches for new or moved legs go on while the saucer works, and finish before Pip says what it did
+        await Promise.all(changeset.searches);
+        return { applied, refused };
       },
     }),
 

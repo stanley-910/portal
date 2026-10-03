@@ -27,7 +27,7 @@ export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | nu
         room.getOthers().filter((o) => o.id !== AGENT_ID).map((o) => {
           // while their plane is in the air it is their pointer, so the plane's label stands in for the cursor
           const flying = o.presence.flight && !o.presence.flight.landed;
-          return { id: String(o.connectionId), at: flying ? null : o.presence.cursor };
+          return { id: String(o.connectionId), at: flying ? null : o.presence.cursor, shape: o.presence.shape };
         }),
       );
     push();
@@ -67,13 +67,14 @@ export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | nu
 }
 
 function Cursor({ connectionId, ref }: { connectionId: number; ref: (el: HTMLElement | null) => void }) {
-  const who = useOther(connectionId, (o) => ({ id: o.id, name: o.info.name, color: o.info.color }), shallow);
+  const who = useOther(connectionId, (o) => ({ id: o.id, name: o.info.name, color: o.info.color, shape: o.presence.shape ?? "arrow" }), shallow);
   // the plan's colour, so one picked in the room shows at once; the room numbers colours from 1, slots from 0
   const color = useMemberColor(who.id, who.color);
   return (
     <div ref={ref} className="absolute top-0 left-0 opacity-0 transition-opacity duration-150 will-change-transform">
       {/* the globe draws its shadow */}
-      <StickerCursor color={paperMemberColor(color - 1)} name={who.name} cast={false} />
+      {/* in the shape they picked */}
+      <StickerCursor shape={who.shape} color={paperMemberColor(color - 1)} name={who.name} cast={false} />
     </div>
   );
 }

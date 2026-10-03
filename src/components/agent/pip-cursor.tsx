@@ -16,5 +16,5 @@ export function PipCursor({ globe }: { globe: RefObject<TripGlobeHandle | null> 
   useEventListener(({ event }) => {
     if (event.type === "agent-marks") saucer.current?.play(event.marks);
   });
-  return <PipSaucer ref={saucer} globe={globe} at={presence?.cursor ?? null} busy={!!presence?.activity} />;
+  return <PipSaucer ref={saucer} globe={globe} at={presence?.cursor ?? null} busy={!!presence?.activity} editing={presence?.activity === "editing the trip"} />;
 }

@@ -111,7 +111,11 @@
 .ts-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .ts-credit a:hover { color: var(--ink); }
 .ts-credit a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-tag); }
-.ts .ts-save { font-size: 13px; line-height: 16px; }
+/* Buttons in a card are compact, with the tags' square corners; the 44px tap area stays, unseen */
+.ts .pa-btn { position: relative; height: 32px; padding: 0 14px; border-radius: var(--radius-tag); font-size: 13px; line-height: 16px; }
+.ts .pa-btn::after { content: ""; position: absolute; inset: -6px 0; }
+/* Save sits at the card's end, as wide as its words */
+.ts .ts-save { align-self: flex-end; width: auto; margin-top: 4px; }
 
 /* A round trip's way back: the way out it goes with, as one line above the return options, and the two together */
 .ts-picked { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: baseline; gap: 6px; padding: 2px 0 4px; }

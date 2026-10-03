@@ -53,6 +53,10 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   // your cursor's shape is yours; its colour is your colour in this trip, as the plan stores it
   const cursorShape = useCursorPref().shape;
   const updateMyPresence = useUpdateMyPresence();
+  // others see your cursor in the shape you picked, and change with it
+  useEffect(() => {
+    updateMyPresence({ shape: cursorShape });
+  }, [cursorShape, updateMyPresence]);
   const myId = useSelf((me) => me.id);
   const tokenColor = useSelf((me) => me.info.color) ?? 1;
   // the room numbers colours from 1; the design system's slots count from 0

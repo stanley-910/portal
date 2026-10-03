@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LegBooking, Stop } from "@/lib/liveblocks/types";
 
-import { editPlan, editTarget, undoChangeset } from "./edit";
+import { editPlan, editTarget, newChangeset, undoChangeset, type EditOp } from "./edit";
 import { handlesFor, type PlanJson } from "./snapshot";
 
 // A room's Storage held in memory: editPlan writes to it through the same LiveObject API as a real room.
@@ -70,6 +70,26 @@ describe("editPlan", () => {
     expect(after.stops?.tc).toBeUndefined();
     expect(after.stops?.hk && after.stops?.bj && after.stops?.bt).toBeTruthy();
     expect(result.applied.join("\n")).not.toContain("?");
+  });
+
+  it("makes the same change one op at a time, as Pip does under its saucer, and undoes it all at once", async () => {
+    const h = handlesFor(plan);
+    const ops: EditOp[] = [
+      { op: "remove_leg", leg: "L1" },
+      { op: "remove_leg", leg: "L3" },
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { place: "Taipei" }, date: "2026-10-04", riders: ["M1"] },
+      // Bintulu went with L3 a step ago; the same snapshot still knows it, so it comes back
+      { op: "add_leg", from: { place: "Taipei" }, to: { stop: h.stop.get("bt")! }, date: "2026-10-04", riders: ["M1"] },
+    ];
+    const changeset = newChangeset();
+    for (const op of ops) await editPlan("room", plan, h, [op], "agent:pip", undefined, changeset);
+    const after = json();
+    expect(Object.keys(after.legs ?? {})).toHaveLength(3);
+    expect(after.stops?.bt?.name).toBe("Bintulu");
+
+    await undoChangeset("room", changeset.id);
+    expect(Object.keys(json().legs ?? {}).sort()).toEqual(["a", "b", "c"]);
+    expect(Object.keys(json().stops ?? {}).sort()).toEqual(["bj", "bt", "hk", "tc"]);
   });
 
   it("puts back a stop someone removed since the snapshot instead of pointing a leg at it", async () => {

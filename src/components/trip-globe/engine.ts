@@ -176,6 +176,9 @@ const UFO_HOVER = 1.8;
 const UFO_GLIDE = 3;
 const UFO_CRUISE = 0.08;
 const UFO_THERE = 0.003;
+// Leaving, it climbs away toward the top of the screen, faster and faster, and is gone after UFO_EXIT seconds.
+const UFO_EXIT = 1.4;
+const UFO_EXIT_ARC = 0.9; // radians over the globe it heads off
 const FOLLOW_EASE = 2.4;
 const FOLLOW_RANGE = 1.2;
 const GROUND_LIFT = 0.35;
@@ -492,10 +495,10 @@ export class GlobeEngine {
   private tagBoxes: { text: string; at: { x: number; y: number }; l: number; t: number; r: number; b: number }[] = [];
   /** A place searched for: marked on the ground with its name until the next click on the globe. */
   private placeMark: { v: Vec3; name: string } | null = null;
-  private cursors = new Map<string, { track: Track; x: number; y: number; visible: boolean; lie: CursorLie; shadow: { x: number; y: number } | null }>();
+  private cursors = new Map<string, { track: Track; x: number; y: number; visible: boolean; lie: CursorLie; shadow: { x: number; y: number } | null; shape: CursorShape }>();
   // Pip's saucer while Pip works: where it's drawn and headed, how it banks into the way it's going, how far grown
-  // in (0 to 1, shrinking away once `on` is off) and how far round its rim lights have chased
-  private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number } | null = null;
+  // in (0 to 1), how far round its rim lights have chased, and, once `on` is off, how long it has been flying away
+  private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number; away: number } | null = null;
   // the view following the saucer, and where on screen it keeps it: the middle of the open area, asked now and then
   private follow = false;
   private followSpot: { x: number; y: number; t: number } | null = null;
@@ -1399,8 +1402,8 @@ export class GlobeEngine {
     if (this.shadowAt) {
       this.dropShadow(this.shadowAt.x + this.cursorOffset[0], this.shadowAt.y + this.cursorOffset[1], this.cursorLie, this.shadowAlpha, this.cursorShape);
     }
-    // other members' stickers are always the arrow: the shape is each viewer's own setting
-    for (const r of this.cursors.values()) if (r.shadow) this.dropShadow(r.shadow.x, r.shadow.y, r.lie, 1, "arrow");
+    // other members' in the shape each picked
+    for (const r of this.cursors.values()) if (r.shadow) this.dropShadow(r.shadow.x, r.shadow.y, r.lie, 1, r.shape);
   }
 
   /** A cursor's shadow at x, y, in the cursor's shape, lying on the ground as `lie` says. */
@@ -1666,14 +1669,15 @@ export class GlobeEngine {
   }
 
   /** Replaces the other members' pointers; null `at` hides one. They move steadily between updates. */
-  setRemoteCursors(list: { id: string; at: LatLng | null }[]) {
+  setRemoteCursors(list: { id: string; at: LatLng | null; shape?: CursorShape }[]) {
     const now = performance.now() / 1000;
     const seen = new Set<string>();
     for (const c of list) {
       if (!c.at) continue;
       seen.add(c.id);
       let r = this.cursors.get(c.id);
-      if (!r) this.cursors.set(c.id, (r = { track: new Track(), x: 0, y: 0, visible: false, lie: FLAT, shadow: null }));
+      if (!r) this.cursors.set(c.id, (r = { track: new Track(), x: 0, y: 0, visible: false, lie: FLAT, shadow: null, shape: "arrow" }));
+      r.shape = c.shape ?? "arrow";
       r.track.push(vecOf(c.at.lat * D2R, c.at.lng * D2R), now);
     }
     for (const id of this.cursors.keys()) if (!seen.has(id)) this.cursors.delete(id);
@@ -1698,17 +1702,22 @@ export class GlobeEngine {
 
   /**
    * Shows Pip's saucer gliding to a place, or sends it away (null). It grows in where it's first sent, then glides
-   * along the great circle to each new place, facing where it's going.
+   * along the great circle to each new place, facing where it's going. Sent away, it flies off the top of the screen.
    */
   setAgent(at: LatLng | null) {
     const a = this.agent;
     if (!at) {
-      if (a) a.on = false;
+      if (a?.on) {
+        a.on = false;
+        a.away = 0;
+        const up = this.cam ? tangent(this.cam.U, a.n) : null;
+        if (up && Number.isFinite(up[0])) a.target = norm(add(mul(a.n, Math.cos(UFO_EXIT_ARC)), mul(up, Math.sin(UFO_EXIT_ARC))));
+      }
       return;
     }
     const target = vecOf(at.lat * D2R, at.lng * D2R);
-    if (a) Object.assign(a, { target, on: true });
-    else this.agent = { n: target, target, alt: 0, bank: 0, size: 0, on: true, spin: 0 };
+    if (a) Object.assign(a, { target, on: true, away: 0 });
+    else this.agent = { n: target, target, alt: 0, bank: 0, size: 0, on: true, spin: 0, away: 0 };
   }
 
   /** Where Pip's saucer is on screen, for its label and what it pops up. Null when it isn't out. */
@@ -1762,8 +1771,10 @@ export class GlobeEngine {
     const a = this.agent;
     if (!a) return;
     const still = this.reduceMotion;
-    a.size += ((a.on ? 1 : 0) - a.size) * (still ? 1 : k(6));
-    if (!a.on && a.size < 0.01) {
+    if (!a.on) a.away += dt;
+    // it grows in where it first comes; it leaves whole, flying off (or at once, with reduced motion)
+    if (a.on) a.size += (1 - a.size) * (still ? 1 : k(6));
+    if (!a.on && (still || a.away > UFO_EXIT)) {
       this.agent = null;
       return;
     }
@@ -1779,7 +1790,7 @@ export class GlobeEngine {
     a.spin = still ? 0 : (a.spin + dt * 0.6) % 1;
     // it hovers, bobbing, and comes down from higher up as it grows in
     const bob = still ? 0 : Math.sin(t * 2.4) * 0.2;
-    a.alt = ALT * this.planeScale * (UFO_HOVER + bob + (1 - a.size) * 3);
+    a.alt = ALT * this.planeScale * (UFO_HOVER + bob + (1 - a.size) * 3 + a.away * a.away * 14);
   }
 
   /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
@@ -2419,7 +2430,8 @@ export class GlobeEngine {
       const t = -b - Math.sqrt(Math.max(disc, 0));
       if (disc > 0 && t > 0) {
         const g = norm(add(ufo.at, mul(ld, t)));
-        pinA.set([...g, 0.55 * agent.size], shadows * 4);
+        // the shadow fades as it climbs away
+        pinA.set([...g, 0.55 * agent.size * Math.max(0, 1 - agent.away / (UFO_EXIT * 0.6))], shadows * 4);
         pinB.set([...g, ufo.S * 0.42], shadows * 4);
         shadows++;
       }

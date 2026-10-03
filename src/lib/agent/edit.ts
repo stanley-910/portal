@@ -56,6 +56,13 @@ export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | 
 export type EditResult = { applied: string[]; refused: Refusal[]; changesetId: string | null; marks: AgentMark[] };
 
 const newId = () => crypto.randomUUID().slice(0, 8);
+
+/**
+ * One Undo across several `editPlan` calls, as when Pip makes its changes one at a time. The searches they start
+ * collect in `searches` rather than hold up the next call.
+ */
+export type Changeset = { id: string; before: Before; searches: Promise<unknown>[] };
+export const newChangeset = (): Changeset => ({ id: newId(), before: { legs: {}, stops: {} }, searches: [] });
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Free text to a stop, from the bundled index only (no geocoding, TR1). */
@@ -109,13 +116,23 @@ export function editTarget(plan: PlanJson, h: Handles, ops: EditOp[]): { lat: nu
 
 /**
  * Applies ops for the agent as one changeset, then starts the searches they need. A run passes `until`, when its
- * turn ends: past it the write changes nothing, since the next reply may have started editing.
+ * turn ends: past it the write changes nothing, since the next reply may have started editing. Pass `into` to add
+ * them to a changeset earlier calls started, so one Undo puts back all of them.
  */
-export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: EditOp[], agentId: string, until?: number): Promise<EditResult> {
+export async function editPlan(
+  roomId: string,
+  plan: PlanJson,
+  h: Handles,
+  ops: EditOp[],
+  agentId: string,
+  until?: number,
+  into?: Changeset,
+): Promise<EditResult> {
+  const changeset = into ?? newChangeset();
   const refused: Refusal[] = [];
   const applied: string[] = [];
   const marks: AgentMark[] = [];
-  const before: Before = { legs: {}, stops: {} };
+  const { before } = changeset;
   const searches: { legId: string; searchId: string }[] = [];
   // handles outlive members within a run (snapshot.ts), so check they're still in the trip
   const member = (handle: string) => {
@@ -241,7 +258,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   });
 
   if (!planned.length) return { applied, refused, changesetId: null, marks };
-  const changesetId = newId();
+  const changesetId = changeset.id;
   const created: Record<string, Stop> = {};
   let late = false;
 
@@ -489,7 +506,9 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     return { applied: [], refused: ops.map((_, op) => ({ op, code: "OUT_OF_TIME" as const, reason, next: "Say nothing changed and ask them to send it again." })), changesetId: null, marks: [] };
   }
   // searches run after the write lands, like a member's own edits; they finish on their own
-  await Promise.all(searches.map((s) => runLegSearch(roomId, s.legId, s.searchId)));
+  const started = searches.map((s) => runLegSearch(roomId, s.legId, s.searchId));
+  if (into) into.searches.push(...started);
+  else await Promise.all(started);
   return { applied, refused, changesetId: applied.length ? changesetId : null, marks };
 }
 
