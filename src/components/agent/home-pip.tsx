@@ -1,11 +1,14 @@
 "use client";
 
-import { useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
+import { useImperativeHandle, useMemo, useRef, useState, type Ref, type RefObject } from "react";
 
 import { CardActionsContext, Composer, Launcher, PipClose, ThreadLog, type CardActions, type Members } from "@/components/agent/agent-chat";
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { pipPlace } from "@/components/agent/pip-arrival";
+import { PipSaucer, type PipSaucerHandle } from "@/components/agent/pip-saucer";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
+import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
+import type { AgentMark } from "@/lib/agent/marks";
 import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { AGENT_NAME, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { SIGN_IN_TO_ASK } from "@/lib/agent/use-thread";
@@ -33,6 +36,8 @@ const HISTORY = 16;
 const newId = () => crypto.randomUUID().slice(0, 8);
 
 type Props = {
+  /** The home globe, where Pip's saucer flies while it works. */
+  globe: RefObject<TripGlobeHandle | null>;
   /** Pip needs an account. A guest's first message waits behind sign-in and goes out once they're in. */
   account: boolean;
   /** The legs on the globe now, for Pip to see. */
@@ -45,10 +50,11 @@ type Props = {
 
 export type HomePipHandle = { ask: (text: string) => void };
 
-export function HomePip({ account, trip, onTrip, ref }: Props) {
+export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   const [open, setOpen] = useState(false);
   const openAuth = useOpenAuth();
-  const { thread, activity, send, apply } = useSoloPip(trip, onTrip);
+  const saucer = useRef<PipSaucerHandle>(null);
+  const { thread, activity, at, send, apply } = useSoloPip(trip, onTrip, (marks) => saucer.current?.play(marks));
 
   const ask = async (text: string) => {
     if (account) return send(text);
@@ -71,29 +77,40 @@ export function HomePip({ account, trip, onTrip, ref }: Props) {
     ? [`What's cheapest from ${trip[0].from.name} to ${trip[0].to.name}?`, `How do I get back to ${trip[0].from.name}?`, "Add another stop"]
     : CHIPS;
 
-  if (!open) return <Launcher unread={false} nudges={NUDGES} onOpen={() => setOpen(true)} />;
+  const flying = <PipSaucer ref={saucer} globe={globe} at={at} busy={!!streaming} />;
+  if (!open) {
+    return (
+      <>
+        {flying}
+        <Launcher unread={false} nudges={NUDGES} onOpen={() => setOpen(true)} />
+      </>
+    );
+  }
   return (
-    <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
-      <header className="pip-head">
-        <PipSprite size={32} mood={mood} />
-        <div className="min-w-0 flex-1">
-          <p className="pip-head-name">{AGENT_NAME}</p>
-          <p className="pip-head-sub">{line}</p>
-        </div>
-        <PipClose onClick={() => setOpen(false)} />
-      </header>
-      <CardActionsContext value={actions}>
-        <ThreadLog thread={thread} me={ME} members={MEMBERS} activity={activity}>
-          <div className="pip-msg-agent">
-            <div className="pip-msg-agent-body">
-              <span className="pip-label">{AGENT_NAME}</span>
-              <p className="pip-text">Where are you headed? I&apos;ll put the trip on your globe and find the routes. Save it to keep it, and bring friends in with its link.</p>
-            </div>
+    <>
+      {flying}
+      <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
+        <header className="pip-head">
+          <PipSprite size={32} mood={mood} />
+          <div className="min-w-0 flex-1">
+            <p className="pip-head-name">{AGENT_NAME}</p>
+            <p className="pip-head-sub">{line}</p>
           </div>
-        </ThreadLog>
-      </CardActionsContext>
-      <Composer chips={chips} send={ask} placeholder={`Tell ${AGENT_NAME} where you're going`} />
-    </section>
+          <PipClose onClick={() => setOpen(false)} />
+        </header>
+        <CardActionsContext value={actions}>
+          <ThreadLog thread={thread} me={ME} members={MEMBERS} activity={activity}>
+            <div className="pip-msg-agent">
+              <div className="pip-msg-agent-body">
+                <span className="pip-label">{AGENT_NAME}</span>
+                <p className="pip-text">Where are you headed? I&apos;ll put the trip on your globe and find the routes. Save it to keep it, and bring friends in with its link.</p>
+              </div>
+            </div>
+          </ThreadLog>
+        </CardActionsContext>
+        <Composer chips={chips} send={ask} placeholder={`Tell ${AGENT_NAME} where you're going`} />
+      </section>
+    </>
   );
 }
 
@@ -101,13 +118,15 @@ export function HomePip({ account, trip, onTrip, ref }: Props) {
  * The home conversation: sends each message with the recent history and the legs on the globe, and applies the
  * streamed reply as it comes. Text is applied once a frame, so a fast stream doesn't re-render per token.
  */
-function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void) {
+function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks: (marks: AgentMark[]) => void) {
   const [thread, setThread] = useState<ThreadMessage[]>([]);
   const [activity, setActivity] = useState<string | null>(null);
+  // where Pip last looked on the globe, this reply
+  const [at, setAt] = useState<LatLng | null>(null);
   const threadRef = useRef(thread);
   threadRef.current = thread;
-  const tripRef = useRef({ trip, onTrip });
-  tripRef.current = { trip, onTrip };
+  const tripRef = useRef({ trip, onTrip, onMarks });
+  tripRef.current = { trip, onTrip, onMarks };
 
   const patch = (id: string, change: (m: ThreadMessage) => ThreadMessage) =>
     setThread((t) => t.map((m) => (m.id === id ? change(m) : m)));
@@ -121,6 +140,7 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void) {
       .slice(-HISTORY)
       .map((m) => ({ role: m.author.kind === "agent" ? ("assistant" as const) : ("user" as const), text: m.text }));
     setThread((t) => [...t, mine, reply]);
+    setAt(null);
 
     const res = await fetch("/api/pip", {
       method: "POST",
@@ -158,8 +178,11 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void) {
             : [...m.cards, step],
         }));
       } else if (event.t === "card") patch(id, (m) => ({ ...m, cards: [...m.cards, event.card] }));
-      else if (event.t === "activity") setActivity(event.label);
-      else if (event.t === "trip") tripRef.current.onTrip(event.legs);
+      else if (event.t === "activity") {
+        setActivity(event.label);
+        if (event.at) setAt(event.at);
+      } else if (event.t === "trip") tripRef.current.onTrip(event.legs);
+      else if (event.t === "marks") tripRef.current.onMarks(event.marks);
       else if (event.t === "done" || event.t === "failed") {
         cancelAnimationFrame(frame);
         setActivity(null);
@@ -199,5 +222,5 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void) {
     patch(messageId, (m) => ({ ...m, cards: m.cards.map((c) => (c === card ? { ...card, applied: option } : c)) }));
   };
 
-  return { thread, activity, send, apply };
+  return { thread, activity, at, send, apply };
 }

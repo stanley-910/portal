@@ -8,6 +8,7 @@ import { z } from "zod";
 import { dateIn } from "@/lib/agent/dates";
 import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
+import { legMarks, midpoint, type AgentMark } from "@/lib/agent/marks";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
 import { citiesIn, MODEL, REASONING_EFFORT } from "@/lib/agent/run";
 import { showDate } from "@/lib/agent/snapshot";
@@ -30,8 +31,11 @@ export type SoloEvent =
   | { t: "text"; d: string }
   | { t: "card"; card: ThreadCard }
   | { t: "step"; id: string; label: string; done: boolean; at: number }
-  | { t: "activity"; label: string | null }
+  /** What Pip is doing, and where on the globe; the saucer goes there. */
+  | { t: "activity"; label: string | null; at?: { lat: number; lng: number } }
   | { t: "trip"; legs: SoloLeg[] }
+  /** What plan_trip changed on their globe, to pop up where it happened. */
+  | { t: "marks"; marks: AgentMark[] }
   | { t: "done" }
   | { t: "failed" };
 
@@ -104,6 +108,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           return { from: resolved[i], to, date: day };
         });
         emit({ t: "trip", legs });
+        emit({ t: "marks", marks: legMarks(state.trip, legs) });
         state.trip = legs;
         return {
           onGlobe: legs.map((l) => `${l.from.name} → ${l.to.name} on ${showDate(l.date)}`),
@@ -120,7 +125,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
         const b = place(to);
         if ("refused" in a) return a;
         if ("refused" in b) return b;
-        emit({ t: "activity", label: `checking ${a.name} to ${b.name}` });
+        emit({ t: "activity", label: `checking ${a.name} to ${b.name}`, at: midpoint(a, b) });
         const result = await searchFromCoordinates(
           { from: stopToPlace(a), to: stopToPlace(b), date: day, modes: [], passengers: 1, currency: "USD" },
           AbortSignal.timeout(15_000),
@@ -204,11 +209,11 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           if ("refused" in p) return p;
           groups.push({ members: [], people: g.people, stopId: null, place: { name: p.name, lat: p.lat, lng: p.lng, hub: p.hub, code: p.code ?? null } });
         }
-        emit({ t: "activity", label: `comparing meet-ups for ${groups.length} groups` });
+        emit({ t: "activity", label: `comparing meet-ups for ${groups.length} groups`, at: { lat: groups[0].place.lat, lng: groups[0].place.lng } });
         const result = await findMeetup(
           { groups, date: input.date, minimize: input.minimize, fairest: input.fairest, candidates: [] },
           async (query) => {
-            emit({ t: "activity", label: `checking ${query.to.name}` });
+            emit({ t: "activity", label: `checking ${query.to.name}`, at: { lat: query.to.lat, lng: query.to.lng } });
             return (await searchFromCoordinates(query, AbortSignal.timeout(12_000))).offers;
           },
         );

@@ -1,0 +1,33 @@
+// What Pip changed, as the globe shows it: each change pops up over the place it happened, like a hit in a game
+// ("Removed Seoul → Tokyo"), while Pip's saucer hovers there. Made where the edit is made (edit.ts, solo.ts) and
+// played by the saucer (components/agent/pip-saucer.tsx).
+
+type Point = { lat: number; lng: number };
+
+export type AgentMark = {
+  /** The change, short: "Added HK West Kowloon → Shanghai". */
+  text: string;
+  /** Where on the globe it happened. Null pops it wherever the saucer is. */
+  at: Point | null;
+};
+
+const R = Math.PI / 180;
+
+/** The middle of the great circle between two places: where a leg's mark goes. */
+export function midpoint(a: Point, b: Point): Point {
+  const v = (p: Point) => [Math.cos(p.lat * R) * Math.sin(p.lng * R), Math.sin(p.lat * R), Math.cos(p.lat * R) * Math.cos(p.lng * R)];
+  const [x, y, z] = v(a).map((c, i) => c + v(b)[i]);
+  const l = Math.hypot(x, y, z);
+  // the two ends of a diameter have no one middle: take the first
+  if (l < 1e-9) return { lat: a.lat, lng: a.lng };
+  return { lat: Math.asin(y / l) / R, lng: Math.atan2(x, z) / R };
+}
+
+/** The marks for a trip on the home globe changing from one list of legs to another. */
+export function legMarks(before: { from: Point & { name: string }; to: Point & { name: string } }[], after: typeof before): AgentMark[] {
+  const key = (l: (typeof before)[number]) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
+  const had = new Set(before.map(key));
+  const has = new Set(after.map(key));
+  const mark = (did: string, l: (typeof before)[number]): AgentMark => ({ text: `${did} ${l.from.name} → ${l.to.name}`, at: midpoint(l.from, l.to) });
+  return [...before.filter((l) => !has.has(key(l))).map((l) => mark("Removed", l)), ...after.filter((l) => !had.has(key(l))).map((l) => mark("Added", l))];
+}

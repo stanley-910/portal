@@ -10,6 +10,7 @@ import { placeName } from "./place-name";
 import { chooseVehicle, landMask, type LandAt } from "./vehicle-choice";
 import { buildVehicle, VEHICLE_LENGTH, VEHICLES, type Vehicle } from "./vehicle-models";
 import { buildPin, PIN_HEAD_R, PIN_HEAD_Z } from "./pin-model";
+import { buildUfo } from "./ufo-model";
 import { FS_GLOBE, FS_PLANE, MAX_PIN_SHADOWS, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
 import { Track } from "./track";
@@ -101,7 +102,12 @@ export interface GlobeEvents {
    * there instead of the middle of the screen. Asked once per turn, as it starts, so panels that open on landing count.
    */
   freeArea?: () => FreeArea | null;
+  /** When the view stops following Pip's saucer because someone moved the globe themselves. */
+  onFollowEnd?: () => void;
 }
+
+/** Where Pip's saucer is on screen: its body, the ground under it, and whether it has reached its place. */
+export type AgentSpot = { x: number; y: number; ground: { x: number; y: number }; visible: boolean; arrived: boolean };
 
 export type FreeArea = { x: number; y: number; w: number; h: number };
 
@@ -156,6 +162,17 @@ const PIN_FAN = 0.8;
 const PIN_FAN_MAX = 2.4;
 const PIN_SPLAY = 0.25;
 const VEHICLE_CHECK = 0.1;
+// Pip's saucer: its size against the plane, how high it hovers in plane heights, how fast it glides (a share of
+// the way per second, plus radians per second so the last stretch doesn't crawl), and how close it has to be to count
+// as there. Following it, the view eases this fast and zooms in no further out than FOLLOW_RANGE.
+const UFO_SCALE = 1; // the same size as the plane and the ground vehicles
+const UFO_TIP = 0.95; // radians it tips toward the viewer, like a pin leans, so its dome and Pip's face show
+const UFO_HOVER = 1.8;
+const UFO_GLIDE = 3;
+const UFO_CRUISE = 0.08;
+const UFO_THERE = 0.003;
+const FOLLOW_EASE = 2.4;
+const FOLLOW_RANGE = 1.2;
 const GROUND_LIFT = 0.35;
 // The land mask's size, sampled once from the earth texture for the vehicle guess.
 const LAND_W = 1024;
@@ -252,15 +269,13 @@ const PROVINCES_FULL = 0.6;
 const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
 /** At most this many city names on screen at once, biggest first, so the map never fills up. */
 const CITY_MAX = 40;
-const CITY_FADE = 0.05; // zoom over which a rank prints in
+const CITY_FADE = 0.1; // zoom over which a rank fades in, from nothing to fully printed
 /**
  * City names in px by rank, in four steps so the places people travel between stand out: world cities (Tokyo,
  * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
  * and ink carry the difference.
  */
 const CITY_SIZE = [17, 17, 14, 14, 13, 13, 12, 12];
-/** From this rank down, names print in `ink-muted` rather than `ink`. */
-const CITY_MUTED_FROM = 4;
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
@@ -320,6 +335,7 @@ export class GlobeEngine {
   private vaoQuad: WebGLVertexArrayObject | null = null;
   private vaoVehicle = new Map<Vehicle, { vao: WebGLVertexArrayObject; count: number }>();
   private vaoPin: { vao: WebGLVertexArrayObject; count: number } | null = null;
+  private vaoUfo: { vao: WebGLVertexArrayObject; count: number } | null = null;
   /** Standing pins on screen: head centre and radius, and where the needle meets the ground, in CSS px. */
   private pinCuts: { x: number; y: number; r: number; bx: number; by: number }[] = [];
   /** Where a route is drawn when pins stand, so they can be cut out of it. */
@@ -467,6 +483,12 @@ export class GlobeEngine {
   /** A place searched for: marked on the ground with its name until the next click on the globe. */
   private placeMark: { v: Vec3; name: string } | null = null;
   private cursors = new Map<string, { track: Track; x: number; y: number; visible: boolean; lie: CursorLie; shadow: { x: number; y: number } | null }>();
+  // Pip's saucer while Pip works: where it's drawn and headed, how it banks into the way it's going, how far grown
+  // in (0 to 1, shrinking away once `on` is off) and how far round its rim lights have chased
+  private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number } | null = null;
+  // the view following the saucer, and where on screen it keeps it: the middle of the open area, asked now and then
+  private follow = false;
+  private followSpot: { x: number; y: number; t: number } | null = null;
 
   // input and time
   private mx = -9999;
@@ -540,6 +562,16 @@ export class GlobeEngine {
       this.attrib(gl, 2, m.sm, 3);
       this.attrib(gl, 3, m.part, 1);
       this.vaoPin = vao && { vao, count: m.count };
+    }
+    {
+      const m = buildUfo();
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      this.attrib(gl, 0, m.pos, 3);
+      this.attrib(gl, 1, m.nrm, 3);
+      this.attrib(gl, 2, m.sm, 3);
+      this.attrib(gl, 3, m.part, 1);
+      this.vaoUfo = vao && { vao, count: m.count };
     }
     gl.bindVertexArray(null);
 
@@ -675,7 +707,10 @@ export class GlobeEngine {
     this.lastInteract = this.t;
     const d = this.down;
     if (!d || this.mode === "flying" || this.turn) return;
-    if (!d.drag && Math.hypot(x - d.x, y - d.y) > 6) d.drag = true;
+    if (!d.drag && Math.hypot(x - d.x, y - d.y) > 6) {
+      d.drag = true;
+      this.endFollow();
+    }
     if (d.drag) {
       this.autoFrame = null;
       const now = performance.now();
@@ -793,6 +828,7 @@ export class GlobeEngine {
    * It moves the ground at the centre of the view by the scroll delta, and faster while flying so a route can cross oceans.
    */
   private scrollPan(e: WheelEvent) {
+    this.endFollow();
     this.turn = null;
     this.autoFrame = null;
     this.zoomAnchor = null;
@@ -832,6 +868,7 @@ export class GlobeEngine {
     this.down = null;
     this.turn = null;
     this.autoFrame = null;
+    this.endFollow();
     this.pinch = { d0: Math.hypot(ax - bx, ay - by) || 1, range0: this.range, p: this.pick(x, y) };
   }
 
@@ -915,6 +952,7 @@ export class GlobeEngine {
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0, ...parked("flight") };
     this.want = { vehicle: "flight", t: this.t, checked: -Infinity };
     this.tTake = this.t;
+    this.endFollow();
     this.vlon = 0;
     this.vlat = 0;
     this.turn = null;
@@ -1556,6 +1594,92 @@ export class GlobeEngine {
     return p && p.vis ? { x: p.x, y: p.y } : null;
   }
 
+  /**
+   * Shows Pip's saucer gliding to a place, or sends it away (null). It grows in where it's first sent, then glides
+   * along the great circle to each new place, facing where it's going.
+   */
+  setAgent(at: LatLng | null) {
+    const a = this.agent;
+    if (!at) {
+      if (a) a.on = false;
+      return;
+    }
+    const target = vecOf(at.lat * D2R, at.lng * D2R);
+    if (a) Object.assign(a, { target, on: true });
+    else this.agent = { n: target, target, alt: 0, bank: 0, size: 0, on: true, spin: 0 };
+  }
+
+  /** Where Pip's saucer is on screen, for its label and what it pops up. Null when it isn't out. */
+  agentSpot(): AgentSpot | null {
+    const a = this.agent;
+    if (!a || !this.cam) return null;
+    const body = this.proj(mul(a.n, 1 + a.alt));
+    const ground = this.proj(a.n);
+    if (!body || !ground) return null;
+    return { x: body.x, y: body.y, ground: { x: ground.x, y: ground.y }, visible: body.vis, arrived: angle(a.n, a.target) < UFO_THERE };
+  }
+
+  /**
+   * Turns the view to follow Pip's saucer, closing in a little from the whole globe, until someone drags, scrolls
+   * or pinches the globe, or takes off (onFollowEnd). Zooming keeps following.
+   */
+  setFollow(on: boolean) {
+    if (on === this.follow) return;
+    this.follow = on;
+    this.followSpot = null;
+    if (!on) return;
+    this.autoFrame = null;
+    this.vlon = this.vlat = 0;
+    if (this.rangeTarget > FOLLOW_RANGE) this.rangeTarget = FOLLOW_RANGE;
+  }
+
+  private endFollow() {
+    if (!this.follow) return;
+    this.follow = false;
+    this.events.onFollowEnd?.();
+  }
+
+  /** The view (lon0, lat0) that puts ground point p at the middle of the open area, or centred when it can't. */
+  private followView(p: Vec3, t: number) {
+    if (!this.followSpot || t - this.followSpot.t > 1) {
+      const area = this.events.freeArea?.() ?? null;
+      this.followSpot = { x: area ? area.x + area.w / 2 : this.W / 2, y: area ? area.y + area.h / 2 : this.H / 2, t };
+    }
+    const ll = llOf(p);
+    const keep = { lon0: this.lon0, lat0: this.lat0 };
+    this.anchor(p, this.followSpot.x, this.followSpot.y);
+    const at = this.proj(p);
+    const reached = !!at && at.vis && Math.hypot(at.x - this.followSpot.x, at.y - this.followSpot.y) < 24;
+    const want = reached ? { lon: this.lon0, lat: this.lat0 } : { lon: ll.lon, lat: ll.lat };
+    Object.assign(this, keep);
+    this.cam = this.camera();
+    return want;
+  }
+
+  private stepAgent(dt: number, t: number, k: (r: number) => number) {
+    const a = this.agent;
+    if (!a) return;
+    const still = this.reduceMotion;
+    a.size += ((a.on ? 1 : 0) - a.size) * (still ? 1 : k(6));
+    if (!a.on && a.size < 0.01) {
+      this.agent = null;
+      return;
+    }
+    const gap = angle(a.n, a.target);
+    let bank = 0;
+    if (gap > 1e-6) {
+      const step = still ? gap : Math.min(gap, gap * k(UFO_GLIDE) + UFO_CRUISE * this.zoomScale * dt);
+      // it banks toward the side of the screen it's heading for
+      if (gap > UFO_THERE && this.cam) bank = -clamp(dot(tangent(sub(a.target, a.n), a.n), this.cam.R) * gap * 8, -0.35, 0.35);
+      a.n = slerp(a.n, a.target, step / gap);
+    }
+    a.bank += (bank - a.bank) * (still ? 1 : k(5));
+    a.spin = still ? 0 : (a.spin + dt * 0.6) % 1;
+    // it hovers, bobbing, and comes down from higher up as it grows in
+    const bob = still ? 0 : Math.sin(t * 2.4) * 0.2;
+    a.alt = ALT * this.planeScale * (UFO_HOVER + bob + (1 - a.size) * 3);
+  }
+
   /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
   /**
    * Where a route's arc is on screen at fraction `t` from `from` to `to` (0.5 is its peak): the same lifted curve
@@ -1684,6 +1808,7 @@ export class GlobeEngine {
       g.pl.bank += (0 - g.pl.bank) * k(8);
     }
     this.stepPins(t, k);
+    this.stepAgent(dt, t, k);
     for (const r of this.remotes.values()) {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
@@ -1713,6 +1838,15 @@ export class GlobeEngine {
       this.range = this.rangeTarget;
       this.zoomAnchor = null;
     }
+    if (this.follow && this.agent?.on && !this.turn && !this.down?.drag && !this.pinch && this.mode !== "flying") {
+      // keep Pip's saucer in the open part of the screen
+      this.zoomAnchor = null;
+      this.vlon = this.vlat = 0;
+      const want = this.followView(this.agent.n, t);
+      const e = this.reduceMotion ? 1 : k(FOLLOW_EASE);
+      this.lon0 += wrapPi(want.lon - this.lon0) * e;
+      this.lat0 += (clamp(want.lat, -LAT_MAX, LAT_MAX) - this.lat0) * e;
+    }
     if (!this.turn && !this.down?.drag && !this.pinch) {
       // the glide waits while scroll events are still moving the globe themselves
       if (performance.now() - this.wheelAt > 100) {
@@ -1723,7 +1857,7 @@ export class GlobeEngine {
         this.vlat *= damp;
       }
       // drift slowly when left alone, but never away from a trip: once legs or pins are on the globe it stays put
-      if (this.mode === "idle" && !this.reduceMotion && t - this.lastInteract > 2 && this.pins.size === 0 && this.remotes.size === 0) {
+      if (this.mode === "idle" && !this.reduceMotion && t - this.lastInteract > 2 && this.pins.size === 0 && this.remotes.size === 0 && !this.agent) {
         this.lon0 += 0.06 * this.zoomScale * dt * Math.min(1, (t - this.lastInteract - 2) / 2);
       }
       if (this.mode === "flying" && this.hasPointer && !this.dest) {
@@ -1797,6 +1931,8 @@ export class GlobeEngine {
     state.push(this.planeLeft(this.tLand), this.ghosts.length);
     for (const g of this.ghosts) state.push(this.planeLeft(g.t0), ...g.pl.n, g.pl.alt);
     for (const p of this.pins.values()) state.push(...p.g, p.fan, p.h === Infinity ? -1 : p.h, p.squash);
+    const a = this.agent;
+    if (a) state.push(...a.n, a.alt, a.bank, a.size, a.spin);
     const changed = state.length !== this.lastScene.length || state.some((v, i) => v !== this.lastScene[i]);
     this.scene = this.lastScene;
     this.lastScene = state;
@@ -2156,14 +2292,30 @@ export class GlobeEngine {
     const pins = this.pinFrames(c, L, S * PIN_SCALE);
     const pinA = new Float32Array(MAX_PIN_SHADOWS * 4);
     const pinB = new Float32Array(MAX_PIN_SHADOWS * 4);
-    const cast = pins.slice(-MAX_PIN_SHADOWS);
+    // Pip's saucer casts a round shadow in a pin's slot: a head with no needle
+    const agent = this.agent;
+    const ufo = agent ? { at: mul(agent.n, 1 + agent.alt), S: S * UFO_SCALE * agent.size } : null;
+    const cast = pins.slice(-(MAX_PIN_SHADOWS - (ufo ? 1 : 0)));
     cast.forEach((f, i) => {
       pinA.set([...f.shadowTip, f.shadowA], i * 4);
       pinB.set([...f.shadowHead, PIN_HEAD_R * S * PIN_SCALE], i * 4);
     });
+    let shadows = cast.length;
+    if (ufo && agent) {
+      const ld = mul(L, -1);
+      const b = dot(ufo.at, ld);
+      const disc = b * b - (dot(ufo.at, ufo.at) - 1);
+      const t = -b - Math.sqrt(Math.max(disc, 0));
+      if (disc > 0 && t > 0) {
+        const g = norm(add(ufo.at, mul(ld, t)));
+        pinA.set([...g, 0.55 * agent.size], shadows * 4);
+        pinB.set([...g, ufo.S * 0.42], shadows * 4);
+        shadows++;
+      }
+    }
     gl.uniform4fv(u["uPinA[0]"], pinA);
     gl.uniform4fv(u["uPinB[0]"], pinB);
-    gl.uniform1i(u.uPinN, cast.length);
+    gl.uniform1i(u.uPinN, shadows);
     gl.uniform1f(u.uPinW, 0.016 * S * PIN_SCALE);
     const [x, y, w, h] = this.surfaceBounds();
     if (w === cw && h === ch) {
@@ -2196,7 +2348,8 @@ export class GlobeEngine {
     for (const g of this.ghosts) planes.push({ pl: g.pl, pp: mul(g.pl.n, 1 + g.pl.alt + 0.09 * S), left: this.planeLeft(g.t0) });
     if (pl && pp) planes.push({ pl, pp, left });
     const shown = planes.filter(({ pp, left }) => left > 0 && this.proj(pp)?.vis);
-    if (!shown.length && !pins.length) return;
+    const ufoShown = !!ufo && ufo.S > 1e-4 && !!this.proj(ufo.at)?.vis;
+    if (!shown.length && !pins.length && !ufoShown) return;
 
     P = this.pPlane;
     u = P.u;
@@ -2206,6 +2359,7 @@ export class GlobeEngine {
     gl.uniform3fv(u.uFill, th.stickerGL.fill);
     gl.uniform3fv(u.uInkS, th.stickerGL.ink);
     gl.uniform3fv(u.uRoundel, th.stickerGL.roundel);
+    for (const [key, value] of Object.entries(th.pipGL)) gl.uniform3fv(u[key], value);
     gl.depthMask(true);
     gl.clearDepth(1);
     gl.enable(gl.DEPTH_TEST);
@@ -2248,6 +2402,25 @@ export class GlobeEngine {
       gl.uniform3fv(u.uPY, B.Y);
       gl.uniform3fv(u.uPZ, B.Z);
       sticker(mesh.count);
+    }
+    // Pip's saucer last, over everything: it hovers higher than any plane
+    if (this.vaoUfo && ufo && agent && ufoShown) {
+      // tipped back along the screen's up so it's seen from the side a little, its face (z) toward the viewer
+      // the view already leans when zoomed in, so it tips less there
+      const lean = Math.max(0, UFO_TIP - this.tilt * 0.7);
+      const tip = add(mul(agent.n, Math.cos(lean)), mul(tangent(c.U, agent.n), Math.sin(lean)));
+      const across = tangent(c.R, tip);
+      const up = norm(add(mul(tip, Math.cos(agent.bank)), mul(across, Math.sin(agent.bank))));
+      const right = tangent(across, up);
+      const B = { X: mul(right, ufo.S), Y: mul(up, ufo.S), Z: mul(cross(right, up), ufo.S) };
+      gl.bindVertexArray(this.vaoUfo.vao);
+      gl.uniform1i(u.uVehicle, 5);
+      gl.uniform1f(u.uSpin, agent.spin);
+      gl.uniform3fv(u.uPP, ufo.at);
+      gl.uniform3fv(u.uPX, B.X);
+      gl.uniform3fv(u.uPY, B.Y);
+      gl.uniform3fv(u.uPZ, B.Z);
+      sticker(this.vaoUfo.count);
     }
     gl.disable(gl.DEPTH_TEST);
     gl.bindVertexArray(null);
@@ -2515,8 +2688,8 @@ export class GlobeEngine {
   }
 
   /** A city name drawn at `size` and the screen's pixel ratio with a paper halo, its left edge at x = pad. */
-  private citySprite(name: string, size: number, dpr: number, muted: boolean) {
-    const key = `${size}|${muted ? 1 : 0}|${name}`;
+  private citySprite(name: string, size: number, dpr: number) {
+    const key = `${size}|${name}`;
     let c = this.citySprites.get(key);
     if (c) return c;
     const P = this.P;
@@ -2534,7 +2707,7 @@ export class GlobeEngine {
     g.lineWidth = px * 0.24;
     g.strokeText(name, pad, c.height / 2);
     g.globalAlpha = 1;
-    g.fillStyle = muted ? P.muted : P.ink;
+    g.fillStyle = P.ink;
     g.fillText(name, pad, c.height / 2);
     this.citySprites.set(key, c);
     return c;
@@ -2619,7 +2792,8 @@ export class GlobeEngine {
       }
     });
 
-    // 3. fade toward the outcome and draw: dot first, then the name beside it
+    // 3. fade toward the outcome and draw: dot first, then the name beside it. Every name is the same ink, the small
+    // ones smaller, each fading in from nothing to fully printed as you zoom; they don't dim for a trip
     const P = this.P;
     ctx.save();
     ctx.imageSmoothingQuality = "high";
@@ -2631,7 +2805,7 @@ export class GlobeEngine {
       const f = (this.cityFade[i] += ((on ? 1 : 0) - prev) * ease);
       if (t < this.cityHold[i] || (!dt && f !== Number(on)) || (f !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
       const c = CITIES[i];
-      const alpha = f * smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], CITY_FROM[c.rank] + CITY_FADE, zoom) * this.nameInk;
+      const alpha = f * smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], Math.min(1, CITY_FROM[c.rank] + CITY_FADE), zoom);
       if (alpha < 0.01) return;
       const x = this.cityX[i];
       const y = this.cityY[i];
@@ -2653,7 +2827,7 @@ export class GlobeEngine {
         ctx.fill();
       }
       const size = CITY_SIZE[c.rank];
-      const img = this.citySprite(c.name, size, dpr, c.rank >= CITY_MUTED_FROM);
+      const img = this.citySprite(c.name, size, dpr);
       const pad = Math.ceil(size * dpr * 0.3);
       const left = this.cityLeft[i];
       const tx = left ? x - 7 - (img.width - pad) / dpr : x + 7 - pad / dpr;
