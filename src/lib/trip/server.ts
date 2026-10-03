@@ -47,7 +47,7 @@ export async function listMyTrips(userId: string): Promise<TripSummary[]> {
   }
 }
 
-// ---- Solo save from `/` (ADR-P08 on main's model, ADR-P13) ----
+// ---- Solo save from `/` ----
 
 const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt"] as const satisfies readonly ProviderId[];
 const MODES = ["flight", "train", "bus", "ferry"] as const;

@@ -2,7 +2,7 @@ import { distanceKm } from "../gtfs/geo";
 import type { Offer, Place, SearchQuery } from "../../types";
 import type { TrainRow, TrainSeed } from "./schema";
 
-// Korail seed search (ADR-T05). Pure: no network, no env.
+// Korail seed search. Pure: no network, no env.
 const MATCH_KM = 15;
 const OFFSET = "+09:00"; // Asia/Seoul, no DST
 // Korail's own search page; takes no OD/date params (korail.com SPA, observed 2026-10-02).

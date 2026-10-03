@@ -10,7 +10,7 @@ import { busSeedSchema, busTerminalsSchema, seedSchema, type Seed, type SeedTrai
 import seedJson from "./seed.json";
 import { at, runsOn, timeline } from "./time";
 
-// THSR seed (ADR-T04) + 國道客運 seed (ADR-B07), no TDX calls at request time. Provider id stays `tdx`.
+// THSR seed + 國道客運 seed, no TDX calls at request time. Provider id stays `tdx`.
 const MODES = ["train", "bus"] as const;
 const MATCH_KM = 20;
 

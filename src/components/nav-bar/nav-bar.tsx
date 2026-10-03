@@ -22,10 +22,12 @@ export interface NavBarProps {
   globe: RefObject<TripGlobeHandle | null>;
   /** Controls on the right, before the profile menu. */
   children?: ReactNode;
-  /** The signed-in user's display name, or null when signed out. */
+  /** Your display name: an account's, a guest's, or null before you've picked one. */
   name: string | null;
   /** The signed-in user's email, shown in the profile menu. */
   email?: string | null;
+  /** Signed in, rather than a guest. */
+  account?: boolean;
   /** Reload after a rename, so a trip room reconnects with the new name. */
   reloadOnRename?: boolean;
   /** This screen's settings, shown in the profile menu under Theme. */
@@ -33,7 +35,7 @@ export interface NavBarProps {
 }
 
 /** The top bar: the Portal logo on the left, controls on the right. The logo draws itself on at load. */
-export function NavBar({ globe, children, name, email, reloadOnRename, settings }: NavBarProps) {
+export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings }: NavBarProps) {
   const compact = useCompact(globe);
   const { resolvedTheme } = useTheme();
   const logo = useRef<HTMLElement & { play(): void }>(null);
@@ -85,7 +87,7 @@ export function NavBar({ globe, children, name, email, reloadOnRename, settings 
       </Link>
       <div className="pn-controls">
         {children}
-        <ProfileMenu name={name} email={email ?? null} reloadOnRename={reloadOnRename}>
+        <ProfileMenu name={name} email={email ?? null} account={account} reloadOnRename={reloadOnRename}>
           {settings}
         </ProfileMenu>
       </div>

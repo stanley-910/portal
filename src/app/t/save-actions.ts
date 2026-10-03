@@ -15,8 +15,8 @@ export type SaveSoloTripResult = { error: "invalid" | "failed" };
 const shortId = () => randomBytes(6).toString("base64url");
 
 /**
- * Saves the leg landed on `/`, with the picked option chosen, as a new trip and opens it (ADR-P08, ADR-P13). Signed
- * out goes to login. Invalid input or a Liveblocks failure returns an error instead, and leaves no room behind.
+ * Saves the leg landed on `/`, with the picked option chosen, as a new trip and opens it. Without an
+ * account, goes to sign in. Invalid input or a Liveblocks failure returns an error instead, and leaves no room behind.
  */
 export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> {
   const user = await getCurrentUser();

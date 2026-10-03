@@ -8,7 +8,7 @@ import type { TripGlobeHandle } from "@/components/trip-globe";
 import { AGENT_ID } from "@/lib/agent/types";
 
 /**
- * Everyone else's cursor, pinned to the place they point at (M14). React renders one element per person and only
+ * Everyone else's cursor, pinned to the place they point at. React renders one element per person and only
  * re-renders when someone joins or leaves; positions are written straight to the DOM after every globe frame, from
  * the room's latest presence, so moving cursors never re-render React.
  */

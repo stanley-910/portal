@@ -33,7 +33,7 @@ export async function createSupabaseServer(): Promise<SupabaseClient | null> {
   });
 }
 
-/** The signed-in user, verified with Supabase (ADR-P12: getUser, never getSession). */
+/** The signed-in user, verified with Supabase (getUser, never getSession). */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const supabase = await createSupabaseServer();
   if (!supabase) return null;

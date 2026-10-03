@@ -5,7 +5,7 @@ import { pairKey, type City, type PairDeparture, type PairFile, type PairService
 
 type Row = Record<string, string>;
 
-/** Shapes and fares are skipped on purpose: 154 MB + 65 MB in namtang (ADR-B01). */
+/** Shapes and fares are skipped on purpose: 154 MB + 65 MB in namtang. */
 export const NEEDED_FILES = [
   "agency.txt",
   "stops.txt",
@@ -128,7 +128,7 @@ export interface Frequency {
 /**
  * Namtang lists departures as chained windows whose headway equals the window length
  * (07:25→20:00 every 45300 s = 07:25 and 20:00), or start==end with headway 0 (spec violation).
- * Hence end is inclusive and starts are de-duplicated (ADR-B02, ADR-B04).
+ * Hence end is inclusive and starts are de-duplicated.
  */
 export function tripStarts(freqs: readonly Frequency[]): number[] {
   const out = new Set<number>();

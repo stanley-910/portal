@@ -1,5 +1,5 @@
 /**
- * Builds src/data/entry-requirements.json from data/entry/. Spec: docs/entry/spec.md.
+ * Builds src/data/entry-requirements.json from data/entry/.
  *
  *   node scripts/entry-requirements.mts                         merge, validate, write JSON and report
  *   node scripts/entry-requirements.mts --check                 exit 1 if the JSON is stale (used by `pnpm build`)

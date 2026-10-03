@@ -7,13 +7,16 @@ import { useEffect, useId, useRef, useState, useTransition, type ReactNode } fro
 
 import { Button } from "@/components/paper-atlas";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
+import { saveName } from "@/app/t/actions";
 import { initials, MAX_NAME } from "@/lib/guest-name";
 
 export interface ProfileMenuProps {
-  /** The signed-in user's display name, or null when signed out. */
+  /** Your display name: an account's, a guest's, or null before you've picked one. */
   name: string | null;
   /** The signed-in user's email. */
   email?: string | null;
+  /** Signed in, rather than a guest. */
+  account?: boolean;
   /** Reload the page after a rename, so a trip room reconnects with the new name on your cursor. */
   reloadOnRename?: boolean;
   /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
@@ -21,7 +24,7 @@ export interface ProfileMenuProps {
 }
 
 /** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
-export function ProfileMenu({ name, email = null, reloadOnRename, children }: ProfileMenuProps) {
+export function ProfileMenu({ name, email = null, account = false, reloadOnRename, children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -61,7 +64,7 @@ export function ProfileMenu({ name, email = null, reloadOnRename, children }: Pr
       </button>
       {open ? (
         <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
-          <Identity name={name} email={email} reloadOnRename={reloadOnRename} />
+          <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
           <ThemeSetting />
           {children}
         </div>
@@ -70,19 +73,25 @@ export function ProfileMenu({ name, email = null, reloadOnRename, children }: Pr
   );
 }
 
-function Identity({ name, email, reloadOnRename }: { name: string | null; email: string | null; reloadOnRename?: boolean }) {
+function Identity({ name, email, account, reloadOnRename }: { name: string | null; email: string | null; account: boolean; reloadOnRename?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
-  if (!name) {
+  if (!account && !editing) {
     const next = encodeURIComponent(pathname || "/");
     return (
       <div className="pn-profile-who">
+        {name ? <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span> : null}
         <span className="pn-menu-text">
-          <span>Not signed in</span>
-          <span className="pn-menu-detail">Sign in to plan trips with friends.</span>
+          <span>{name ?? "Guest"}</span>
+          <span className="pn-menu-detail">Sign in to save trips and ask Pip.</span>
         </span>
+        {name ? (
+          <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+            Rename
+          </Button>
+        ) : null}
         <div className="pn-profile-row">
           <Link href={`/login?next=${next}`} className="pa-btn pa-btn-primary">
             Sign in
@@ -97,7 +106,7 @@ function Identity({ name, email, reloadOnRename }: { name: string | null; email:
   if (!editing) {
     return (
       <div className="pn-profile-who">
-        <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span>
+        <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name ?? "")}</span>
         <span className="pn-menu-text">
           <span>{name}</span>
           {email ? <span className="pn-menu-detail">{email}</span> : null}
@@ -118,7 +127,7 @@ function Identity({ name, email, reloadOnRename }: { name: string | null; email:
       className="pn-profile-form"
       action={(form) =>
         startTransition(async () => {
-          await renameProfile(form);
+          await (account ? renameProfile(form) : saveName(form));
           if (reloadOnRename) window.location.reload();
           else {
             router.refresh();
@@ -138,7 +147,7 @@ function Identity({ name, email, reloadOnRename }: { name: string | null; email:
           autoFocus
           maxLength={MAX_NAME}
           autoComplete="nickname"
-          defaultValue={name}
+          defaultValue={name ?? ""}
           className="pn-profile-input"
         />
         <Button type="submit" disabled={pending}>

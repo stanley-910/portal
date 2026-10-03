@@ -13,7 +13,7 @@ const trainStation = z.object({
   source: url,
 });
 
-/** One Korail train on one station pair (ADR-C05 / ADR-T05), cited. */
+/** One Korail train on one station pair, cited. */
 const trainRow = z.object({
   from: z.string(), // station key
   to: z.string(),
@@ -38,7 +38,7 @@ const busTerminal = z.object({
   source: url,
 });
 
-/** One KoBus express (고속) grade on one terminal pair (ADR-C05 / ADR-B07), cited. */
+/** One KoBus express (고속) grade on one terminal pair, cited. */
 const busRow = z.object({
   from: z.string(), // terminal key
   to: z.string(),

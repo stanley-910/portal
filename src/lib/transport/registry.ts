@@ -9,7 +9,7 @@ import tdx from "./providers/tdx";
 import travelpayouts from "./providers/travelpayouts";
 import twelveGo from "./providers/12go";
 
-// Written once in C01 (ADR-C02). Adapter tasks replace providers/<id>/index.ts, never this list.
+// The provider list. Each provider lives in providers/<id>/index.ts; adding one never means editing the others.
 export const providers: readonly TransportProvider[] = [
   travelpayouts,
   twelveGo,

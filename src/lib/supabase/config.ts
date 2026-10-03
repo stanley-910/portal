@@ -10,7 +10,7 @@ export function parseSupabaseConfig(
 }
 
 // Literal `process.env.NEXT_PUBLIC_*` reads so Next inlines them into the browser bundle.
-// Missing vars mean accounts are off, never a boot failure (ADR-C04).
+// Missing vars mean accounts are off, never a boot failure.
 export function supabaseConfig(): SupabaseConfig | null {
   return parseSupabaseConfig(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

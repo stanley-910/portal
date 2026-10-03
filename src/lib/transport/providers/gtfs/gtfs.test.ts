@@ -77,7 +77,7 @@ describe("gtfs build", () => {
     });
   });
 
-  it("expands namtang frequency windows: headway 0 = single run, chained windows end-inclusive (ADR-B02, ADR-B04)", () => {
+  it("expands namtang frequency windows: headway 0 = single run, chained windows end-inclusive", () => {
     expect(tripStarts([{ start: 60_600, end: 60_600, headway: 0 }])).toEqual([60_600]);
     expect(
       tripStarts([

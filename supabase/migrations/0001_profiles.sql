@@ -1,4 +1,4 @@
--- Profiles: one row per auth user, created by trigger on signup (ADR-P10). Idempotent: safe to re-run.
+-- Profiles: one row per auth user, created by trigger on signup. Idempotent: safe to re-run.
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,

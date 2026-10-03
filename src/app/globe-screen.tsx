@@ -10,7 +10,7 @@ import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
-import type { CurrentUser } from "@/lib/supabase/server";
+import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
 import { MAX_OFFERS } from "@/lib/trip/offers";
 import type { TripSummary } from "@/lib/trip/server";
@@ -26,11 +26,11 @@ function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
   return kept;
 }
 
-export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; trips?: TripSummary[] }) {
+export function GlobeScreen({ person, trips = [] }: { person: Person | null; trips?: TripSummary[] }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
-  // Save trip makes a new trip room and opens it (ADR-P08); signed out, the action sends you to login
+  // Save trip makes a new trip room and opens it; without an account, the action sends you to sign in
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
   const [currency, setCurrency] = useState<Currency>("USD");
@@ -65,8 +65,9 @@ export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; tr
     />
     <NavBar
       globe={globe}
-      name={user?.displayName ?? null}
-      email={user?.email ?? null}
+      name={person?.name ?? null}
+      email={person?.email ?? null}
+      account={person?.account ?? false}
       settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
     >
       <PlaceSearch globe={globe} />

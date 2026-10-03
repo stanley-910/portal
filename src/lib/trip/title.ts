@@ -4,7 +4,7 @@ type Raw = Record<string, unknown>;
 const isObj = (v: unknown): v is Raw => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
- * The auto title of a trip (ADR-P07): where legs start first, then every other stop in travel order, each name
+ * The auto title of a trip: where legs start first, then every other stop in travel order, each name
  * once. Takes Storage as `getStorageDocument(room, "json")` returns it, and never throws on garbage.
  */
 export function planTitle(json: unknown): string {

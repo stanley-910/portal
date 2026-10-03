@@ -11,7 +11,7 @@ import {
 import trainSeedJson from "./train-seed.json";
 import trainStationsJson from "./train-stations.json";
 
-// Seed loaders for korea-tago: trains (ADR-T05), express buses (ADR-B07).
+// Seed loaders for korea-tago: trains, express buses.
 
 export function parseTrainSeed(stations: unknown, seed: unknown): TrainSeed {
   const s = { ...trainSeedSchema.parse(seed), stations: trainStationsSchema.parse(stations) };

@@ -2,7 +2,7 @@
 
 import { isNotFound, liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { currentPerson } from "@/lib/identity";
 import { readPlan } from "@/lib/trip/server";
 import { planTitle } from "@/lib/trip/title";
 
@@ -10,7 +10,7 @@ import { planTitle } from "@/lib/trip/title";
 export async function refreshTripTitle(tripId: string) {
   if (typeof tripId !== "string" || !TRIP_ID.test(tripId)) return;
   try {
-    const user = await getCurrentUser();
+    const user = await currentPerson();
     if (!user) return;
     const roomId = tripRoomId(tripId);
     const lb = liveblocks();

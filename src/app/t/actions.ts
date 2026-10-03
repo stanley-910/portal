@@ -6,6 +6,8 @@ import { LiveMap, LiveObject } from "@liveblocks/node";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 
+import { ensureGuest, MAX_NAME, setGuestName } from "@/lib/guest";
+import { currentPerson } from "@/lib/identity";
 import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 import { getCurrentUser } from "@/lib/supabase/server";
@@ -16,7 +18,8 @@ import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
 import { runLegSearch } from "@/lib/trip/search-leg";
 
-/** Creates a trip room owned by the signed-in user and opens it. Its URL is the invite (M7). Needs an account (M19). */
+/** Creates a trip room owned by the signed-in user and opens it. Its URL is the invite. Saving a trip needs an
+ * account; friends who open the link can join as guests. */
 export async function createTrip() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/");
@@ -34,7 +37,7 @@ const MAX_TEXT = 2_000;
 /**
  * Starts a solo trip from the home globe with a first message to Pip, so you can plan before there's a trip
  * (harness: solo planners). Pip answers every message in a solo trip, so it wakes without an @mention; friends
- * join later from the trip's URL as usual.
+ * join later from the trip's URL as usual. Pip needs an account.
  */
 export async function startTripWithPip(text: string) {
   const message = text.trim().slice(0, MAX_TEXT);
@@ -59,12 +62,19 @@ export async function startTripWithPip(text: string) {
   redirect(`/t/${id}?pip=open`);
 }
 
-/** Starts the route search for one leg on the server, so provider keys stay there (ADR-C01) and results land even if
+/** Saves the name a guest's friends see on their cursor and avatar. Accounts rename through their profile. */
+export async function saveName(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim().slice(0, MAX_NAME);
+  await ensureGuest();
+  if (name) await setGuestName(name);
+}
+
+/** Starts the route search for one leg on the server, so provider keys stay there and results land even if
  * whoever drew the leg closes the tab. */
 export async function searchLeg(tripId: string, legId: string, searchId: string) {
   if (!TRIP_ID.test(tripId)) return;
   const roomId = tripRoomId(tripId);
-  const user = await getCurrentUser();
+  const user = await currentPerson();
   const room = await liveblocks().getRoom(roomId).catch(() => null);
   // the search spends provider quota, so only members can start one
   if (!user || !room?.usersAccesses[user.id]) return;
@@ -75,7 +85,7 @@ export async function searchLeg(tripId: string, legId: string, searchId: string)
 async function memberRoom(tripId: string) {
   if (!TRIP_ID.test(tripId)) return null;
   const roomId = tripRoomId(tripId);
-  const user = await getCurrentUser();
+  const user = await currentPerson();
   const room = await liveblocks().getRoom(roomId).catch(() => null);
   return user && room?.usersAccesses[user.id] ? { roomId, user } : null;
 }

@@ -1,4 +1,4 @@
-// Downloads GTFS feeds into .cache/gtfs/ and writes per-city-pair JSON for the gtfs provider (ADR-B01).
+// Downloads GTFS feeds into .cache/gtfs/ and writes per-city-pair JSON for the gtfs provider.
 // Run with `pnpm gtfs:build` (`--fresh` re-downloads). Never runs at request time.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

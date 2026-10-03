@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 
 import { AGENT_ID, type ThreadMessage } from "@/lib/agent/types";
 
-// The trip's thread as the chat panel reads it. Messages live in Storage (M15); Pip's text streams by broadcast
+// The trip's thread as the chat panel reads it. Messages live in Storage; Pip's text streams by broadcast
 // until its reply is written, so this merges the two.
 
 export function useThread(): ThreadMessage[] {
@@ -28,6 +28,8 @@ export function usePipBusy(): boolean {
   return useStorage((root) => !!root.agentRun && root.agentRun.until > Date.now()) ?? false;
 }
 
+export const SIGN_IN_TO_ASK = "SIGN_IN_TO_ASK";
+
 /** Posts to the thread; the server wakes Pip on an @mention or in a solo trip. */
 export function useSendMessage() {
   const room = useRoom();
@@ -39,6 +41,8 @@ export function useSendMessage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ tripId, text }),
       });
+      // asking Pip needs an account; guests get this instead of a reply
+      if (res.status === 401) throw new Error(SIGN_IN_TO_ASK);
       if (!res.ok) throw new Error(`message failed: ${res.status}`);
     },
     [tripId],

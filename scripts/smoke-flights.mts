@@ -54,5 +54,5 @@ if (!token) {
 }
 const output = `${JSON.stringify(report, null, 2)}\n`;
 console.log(output);
-await mkdir(new URL("../docs/transport/", import.meta.url), { recursive: true });
-await writeFile(new URL("../docs/transport/live-api-check.json", import.meta.url), output);
+await mkdir(new URL("../.cache/", import.meta.url), { recursive: true });
+await writeFile(new URL("../.cache/live-api-check.json", import.meta.url), output);

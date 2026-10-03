@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseConfig } from "@/lib/supabase/config";
 
-// Refreshes the Supabase session cookie on every page request (ADR-P12). Access decisions still call
+// Refreshes the Supabase session cookie on every page request. Access decisions still call
 // getUser() where they happen; this only keeps the cookie fresh. No-op when Supabase isn't configured.
 export async function proxy(request: NextRequest) {
   const config = supabaseConfig();

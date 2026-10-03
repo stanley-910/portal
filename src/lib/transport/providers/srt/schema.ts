@@ -18,7 +18,7 @@ const station = z.object({
 // SRT's own type keys (ttsview timetable_data.js `trainDetails[n].type`).
 export const TRAIN_TYPES = ["special", "express", "rapid", "ordinary", "local", "suburban", "feeder_dm", "tourist"] as const;
 
-/** One SRT train (ADR-C05 / ADR-T06): seeded stops in running order, cited. */
+/** One SRT train: seeded stops in running order, cited. */
 const seedTrain = z.object({
   number: z.string().regex(/^\d{1,4}$/),
   type: z.enum(TRAIN_TYPES),

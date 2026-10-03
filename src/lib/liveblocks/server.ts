@@ -19,9 +19,9 @@ export function liveblocks() {
 export const isNotFound = (e: unknown) => e instanceof LiveblocksError && e.status === 404;
 
 /**
- * Records a signed-in user (by Supabase user id, M19) as a member of a trip room if they aren't one yet, and returns
- * their member colour (1 to MEMBER_COLORS, in join order). Returns null if the room doesn't exist. The access list it
- * writes is what `getRooms({ userId })` reads for "My trips" (M6); connecting uses the access token from the auth route.
+ * Records a person (account or guest id) as a member of a trip room if they aren't one yet, and returns their member
+ * colour (1 to MEMBER_COLORS, in join order). Returns null if the room doesn't exist. The access list it writes is what
+ * `getRooms({ userId })` reads for "My trips"; connecting uses the access token from the auth route.
  */
 export async function joinTrip(roomId: string, userId: string): Promise<number | null> {
   const lb = liveblocks();

@@ -7,9 +7,9 @@ import { MAX_OFFERS, toStoredOffer } from "@/lib/trip/offers";
 import { stopToPlace } from "@/lib/trip/stops";
 
 /**
- * Runs the route search for one leg and writes the results into the trip for everyone (M13). Callers check who may
+ * Runs the route search for one leg and writes the results into the trip for everyone. Callers check who may
  * spend provider quota. `searchId` is the search the caller started: if the leg was edited since, a newer search owns
- * it and this one is dropped (M12).
+ * it and this one is dropped.
  */
 export async function runLegSearch(roomId: string, legId: string, searchId: string) {
   const lb = liveblocks();

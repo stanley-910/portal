@@ -1,4 +1,4 @@
-// Snapshots one week of the official THSR timetable into the tdx provider seed (ADR-T04).
+// Snapshots one week of the official THSR timetable into the tdx provider seed.
 // Run: `pnpm thsr:snapshot [monday YYYY-MM-DD]`. Responses cached in .cache/thsr/
 // (delete to refetch). Never runs at request time.
 //

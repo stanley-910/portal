@@ -14,7 +14,7 @@ export function webUrlOrNull(value: string | undefined): string | null {
   }
 }
 
-/** Trims a search result to what the plan shows (M13). */
+/** Trims a search result to what the plan shows. */
 export function toStoredOffer(offer: Offer): StoredOffer {
   const first = offer.segments[0]!;
   const last = offer.segments.at(-1)!;

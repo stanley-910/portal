@@ -1,6 +1,8 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
@@ -8,10 +10,10 @@ import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import { Button, RoundButton } from "@/components/paper-atlas";
 import { showDate } from "@/lib/agent/snapshot";
 import { AGENT_NAME, type MeetupLeg, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
-import { usePipActivity, usePipBusy, useSendMessage, useThread } from "@/lib/agent/use-thread";
+import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, useSendMessage, useThread } from "@/lib/agent/use-thread";
 import { memberColor } from "@/lib/liveblocks/types";
 
-// The trip's thread with Pip in it (M15), rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
+// The trip's thread with Pip in it, rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
 // a chat panel. Pip's surfaces are starlight pixels; people's are Paper Atlas print (handoff: "what Pip makes").
 
 const CHIPS = ["@Pip where should we meet?", "@Pip somewhere fair in the middle", "@Pip what's on the trip so far?"];
@@ -276,18 +278,19 @@ function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "c
 /** The message box and chips. `send` posts to a trip, or (on the home globe) starts one. */
 export function Composer({ send, chips = CHIPS, placeholder = `Message the group, or ask @${AGENT_NAME}` }: { send: (text: string) => Promise<void>; chips?: string[]; placeholder?: string }) {
   const [draft, setDraft] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"failed" | "sign-in" | null>(null);
   const [pending, start] = useTransition();
+  const pathname = usePathname();
   const submit = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    setError(false);
+    setError(null);
     start(async () => {
       try {
         await send(t);
         setDraft("");
-      } catch {
-        setError(true);
+      } catch (e) {
+        setError(e instanceof Error && e.message === SIGN_IN_TO_ASK ? "sign-in" : "failed");
       }
     });
   };
@@ -306,7 +309,15 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
           </button>
         ))}
       </div>
-      {error ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
+      {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
+      {error === "sign-in" ? (
+        <p className="pip-caption" role="alert">
+          <Link href={`/login?next=${encodeURIComponent(pathname || "/")}`} className="underline">
+            Sign in
+          </Link>{" "}
+          to ask {AGENT_NAME}.
+        </p>
+      ) : null}
       <div className="pip-input-row">
         <input
           className="pip-input"

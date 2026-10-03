@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 
-// Every var optional (ADR-C04): a missing key means NOT_CONFIGURED for that provider, never a boot failure.
+// Every var optional: a missing key means NOT_CONFIGURED for that provider, never a boot failure.
 // Adapter tasks append here and to .env.example; never rename.
 const optional = z.preprocess(
   (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),

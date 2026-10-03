@@ -2,12 +2,12 @@ import type { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 
 import type { AgentEvent, AgentRun, Changeset, ThreadMessage } from "@/lib/agent/types";
 
-// Shared shapes for the trip room. Decisions: docs/multiplayer/decisions.md (M3, M8, M13, M14, M19).
+// Shared shapes for the trip room.
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
 export type TripPresence = {
   /** The place under this member's pointer. Never screen pixels: everyone's view of the globe differs. */
   cursor: { lat: number; lng: number } | null;
-  /** The trip this member is drawing (M14 step 2). Once it lands it's stored as a leg, so others ignore it then. */
+  /** The trip this member is drawing. Once it lands it's stored as a leg, so others ignore it then. */
   flight: {
     origin: { lat: number; lng: number };
     at: { lat: number; lng: number };
@@ -18,15 +18,15 @@ export type TripPresence = {
   activity?: string | null;
 };
 
-/** What others see of a member. The member's Liveblocks user id is their Supabase user id (M19). */
+/** What others see of a member. The Liveblocks user id is a Supabase user id, or a guest id (`g_…`). */
 export type MemberInfo = {
-  /** The profile's display name. */
+  /** The account or guest display name. */
   name: string;
   /** 1 to MEMBER_COLORS, in join order. Rendered as `var(--member-<n>)`. */
   color: number;
 };
 
-/** An exact clicked place legs start or end at (M8); preview hubs never move the point. */
+/** An exact clicked place legs start or end at; preview hubs never move the point. */
 export type Stop = {
   lat: number;
   lng: number;
@@ -38,7 +38,7 @@ export type Stop = {
 };
 
 /**
- * One route option as stored for everyone (M13): the fields the plan shows, trimmed from the transport `Offer` so a
+ * One route option as stored for everyone: the fields the plan shows, trimmed from the transport `Offer` so a
  * room stays small. `kind` is how fresh the data is; anything not "live" shows as estimated.
  */
 export type StoredOffer = {
@@ -71,7 +71,7 @@ export type Leg = {
   date: string;
   /** User id of whoever drew it. */
   createdBy: string;
-  /** User ids of who travels on this leg (M10). Defaults to whoever drew it. */
+  /** Person ids (account or guest) of who travels on this leg. Defaults to whoever drew it. */
   riders: string[];
   search: LegSearch;
   /** User id → offer id: one vote per member. */
@@ -85,7 +85,7 @@ export type TripStorage = {
   members: LiveMap<string, LiveObject<MemberInfo>>;
   stops: LiveMap<string, LiveObject<Stop>>;
   legs: LiveMap<string, LiveObject<Leg>>;
-  /** The trip's one thread, people and Pip (M15). Missing in rooms made before it; created on first message. */
+  /** The trip's one thread, people and Pip. Missing in rooms made before it; created on first message. */
   thread?: LiveList<LiveObject<ThreadMessage>>;
   /** Pip's current run, if any. */
   agentRun?: AgentRun | null;
@@ -105,7 +105,7 @@ declare global {
 /** How many member colours the design system defines (`member-1` to `member-6`). */
 export const MEMBER_COLORS = 6;
 
-/** Each trip is one room. The id is unguessable, so the trip's URL is its invite (M7). */
+/** Each trip is one room. The id is unguessable, so the trip's URL is its invite. */
 export const tripRoomId = (tripId: string) => `trip:${tripId}`;
 
 /** 16 base64url characters: 96 random bits. */

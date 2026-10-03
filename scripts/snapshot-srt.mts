@@ -1,4 +1,4 @@
-// Snapshots the SRT (State Railway of Thailand) timetable into the srt seed (ADR-T06).
+// Snapshots the SRT (State Railway of Thailand) timetable into the srt seed.
 // Run: `pnpm srt:snapshot`. Pages cached in .cache/srt/<today>/ (delete to refetch). Never runs at request time.
 //
 // Sources (public, no login, observed 2026-10-03):

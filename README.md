@@ -35,7 +35,6 @@ Open http://localhost:3000 for the globe and http://localhost:3000/design for th
 - `src/components/ui` holds the shadcn/ui components, themed with our tokens.
 - `src/design/tokens.json` holds the design tokens. Edit this file, then run `pnpm tokens`.
 - `DESIGN.md` holds the design rules. Read it before any UI work.
-- `docs/<area>/` holds each area's decisions and research: `foundation`, `globe`, `multiplayer`, and so on. Read `docs/<area>/decisions.md` before starting a ticket in that area.
 
 ## Working on it
 

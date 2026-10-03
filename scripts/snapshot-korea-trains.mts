@@ -1,4 +1,4 @@
-// Snapshots one week of Korail timetables + adult fares into the korea-tago train seed (ADR-T05).
+// Snapshots one week of Korail timetables + adult fares into the korea-tago train seed.
 // Run: `pnpm korea:snapshot`. Pages cached in .cache/korea-trains/<today>/ (delete to refetch).
 // Never runs at request time.
 //
@@ -84,7 +84,7 @@ function parse(html: string): Run[] {
       const fare = cell("fare").match(/^([\d,]+) 원/);
       if (!dep || !train || !dur) throw new Error(`unparsed row on ${date}: ${text(tr).slice(0, 120)}`);
       if (dep[1] !== date) throw new Error(`row date ${dep[1]} ≠ section ${date}`);
-      if (!fare) { noFare++; continue; } // no fare published → not seeded (ADR-C05 needs a cited fare)
+      if (!fare) { noFare++; continue; } // no fare published → not seeded (every seeded row needs a cited fare)
       const carrier = GRADE[train[1]];
       if (!carrier) throw new Error(`unknown grade ${train[1]}`);
       runs.push({

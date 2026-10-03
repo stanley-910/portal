@@ -8,7 +8,7 @@ import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
 import { usePlanActions, usePlanLegs, usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
 
-// The shared plan (M8, M13): every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
+// The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
 
 const SHOWN = 3;
