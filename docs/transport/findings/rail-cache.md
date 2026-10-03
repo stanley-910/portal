@@ -32,7 +32,7 @@ The generated schedule data is [cache.json](../../../src/lib/transport/providers
 
 - Source URL, original SHA-256, capture timestamp and page/row/cell locator where available.
 - Station calls and day offsets, including overnight boarding after the train's origin date.
-- China/Japan sample dates; these records cannot silently become daily schedules.
+- Original China/Japan sample dates remain in the cache. For demo searches, the 24 China 12306 samples are reused on later dates without an expiry and explicitly labelled estimated, with the original date and an unverified operating-date notice. Japan samples remain date-limited.
 - THSR weekday dots and holiday-specific service dates; holiday schedules replace the base.
 - MTR October 11 revisions and the sleeper's published weekly pattern. Prohibited short-haul sleeper segments are excluded.
 - Korea's spreadsheet times, including seconds. Empty zero-value cells do not become midnight station calls.
@@ -41,7 +41,7 @@ The generated schedule data is [cache.json](../../../src/lib/transport/providers
 
 Single-time PDF cells are retained as timetable call points, not independently verified arrival/departure dwell
 times. Where an operating calendar is unresolved, results explicitly say **typical timetable; confirm operating
-day**. All results are `kind: timetable`, retain the app's non-live/estimated presentation, and have no invented
+day**. Results are `kind: timetable`, except reused China demo samples (`kind: estimated`); all retain the app's non-live/estimated presentation and have no invented
 fare or seat availability. Published fare-only documents were extracted separately into
 [fares.json](../../../data/rail-cache/fares.json); they cannot produce departures on their own.
 
@@ -63,5 +63,5 @@ pnpm exec vitest run src/lib/transport/providers/rail-cache/search.test.ts
 ```
 
 The regression checks cover the overnight sleeper and its excluded short-haul segment, boarding-date versus
-origin-date handling, 12306 date limits, THSR holiday overrides, absent reseller fares/numbers, cancelled Thai
+origin-date handling, 12306 future demo reuse and attribution, THSR holiday overrides, absent reseller fares/numbers, cancelled Thai
 services, invalid-date rejection and all generated station/time references.
