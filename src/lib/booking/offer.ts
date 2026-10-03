@@ -107,19 +107,6 @@ export function matchOffer(like: { flights: readonly FlightKey[] }, raw: readonl
   return best;
 }
 
-/** The cheapest offer for `passengers`, preferring one that can be held. For the demo stand-in, where the flight itself doesn't matter. */
-export function cheapestOffer(raw: readonly unknown[], passengers: number): BookableOffer | null {
-  let best: BookableOffer | null = null;
-  for (const item of raw) {
-    const parsed = offerSchema.safeParse(item);
-    if (!parsed.success || parsed.data.passengerIds.length !== passengers) continue;
-    const offer = parsed.data;
-    const better = !best || (best.instantOnly && !offer.instantOnly) || (best.instantOnly === offer.instantOnly && offer.total.amount < best.total.amount);
-    if (better) best = offer;
-  }
-  return best;
-}
-
 export const offerExpired = (offer: BookableOffer, now = Date.now()) => Date.parse(offer.expiresAt) <= now;
 
 /** Per-seat price of an offer, for comparing with what the leg showed. */

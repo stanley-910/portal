@@ -168,8 +168,6 @@ Keys in `.env.local` (all optional; see `.env.example`):
 | `SUPABASE_SECRET_KEY` + `BOOKING_ENCRYPTION_KEY` | Details, payments and leases stay in memory. Run `pnpm db:migrate` once the key is set. |
 | `CRON_SECRET` | The scheduled sweep refuses every call, so only trip visits and booking actions expire bookings. Set this secret in the deployment configuration. |
 
-Demo mode (`NEXT_PUBLIC_DEMO_BOOKING=1`, `src/lib/demo.ts`) is stagecraft for a recording and off otherwise: every priced option shows Bookable, settling a pick that isn't a Duffel offer books the cheapest holdable Duffel sandbox flight between the stops' codes on the leg's date, the price the leg showed is what riders pay (price-rise checks are off), every booking is a group hold, and Duffel Airways sandbox fares are left out of search. The Duffel reference on the leg is the sandbox order's.
-
 Checkout sessions are card only (`payment_method_types: ["card"]`, a hold needs a card) and opt out of Stripe's Managed Payments, which new accounts have on by default and which refuses line items without a tax code. A fresh Stripe sandbox needs no other settings.
 
 Rehearsal: `src/lib/booking/demo-seed.test.ts` (opt-in, `BOOKING_SEED=1`) seeds a two-rider trip on a Duffel test fare and prints its id; `node scripts/checkout-rehearsal.mjs <id>` then drives settle, details and both Stripe payments with guest cookies `portal_guest=g_demoAnn` / `portal_name=Ann`.

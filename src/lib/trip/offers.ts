@@ -1,4 +1,3 @@
-import { DEMO_BOOKING } from "@/lib/demo";
 import type { StoredOffer } from "@/lib/liveblocks/types";
 import { transfersOf, type Offer } from "@/lib/transport/types";
 
@@ -10,8 +9,7 @@ export const MAX_OFFERS = 20;
 const PER_PROVIDER = 3;
 
 /** A live Duffel fare: the only kind a trip can settle and buy in the app. Anything else is booked on its provider. */
-export const isBookable = (offer: { provider: string; kind: string; price?: { amount: number } | null }) =>
-  DEMO_BOOKING ? offer.price != null : offer.provider === "duffel" && offer.kind === "live";
+export const isBookable = (offer: { provider: string; kind: string }) => offer.provider === "duffel" && offer.kind === "live";
 
 /**
  * The options a leg keeps, in the search's ranked order: the pick (when given), each provider's best few, then the

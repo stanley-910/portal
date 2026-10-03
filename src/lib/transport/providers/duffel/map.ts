@@ -1,4 +1,3 @@
-import { DEMO_BOOKING } from "@/lib/demo";
 import { z } from "zod";
 
 import { withOffset } from "./time";
@@ -88,8 +87,6 @@ export function mapOffers(raw: readonly unknown[], query: SearchQuery, origin: s
       Date.parse(segment.depart) < Date.parse(segments[i - 1].arrive)
     ))) continue;
 
-    // the recording keeps real airline names only; Duffel's own sandbox carrier gives the game away
-    if (DEMO_BOOKING && o.live_mode === false && o.owner.name === "Duffel Airways") continue;
     const operators = [...new Set(segments.map((s) => s.carrier))].filter((c) => c !== o.owner.name);
     offers.push({
       id: `duffel:${o.id}`,

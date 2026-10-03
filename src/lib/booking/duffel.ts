@@ -6,7 +6,7 @@ import { env } from "@/lib/env.server";
 import type { Money } from "@/lib/liveblocks/types";
 
 import { BookingError } from "./errors";
-import { cheapestOffer, matchOffer, offerSchema, type BookableOffer, type OfferLike, type TravellerDetails } from "./offer";
+import { matchOffer, offerSchema, type BookableOffer, type OfferLike, type TravellerDetails } from "./offer";
 
 // Duffel's booking calls: read an offer, search again for the same flight with more seats, hold or buy an order, pay
 // a held order from our balance, and cancel. Search results for the ticket come from the transport provider instead.
@@ -84,20 +84,6 @@ export async function findOfferFor(like: OfferLike, passengers: number): Promise
     },
   });
   return matchOffer(like, raw?.offers ?? [], passengers);
-}
-
-/** Demo stand-in: the cheapest holdable sandbox flight between two codes on a date, whatever the flight. */
-export async function anyOfferFor(route: { origin: string; destination: string; date: string }, passengers: number): Promise<BookableOffer | null> {
-  const params = new URLSearchParams({ return_offers: "true", supplier_timeout: String(SUPPLIER_TIMEOUT_MS) });
-  const raw = await duffel<{ offers?: unknown[] }>("POST", `/air/offer_requests?${params}`, {
-    data: {
-      slices: [{ origin: route.origin, destination: route.destination, departure_date: route.date }],
-      passengers: Array.from({ length: passengers }, () => ({ type: "adult" })),
-      cabin_class: "economy",
-      max_connections: 1,
-    },
-  });
-  return cheapestOffer(raw?.offers ?? [], passengers);
 }
 
 const orderSchema = z.object({

@@ -1,11 +1,10 @@
-import { DEMO_BOOKING } from "@/lib/demo";
 import "server-only";
 
 import type { PlanJson } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { BookingSeat, LegBooking, Money } from "@/lib/liveblocks/types";
 
-import { anyOfferFor, cancelOrder, createOrder, findOfferFor, getOffer, getOrder, payOrder } from "./duffel";
+import { cancelOrder, createOrder, findOfferFor, getOffer, getOrder, payOrder } from "./duffel";
 import { BookingError, isBookingError, type BookingErrorCode } from "./errors";
 import { offerExpired, perSeat, travellerSchema, type BookableOffer, type TravellerDetails } from "./offer";
 import { refusedPassenger, settleReady, storedFlights } from "./ready";
@@ -28,8 +27,7 @@ const DETAILS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LEASE_MS = 2 * 60 * 1000;
 
 const tripIdOf = (roomId: string) => roomId.replace(/^trip:/, "");
-// in demo mode the leg's shown price is the price, whatever the sandbox flight underneath costs
-const over = (now: Money, agreed: Money) => !DEMO_BOOKING && priceRose(agreed, now);
+const over = (now: Money, agreed: Money) => priceRose(agreed, now);
 const money = (m: Money) => `${m.currency} ${m.amount.toFixed(2)}`;
 
 async function readLeg(roomId: string, legId: string): Promise<{ plan: PlanJson; leg: LegJson | null }> {
@@ -113,30 +111,18 @@ export async function settleLeg(roomId: string, legId: string, actor: Actor, acc
     const ready = settleReady((await readLeg(roomId, legId)).leg, actor.id);
     if (!ready.ok) throw ready.error;
     const { leg, chosen, offerId } = ready;
-    let fresh: BookableOffer | null;
-    if (offerId === null) {
-      // demo: a pick from another provider; the cheapest holdable sandbox flight on the route stands in for it
-      const { plan } = await readLeg(roomId, legId);
-      const origin = plan.stops?.[leg.from]?.code;
-      const destination = plan.stops?.[leg.to]?.code;
-      if (!origin || !destination) throw new BookingError("OFFER_GONE", "No flight codes for this route.");
-      fresh = await anyOfferFor({ origin, destination, date: leg.date }, leg.riders.length);
-    } else {
-      // an offer Duffel has dropped is searched for again by the flights the leg kept
-      const like = storedFlights(chosen);
-      const original = await getOffer(offerId).catch((e) => {
-        if (like && isBookingError(e) && (e.code === "NOT_FOUND" || e.code === "OFFER_GONE")) return like;
-        throw e;
-      });
-      fresh = await findOfferFor(original, leg.riders.length);
-    }
+    // an offer Duffel has dropped is searched for again by the flights the leg kept
+    const like = storedFlights(chosen);
+    const original = await getOffer(offerId).catch((e) => {
+      if (like && isBookingError(e) && (e.code === "NOT_FOUND" || e.code === "OFFER_GONE")) return like;
+      throw e;
+    });
+    const fresh = await findOfferFor(original, leg.riders.length);
     if (!fresh) throw new BookingError("OFFER_GONE");
     const now = perSeat(fresh);
     if (over(now, accept ?? chosen.price ?? { amount: 0, currency: now.currency })) return { ok: false, code: "PRICE_CHANGED", was: accept ?? chosen.price, now };
-    // demo: the leg's shown per-seat price times the riders, so what people pay is what they saw
-    const total: Money = DEMO_BOOKING && chosen.price ? { amount: Math.round(chosen.price.amount * leg.riders.length * 100) / 100, currency: chosen.price.currency } : fresh.total;
 
-    const mode: LegBooking["mode"] = fresh.instantOnly && !DEMO_BOOKING ? "separate" : "group";
+    const mode: LegBooking["mode"] = fresh.instantOnly ? "separate" : "group";
     const settledAt = Date.now();
     const booking: LegBooking = {
       mode,
@@ -144,9 +130,9 @@ export async function settleLeg(roomId: string, legId: string, actor: Actor, acc
       offerId: fresh.id,
       route: { origin: fresh.origin, destination: fresh.destination, date: fresh.date },
       flights: fresh.flights.map(({ number, from, to, departingAt }) => ({ number, from, to, departingAt })),
-      total,
+      total: fresh.total,
       documents: fresh.documentsRequired,
-      seats: openSeats(splitShares(total, leg.riders, actor.id)),
+      seats: openSeats(splitShares(fresh.total, leg.riders, actor.id)),
       deadline: mode === "group" ? new Date(settledAt + DETAILS_WINDOW_MS).toISOString() : null,
       settledBy: actor.id,
       settledAt,
@@ -242,7 +228,7 @@ async function holdSeats(roomId: string, legId: string) {
       idempotencyKey: `${roomId}:${legId}:${booking.settledAt}:hold`,
       metadata: { room: roomId, leg: legId },
     });
-    const total = order.total.amount <= booking.total.amount && !DEMO_BOOKING ? order.total : booking.total;
+    const total = order.total.amount <= booking.total.amount ? order.total : booking.total;
     const shares = splitShares(total, riders, booking.settledBy);
     const held: LegBooking = {
       ...booking,
@@ -424,7 +410,7 @@ async function purchase(roomId: string, legId: string) {
     }
 
     // the airline was paid: now take each share, the lower of what was held and what the order cost
-    const shares = splitShares(order.total.amount < booking.total.amount && !DEMO_BOOKING ? order.total : booking.total, riders, booking.settledBy);
+    const shares = splitShares(order.total.amount < booking.total.amount ? order.total : booking.total, riders, booking.settledBy);
     const owed: string[] = [];
     for (const r of riders) {
       const row = rows[r];
@@ -442,7 +428,7 @@ async function purchase(roomId: string, legId: string) {
     const booked: LegBooking = {
       ...booking,
       status: "booked",
-      total: DEMO_BOOKING ? booking.total : order.total,
+      total: order.total,
       reference: order.reference,
       deadline: null,
       seats: Object.fromEntries(riders.map((r) => [r, { ...booking.seats[r], share: shares[r], paid: true }])),
