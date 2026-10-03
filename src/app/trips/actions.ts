@@ -79,6 +79,6 @@ export async function leaveTrip(tripId: string): Promise<{ ok: boolean }> {
     });
     await lb.updateRoom(roomId, { usersAccesses: { [person.id]: null }, metadata: { members, owner } });
   }
-  revalidatePath("/trips");
+  // no revalidatePath: in a Server Function it re-renders the page you're on, and the trip page joins you again
   return { ok: true };
 }

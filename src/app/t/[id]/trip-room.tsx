@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useSelf, useStatus, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useRoom, useSelf, useStatus, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
@@ -49,6 +49,7 @@ function TripScreen({ tripId, name, email, account, nationalities }: { tripId: s
   const pipOpen = useSearchParams().get("pip") === "open";
   const [full, setFull] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const room = useRoom();
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
@@ -110,7 +111,14 @@ function TripScreen({ tripId, name, email, account, nationalities }: { tripId: s
         <TripPlan />
       </div>
       <AgentChat initialOpen={pipOpen} />
-      {leaving ? <LeaveTripDialog tripId={tripId} next={account ? "/trips" : "/"} onClose={() => setLeaving(false)} /> : null}
+      {leaving ? (
+        <LeaveTripDialog
+          tripId={tripId}
+          next={account ? "/trips" : "/"}
+          onClose={() => setLeaving(false)}
+          connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
+        />
+      ) : null}
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">
           {status === "connecting" ? "Connecting" : "Reconnecting"}

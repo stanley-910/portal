@@ -18,9 +18,15 @@ function consequences(preview: LeavePreview | null) {
 
 /**
  * Asks "Are you sure?" before leaving a trip, then leaves and goes to `next`. Styled like the sign-in panel: it sits
- * over the screen, which shows through a paper wash.
+ * over the screen, which shows through a paper wash. Inside the trip, pass the room's `connection`: it is paused while
+ * leaving, since reconnecting goes through the auth route, which would join you again.
  */
-export function LeaveTripDialog({ tripId, next, onClose }: { tripId: string; next: string; onClose: () => void }) {
+export function LeaveTripDialog({ tripId, next, onClose, connection }: {
+  tripId: string;
+  next: string;
+  onClose: () => void;
+  connection?: { pause(): void; resume(): void };
+}) {
   const router = useRouter();
   const titleId = useId();
   const [preview, setPreview] = useState<LeavePreview | null>(null);
@@ -44,10 +50,13 @@ export function LeaveTripDialog({ tripId, next, onClose }: { tripId: string; nex
   const leave = () =>
     startTransition(async () => {
       setFailed(false);
+      connection?.pause();
       const result = await leaveTrip(tripId).catch(() => ({ ok: false }));
-      if (!result.ok) return setFailed(true);
+      if (!result.ok) {
+        connection?.resume();
+        return setFailed(true);
+      }
       router.replace(next);
-      router.refresh();
     });
 
   return (
