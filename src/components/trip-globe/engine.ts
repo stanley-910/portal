@@ -509,6 +509,8 @@ export class GlobeEngine {
   private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number; away: number; coming: number } | null = null;
   // removed legs' routes reeling in, from when each started
   private reels: { o: Vec3; target: Vec3; color: number | null; t0: number }[] = [];
+  // legs of this viewer's own trip that Pip's saucer is drawing out (showTrip), from when each started
+  private ownDraws: { a: Vec3; b: Vec3; t0: number }[] = [];
   // the view following the saucer, and where on screen it keeps it: the middle of the open area, asked now and then
   private follow = false;
   private followSpot: { x: number; y: number; t: number } | null = null;
@@ -1008,11 +1010,36 @@ export class GlobeEngine {
   showTrip(points: LatLng[]) {
     if (points.length < 2) return;
     const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
+    const before = this.ownLegs();
     if (this.mode !== "idle") this.cancel();
     this.takeoff(vs[0]);
     for (const v of vs.slice(1, -1)) this.addStop(v);
     this.magnet = false;
     this.land(vs[vs.length - 1]);
+    // While Pip's saucer is out it builds the trip itself: no plane lands and the view stays with the saucer. Legs
+    // that are new draw out behind it, and legs that went reel in.
+    if (!this.agent?.on || this.reduceMotion) return;
+    const t = this.t;
+    const after = this.ownLegs();
+    const same = (x: [Vec3, Vec3], y: [Vec3, Vec3]) => angle(x[0], y[0]) < 1e-6 && angle(x[1], y[1]) < 1e-6;
+    for (const leg of after) if (!before.some((b) => same(b, leg))) this.ownDraws.push({ a: leg[0], b: leg[1], t0: t });
+    for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
+    this.tLand = t - TOUCHDOWN - VANISH;
+    this.turn = null;
+    this.autoFrame = null;
+  }
+
+  /** This viewer's landed trip as its legs, each from a stop to the next. */
+  private ownLegs(): [Vec3, Vec3][] {
+    if (this.mode !== "landed" || !this.origin || !this.dest) return [];
+    const stops = [...this.via.map((s) => s.v), this.origin, this.dest];
+    return stops.slice(1).map((b, i) => [stops[i], b]);
+  }
+
+  /** How far Pip's saucer has drawn out this viewer's own leg from a to b: 1 when it's whole. */
+  private ownDrawn(a: Vec3, b: Vec3, t: number) {
+    const d = this.ownDraws.find((d) => angle(d.a, a) < 1e-6 && angle(d.b, b) < 1e-6);
+    return d ? ease(clamp((t - d.t0) / DRAW, 0, 1)) : 1;
   }
 
   /** Lands the trip at the last stop, which ends the leg flown into it. */
@@ -1593,8 +1620,9 @@ export class GlobeEngine {
 
   /** Whether a route Pip added is still drawing out. */
   private drawing(t: number) {
+    this.ownDraws = this.ownDraws.filter((d) => t - d.t0 < DRAW);
     for (const r of this.remotes.values()) if (t - r.drawn < DRAW) return true;
-    return false;
+    return this.ownDraws.length > 0;
   }
 
   /** When a landing at or near v is over and its plane has gone: now or earlier when there's none. */
@@ -1605,6 +1633,7 @@ export class GlobeEngine {
     for (const g of this.ghosts) if (angle(g.pl.n, v) < 0.01) at = Math.max(at, g.t0 + TOUCHDOWN + VANISH);
     // a route Pip is drawing out to here
     for (const r of this.remotes.values()) if (angle(r.target, v) < 0.01) at = Math.max(at, r.drawn + DRAW);
+    for (const d of this.ownDraws) if (angle(d.b, v) < 0.01) at = Math.max(at, d.t0 + DRAW);
     return at;
   }
 
@@ -1810,10 +1839,11 @@ export class GlobeEngine {
     }
     // drawing a route out, it rides the route's end as it goes
     if (a.on) {
-      for (const r of this.remotes.values()) {
-        const k = (t - r.drawn) / DRAW;
-        if (k >= 0 && k < 1) a.target = slerp(r.o, r.target, ease(k));
-        else if (k >= 1 && k < 1.2) a.target = r.target;
+      const draws = [...[...this.remotes.values()].map((r) => ({ a: r.o, b: r.target, t0: r.drawn })), ...this.ownDraws];
+      for (const d of draws) {
+        const k = (t - d.t0) / DRAW;
+        if (k >= 0 && k < 1) a.target = slerp(d.a, d.b, ease(k));
+        else if (k >= 1 && k < 1.2) a.target = d.b;
       }
     }
     const gap = angle(a.n, a.target);
@@ -3275,11 +3305,15 @@ export class GlobeEngine {
     // legs already flown, each from a stop to the next, under the one ending at the plane
     const marching = this.mode === "landed" && !this.reduceMotion;
     const stroke = this.routeColor(this.color);
+    // a leg Pip's saucer is drawing out shows only as far as it has got
     this.via.forEach((s, i) => {
-      const next = this.lifted(this.via[i + 1]?.v ?? origin);
-      this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching, t);
+      const raw = this.via[i + 1]?.v ?? origin;
+      const next = this.lifted(raw);
+      const upTo = this.ownDrawn(s.v, raw, t);
+      this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching || upTo < 1, t, 0, upTo);
     });
-    this.route(ctx, origin, this.ownEnd(pl), stroke, marching, t);
+    const upTo = this.dest ? this.ownDrawn(origin, this.dest, t) : 1;
+    this.route(ctx, origin, this.ownEnd(pl), stroke, marching || upTo < 1, t, 0, upTo);
 
     const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;

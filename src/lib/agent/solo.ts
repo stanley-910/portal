@@ -8,7 +8,7 @@ import { z } from "zod";
 import { dateIn } from "@/lib/agent/dates";
 import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { legMarks, midpoint, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { legMarks, midpoint, SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
 import { citiesIn, MODEL, REASONING_EFFORT } from "@/lib/agent/run";
 import { showDate } from "@/lib/agent/snapshot";
@@ -107,16 +107,17 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           const day = dates[i] ?? nextDay(dates[dates.length - 1], i - dates.length + 1);
           return { from: resolved[i], to, date: day };
         });
-        // one change at a time, each under the saucer: it flies to where a leg ends, the leg lands there, and it stays
-        // a beat before the next. Legs that go come off first, then new ones go on in order.
+        // one change at a time, each under the saucer, as in a shared trip: a leg that goes reels in to where it ends,
+        // under the saucer; a new one draws out behind it from where it starts. Legs that go come off first, then new
+        // ones go on in order, and the saucer stays a beat after each.
         const key = (l: SoloLeg) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
         const keep = new Set(legs.map(key));
         const had = new Set(state.trip.map(key));
         const going = state.trip.filter((l) => !keep.has(key(l)));
         const coming = legs.filter((l) => !had.has(key(l)));
         const steps = [
-          ...going.map((l, i) => ({ at: l.to, trip: state.trip.filter((x) => !going.slice(0, i + 1).includes(x)) })),
-          ...coming.map((l, i) => ({ at: l.to, trip: legs.filter((x) => had.has(key(x)) || coming.slice(0, i + 1).includes(x)) })),
+          ...going.map((l, i) => ({ at: l.to, draws: false, trip: state.trip.filter((x) => !going.slice(0, i + 1).includes(x)) })),
+          ...coming.map((l, i) => ({ at: l.from, draws: true, trip: legs.filter((x) => had.has(key(x)) || coming.slice(0, i + 1).includes(x)) })),
         ];
         for (const [i, step] of steps.entries()) {
           emit({ t: "activity", label: "planning the trip", at: { lat: step.at.lat, lng: step.at.lng } });
@@ -125,6 +126,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           emit({ t: "trip", legs: step.trip });
           emit({ t: "marks", marks: legMarks(state.trip, step.trip) });
           state.trip = step.trip;
+          if (step.draws) await new Promise((done) => setTimeout(done, SAUCER_DRAW_MS));
           if (i < steps.length - 1) await new Promise((done) => setTimeout(done, SAUCER_STAY_MS));
         }
         // the legs it kept take their new dates

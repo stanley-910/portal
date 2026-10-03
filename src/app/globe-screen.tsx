@@ -8,7 +8,7 @@ import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/a
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
-import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
+import { TripGlobe, type LandedTrip, type LatLng, type TripGlobeHandle } from "@/components/trip-globe";
 import type { SoloLeg } from "@/lib/agent/solo";
 import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
 import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
@@ -56,6 +56,9 @@ export function GlobeScreen({ person }: { person: Person | null }) {
     if (legs && picks.length > legs.length) out.push({ from: out.at(-1)!.to, to: out[0].from, date: picks[legs.length].depart });
     return out;
   }, [legs, picks]);
+  // Your pin at each stop, keyed by the place, so a stop that stays when Pip rebuilds the trip keeps its pin standing
+  const stopPins = (landed: { destination: LatLng }[], color: number | null) =>
+    landed.map((leg, i) => ({ key: `you:${leg.destination.lat},${leg.destination.lng}`, stop: `stop:${i}`, at: leg.destination, color }));
   // the way back, once picked, draws home like a saved leg, and your pin drops at home
   const color = cursorPref.color;
   useEffect(() => {
@@ -63,7 +66,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
     if (!g || !legs) return;
     const home = legs[0].origin;
     g.setRemoteFlights(goesHome ? [{ id: "you:back", origin: legs.at(-1)!.destination, at: home, ahead: home, landed: true, color }] : []);
-    const pins = legs.map((leg, i) => ({ key: `you:${i}`, stop: `stop:${i}`, at: leg.destination, color }));
+    const pins = stopPins(legs, color);
     g.setPins(goesHome ? [...pins, { key: "you:back", stop: "stop:home", at: home, color }] : pins);
     return () => g.setRemoteFlights([]);
   }, [legs, goesHome, color]);
@@ -133,7 +136,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
       onTakeoff={() => {
         setLegs(null);
-        globe.current?.setPins([]);
+        // Pip rebuilding the trip keeps the pins it doesn't move
+        if (!pipDates.current) globe.current?.setPins([]);
       }}
       onLand={(flown) => {
         // a trip Pip planned lands like a flown one, then takes Pip's dates
@@ -141,7 +145,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         pipDates.current = null;
         const landed = dates ? flown.map((l, i) => (dates[i] ? { ...l, departDate: new Date(`${dates[i]}T00:00`) } : l)) : flown;
         // your pin drops at each stop once your plane has landed and gone
-        globe.current?.setPins(landed.map((leg, i) => ({ key: `you:${i}`, stop: `stop:${i}`, at: leg.destination, color: cursorPref.color })));
+        globe.current?.setPins(stopPins(landed, cursorPref.color));
         setLegs(landed);
         setSaved(null);
         setActive(0);
@@ -151,7 +155,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       }}
       onCancel={() => {
         setLegs(null);
-        globe.current?.setPins([]);
+        if (!pipDates.current) globe.current?.setPins([]);
       }}
       onRouteClick={() => setCollapsed(false)}
     />
