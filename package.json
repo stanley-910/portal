@@ -24,6 +24,7 @@
     "@liveblocks/client": "3.24.2",
     "@liveblocks/node": "3.24.2",
     "@liveblocks/react": "3.24.2",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^7.0.127",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
