@@ -1,26 +1,35 @@
 import "server-only";
 
 import { DUFFEL_TIMEOUT_MS, requestOffers } from "./client";
+import { duffelCity } from "./cities";
 import { mapOffers } from "./map";
 import { toIata } from "../travelpayouts/places";
 import { ProviderFailure, type SearchQuery, type TransportProvider } from "../../types";
 
 // Live flight offers that can be booked through Duffel later. Without a token it reports NOT_CONFIGURED and
 // Travelpayouts' cached fares and estimates still cover every flight leg.
-// Duffel allows 30 offer requests a minute per account, and the globe searches on every landing, date change and
-// dragged stop. The same route, day and party reuse an answer for a few minutes, searches already running are
-// shared, and when Duffel says to slow down, an older answer beats estimates. Settling always prices the flight
-// afresh (src/lib/booking), so a reused list never decides what anyone pays.
+// Duffel allows few offer requests a minute per account (10 live, 30 test, unless they raise it), and the globe
+// searches on every landing, date change and dragged stop. Each search is city to city, so the airport pairs of
+// one trip share a request; the same cities, day and party reuse an answer for a few minutes; searches already
+// running are shared; and once Duffel says to slow down, nothing more is asked of it until its minute is up, an
+// older answer standing in meanwhile. Settling always prices the flight afresh (src/lib/booking), so a reused list
+// never decides what anyone pays.
 const FRESH_MS = 5 * 60_000;
 const STALE_MS = 20 * 60_000;
+const PAUSE_MS = 60_000;
 const answers = new Map<string, { at: number; offers: unknown[] }>();
 const running = new Map<string, Promise<unknown[]>>();
+let pausedUntil = 0;
 
 async function cachedOffers(query: SearchQuery, origin: string, destination: string, signal: AbortSignal): Promise<unknown[]> {
   const key = `${origin}-${destination}-${query.date}-${query.passengers}`;
   const known = answers.get(key);
   if (known && Date.now() - known.at < FRESH_MS) return known.offers;
   let pending = running.get(key);
+  if (!pending && Date.now() < pausedUntil) {
+    if (known && Date.now() - known.at < STALE_MS) return known.offers;
+    throw new ProviderFailure("RATE_LIMITED", true);
+  }
   if (!pending) {
     // its own deadline, not the first caller's signal: another search may be waiting on the same answer
     pending = requestOffers(query, origin, destination, AbortSignal.timeout(DUFFEL_TIMEOUT_MS))
@@ -28,6 +37,9 @@ async function cachedOffers(query: SearchQuery, origin: string, destination: str
         answers.set(key, { at: Date.now(), offers });
         if (answers.size > 500) answers.delete(answers.keys().next().value!);
         return offers;
+      }, (e: unknown) => {
+        if (e instanceof ProviderFailure && e.code === "RATE_LIMITED") pausedUntil = Date.now() + PAUSE_MS;
+        throw e;
       })
       .finally(() => running.delete(key));
     running.set(key, pending);
@@ -40,8 +52,11 @@ async function cachedOffers(query: SearchQuery, origin: string, destination: str
   }
 }
 
-/** For tests: forget every reused answer. */
-export const clearDuffelCache = () => answers.clear();
+/** For tests: forget every reused answer and any pause. */
+export const clearDuffelCache = () => {
+  answers.clear();
+  pausedUntil = 0;
+};
 
 export const duffel: TransportProvider = {
   id: "duffel",
@@ -59,7 +74,11 @@ export const duffel: TransportProvider = {
     const origin = toIata(query.from);
     const destination = toIata(query.to);
     if (!origin || !destination || origin === destination) throw new ProviderFailure("UNSUPPORTED_ROUTE");
-    const raw = await cachedOffers(query, origin, destination, signal);
+    const from = duffelCity(origin);
+    const to = duffelCity(destination);
+    if (from === to) throw new ProviderFailure("UNSUPPORTED_ROUTE");
+    // the cities' airports come back together; mapOffers keeps this pair's
+    const raw = await cachedOffers(query, from, to, signal);
     signal.throwIfAborted();
     return mapOffers(raw, query, origin, destination);
   },

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./registry", () => ({ providers: [] }));
+vi.mock("./registry", () => ({ providers: [{ id: "duffel" }, { id: "travelpayouts" }] }));
 vi.mock("./search", async (importOriginal) => ({
   ...await importOriginal<typeof import("./search")>(), searchTransport: vi.fn(),
 }));
@@ -25,6 +25,19 @@ function offer(q: SearchQuery, id: string, amount: number): Offer {
 
 beforeEach(() => { search.mockReset(); });
 describe("clicks → hubs → provider queries", () => {
+  it("asks Duffel only for the best pair's two cities; other cities' airports keep cached fares", async () => {
+    search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
+    await searchFromCoordinates(query, signal());
+    const flights = search.mock.calls.filter(([q]) => q.modes[0] === "flight");
+    const city = (iata?: string) => (iata === "PVG" ? "SHA" : iata);
+    const [first] = flights;
+    for (const [q, , , only] of flights) {
+      const sameCities = q.from.iata === first[0].from.iata && city(q.to.iata) === city(first[0].to.iata);
+      if (sameCities) expect(only).toBeUndefined();
+      else expect(only?.map((p) => p.id)).toEqual(["travelpayouts"]);
+    }
+    expect(flights.some(([, , , only]) => only)).toBe(true);
+  });
   it("searches exact airport pairs, with bounded fan-out and the request signal", async () => {
     search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
     const abort = signal();

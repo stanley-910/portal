@@ -240,8 +240,8 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
 }
 
 /** Coordinate/hub searches use best-option ranking and retain their error contract. */
-export function searchTransport(query: SearchQuery, signal: AbortSignal, onProgress?: (result: SearchResult) => void): Promise<SearchResult> {
-  return runSearch(query, { signal, onProgress }, false);
+export function searchTransport(query: SearchQuery, signal: AbortSignal, onProgress?: (result: SearchResult) => void, only?: readonly TransportProvider[]): Promise<SearchResult> {
+  return runSearch(query, { signal, onProgress, providers: only }, false);
 }
 
 // No retries here yet: retryable failures go back to the client in `errors[]`.
