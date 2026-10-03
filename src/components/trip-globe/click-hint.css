@@ -1,6 +1,6 @@
 /* The click hints in the home globe's bottom-left corner (click-hint.tsx): small and quiet, like a game's control
    hints. No card; the held button is the only colour, and a paper halo keeps it legible over sea, land or space. */
-.ch { position: absolute; left: var(--space-6); bottom: var(--space-6); z-index: 1; display: grid; gap: 4px; pointer-events: none; color: var(--ink); }
+.ch { position: absolute; left: var(--space-6); bottom: var(--space-6); z-index: 1; display: grid; gap: 8px; pointer-events: none; color: var(--ink); }
 @media (hover: none), (pointer: coarse) { .ch { display: none; } }
 .ch-row { display: flex; align-items: center; gap: 6px; margin: 0; font-family: var(--font-typewriter); font-size: 11px; line-height: 14px; font-weight: 700; white-space: nowrap; text-shadow: 0 0 2px var(--paper), 0 0 3px var(--paper), 0 0 6px var(--paper); }
 .ch-mouse { flex: none; filter: drop-shadow(0 0 1.5px var(--paper)) drop-shadow(0 0 3px var(--paper)); }
