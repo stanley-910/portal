@@ -252,15 +252,13 @@ const PROVINCES_FULL = 0.6;
 const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
 /** At most this many city names on screen at once, biggest first, so the map never fills up. */
 const CITY_MAX = 40;
-const CITY_FADE = 0.05; // zoom over which a rank prints in
+const CITY_FADE = 0.1; // zoom over which a rank fades in, from nothing to fully printed
 /**
  * City names in px by rank, in four steps so the places people travel between stand out: world cities (Tokyo,
  * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
  * and ink carry the difference.
  */
 const CITY_SIZE = [17, 17, 14, 14, 13, 13, 12, 12];
-/** From this rank down, names print in `ink-muted` rather than `ink`. */
-const CITY_MUTED_FROM = 4;
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
@@ -2515,8 +2513,8 @@ export class GlobeEngine {
   }
 
   /** A city name drawn at `size` and the screen's pixel ratio with a paper halo, its left edge at x = pad. */
-  private citySprite(name: string, size: number, dpr: number, muted: boolean) {
-    const key = `${size}|${muted ? 1 : 0}|${name}`;
+  private citySprite(name: string, size: number, dpr: number) {
+    const key = `${size}|${name}`;
     let c = this.citySprites.get(key);
     if (c) return c;
     const P = this.P;
@@ -2534,7 +2532,7 @@ export class GlobeEngine {
     g.lineWidth = px * 0.24;
     g.strokeText(name, pad, c.height / 2);
     g.globalAlpha = 1;
-    g.fillStyle = muted ? P.muted : P.ink;
+    g.fillStyle = P.ink;
     g.fillText(name, pad, c.height / 2);
     this.citySprites.set(key, c);
     return c;
@@ -2619,7 +2617,8 @@ export class GlobeEngine {
       }
     });
 
-    // 3. fade toward the outcome and draw: dot first, then the name beside it
+    // 3. fade toward the outcome and draw: dot first, then the name beside it. Every name is the same ink, the small
+    // ones smaller, each fading in from nothing to fully printed as you zoom; they don't dim for a trip
     const P = this.P;
     ctx.save();
     ctx.imageSmoothingQuality = "high";
@@ -2631,7 +2630,7 @@ export class GlobeEngine {
       const f = (this.cityFade[i] += ((on ? 1 : 0) - prev) * ease);
       if (t < this.cityHold[i] || (!dt && f !== Number(on)) || (f !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
       const c = CITIES[i];
-      const alpha = f * smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], CITY_FROM[c.rank] + CITY_FADE, zoom) * this.nameInk;
+      const alpha = f * smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], Math.min(1, CITY_FROM[c.rank] + CITY_FADE), zoom);
       if (alpha < 0.01) return;
       const x = this.cityX[i];
       const y = this.cityY[i];
@@ -2653,7 +2652,7 @@ export class GlobeEngine {
         ctx.fill();
       }
       const size = CITY_SIZE[c.rank];
-      const img = this.citySprite(c.name, size, dpr, c.rank >= CITY_MUTED_FROM);
+      const img = this.citySprite(c.name, size, dpr);
       const pad = Math.ceil(size * dpr * 0.3);
       const left = this.cityLeft[i];
       const tx = left ? x - 7 - (img.width - pad) / dpr : x + 7 - pad / dpr;
