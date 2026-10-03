@@ -4,32 +4,26 @@ import { randomBytes } from "node:crypto";
 
 import { redirect } from "next/navigation";
 
-import { ensureGuest, MAX_NAME, readGuest, setGuestName } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { editPlan, undoChangeset } from "@/lib/agent/edit";
 import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
 import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
 import { runLegSearch } from "@/lib/trip/search-leg";
 
-/** Creates a trip room owned by the current guest and opens it. Its URL is the invite (M7). */
+/** Creates a trip room owned by the signed-in user and opens it. Its URL is the invite (M7). Needs an account (M19). */
 export async function createTrip() {
-  const guest = await ensureGuest();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=/");
   const id = randomBytes(12).toString("base64url");
   await liveblocks().createRoom(tripRoomId(id), {
     defaultAccesses: [],
-    usersAccesses: { [guest.id]: ["room:write"] },
-    metadata: { members: [guest.id] },
+    usersAccesses: { [user.id]: ["room:write"] },
+    metadata: { members: [user.id] },
   });
   redirect(`/t/${id}`);
-}
-
-/** Saves the name others see on your cursor and avatar. */
-export async function saveName(formData: FormData) {
-  const name = String(formData.get("name") ?? "").trim().slice(0, MAX_NAME);
-  await ensureGuest();
-  if (name) await setGuestName(name);
 }
 
 /** Starts the route search for one leg on the server, so provider keys stay there (ADR-C01) and results land even if
@@ -37,10 +31,10 @@ export async function saveName(formData: FormData) {
 export async function searchLeg(tripId: string, legId: string, searchId: string) {
   if (!TRIP_ID.test(tripId)) return;
   const roomId = tripRoomId(tripId);
-  const guest = await readGuest();
+  const user = await getCurrentUser();
   const room = await liveblocks().getRoom(roomId).catch(() => null);
   // the search spends provider quota, so only members can start one
-  if (!guest || !room?.usersAccesses[guest.id]) return;
+  if (!user || !room?.usersAccesses[user.id]) return;
   await runLegSearch(roomId, legId, searchId);
 }
 
@@ -48,9 +42,9 @@ export async function searchLeg(tripId: string, legId: string, searchId: string)
 async function memberRoom(tripId: string) {
   if (!TRIP_ID.test(tripId)) return null;
   const roomId = tripRoomId(tripId);
-  const guest = await readGuest();
+  const user = await getCurrentUser();
   const room = await liveblocks().getRoom(roomId).catch(() => null);
-  return guest && room?.usersAccesses[guest.id] ? { roomId, guest } : null;
+  return user && room?.usersAccesses[user.id] ? { roomId, user } : null;
 }
 
 /** Undo on a card: puts back what one of Pip's changes did, and marks the card undone. */
@@ -75,7 +69,7 @@ export async function applyMeetup(tripId: string, messageId: string, optionId: s
   const option = card?.options.find((o) => o.id === optionId);
   if (!card || !option || (card.applied && !card.undone)) return;
   const handles = handlesFor(plan);
-  const result = await editPlan(member.roomId, plan, handles, meetupOps(option, handles), member.guest.id);
+  const result = await editPlan(member.roomId, plan, handles, meetupOps(option, handles), member.user.id);
   await markCard(member.roomId, messageId, (c) =>
     c === undefined || c.type !== "meetup" || !c.options.some((o) => o.id === optionId)
       ? c

@@ -2,7 +2,7 @@ import type { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 
 import type { AgentEvent, AgentRun, Changeset, ThreadMessage } from "@/lib/agent/types";
 
-// Shared shapes for the trip room. Decisions: docs/multiplayer/decisions.md (M3, M4, M8, M13, M14).
+// Shared shapes for the trip room. Decisions: docs/multiplayer/decisions.md (M3, M8, M13, M14, M19).
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
 export type TripPresence = {
   /** The place under this member's pointer. Never screen pixels: everyone's view of the globe differs. */
@@ -18,7 +18,9 @@ export type TripPresence = {
   activity?: string | null;
 };
 
+/** What others see of a member. The member's Liveblocks user id is their Supabase user id (M19). */
 export type MemberInfo = {
+  /** The profile's display name. */
   name: string;
   /** 1 to MEMBER_COLORS, in join order. Rendered as `var(--member-<n>)`. */
   color: number;
@@ -67,12 +69,12 @@ export type Leg = {
   to: string;
   /** YYYY-MM-DD, local date at the origin. */
   date: string;
-  /** Guest id of whoever drew it. */
+  /** User id of whoever drew it. */
   createdBy: string;
-  /** Guest ids of who travels on this leg (M10). Defaults to whoever drew it. */
+  /** User ids of who travels on this leg (M10). Defaults to whoever drew it. */
   riders: string[];
   search: LegSearch;
-  /** Guest id → offer id: one vote per member. */
+  /** User id → offer id: one vote per member. */
   votes: LiveMap<string, string>;
   chosen: string | null;
   createdAt: number;
