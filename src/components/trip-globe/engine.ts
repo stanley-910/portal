@@ -518,7 +518,7 @@ export class GlobeEngine {
   }>();
 
   // planes that just left the room's flights (someone landed, or stopped): each settles and shrinks away from t0
-  private ghosts: { pl: Plane; t0: number }[] = [];
+  private ghosts: { pl: Plane; t0: number; color: number | null }[] = [];
   // the pins at the trip's stops. `fan` is how far a pin leans to the side among its stop's bunch, in radians,
   // easing to `to`; `h` and `squash` are how high it is and how squashed, worked out every frame. `head` is where
   // its head was last drawn, for hit testing and keeping tags clear.
@@ -1845,6 +1845,8 @@ export class GlobeEngine {
   setColor(slot: number | null) {
     this.color = slot;
     this.hudDirty = true;
+    // its plane's trim is in the colour too
+    this.glDirty = true;
   }
 
   /** A member's route colour for a slot, wrapping past the last like `memberColor`; ink when there's no slot. */
@@ -1898,7 +1900,7 @@ export class GlobeEngine {
     for (const [id, r] of this.remotes) {
       if (seen.has(id)) continue;
       // a plane still in the air settles and shrinks away rather than vanishing; a landed leg's route reels in
-      if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: performance.now() / 1000 });
+      if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: performance.now() / 1000, color: r.color });
       if (r.landed && !this.reduceMotion) this.reels.push({ o: r.o, target: r.target, color: r.color, t0: performance.now() / 1000 });
       this.remotes.delete(id);
     }
@@ -2770,12 +2772,14 @@ export class GlobeEngine {
 
     // pins first, under the planes; then other members' planes, so this viewer's own plane sits on top. A landed
     // leg has no plane: its pins mark it.
-    const planes: { pl: Plane; pp: Vec3; left: number }[] = [];
+    // each vehicle's trim (the plane's fin and wing roundels, the train's and bus's stripe, the ferry's funnel) is in
+    // its member's colour: this viewer's own follows their cursor colour
+    const planes: { pl: Plane; pp: Vec3; left: number; color: number | null }[] = [];
     for (const r of this.remotes.values()) {
-      if (!r.landed) planes.push({ pl: r.pl, pp: mul(r.pl.n, 1 + r.pl.alt + 0.09 * S), left: 1 });
+      if (!r.landed) planes.push({ pl: r.pl, pp: mul(r.pl.n, 1 + r.pl.alt + 0.09 * S), left: 1, color: r.color });
     }
-    for (const g of this.ghosts) planes.push({ pl: g.pl, pp: mul(g.pl.n, 1 + g.pl.alt + 0.09 * S), left: this.planeLeft(g.t0) });
-    if (pl && pp) planes.push({ pl, pp, left });
+    for (const g of this.ghosts) planes.push({ pl: g.pl, pp: mul(g.pl.n, 1 + g.pl.alt + 0.09 * S), left: this.planeLeft(g.t0), color: g.color });
+    if (pl && pp) planes.push({ pl, pp, left, color: this.color });
     const shown = planes.filter(({ pp, left }) => left > 0 && this.proj(pp)?.vis);
     const ufoShown = !!ufo && ufo.S > 1e-4 && !!this.proj(ufo.at)?.vis;
     if (!shown.length && !pins.length && !ufoShown) return;
@@ -2819,13 +2823,16 @@ export class GlobeEngine {
         sticker(this.vaoPin.count);
       }
     }
-    for (const { pl, pp, left } of shown) {
+    const memberGL = th.memberGL;
+    for (const { pl, pp, left, color } of shown) {
       const mesh = this.vaoVehicle.get(pl.vehicle);
       const s = S * (1 - Math.sin(Math.PI * pl.swap)) * left;
       if (!mesh || s < 1e-4) continue;
       const B = this.planeBasis(pl, s);
       gl.bindVertexArray(mesh.vao);
       gl.uniform1i(u.uVehicle, VEHICLES.indexOf(pl.vehicle));
+      const slot = color === null || !memberGL.length ? null : ((Math.trunc(color) % memberGL.length) + memberGL.length) % memberGL.length;
+      gl.uniform3fv(u.uRoundel, slot === null ? th.stickerGL.roundel : memberGL[slot]);
       gl.uniform3fv(u.uPP, pp);
       gl.uniform3fv(u.uPX, B.X);
       gl.uniform3fv(u.uPY, B.Y);
