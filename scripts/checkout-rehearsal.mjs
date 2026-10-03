@@ -2,7 +2,7 @@
 // Checkout with the 4242 test card, and the leg ends Booked. Needs the dev server, `stripe listen` and a trip from
 // src/lib/booking/demo-seed.test.ts:  node scripts/checkout-rehearsal.mjs <TRIP_ID>   (SKIP_SETTLE=1 resumes at paying, BASE_URL=https://… for a tunnel)
 import { chromium } from "playwright";
-const TRIP = process.argv[2]; const BASE = process.env.BASE_URL ?? "http://localhost:3000"; const url = `${BASE}/t/${TRIP}`;
+const TRIP = process.argv[2]; const BASE = process.env.BASE_URL ?? "http://localhost:3000"; const url = `${BASE}/t/${TRIP}?book=leg1`; // ?book opens the leg, whose booking controls are inside it
 const S = process.env.SHOTS;
 // software WebGL: the trip page shows its plan only once the globe can draw
 const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
