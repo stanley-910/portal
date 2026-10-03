@@ -9,7 +9,7 @@ const ID_COOKIE = "portal_guest";
 const NAME_COOKIE = "portal_name";
 const YEAR = 60 * 60 * 24 * 365;
 
-export const MAX_NAME = 32;
+export { MAX_NAME } from "./guest-name";
 
 export interface Guest {
   id: string;

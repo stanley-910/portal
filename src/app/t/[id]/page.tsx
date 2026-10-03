@@ -13,7 +13,7 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   const guest = await readGuest();
   if (!guest?.name) return <NamePrompt />;
   if ((await joinTrip(tripRoomId(id), guest.id)) === null) notFound();
-  return <TripRoom tripId={id} />;
+  return <TripRoom tripId={id} guestName={guest.name} />;
 }
 
 /** Before joining, everyone picks the name the others will see. */

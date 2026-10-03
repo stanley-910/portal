@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
-import { CurrencySelector } from "@/components/transport/currency-selector";
+import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 
 import { createTrip } from "./t/actions";
 
-export function GlobeScreen() {
+export function GlobeScreen({ guestName }: { guestName: string | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
@@ -47,9 +47,12 @@ export function GlobeScreen() {
       }}
       onCancel={() => setTrip(null)}
     />
-    <NavBar globe={globe}>
+    <NavBar
+      globe={globe}
+      guestName={guestName}
+      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
+    >
       <PlaceSearch globe={globe} />
-      <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
       <form action={createTrip}>
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
@@ -68,3 +71,4 @@ export function GlobeScreen() {
     ) : null}
   </main>;
 }
+

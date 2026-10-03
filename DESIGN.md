@@ -71,6 +71,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 
 - The Portal logo files and the `<portal-logo-reveal>` web component live in `design-system/paper-atlas/` (`assets/Logos/`, `components/LogoReveal/`). Use the logo files as they are: never redraw, recolour or re-letter them.
 - `<NavBar>` (`src/components/nav-bar`) shows the logo top-left and the screen's controls top-right. The logo is always `<portal-logo-reveal>`, imported once on the client, which draws it on at load; never swap in the static horizontal SVG, which can't animate. When the globe zooms in, the bar shrinks to the bare mark and icon-only controls. Its actions are a primary `Button` (ink fill) and `RoundButton`s; zoomed in, the Button folds into a disc and every control shrinks from 36px to the size of the globe mark (28px). Each keeps a 44px tap area.
+- The bar always ends with the profile disc (`ProfileMenu`): your initials, or a person glyph before you have a name. It opens a panel with who you are, Theme (Day, Night, Auto) and the screen's own settings, such as Currency, as segmented choices. Put settings there, not as more buttons in the bar.
 
 ## Iconography
 

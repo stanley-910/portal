@@ -19,7 +19,7 @@ import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } fro
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
 
-export function TripRoom({ tripId }: { tripId: string }) {
+export function TripRoom({ tripId, guestName }: { tripId: string; guestName: string }) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
@@ -27,13 +27,13 @@ export function TripRoom({ tripId }: { tripId: string }) {
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen />
+        <TripScreen guestName={guestName} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen() {
+function TripScreen({ guestName }: { guestName: string }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
@@ -71,7 +71,7 @@ function TripScreen() {
       <RemotePlanes globe={globe} hideLeg={landedLeg} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
-      <NavBar globe={globe}>
+      <NavBar globe={globe} guestName={guestName} reloadOnRename>
         <PlaceSearch globe={globe} />
         <AvatarStack />
         <InviteButton />

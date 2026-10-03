@@ -1,0 +1,199 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
+
+import { Button } from "@/components/paper-atlas";
+import { saveName } from "@/app/t/actions";
+import { initials, MAX_NAME } from "@/lib/guest-name";
+
+export interface ProfileMenuProps {
+  /** The guest's name, or null before they pick one. */
+  name: string | null;
+  /** Reload the page after a rename, so a trip room reconnects with the new name on your cursor. */
+  reloadOnRename?: boolean;
+  /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
+  children?: ReactNode;
+}
+
+/** The disc at the end of the bar: who you are, and the app's settings. Until accounts land, you are a guest with a name. */
+export function ProfileMenu({ name, reloadOnRename, children }: ProfileMenuProps) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={root} className="relative">
+      <button
+        ref={trigger}
+        type="button"
+        className="pa-round pn-profile"
+        aria-label="Profile and settings"
+        title={name ?? "Profile and settings"}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((visible) => !visible)}
+      >
+        {name ? initials(name) : <PersonGlyph />}
+      </button>
+      {open ? (
+        <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
+          <Identity name={name} reloadOnRename={reloadOnRename} />
+          <ThemeSetting />
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Identity({ name, reloadOnRename }: { name: string | null; reloadOnRename?: boolean }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(!name);
+  const [pending, startTransition] = useTransition();
+
+  if (name && !editing) {
+    return (
+      <div className="pn-profile-who">
+        <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span>
+        <span className="pn-menu-text">
+          <span>{name}</span>
+          <span className="pn-menu-detail">Not signed in</span>
+        </span>
+        <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+          Rename
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className="pn-profile-form"
+      action={(form) =>
+        startTransition(async () => {
+          await saveName(form);
+          if (reloadOnRename) window.location.reload();
+          else {
+            router.refresh();
+            setEditing(false);
+          }
+        })
+      }
+    >
+      <label htmlFor="pn-profile-name" className="type-label">
+        Your name
+      </label>
+      {name ? null : <p className="type-caption text-ink-muted">Friends see it next to your cursor.</p>}
+      <div className="pn-profile-row">
+        <input
+          id="pn-profile-name"
+          name="name"
+          required
+          autoFocus
+          maxLength={MAX_NAME}
+          autoComplete="nickname"
+          defaultValue={name ?? ""}
+          className="pn-profile-input"
+        />
+        <Button type="submit" disabled={pending}>
+          Save
+        </Button>
+      </div>
+      {name ? (
+        <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+      ) : null}
+    </form>
+  );
+}
+
+const THEMES = [
+  { value: "light", label: "Day" },
+  { value: "dark", label: "Night" },
+  { value: "system", label: "Auto" },
+] as const;
+
+function ThemeSetting() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <MenuSection title="Theme">
+      <MenuChoices name="theme" label="Theme" value={theme ?? "system"} options={THEMES} onChange={setTheme} />
+    </MenuSection>
+  );
+}
+
+/** A titled group in the profile menu. */
+export function MenuSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="pn-profile-section">
+      <h2 className="type-caption text-ink-muted">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+export interface MenuChoice<T extends string> {
+  value: T;
+  label: string;
+  /** Shown as a tooltip, e.g. a currency's full name. */
+  title?: string;
+  disabled?: boolean;
+}
+
+/** A row of segments for picking one value. Native radios, so arrow keys move between them. */
+export function MenuChoices<T extends string>({ name, label, value, options, onChange }: {
+  name: string;
+  label: string;
+  value: string;
+  options: readonly MenuChoice<T>[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="pn-choices">
+      {options.map((option) => (
+        <label key={option.value} className="pn-choice" title={option.title} data-disabled={option.disabled || undefined}>
+          <input
+            type="radio"
+            name={name}
+            value={option.value}
+            checked={option.value === value}
+            disabled={option.disabled}
+            onChange={() => onChange(option.value)}
+          />
+          <span>{option.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function PersonGlyph() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+      <circle cx="8" cy="5.5" r="2.6" />
+      <path d="M2.8 14c.6-2.8 2.6-4.3 5.2-4.3s4.6 1.5 5.2 4.3" />
+    </svg>
+  );
+}

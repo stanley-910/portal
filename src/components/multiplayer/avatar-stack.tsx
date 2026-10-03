@@ -3,6 +3,7 @@
 import { shallow, useOthers, useSelf } from "@liveblocks/react";
 
 import { PipSprite } from "@/components/agent/pip-sprite";
+import { initials } from "@/lib/guest-name";
 import { AGENT_ID, AGENT_NAME } from "@/lib/agent/types";
 import { memberColor, type MemberInfo } from "@/lib/liveblocks/types";
 
@@ -50,14 +51,6 @@ function Avatar({ info, label }: { info: MemberInfo; label: string }) {
     </li>
   );
 }
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
 
 const shallowList = (a: { key: number; info: MemberInfo }[], b: { key: number; info: MemberInfo }[]) =>
   a.length === b.length && a.every((x, i) => x.key === b[i]!.key && shallow(x.info, b[i]!.info));
