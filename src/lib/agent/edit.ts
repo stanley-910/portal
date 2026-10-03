@@ -7,6 +7,7 @@ import { showDate } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegSearch, Stay, Stop } from "@/lib/liveblocks/types";
 import { searchPlaces } from "@/lib/places/search";
+import { clampLeave, legBefore, moveLeg, setEnds, settle, type DateChanges, type DatePlan } from "@/lib/trip/dates";
 import { runLegSearch } from "@/lib/trip/search-leg";
 
 // edit_plan (harness G5): the agent's only way to change the trip. Each run's edits are one changeset that Undo
@@ -215,6 +216,41 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     // stops a removed leg used; they go at the end, once no leg in the trip uses them, so a later op in the same
     // changeset can still add a leg to them
     const freed = new Set<string>();
+    const legLabel = (id: string) => {
+      const l = legs.get(id);
+      return l ? `${stopName(l.get("from"))} → ${stopName(l.get("to"))}` : (h.leg.get(id) ?? "a leg");
+    };
+    // the dates as stored right now, for `@/lib/trip/dates` to keep in order (same rules as the plan panel)
+    const datesNow = (): DatePlan => ({
+      legs: Object.fromEntries(
+        [...legs.entries()].map(([id, l]) => [id, { date: l.get("date"), riders: l.get("riders"), createdAt: l.get("createdAt"), booking: l.get("booking") ?? null }]),
+      ),
+      members: Object.fromEntries([...members.entries()].map(([id, m]) => [id, { leaves: m.get("leaves") ?? null }])),
+      ends: root.get("ends") ?? null,
+    });
+    const setLeaves = (id: string, date: string | null) => {
+      const m = members.get(id);
+      if (!m) return null;
+      before.leaves ??= {};
+      if (!(id in before.leaves)) before.leaves[id] = { value: m.get("leaves") ?? null };
+      m.set("leaves", date);
+      return m.get("name");
+    };
+    const setTripEnd = (date: string | null) => {
+      before.ends ??= { value: root.get("ends") ?? null };
+      root.set("ends", date);
+    };
+    /** Leave dates and the trip's end that other edits pushed along, each said in the changes. */
+    const follow = (changes: DateChanges) => {
+      for (const [id, date] of Object.entries(changes.leaves)) {
+        const who = setLeaves(id, date);
+        if (who) applied.push(`${who} now leaves on ${showDate(date)}, to stay within the trip`);
+      }
+      if (changes.ends !== undefined && changes.ends !== (root.get("ends") ?? null)) {
+        setTripEnd(changes.ends);
+        if (changes.ends) applied.push(`Trip now ends the morning of ${showDate(changes.ends)}, the day of its last leg`);
+      }
+    };
 
     for (const p of planned) {
       if (p.kind === "stay") {
@@ -233,19 +269,21 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         continue;
       }
       if (p.kind === "leaves") {
-        const m = members.get(p.member);
-        if (!m) continue;
-        before.leaves ??= {};
-        if (!(p.member in before.leaves)) before.leaves[p.member] = { value: m.get("leaves") ?? null };
-        m.set("leaves", p.date);
-        const who = m.get("name");
-        applied.push(p.date ? `${who} leaves on ${showDate(p.date)}` : `${who} stays to the end`);
+        // between their first leg and the trip's end
+        const date = clampLeave(datesNow(), p.member, p.date);
+        const who = setLeaves(p.member, date);
+        if (!who) continue;
+        const why = !date || !p.date || date === p.date ? "" : date > p.date ? ", the day of their first leg" : ", when the trip ends";
+        applied.push(date ? `${who} leaves on ${showDate(date)}${why}` : `${who} stays to the end`);
         continue;
       }
       if (p.kind === "ends") {
-        before.ends ??= { value: root.get("ends") ?? null };
-        root.set("ends", p.date);
-        applied.push(p.date ? `Trip ends the morning of ${showDate(p.date)}` : "Trip ends after its last leg");
+        // never before the latest leg; leave dates after it come back to it
+        const changes = setEnds(datesNow(), p.date);
+        setTripEnd(changes.ends ?? null);
+        const why = changes.ends && p.date && changes.ends !== p.date ? ", the day of its last leg" : "";
+        applied.push(changes.ends ? `Trip ends the morning of ${showDate(changes.ends)}${why}` : "Trip ends after its last leg");
+        follow({ ...changes, ends: undefined });
         continue;
       }
       if (p.kind === "add" || p.kind === "riders") {
@@ -280,17 +318,39 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         refused.push({ op: p.op, code: "LOCKED", reason: `${h.leg.get(p.leg) ?? "That leg"} is being booked, so it can't change.`, next: "Ask a rider to cancel the settle first." });
         continue;
       }
-      remember(p.leg);
-      const label = `${stopName(leg.get("from"))} → ${stopName(leg.get("to"))}`;
+      const label = legLabel(p.leg);
       if (p.kind === "date") {
+        // no earlier than the leg that gets its riders there; later legs they take move along with it
+        const changes = moveLeg(datesNow(), p.leg, p.date);
+        if (changes.blocked.length) {
+          const fixed = changes.blocked.map(legLabel).join(", ");
+          refused.push({ op: p.op, code: "LOCKED", reason: `Moving ${label} to ${showDate(p.date)} would move ${fixed}, which is being booked.`, next: "Pick an earlier date, or ask a rider to cancel the settle first." });
+          continue;
+        }
         // a new date resets the leg's options, votes and pick
-        const search = pending();
-        leg.update({ date: p.date, search, chosen: null });
-        const votes = leg.get("votes");
-        for (const who of [...votes.keys()]) votes.delete(who);
-        searches.push({ legId: p.leg, searchId: search.id });
-        applied.push(`Moved ${label} to ${showDate(p.date)}`);
-      } else if (p.kind === "riders") {
+        const redate = (id: string, date: string) => {
+          const l = legs.get(id);
+          if (!l) return;
+          remember(id);
+          const search = pending();
+          l.update({ date, search, chosen: null });
+          const votes = l.get("votes");
+          for (const who of [...votes.keys()]) votes.delete(who);
+          searches.push({ legId: id, searchId: search.id });
+        };
+        const prev = changes.date === p.date ? null : legBefore(datesNow(), p.leg);
+        redate(p.leg, changes.date);
+        applied.push(`Moved ${label} to ${showDate(changes.date)}${prev ? `, the earliest after ${legLabel(prev.leg)}` : ""}`);
+        for (const [id, date] of Object.entries(changes.legs)) {
+          if (id === p.leg) continue;
+          redate(id, date);
+          applied.push(`Moved ${legLabel(id)} to ${showDate(date)} so it still comes after ${label}`);
+        }
+        follow(changes);
+        continue;
+      }
+      remember(p.leg);
+      if (p.kind === "riders") {
         const was = leg.get("riders");
         leg.set("riders", p.riders);
         const name = (id: string) => plan.members?.[id]?.name ?? "someone";
@@ -314,6 +374,8 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       if (!(stop in before.stops)) before.stops[stop] = stops.get(stop)?.toJSON() ?? null;
       stops.delete(stop);
     }
+    // added, removed and re-ridden legs can leave the trip's end or someone's leave date out of step
+    if (applied.length) follow(settle(datesNow()));
 
     if (!applied.length) return;
     const changesets = root.get("changesets");

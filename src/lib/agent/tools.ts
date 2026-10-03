@@ -54,7 +54,11 @@ const editOp = z.discriminatedUnion("op", [
     date,
     riders: z.array(z.string()).describe("Member handles who travel on it, e.g. [\"M1\",\"M2\"]"),
   }),
-  z.object({ op: z.literal("set_date"), leg: z.string().describe("Leg handle"), date }),
+  z.object({
+    op: z.literal("set_date"),
+    leg: z.string().describe("Leg handle"),
+    date: date.describe("YYYY-MM-DD. Never before the leg that gets its riders there; later legs they take move along if it passes them"),
+  }),
   z.object({ op: z.literal("set_riders"), leg: z.string(), riders: z.array(z.string()) }),
   z.object({ op: z.literal("remove_leg"), leg: z.string() }),
   z.object({
@@ -69,11 +73,11 @@ const editOp = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("set_leaves"),
     member: z.string().describe("Member handle"),
-    date: date.nullable().describe("The day they leave; their last night is the one before. Null: they stay to the end"),
+    date: date.nullable().describe("The day they leave early; their last night is the one before. Kept between their first leg and the trip's end. Null: they stay to the end"),
   }),
   z.object({
     op: z.literal("set_trip_end"),
-    date: date.nullable().describe("The morning after the trip's last night. Null: it ends after the last leg"),
+    date: date.nullable().describe("The morning after the whole group's last night, never before the last leg. Null: it ends after the last leg"),
   }),
 ]);
 

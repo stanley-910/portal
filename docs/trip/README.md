@@ -22,6 +22,14 @@ Presence is worked out from legs, never stored, so moving a leg moves its nights
 
 Leaving early is setting `leaves`, or adding a leg home.
 
+## Dates stay in order
+
+`src/lib/trip/dates.ts` keeps the dates consistent, for the plan panel and Pip alike, by moving whatever is out of step to the nearest day that fits.
+
+- A rider's legs go in date order. A leg can't leave before the leg that gets its riders there, and moving it later pushes the legs they take after it along to the same day, each searched again. A move that would push a leg being booked doesn't happen.
+- The trip ends no earlier than its latest leg.
+- A leave date sits between the member's first leg and the trip's end, when one is set.
+
 ## The split
 
 `computeSplit` in `src/lib/trip/split.ts` takes the Storage as JSON and returns every night with who was there, and for each member their fares by leg, their night shares and their totals. The UI and Pip both read it, and Pip never adds money up itself.
