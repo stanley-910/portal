@@ -89,6 +89,12 @@ describe("adoptInStorage", () => {
     expect(after.changesets.c1).not.toContain(GUEST);
   });
 
+  it("keeps a trip that passed on to the guest theirs", () => {
+    const root = trip();
+    (root as unknown as LiveObject<{ owner?: string }>).set("owner", GUEST);
+    expect(run(root)).toMatchObject({ owner: ACCOUNT });
+  });
+
   it("makes the account a member when it hadn't joined yet", () => {
     const after = run(trip(false));
     expect(after.members[ACCOUNT]).toEqual({ name: "Cata", color: 2, leaves: "2026-10-06" });

@@ -1,5 +1,9 @@
 // Leaving a trip: what of the plan goes with the person who leaves, and who owns the trip after them.
 
+import type { LiveObject } from "@liveblocks/client";
+
+import type { TripStorage } from "@/lib/liveblocks/types";
+
 type Metadata = Record<string, string | string[] | undefined>;
 
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v : typeof v === "string" && v ? [v] : []);
@@ -58,4 +62,28 @@ export function leaveChanges(plan: LeaveInput, userId: string): LeaveChanges {
   changes.stops = [...dropped].filter((stop) => !used.has(stop));
   changes.messages = (plan.thread ?? []).filter((m) => m.author.kind === "member" && m.author.id === userId).map((m) => m.id);
   return changes;
+}
+
+/**
+ * Applies `leaveChanges` to the live Storage root (inside `mutateStorage`), and records who owns the trip now so the
+ * room sees it pass on. Rooms made before stays or the thread, or never opened, lack those keys; that's fine.
+ */
+export function applyLeave(root: LiveObject<TripStorage>, changes: LeaveChanges, userId: string, owner: string | null) {
+  const legs = root.get("legs");
+  const stops = root.get("stops");
+  const stays = root.get("stays");
+  for (const id of changes.legs) legs?.delete(id);
+  for (const [id, riders] of Object.entries(changes.riders)) legs?.get(id)?.set("riders", riders);
+  for (const id of changes.votes) legs?.get(id)?.get("votes")?.delete(userId);
+  for (const id of changes.stops) {
+    stops?.delete(id);
+    stays?.delete(id);
+  }
+  const thread = root.get("thread");
+  if (thread) {
+    const gone = new Set(changes.messages);
+    for (let i = thread.length - 1; i >= 0; i--) if (gone.has(thread.get(i)!.get("id"))) thread.delete(i);
+  }
+  root.get("members")?.delete(userId);
+  if (root.get("owner") !== owner) root.set("owner", owner);
 }

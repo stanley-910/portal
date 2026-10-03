@@ -154,6 +154,11 @@ export type TripStorage = {
   legs: LiveMap<string, LiveObject<Leg>>;
   /** Stop id → its lodging cost. Missing in older rooms and for stops nobody has priced. */
   stays?: LiveMap<string, LiveObject<Stay>>;
+  /**
+   * Who owns the trip, kept here so the room sees it pass on live. The room's metadata is what the server trusts;
+   * leaving writes both. Unset in rooms whose owner never changed: then it's whoever made the trip.
+   */
+  owner?: string | null;
   /** YYYY-MM-DD the trip ends: the morning after its last night. Unset means the latest leg or leave date. */
   ends?: string | null;
   /** The trip's one thread, people and Pip. Missing in rooms made before it; created on first message. */
@@ -166,12 +171,15 @@ export type TripStorage = {
   changesets?: LiveMap<string, Changeset>;
 };
 
+/** Sent by the server only (`user` is null on it): the owner ended the trip and its room is being deleted. */
+export type TripEvent = { type: "trip-ended" };
+
 declare global {
   interface Liveblocks {
     Presence: TripPresence;
     Storage: TripStorage;
     UserMeta: { id: string; info: MemberInfo };
-    RoomEvent: AgentEvent;
+    RoomEvent: AgentEvent | TripEvent;
   }
 }
 

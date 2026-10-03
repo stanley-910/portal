@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition, type ReactNode } from "react";
 
 import "@/components/auth/auth.css";
 import { Button } from "@/components/paper-atlas";
-import { leavePreview, leaveTrip, type LeavePreview } from "@/app/trips/actions";
+import { endTrip, leavePreview, leaveTrip, type LeavePreview } from "@/app/trips/actions";
 
 /** What leaving takes with you, and what happens to the trip after. */
 function consequences(preview: LeavePreview | null) {
@@ -16,22 +16,99 @@ function consequences(preview: LeavePreview | null) {
   return yours;
 }
 
+/** The room's connection, paused while a dialog acts on the trip: reconnecting goes through the auth route, which joins you. */
+type Connection = { pause(): void; resume(): void };
+
 /**
- * Asks "Are you sure?" before leaving a trip, then leaves and goes to `next`. Styled like the sign-in panel: it sits
- * over the screen, which shows through a paper wash. Inside the trip, pass the room's `connection`: it is paused while
- * leaving, since reconnecting goes through the auth route, which would join you again.
+ * Runs a trip action behind a confirm, then goes to `next`. The room's connection is paused while it runs and resumed
+ * if it fails. A thrown action is logged, since the dialog only says it failed.
+ */
+function useTripAction(run: () => Promise<{ ok: boolean }>, next: string, connection?: Connection) {
+  const router = useRouter();
+  const [failed, setFailed] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const act = () =>
+    startTransition(async () => {
+      setFailed(false);
+      connection?.pause();
+      const result = await run().catch((error: unknown) => {
+        console.error("[trip] the server action failed:", error);
+        return { ok: false };
+      });
+      if (!result.ok) {
+        connection?.resume();
+        return setFailed(true);
+      }
+      router.replace(next);
+    });
+  return { act, failed, pending };
+}
+
+/**
+ * A confirm over the screen, styled like the sign-in panel: it sits over the screen, which shows through a paper wash.
+ * Escape and the wash cancel it unless it's busy.
+ */
+function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, busy, onCancel, onConfirm }: {
+  title: string;
+  body: ReactNode;
+  error: string;
+  failed: boolean;
+  pending: boolean;
+  cancel: string;
+  confirm: string;
+  busy: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const titleId = useId();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !pending && onCancel();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel, pending]);
+
+  return (
+    <div className="au-layer">
+      <div className="au-scrim" aria-hidden onClick={() => !pending && onCancel()} />
+      <section className="au-panel" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-body`}>
+        <div>
+          <h2 id={titleId} className="au-title">
+            {title}
+          </h2>
+          <p id={`${titleId}-body`} className="au-sub">
+            {body}
+          </p>
+        </div>
+        {failed ? (
+          <p role="alert" className="au-message" data-kind="error">
+            {error}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-(--space-2)">
+          <Button variant="secondary" onClick={onCancel} disabled={pending} autoFocus>
+            {cancel}
+          </Button>
+          <Button onClick={onConfirm} disabled={pending}>
+            {pending ? busy : confirm}
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Asks "Are you sure?" before leaving a trip, then leaves and goes to `next`. Inside the trip, pass the room's
+ * `connection`: it is paused while leaving, since reconnecting goes through the auth route, which would join you again.
  */
 export function LeaveTripDialog({ tripId, next, onClose, connection }: {
   tripId: string;
   next: string;
   onClose: () => void;
-  connection?: { pause(): void; resume(): void };
+  connection?: Connection;
 }) {
-  const router = useRouter();
-  const titleId = useId();
   const [preview, setPreview] = useState<LeavePreview | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const { act, failed, pending } = useTripAction(() => leaveTrip(tripId), next, connection);
 
   useEffect(() => {
     let live = true;
@@ -41,51 +118,43 @@ export function LeaveTripDialog({ tripId, next, onClose, connection }: {
     };
   }, [tripId]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !pending && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, pending]);
-
-  const leave = () =>
-    startTransition(async () => {
-      setFailed(false);
-      connection?.pause();
-      const result = await leaveTrip(tripId).catch(() => ({ ok: false }));
-      if (!result.ok) {
-        connection?.resume();
-        return setFailed(true);
-      }
-      router.replace(next);
-    });
-
   return (
-    <div className="au-layer">
-      <div className="au-scrim" aria-hidden onClick={() => !pending && onClose()} />
-      <section className="au-panel" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-body`}>
-        <div>
-          <h2 id={titleId} className="au-title">
-            Are you sure you want to leave the party?
-          </h2>
-          <p id={`${titleId}-body`} className="au-sub">
-            {consequences(preview)}
-          </p>
-        </div>
-        {failed ? (
-          <p role="alert" className="au-message" data-kind="error">
-            Couldn&apos;t leave the trip. Try again.
-          </p>
-        ) : null}
-        <div className="flex justify-end gap-(--space-2)">
-          <Button variant="secondary" onClick={onClose} disabled={pending} autoFocus>
-            Stay
-          </Button>
-          <Button onClick={leave} disabled={pending}>
-            {pending ? "Leaving…" : "Leave trip"}
-          </Button>
-        </div>
-      </section>
-    </div>
+    <ConfirmPanel
+      title="Are you sure you want to leave the party?"
+      body={consequences(preview)}
+      error="Couldn't leave the trip. Try again."
+      failed={failed}
+      pending={pending}
+      cancel="Stay"
+      confirm="Leave trip"
+      busy="Leaving…"
+      onCancel={onClose}
+      onConfirm={act}
+    />
+  );
+}
+
+/** The owner ending the trip for everyone, from inside it: the room is deleted and the others are told it ended. */
+export function EndTripDialog({ tripId, next, onClose, connection }: {
+  tripId: string;
+  next: string;
+  onClose: () => void;
+  connection?: Connection;
+}) {
+  const { act, failed, pending } = useTripAction(() => endTrip(tripId), next, connection);
+  return (
+    <ConfirmPanel
+      title="End the trip?"
+      body="This ends the trip for everyone. The plan and messages will be deleted."
+      error="Couldn't end the trip. Try again."
+      failed={failed}
+      pending={pending}
+      cancel="Keep trip"
+      confirm="End trip"
+      busy="Ending…"
+      onCancel={onClose}
+      onConfirm={act}
+    />
   );
 }
 

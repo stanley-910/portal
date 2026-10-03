@@ -37,7 +37,9 @@ Not covered yet: who paid what and settling up, shared extras, and overnight leg
 
 Anyone can leave a trip from the profile menu in the room, or from My trips, after confirming. Leaving takes what they added with them: the legs they drew, their seats on others' legs (a leg left with no riders goes too), their votes, their messages, and any stop no remaining leg uses, with its stay. Pip's legs stay.
 
-The owner is whoever made the trip, until it passes on (`owner` in the room's metadata). When the owner leaves, the trip passes to whoever joined next; when the last person leaves, the trip is deleted. Only the owner can delete a trip. The link is still the invite, so opening it again joins afresh.
+The owner is whoever made the trip, until it passes on (`owner` in the room's metadata, which the server trusts, and in Storage, so the room sees it change). When the owner leaves, the trip passes to whoever joined next; when the last person leaves, the trip is deleted. The link is still the invite, so opening it again joins afresh. You join when the room connects, never when the page renders, so nothing that re-renders the page puts someone who left back in.
+
+Only the owner can delete a trip: from My trips, or with End trip in the room's profile menu. Everyone still in the room is told it ended and sees "This trip has ended" instead of the plan. If a leave or end fails, the server log says why (`[trip] leaving …`, `[trip] ending …`).
 
 ## A test party locally
 

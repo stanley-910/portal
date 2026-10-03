@@ -1,6 +1,7 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useRoom, useSelf, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useEventListener, useRoom, useSelf, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +18,7 @@ import { LegTags } from "@/components/multiplayer/leg-tags";
 import { RiderPins } from "@/components/multiplayer/rider-pins";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { Button } from "@/components/paper-atlas";
-import { LeaveTripDialog } from "@/components/trip-plan/leave-trip";
+import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
 import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
@@ -50,11 +51,17 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   const updateMyPresence = useUpdateMyPresence();
   // the room numbers colours from 1; the design system's slots count from 0
   const color = useSelf((me) => me.info.color - 1) ?? 0;
+  const myId = useSelf((me) => me.id);
+  // the owner as the plan has it, so it updates when they leave and the trip passes on; else whoever made the trip
+  const owner = useStorage((root) => root.owner) ?? hostId;
   const status = useStatus();
   // a trip started by talking to Pip on the home globe opens with the chat showing
   const pipOpen = useSearchParams().get("pip") === "open";
   const [full, setFull] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [ending, setEnding] = useState(false);
+  // the owner ended the trip: its room is gone, so there's nothing to reconnect to
+  const [ended, setEnded] = useState(false);
   const room = useRoom();
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
@@ -77,8 +84,30 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   useRecordMember(nationalities);
 
   useErrorListener((error) => {
-    if (error.context.type === "ROOM_CONNECTION_ERROR" && error.context.code === 4005) setFull(true);
+    if (error.context.type !== "ROOM_CONNECTION_ERROR") return;
+    if (error.context.code === 4005) setFull(true);
+    // reconnecting after the room was deleted: the auth route answers 404, and Liveblocks stops retrying (code -1)
+    if (error.context.code === -1 && error.message.includes("(404 returned")) setEnded(true);
   });
+  // only the server sends this (`user` is null), so a member can't end the trip on anyone's screen
+  useEventListener(({ event, user }) => {
+    if (event.type !== "trip-ended" || user !== null) return;
+    room.disconnect();
+    setEnded(true);
+  });
+
+  if (ended) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-paper p-(--space-5)">
+        <div className="grid justify-items-center gap-(--space-3) text-center">
+          <p className="type-body">This trip has ended.</p>
+          <Link href="/" className="type-meta text-ink underline underline-offset-4">
+            Back to globe
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   if (full) {
     return (
@@ -117,6 +146,11 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
             <Button variant="quiet" onClick={() => setLeaving(true)}>
               Leave trip
             </Button>
+            {myId && myId === owner ? (
+              <Button variant="quiet" onClick={() => setEnding(true)}>
+                End trip
+              </Button>
+            ) : null}
           </MenuSection>
         }
       >
@@ -129,7 +163,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {/* below the navbar */}
       {planOpen ? (
         <div className="absolute top-40 right-(--space-4)">
-          <TripPlan hostId={hostId} email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
+          <TripPlan hostId={owner} email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
         </div>
       ) : null}
       <AgentChat initialOpen={pipOpen} />
@@ -138,6 +172,14 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
           tripId={tripId}
           next={account ? "/trips" : "/"}
           onClose={() => setLeaving(false)}
+          connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
+        />
+      ) : null}
+      {ending ? (
+        <EndTripDialog
+          tripId={tripId}
+          next={account ? "/trips" : "/"}
+          onClose={() => setEnding(false)}
           connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
         />
       ) : null}
