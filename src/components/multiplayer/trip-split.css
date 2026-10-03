@@ -1,0 +1,25 @@
+/* The split: each member's total, opening to their fares and nights, then what the totals leave out. */
+
+.tsp { display: grid; gap: 4px; padding: 8px 12px 10px; border-bottom: var(--line-control) solid var(--line); }
+.tsp .ts-step { margin: 0; }
+.tsp-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.tsp-member > summary { display: grid; grid-template-columns: 10px minmax(0, max-content) minmax(0, 1fr); align-items: center; gap: 8px; min-height: 44px; padding: 4px 6px; box-sizing: border-box; border-radius: var(--radius-tag); cursor: pointer; list-style: none; }
+.tsp-member > summary::-webkit-details-marker { display: none; }
+.tsp-member > summary:hover, .tsp-member[open] > summary { background: var(--control-hover); }
+.tsp-member > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.tsp-dot { width: 10px; height: 10px; border: var(--line-hair) solid var(--sticker-ink); border-radius: var(--radius-round); }
+.tsp-name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; font-size: 13px; line-height: 16px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.tsp-total { display: block; font-size: 12.5px; line-height: 16px; font-weight: 600; text-align: right; }
+.tsp-total[data-none] { color: var(--ink-muted); font-weight: 500; }
+.tsp-amount { white-space: nowrap; }
+.tsp-total small { display: block; color: var(--ink-muted); font-size: 10.5px; line-height: 13px; font-weight: 500; }
+
+.tsp-detail { display: grid; gap: 2px; margin: 0; padding: 4px 6px 8px 24px; font-size: 11.5px; line-height: 15px; }
+.tsp-detail dt { margin-top: 4px; color: var(--ink-muted); font-size: 10.5px; line-height: 13px; }
+.tsp-detail dt:first-child { margin-top: 0; }
+.tsp-detail dd { display: flex; justify-content: space-between; gap: 8px; margin: 0; }
+.tsp-detail dd > span:last-child { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+.tsp-missing { padding: 4px 6px 0; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; }
+.tsp-missing p { margin: 0; }
+.tsp-missing ul { margin: 2px 0 0; padding: 0; list-style: none; }

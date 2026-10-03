@@ -5,11 +5,16 @@ import { Fragment, useState } from "react";
 
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import { LegBooking } from "@/components/multiplayer/leg-booking";
+import { TripSplit } from "@/components/multiplayer/trip-split";
 import { RoundButton } from "@/components/paper-atlas";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
-import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
-import { useMySplit, usePlanActions, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, type PlanLeg } from "@/lib/trip/plan";
+import type { Currency, ExchangeRates } from "@/lib/currency";
+import { useCurrencyPref } from "@/lib/currency-pref";
+import { useExchangeRates } from "@/lib/exchange-rates";
+import { memberColor, type Stay, type StoredOffer } from "@/lib/liveblocks/types";
+import { editorChoice, stayDates } from "@/lib/trip/leg-edit";
+import { usePlanActions, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, useSplit, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
@@ -19,13 +24,19 @@ const SHOWN = 3;
 
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
+const formatMoney = (m: { amount: number; currency: string }) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: m.currency, maximumFractionDigits: 0 }).format(m.amount);
 /** "$152", "CN¥553" */
-const money = (o: StoredOffer) =>
-  o.price
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: o.price.currency, maximumFractionDigits: 0 }).format(o.price.amount)
-    : null;
+const money = (o: StoredOffer) => (o.price ? formatMoney(o.price) : null);
 /** Departure time as the provider wrote it. Arrivals are left out: some providers give them in UTC, not local time. */
 const time = (iso: string) => iso.slice(11, 16);
+
+/** Why an edit didn't apply, said where the member made it. */
+const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
+  gone: "This leg was removed.",
+  locked: "This leg is being booked, so its pick is fixed.",
+  replaced: "A new search replaced these options. Pick again.",
+};
 
 /** "W4 flight, leaves 07:25, 1 stop". A modelled option has no schedule, so it says "any time". */
 const describe = (o: StoredOffer) =>
@@ -38,15 +49,19 @@ const describe = (o: StoredOffer) =>
     .join(", ");
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
-export function TripPlan({ hostId, email = null, nationalities = [], onMinimise }: { hostId: string | null; email?: string | null; nationalities?: string[]; onMinimise?: () => void }) {
+export function TripPlan({ email = null, nationalities = [], onMinimise }: { email?: string | null; nationalities?: string[]; onMinimise?: () => void }) {
   const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
-  const split = useMySplit();
+  const split = useSplit();
+  const mine = me ? split?.members[me] : null;
   const end = usePlanEnd();
   const { setEnds } = usePlanActions();
   const members = usePlanMembers();
   const stays = usePlanStays();
+  const currency = useCurrencyPref();
+  const rates = useExchangeRates();
   if (!legs?.length) return null;
+  const stopLegs = legs.map((l) => ({ from: l.from.id, date: l.date }));
   return (
     <section aria-label="Trip plan" className="ts tp">
       {onMinimise ? (
@@ -65,11 +80,12 @@ export function TripPlan({ hostId, email = null, nationalities = [], onMinimise 
           />
         </div>
       ) : null}
-      {split?.totals && Object.keys(split.totals).length ? (
+      {mine?.totals && Object.keys(mine.totals).length ? (
         <div className="tp-total">
-          Your share: {Object.entries(split.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
+          Your share: {Object.entries(mine.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
         </div>
       ) : null}
+      {split && members ? <TripSplit split={split} legs={legs} members={members} stays={stays ?? {}} me={me ?? null} currency={currency} rates={rates} /> : null}
       <label className="tp-end">
         Trip ends
         <input type="date" value={end ?? ""} min={legs[legs.length - 1]?.date} onChange={(event) => setEnds(event.target.value || null)} />
@@ -77,14 +93,39 @@ export function TripPlan({ hostId, email = null, nationalities = [], onMinimise 
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
-          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} email={email} nationalities={nationalities} />
+          <LegCard
+            leg={leg}
+            stay={stays?.[leg.to.id] ?? null}
+            hotelDates={stayDates({ nights: split?.nights ?? [], ends: split?.ends ?? end, legs: stopLegs }, { to: leg.to.id, date: leg.date, riders: leg.riders })}
+            currency={currency}
+            rates={rates}
+            email={email}
+            nationalities={nationalities}
+          />
         </Fragment>
       ))}
     </section>
   );
 }
 
-function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number; email: string | null; nationalities: string[] }) {
+function LegCard({
+  leg,
+  stay,
+  hotelDates,
+  currency,
+  rates,
+  email,
+  nationalities,
+}: {
+  leg: PlanLeg;
+  stay: Readonly<Stay> | null;
+  /** The nights a hotel at this leg's destination is for (`stayDates`). */
+  hotelDates: { checkIn: string; checkOut: string; people: number };
+  currency: Currency;
+  rates: ExchangeRates | null;
+  email: string | null;
+  nationalities: string[];
+}) {
   const me = useSelf((s) => s.id);
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
   const locked = !!leg.booking;
@@ -92,22 +133,48 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
   const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg, setLeave } = usePlanActions();
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [pendingChoice, setPendingChoice] = useState(leg.chosen?.id ?? null);
+  // the option this member clicked in the editor; undefined until they do, so the editor follows picks made by others
+  const [draft, setDraft] = useState<string | null | undefined>(undefined);
   const [pendingHotel, setPendingHotel] = useState<HotelResult | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const offers = leg.search.offers.slice(0, SHOWN);
 
-  const changed = pendingChoice !== (leg.chosen?.id ?? null) || pendingHotel !== null;
-  const commit = () => {
-    choose(leg.id, pendingChoice);
-    if (pendingHotel) {
-      setStay(leg.to.id, {
-        label: pendingHotel.name,
-        nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
-        estimated: pendingHotel.freshness !== "live",
-      });
-    }
+  const stored = leg.chosen?.id ?? null;
+  const choice = editorChoice(draft, stored, leg.search.offers.map((o) => o.id));
+  const choiceChanged = !locked && choice !== stored;
+  const changed = choiceChanged || pendingHotel !== null;
+
+  const toggleEditor = () => {
+    setDraft(undefined);
     setPendingHotel(null);
-    setEditing(false);
+    setNotice(null);
+    setEditing((value) => !value);
+  };
+  /** Picks an option for everyone straight from the list. */
+  const pick = (offerId: string | null) => {
+    const result = choose(leg.id, offerId);
+    setNotice(result === "ok" ? null : REFUSED[result]);
+  };
+  const commit = () => {
+    try {
+      const chose = choiceChanged ? choose(leg.id, choice) : "ok";
+      const stayed = pendingHotel
+        ? setStay(leg.to.id, {
+            label: pendingHotel.name,
+            // the stay is the whole group's cost a night: every room it needs
+            nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
+            estimated: pendingHotel.freshness !== "live",
+          })
+        : "ok";
+      if (stayed === "ok") setPendingHotel(null);
+      if (chose === "ok") setDraft(undefined);
+      const refused = chose !== "ok" ? chose : stayed !== "ok" ? stayed : null;
+      setNotice(refused ? REFUSED[refused] : null);
+      if (!refused) setEditing(false);
+    } catch {
+      // the room isn't connected or loaded yet
+      setNotice("Couldn't save. Try again.");
+    }
   };
 
   return (
@@ -158,36 +225,66 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
         />
       ) : null}
       <div className="tp-edit-row">
-        {stay ? <span className="type-meta text-ink-muted">Stay: {stay.label ?? "Hotel selected"}</span> : null}
-        {locked ? null : <button type="button" className="ts-oneway" onClick={() => setEditing((value) => !value)}>{editing ? "Close edit" : "Edit trip"}</button>}
+        {stay ? (
+          <span className="tp-stay">
+            Stay: {stay.label ?? "Hotel selected"}
+            {stay.nightly ? `, ${formatMoney(stay.nightly)} a night` : null}
+            {stay.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+          </span>
+        ) : null}
+        <button type="button" className="ts-oneway" aria-expanded={editing} onClick={toggleEditor}>
+          {editing ? "Close edit" : "Edit trip"}
+        </button>
       </div>
+      {notice ? (
+        <p className="tp-refused" role="status">
+          {notice}
+        </p>
+      ) : null}
 
-      {editing && !locked ? (
+      {editing ? (
         <div className="tp-editor">
-          <div className="ts-rows">
-            {offers.map((o) => (
-              <button key={o.id} type="button" className="ts-row" aria-pressed={pendingChoice === o.id} onClick={() => setPendingChoice(o.id)}>
-                <span className="ts-head">{duration(o.durationMin)}{pendingChoice === o.id ? <span className="ts-badge">Selected</span> : null}</span>
-                <span className="ts-price">{money(o) ?? "No fare"}</span>
-                <span className="ts-desc">{describe(o)}</span>
-              </button>
-            ))}
-          </div>
-          {isHost ? (
-            <HotelSearch
-              city={leg.to.name}
-              lat={leg.to.lat}
-              lng={leg.to.lng}
-              checkIn={leg.date}
-              checkOut={addDays(leg.date, 1)}
-              currency="USD"
-              rates={null}
-              picked={pendingHotel}
-              onPick={setPendingHotel}
-              defaultOccupants={Math.min(4, Math.max(1, memberCount))}
-            />
-          ) : null}
-          <button type="button" className="ts-oneway" disabled={(!pendingChoice && !pendingHotel && !stay) || !changed} onClick={commit}>
+          {locked ? (
+            <p className="ts-empty">Being booked, so the pick is fixed.</p>
+          ) : (
+            <div className="ts-rows">
+              {offers.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  className="ts-row"
+                  aria-pressed={choice === o.id}
+                  onClick={() => {
+                    setNotice(null);
+                    setDraft(choice === o.id ? null : o.id);
+                  }}
+                >
+                  <span className="ts-head">
+                    {duration(o.durationMin)}
+                    {choice === o.id ? <span className="ts-badge">Selected</span> : null}
+                  </span>
+                  <span className="ts-price">{money(o) ?? "No fare"}</span>
+                  <span className="ts-desc">{describe(o)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <HotelSearch
+            city={leg.to.name}
+            lat={leg.to.lat}
+            lng={leg.to.lng}
+            checkIn={hotelDates.checkIn}
+            checkOut={hotelDates.checkOut}
+            currency={currency}
+            rates={rates}
+            picked={pendingHotel}
+            onPick={(hotel) => {
+              setNotice(null);
+              setPendingHotel(hotel);
+            }}
+            defaultOccupants={Math.min(4, Math.max(1, hotelDates.people))}
+          />
+          <button type="button" className="ts-oneway" disabled={!changed} onClick={commit}>
             Save changes
           </button>
         </div>
@@ -225,7 +322,7 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
                 aria-pressed={chosen}
                 title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
                 disabled={locked}
-                onClick={() => setPendingChoice(chosen ? null : o.id)}
+                onClick={() => pick(chosen ? null : o.id)}
               >
                 <span className="ts-head">
                   {duration(o.durationMin)}

@@ -9,7 +9,7 @@ The plan is flat maps keyed by id. Nothing is nested per member, so a leg severa
 - **members**: everyone who has joined, by account or guest id. Each has a name, a colour, and optionally `leaves`, the date they leave the trip.
 - **stops**: the exact points legs start and end at.
 - **legs**: a trip between two stops on a date. A leg has riders, the search's options, votes, and the chosen option.
-- **stays**: stop id → what lodging there costs the group per night, typed in by a member or Pip. Saving a trip from the globe can also carry the hotel picked in its Hotels tab; that price is an estimate and is marked so until someone gives a real one.
+- **stays**: stop id → what lodging there costs the group per night, typed in by Pip or picked by any member from a leg's hotel search in the plan, which searches the nights the group sleeps at that stop. Saving a trip from the globe can also carry the hotel picked in its Hotels tab. A hotel search's price is an estimate unless the rate is live, and is marked so until someone gives a real one.
 - **ends**: the date the trip ends, the morning after its last night. Optional.
 
 ## Who sleeps where
@@ -30,6 +30,8 @@ Leaving early is setting `leaves`, or adding a leg home.
 - A night's cost is split evenly among whoever is there that night.
 - Totals are kept per currency. The split never converts, since one trip mixes yuan, won and dollars. The currency setting converts for display only.
 - `missing` flags a leg with no chosen option or a night at a stop nobody has priced. Those are left out of the totals, and the split should say so.
+
+The plan panel shows the split for the whole group (`TripSplit`): each member's totals, opening to their fares by leg and their nights by stop, then the legs with no option chosen and the stops with no stay cost.
 
 Not covered yet: who paid what and settling up, shared extras, and overnight legs that replace a night.
 

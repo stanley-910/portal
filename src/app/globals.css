@@ -7,6 +7,7 @@
 @import "../components/ticket-search/ticket-search.css";
 @import "../components/hotel-search/hotel-search.css";
 @import "../components/multiplayer/trip-plan.css";
+@import "../components/multiplayer/trip-split.css";
 @import "../components/agent/agent.css";
 
 @custom-variant dark (&:is(.dark *));

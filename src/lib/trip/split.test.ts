@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSplit, type SplitInput } from "./split";
+import { computeSplit, nightsByStop, splitGaps, type SplitInput } from "./split";
 
 const offer = (id: string, amount: number, currency: string, kind: "live" | "estimated" = "live") => ({
   id,
@@ -90,5 +90,28 @@ describe("computeSplit with a booking", () => {
     const split = computeSplit(plan);
     expect(split.members.cy!.fares.find((f) => f.leg === "nrt")).toEqual({ leg: "nrt", price: { amount: 260.51, currency: "USD" }, kind: "live" });
     expect(split.members.ann!.totals.USD).toBe(260.5);
+  });
+});
+
+describe("nightsByStop", () => {
+  it("adds up a member's nights at each stop per currency", () => {
+    const split = computeSplit(demo());
+    expect(nightsByStop(split.members.ann!.nightShares)).toEqual([
+      { stop: "sh", nights: 3, totals: { CNY: 900 } },
+      { stop: "tyo", nights: 3, totals: { JPY: 30000 } },
+    ]);
+  });
+});
+
+describe("splitGaps", () => {
+  it("names nothing when every leg is picked and every night priced", () => {
+    expect(splitGaps(computeSplit(demo()))).toEqual({ legs: [], stops: [] });
+  });
+
+  it("names legs with no pick and stops nobody has priced", () => {
+    const plan = demo();
+    plan.legs!.icn!.chosen = null;
+    delete plan.stays!.tyo;
+    expect(splitGaps(computeSplit(plan))).toEqual({ legs: ["icn"], stops: ["tyo"] });
   });
 });

@@ -134,3 +134,23 @@ export function computeSplit(plan: SplitInput): Split {
 
   return { ends, nights: sorted, members: out };
 }
+
+/** A member's night shares grouped by stop, in the order they first stay there: nights and the sum per currency. */
+export function nightsByStop(shares: MemberSplit["nightShares"]): { stop: string; nights: number; totals: Record<string, number> }[] {
+  const byStop = new Map<string, { stop: string; nights: number; totals: Record<string, number> }>();
+  for (const n of shares) {
+    const entry = byStop.get(n.stop) ?? { stop: n.stop, nights: 0, totals: {} };
+    entry.nights++;
+    entry.totals[n.share.currency] = round((entry.totals[n.share.currency] ?? 0) + n.share.amount);
+    byStop.set(n.stop, entry);
+  }
+  return [...byStop.values()];
+}
+
+/** What the totals leave out, for the whole group: legs someone rides with no option chosen, and stops with nights nobody has priced. */
+export function splitGaps(split: Split): { legs: string[]; stops: string[] } {
+  const legs = new Set<string>();
+  for (const m of Object.values(split.members)) for (const f of m.fares) if (!f.price) legs.add(f.leg);
+  const stops = new Set(split.nights.filter((n) => !n.nightly && n.present.length).map((n) => n.stop));
+  return { legs: [...legs], stops: [...stops] };
+}
