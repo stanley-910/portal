@@ -7,7 +7,7 @@ import { useCallback, useEffect } from "react";
 import { searchLeg } from "@/app/t/actions";
 import { refreshTripTitle } from "@/app/t/title-actions";
 import type { LandedTrip } from "@/components/trip-globe";
-import type { LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
+import type { LegBooking, LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
 import { computeSplit, type MemberSplit, type SplitInput } from "./split";
 import { sameStop, stopFromPoint } from "@/lib/trip/stops";
 
@@ -39,6 +39,8 @@ export type PlanLeg = {
   votes: Record<string, string[]>;
   chosen: StoredOffer | null;
   createdAt: number;
+  booking: LegBooking | null;
+  bookingNotice: string | null;
 };
 
 /** Every leg in drawing order, with its stops filled in. Re-renders only when the plan changes. */
@@ -62,6 +64,8 @@ export function usePlanLegs(): PlanLeg[] | null {
         votes,
         chosen: leg.search.offers.find((o) => o.id === leg.chosen) ?? null,
         createdAt: leg.createdAt,
+        booking: leg.booking ?? null,
+        bookingNotice: leg.bookingNotice ?? null,
       });
     }
     return legs.sort((a, b) => a.createdAt - b.createdAt);
@@ -88,7 +92,7 @@ export function useMySplit() {
       legs: Object.fromEntries(
         Object.entries(root.legs).map(([legId, leg]) => [
           legId,
-          { from: leg.from, to: leg.to, date: leg.date, riders: leg.riders, search: leg.search, chosen: leg.chosen, createdAt: leg.createdAt },
+          { from: leg.from, to: leg.to, date: leg.date, riders: leg.riders, search: leg.search, chosen: leg.chosen, createdAt: leg.createdAt, booking: leg.booking },
         ]),
       ),
       stays: root.stays,
@@ -179,7 +183,8 @@ export function usePlanActions() {
   /** Starts a fresh search for a leg, dropping its old options, votes and pick. */
   const resetMutation = useMutation(({ storage }, legId: string, patch: { date?: string }) => {
     const leg = storage.get("legs").get(legId);
-    if (!leg) return null;
+    // a settled leg's options are fixed until its booking is cancelled
+    if (!leg || leg.get("booking")) return null;
     const search = pending();
     leg.update({ ...patch, search, chosen: null });
     const votes = leg.get("votes");
@@ -195,7 +200,8 @@ export function usePlanActions() {
   }, []);
 
   const chooseMutation = useMutation(({ storage }, legId: string, offerId: string | null) => {
-    storage.get("legs").get(legId)?.set("chosen", offerId);
+    const leg = storage.get("legs").get(legId);
+    if (leg && !leg.get("booking")) leg.set("chosen", offerId);
   }, []);
   const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string }; estimated?: boolean } | null) => {
     let stays = storage.get("stays");
@@ -206,7 +212,7 @@ export function usePlanActions() {
 
   const toggleRiderMutation = useMutation(({ storage }, legId: string, guestId: string) => {
     const leg = storage.get("legs").get(legId);
-    if (!leg) return;
+    if (!leg || leg.get("booking")) return;
     const riders = leg.get("riders");
     leg.set("riders", riders.includes(guestId) ? riders.filter((r) => r !== guestId) : [...riders, guestId]);
   }, []);
@@ -222,7 +228,7 @@ export function usePlanActions() {
   const removeLegMutation = useMutation(({ storage }, legId: string) => {
     const legs = storage.get("legs");
     const leg = legs.get(legId);
-    if (!leg) return;
+    if (!leg || leg.get("booking")) return;
     legs.delete(legId);
     const used = new Set<string>();
     for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));

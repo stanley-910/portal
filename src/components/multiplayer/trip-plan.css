@@ -26,3 +26,23 @@
 .ts .tp-vote[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 
 .ts .tp-remove { color: var(--ink-muted); }
+
+/* Booking a leg: who has paid, what's owed, and the one thing you can do next */
+.tp-book-row { display: grid; gap: 6px; }
+.tp-book { display: grid; gap: 6px; padding: 8px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper-raised); }
+.tp-book-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 600; }
+.tp-book-head span:last-child { color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
+.tp-book-ref { margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; }
+.tp-seats { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.tp-seat { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 6px; font-size: 11.5px; line-height: 14px; }
+.tp-seat > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-seat-state { color: var(--ink-muted); }
+.tp-seat-state[data-done] { color: var(--ink); font-weight: 600; }
+.tp-notice { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0; padding: 6px 8px; border-radius: var(--radius-tag); background: var(--control-hover); font-size: 11.5px; line-height: 15px; }
+.tp-notice-actions { display: inline-flex; gap: 10px; white-space: nowrap; }
+.tp-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tp-form label { display: grid; gap: 2px; min-width: 0; font-size: 10.5px; line-height: 13px; color: var(--ink-muted); }
+.tp-form label[data-wide] { grid-column: 1 / -1; }
+.tp-form input, .tp-form select { min-height: 30px; min-width: 0; padding: 3px 6px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; font-size: 12.5px; }
+.tp-form [aria-invalid="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tp-form-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }

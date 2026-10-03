@@ -100,7 +100,7 @@ function TripScreen({ name, email, account, nationalities, hostId }: Me & { host
       {/* below the navbar */}
       {planOpen ? (
         <div className="absolute top-40 right-(--space-4)">
-          <TripPlan hostId={hostId} onMinimise={() => setPlanOpen(false)} />
+          <TripPlan hostId={hostId} email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
         </div>
       ) : null}
       <AgentChat initialOpen={pipOpen} />

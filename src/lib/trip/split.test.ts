@@ -82,3 +82,13 @@ describe("computeSplit", () => {
     expect(computeSplit({})).toEqual({ ends: null, nights: [], members: {} });
   });
 });
+
+describe("computeSplit with a booking", () => {
+  it("charges each rider their settled share instead of the quoted fare", () => {
+    const plan = demo();
+    plan.legs!.nrt.booking = { seats: { ann: { share: { amount: 260.5, currency: "USD" } }, bo: { share: { amount: 260.5, currency: "USD" } }, cy: { share: { amount: 260.51, currency: "USD" } } } };
+    const split = computeSplit(plan);
+    expect(split.members.cy!.fares.find((f) => f.leg === "nrt")).toEqual({ leg: "nrt", price: { amount: 260.51, currency: "USD" }, kind: "live" });
+    expect(split.members.ann!.totals.USD).toBe(260.5);
+  });
+});
