@@ -84,6 +84,19 @@ describe("editPlan", () => {
     expect(result.applied).toEqual(["Removed Taichung (Qingshui) → Bintulu"]);
     expect(json().stops?.bt).toBeUndefined();
   });
+
+  it("marks each change for the globe, over the middle of its leg", async () => {
+    const h = handlesFor(plan);
+    const result = await editPlan("room", plan, h, [
+      { op: "remove_leg", leg: "L3" },
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { stop: h.stop.get("bj")! }, date: "2026-10-05", riders: ["M1"] },
+    ], "agent:pip");
+    expect(result.marks.map((m) => m.text)).toEqual(["Removed Taichung (Qingshui) → Bintulu", "Added Hong Kong → Beijing"]);
+    // between Taichung and Bintulu, though Bintulu went with the leg
+    expect(result.marks[0].at!.lat).toBeCloseTo(13.7, 0);
+    expect(result.marks[0].at!.lng).toBeGreaterThan(113);
+    expect(result.marks[0].at!.lng).toBeLessThan(121);
+  });
 });
 
 describe("editPlan, members", () => {

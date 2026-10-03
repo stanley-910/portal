@@ -212,9 +212,19 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
       })
       .catch(() => {});
   let lastAt: { lat: number; lng: number } | null = null;
+  let doing = "";
   const activity: ToolContext["activity"] = (text, at) => {
+    doing = text;
     if (at) lastAt = { lat: at.lat, lng: at.lng };
     void presence(text, lastAt);
+  };
+  // everyone's globe plays the marks in order, the saucer flying to each; presence then leaves it at the last
+  const marks: ToolContext["marks"] = (list) => {
+    if (!list.length) return;
+    const at = list.findLast((m) => m.at)?.at;
+    if (at) lastAt = at;
+    void lb.broadcastEvent(roomId, { type: "agent-marks", marks: list }).catch(() => {});
+    void presence(doing || "editing the trip", lastAt);
   };
 
   // Writes to the reply go one at a time, in order, so a step's result can't land before the step does. Stream
@@ -265,6 +275,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
           m.set("cards", m.get("cards").map((c) => (c.type === "meetup" && c.options.some((o) => o.id === option) ? { ...c, applied: option, changesetId, undone: false } : c)));
         }),
       activity,
+      marks,
       meetups,
       until: runEnds,
     };

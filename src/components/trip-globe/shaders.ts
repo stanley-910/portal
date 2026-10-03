@@ -265,7 +265,7 @@ void main() {
   vec3 w = toW(aPos);
   vec4 c = proj(w);
   // a pin's needle keeps a hairline of outline, so it stays fine
-  float hull = uVehicle == 4 && aPart > 0.5 ? uHull * 0.3 : uHull;
+  float hull = uVehicle == 4 && aPart > 0.5 ? uHull * 0.3 : uVehicle == 5 && aPart > 1.5 ? uHull * 0.6 : uHull;
   if (hull > 0.0) {
     vec4 c2 = proj(toW(aPos + aSm * 0.05));
     vec2 dir = c2.xy / c2.w - c.xy / c.w;
@@ -294,6 +294,13 @@ uniform vec3 uRoundel;
 uniform int uVehicle;
 // a pin's head: its rider's member colour
 uniform vec3 uPin;
+// Pip's saucer: its colours, and how far round its rim lights have chased (0 to 1)
+uniform vec3 uPipBody;
+uniform vec3 uPipShade;
+uniform vec3 uPipCheek;
+uniform vec3 uPipLight;
+uniform vec3 uPipUnder;
+uniform float uSpin;
 out vec4 outColor;
 ` + GLSL_COMMON + `
 void main() {
@@ -341,6 +348,16 @@ void main() {
       float y = lower ? 0.035 : 0.1;
       if (abs(o.x) > w && abs(o.y - y) < 0.012 && fract(o.z * 25.0) < 0.5) base = uInkS;
     }
+  } else if (uVehicle == 5) {
+    // Pip's saucer: a starlit underside, rim lights chasing round, and Pip in the dome looking where it flies
+    if (part == 0) {
+      if (o.y < -0.004) base = uPipUnder;
+      else if (o.y < 0.022) base = fract(atan(o.x, o.z) / 6.2831853 * 12.0 - uSpin * 3.0) < 0.34 ? uPipLight : uPipShade;
+    } else if (part == 1) {
+      base = uPipBody;
+      if (o.z > 0.04 && length(vec2(abs(o.x) - 0.065, o.y - 0.2)) < 0.03) base = uInkS;
+      if (o.z > 0.04 && length(vec2(abs(o.x) - 0.115, o.y - 0.145)) < 0.024) base = uPipCheek;
+    } else base = part == 2 ? uPipShade : uPipLight;
   } else {
     // pin: a head in the rider's colour on an ink needle
     base = part == 0 ? uPin : uInkS;

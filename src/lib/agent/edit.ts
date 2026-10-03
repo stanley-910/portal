@@ -2,6 +2,7 @@ import "server-only";
 
 import { LiveMap, LiveObject } from "@liveblocks/node";
 
+import { midpoint, type AgentMark } from "@/lib/agent/marks";
 import type { Handles, PlanJson } from "@/lib/agent/snapshot";
 import { showDate } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
@@ -40,7 +41,8 @@ type Before = {
 
 export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE" | "LOCKED" | "OUT_OF_TIME"; reason: string; next: string };
 
-export type EditResult = { applied: string[]; refused: Refusal[]; changesetId: string | null };
+/** `marks` are the same changes, short and placed, for the globe to pop up (marks.ts). */
+export type EditResult = { applied: string[]; refused: Refusal[]; changesetId: string | null; marks: AgentMark[] };
 
 const newId = () => crypto.randomUUID().slice(0, 8);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -71,6 +73,7 @@ type LegJson = NonNullable<PlanJson["legs"]>[string];
 export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: EditOp[], agentId: string, until?: number): Promise<EditResult> {
   const refused: Refusal[] = [];
   const applied: string[] = [];
+  const marks: AgentMark[] = [];
   const before: Before = { legs: {}, stops: {} };
   const searches: { legId: string; searchId: string }[] = [];
   // handles outlive members within a run (snapshot.ts), so check they're still in the trip
@@ -176,7 +179,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     }
   });
 
-  if (!planned.length) return { applied, refused, changesetId: null };
+  if (!planned.length) return { applied, refused, changesetId: null, marks };
   const changesetId = newId();
   const created: Record<string, Stop> = {};
   let late = false;
@@ -189,6 +192,15 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     const stops = root.get("stops");
     const legs = root.get("legs");
     const stopName = (id: string) => created[id]?.name ?? stops.get(id)?.get("name") ?? plan.stops?.[id]?.name ?? "?";
+    const stopAt = (id: string) => created[id] ?? stops.get(id)?.toJSON() ?? plan.stops?.[id] ?? null;
+    // where a leg's mark goes: the middle of its route
+    const legAt = (id: string) => {
+      const l = legs.get(id);
+      const a = l && stopAt(l.get("from"));
+      const b = l && stopAt(l.get("to"));
+      return a && b ? midpoint(a, b) : null;
+    };
+    const mark = (text: string, at: AgentMark["at"]) => marks.push({ text, at });
     const stopFor = (s: string | Stop) => {
       if (typeof s === "string") {
         // someone removed it since the snapshot: put it back rather than point a leg at nothing
@@ -259,6 +271,8 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         if (p.stay) stays.set(p.stop, new LiveObject(p.stay));
         else stays.delete(p.stop);
         const where = stopName(p.stop);
+        const at = stopAt(p.stop);
+        mark(p.stay?.nightly ? `${where} stay at ${p.stay.nightly.currency} ${p.stay.nightly.amount} a night` : `Cleared the ${where} stay`, at && { lat: at.lat, lng: at.lng });
         applied.push(
           p.stay?.nightly
             ? `Set ${where}${p.stay.label ? ` (${p.stay.label})` : ""} to ${p.stay.nightly.currency} ${p.stay.nightly.amount} a night`
@@ -273,6 +287,13 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         if (!who) continue;
         const why = !date || !p.date || date === p.date ? "" : date > p.date ? ", the day of their first leg" : ", when the trip ends";
         applied.push(date ? `${who} leaves on ${showDate(date)}${why}` : `${who} stays to the end`);
+        // where they are when they go: the end of their last leg before it
+        const last = [...legs.values()]
+          .filter((l) => l.get("riders").includes(p.member) && (!date || l.get("date") < date))
+          .sort((x, y) => x.get("date").localeCompare(y.get("date")))
+          .at(-1);
+        const there = last ? stopAt(last.get("to")) : null;
+        mark(date ? `${who} leaves on ${showDate(date)}` : `${who} stays to the end`, there && { lat: there.lat, lng: there.lng });
         continue;
       }
       if (p.kind === "ends") {
@@ -281,6 +302,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         setTripEnd(changes.ends ?? null);
         const why = changes.ends && p.date && changes.ends !== p.date ? ", the day of its last leg" : "";
         applied.push(changes.ends ? `Trip ends the morning of ${showDate(changes.ends)}${why}` : "Trip ends after its last leg");
+        mark(changes.ends ? `Trip ends ${showDate(changes.ends)}` : "Trip ends after its last leg", null);
         follow({ ...changes, ends: undefined });
         continue;
       }
@@ -307,6 +329,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         );
         searches.push({ legId: id, searchId: search.id });
         applied.push(`Added ${stopName(from)} → ${stopName(to)} on ${showDate(p.date)}`);
+        mark(`Added ${stopName(from)} → ${stopName(to)}`, legAt(id));
         continue;
       }
       const leg = legs.get(p.leg);
@@ -339,10 +362,12 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         const prev = changes.date === p.date ? null : legBefore(datesNow(), p.leg);
         redate(p.leg, changes.date);
         applied.push(`Moved ${label} to ${showDate(changes.date)}${prev ? `, the earliest after ${legLabel(prev.leg)}` : ""}`);
+        mark(`Moved ${label} to ${showDate(changes.date)}`, legAt(p.leg));
         for (const [id, date] of Object.entries(changes.legs)) {
           if (id === p.leg) continue;
           redate(id, date);
           applied.push(`Moved ${legLabel(id)} to ${showDate(date)} so it still comes after ${label}`);
+          mark(`Moved ${legLabel(id)} to ${showDate(date)}`, legAt(id));
         }
         follow(changes);
         continue;
@@ -354,11 +379,14 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         const name = (id: string) => plan.members?.[id]?.name ?? "someone";
         const off = was.filter((r) => !p.riders.includes(r)).map(name);
         const on = p.riders.filter((r) => !was.includes(r)).map(name);
+        if (on.length) mark(`Put ${names(on)} on ${label}`, legAt(p.leg));
+        if (off.length) mark(`Took ${names(off)} off ${label}`, legAt(p.leg));
         applied.push(
           [on.length ? `Put ${names(on)} on ${label}` : "", off.length ? `Took ${names(off)} off ${label}` : ""].filter(Boolean).join("; ") ||
             `No change to who rides ${label}`,
         );
       } else {
+        mark(`Removed ${label}`, legAt(p.leg));
         legs.delete(p.leg);
         freed.add(leg.get("from")).add(leg.get("to"));
         applied.push(`Removed ${label}`);
@@ -383,11 +411,11 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
 
   if (late) {
     const reason = "I ran out of time before making that change.";
-    return { applied: [], refused: ops.map((_, op) => ({ op, code: "OUT_OF_TIME" as const, reason, next: "Say nothing changed and ask them to send it again." })), changesetId: null };
+    return { applied: [], refused: ops.map((_, op) => ({ op, code: "OUT_OF_TIME" as const, reason, next: "Say nothing changed and ask them to send it again." })), changesetId: null, marks: [] };
   }
   // searches run after the write lands, like a member's own edits; they finish on their own
   await Promise.all(searches.map((s) => runLegSearch(roomId, s.legId, s.searchId)));
-  return { applied, refused, changesetId: applied.length ? changesetId : null };
+  return { applied, refused, changesetId: applied.length ? changesetId : null, marks };
 }
 
 /** Puts back what one changeset changed. Edits people made since to the same legs are overwritten. */
