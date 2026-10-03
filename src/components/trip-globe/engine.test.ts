@@ -766,7 +766,11 @@ describe("settled rendering", () => {
   it("draws a searched trip's routes out in turn while framing it, with no plane landing", () => {
     const { engine, state, frames } = setup();
     state.reduceMotion = false;
-    const onLand = vi.fn();
+    // the pins go down as it lands: they must already wait for the routes reaching them
+    let pinsAt = 0;
+    const onLand = vi.fn(() => {
+      pinsAt = engine["landingDone"](engine["dest"]!);
+    });
     engine["events"].onLand = onLand;
     const hk = { lat: 22.3, lng: 114.17 }, sha = { lat: 31.23, lng: 121.47 }, tyo = { lat: 35.68, lng: 139.77 };
     engine.showTrip([hk, sha, tyo], "draw");
@@ -777,6 +781,7 @@ describe("settled rendering", () => {
     const draws = engine["ownDraws"] as { t0: number }[];
     expect(draws).toHaveLength(2);
     expect(draws[1].t0).toBeGreaterThan(draws[0].t0);
+    expect(pinsAt).toBeCloseTo(draws[1].t0 + 1.2);
     // nothing is drawn yet; a few seconds on, both legs are whole
     const legs = engine["ownLegs"]();
     expect(engine["ownDrawn"](legs[0][0], legs[0][1], engine["t"])).toBe(0);

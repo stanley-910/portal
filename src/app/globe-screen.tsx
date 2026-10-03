@@ -396,7 +396,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       }} onClose={() => setTripAction(null)} />
     ) : null}
     {!trip && saveFailed ? <p role="alert" className="type-body absolute bottom-(--space-6) left-1/2 -translate-x-1/2 bg-paper-raised p-(--space-3)">Couldn&apos;t restore the trip. Please select the route again.</p> : null}
-    {/* how to draw a trip, by the pointer for a few seconds after each load */}
+    {/* how to draw a trip, in the bottom-left corner */}
     <ClickHint color={cursorPref.color} />
     <HomePip
       globe={globe}

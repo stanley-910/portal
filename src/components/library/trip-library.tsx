@@ -248,7 +248,7 @@ export function TripLibrary({ trips, error, userId, today, open, onOpenChange, s
     <>
       {globe ? <RouteOverlay globe={globe} trip={drawn} ghost={ghost} /> : null}
 
-      <div ref={wrap} className="lib-wrap" data-open={open || undefined} inert={!open}>
+      <div ref={wrap} className="lib-wrap" data-open={open || undefined} data-anchor-wall={open || undefined} inert={!open}>
         <aside className="lib" aria-label="Your trips">
           <header className="lib-head">
             {searching ? (

@@ -1176,11 +1176,18 @@ export class GlobeEngine {
     this.takeoff(vs[0]);
     for (const v of vs.slice(1, -1)) this.addStop(v);
     this.magnet = false;
+    const pip = !!this.agent?.on && !this.reduceMotion;
+    // drawn out: each leg draws in turn once land()'s turn (0.5s on, 1.5s long) is well under way. Queued before the
+    // landing, since onLand puts the pins down, and they wait for the routes that reach them
+    const drawing = how === "draw" && !pip && !this.reduceMotion;
+    if (drawing) {
+      const start = this.t + 0.5 + 1.5 * 0.4;
+      vs.slice(1).forEach((b, i) => this.ownDraws.push({ a: vs[i], b, t0: start + i * DRAW * 0.6 }));
+    }
     this.land(vs[vs.length - 1]);
     // While Pip's saucer is out it builds the trip itself: no plane lands and the view stays with the saucer. Legs
     // that are new draw out behind it, and legs that went reel in. A quiet one (a stop dragged to a new place) only
     // moves the trip, where it is.
-    const pip = !!this.agent?.on && !this.reduceMotion;
     if (!pip && how === "land") return;
     const t = this.t;
     if (pip) {
@@ -1190,14 +1197,8 @@ export class GlobeEngine {
       for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
     }
     this.tLand = t - TOUCHDOWN - VANISH;
-    if (how === "draw" && !pip) {
-      // the view keeps its turn to frame the trip; each leg draws out in turn once the turn is well under way
-      if (!this.reduceMotion) {
-        const start = (this.turn?.t0 ?? t) + (this.turn?.dur ?? 0) * 0.4;
-        this.ownLegs().forEach((leg, i) => this.ownDraws.push({ a: leg[0], b: leg[1], t0: start + i * DRAW * 0.6 }));
-      }
-      return;
-    }
+    // drawn out, the view keeps its turn to frame the trip
+    if (how === "draw" && !pip) return;
     this.turn = null;
     this.autoFrame = null;
   }

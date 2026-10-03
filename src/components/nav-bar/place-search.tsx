@@ -222,8 +222,25 @@ export function PlaceSearch({ globe, onRoute }: PlaceSearchProps) {
       event.preventDefault();
       const place = results[active] ?? results[0];
       if (place) pick(place);
-      else go();
+      // Enter on text that hasn't found anything yet waits for it, rather than going without it
+      else if (!queries[field].trim() || picked[field]) go();
     }
+  };
+
+  // the calendar takes focus as it opens, on the day picked, so it's reachable from the keyboard
+  const dateButton = useRef<HTMLButtonElement>(null);
+  const cal = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (calendar) cal.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
+  }, [calendar]);
+  // Escape anywhere in the panel: the calendar first, then the panel. The fields handle their own.
+  const onPanelKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    event.preventDefault();
+    if (calendar) {
+      setCalendar(false);
+      dateButton.current?.focus();
+    } else close(true);
   };
 
   const listId = `${id}-list`;
@@ -270,7 +287,7 @@ export function PlaceSearch({ globe, onRoute }: PlaceSearchProps) {
         <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
       </button>
       {open ? (
-        <div data-globe-obstacle className="pn-search-panel" data-closing={closing || undefined}>
+        <div data-globe-obstacle className="pn-search-panel" data-closing={closing || undefined} onKeyDown={onPanelKey}>
           {route ? (
             <div className="pn-search-field pn-route" role="group" aria-label="Find a route">
               <span className="pn-route-end" data-active={field === "from" || undefined}>
@@ -280,6 +297,7 @@ export function PlaceSearch({ globe, onRoute }: PlaceSearchProps) {
                 {input("from", "From", "From")}
               </span>
               <button
+                ref={dateButton}
                 type="button"
                 className="pn-route-date"
                 aria-label={`Date, ${dateLabel(date)}`}
@@ -306,7 +324,7 @@ export function PlaceSearch({ globe, onRoute }: PlaceSearchProps) {
             </label>
           )}
           {calendar ? (
-            <div className="pn-menu pn-route-cal">
+            <div ref={cal} className="pn-menu pn-route-cal">
               <MonthGrid
                 min={localIso(new Date())}
                 value={date}

@@ -178,11 +178,14 @@
 .pn-route-end input { color: var(--ink); }
 .pn-route-end input[data-picked] { font-weight: 600; }
 .pn-route-date { position: relative; flex: none; align-self: stretch; margin-block: 6px; padding: 0 var(--space-3); border: 0; border-inline: var(--line-hair) solid var(--line); background: transparent; color: var(--ink); font-family: var(--font-typewriter); font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+/* the date and Search are short; an unseen strip makes them 44px to hit */
+.pn-route-date::before, .pn-route-go::before { content: ""; position: absolute; inset: -11px 0; }
 .pn-route-date:hover, .pn-route-date[aria-expanded="true"] { background: var(--control-hover); }
 .pn-route-date:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
-.pn-route-go { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); cursor: pointer; }
+.pn-route-go { position: relative; flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); cursor: pointer; }
 .pn-route-go:hover:not(:disabled) { background: var(--ink-hover); }
 .pn-route-go:disabled { background: transparent; color: var(--ink-muted); cursor: default; }
+.pn-route-go::before { inset: -6px; }
 .pn-route-go:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* the date picker drops from the date, the places list from whichever end is being typed in */
 .pn-route-cal { left: 50%; right: auto; width: 17rem; transform: translateX(-50%); }

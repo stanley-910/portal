@@ -8,6 +8,8 @@ const EDGE = 24;
 const GAP = 56;
 /** Clearance kept above Pip's launcher and the bill. */
 const PIP_GAP = 8;
+/** Clearance kept beside a panel down the side of the screen: Pip's chat, the library. */
+const WALL_GAP = 16;
 
 type Side = "right" | "left" | "pinLeft" | "pinRight";
 
@@ -15,7 +17,8 @@ type Side = "right" | "left" | "pinLeft" | "pinRight";
  * Keeps a card beside a route as the globe turns: on the side of the points with the most free space (right or left),
  * sticking with a side while it still fits. When neither fits it goes to the top of the screen's side with more room,
  * never across the middle, and stays there while the view moves. It stays below the
- * nav bar and above Pip and anything marked `data-anchor-avoid`, and sets `--anchor-max-h` to the height left between
+ * nav bar, above Pip's launcher and anything marked `data-anchor-avoid`, and clear of Pip's chat and anything marked
+ * `data-anchor-wall` down the side of the screen, and sets `--anchor-max-h` to the height left between
  * them, so a tall card scrolls instead.
  *
  * `moveTo` puts the card where someone dragged it instead (top-left, in the card's frame): from then on it stays there,
@@ -58,6 +61,16 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
       const maxY = Math.max(...ys) + GAP;
       // the bottom the card may reach at x: above Pip, or anything marked to avoid, where the card would cross it
       const below = [...document.querySelectorAll(".pip-launcher, [data-anchor-avoid]")].map((e) => e.getBoundingClientRect());
+      // panels down a side (Pip's chat, the library) narrow the room: the card keeps between them, never under one
+      let lo = EDGE;
+      let hi = W - EDGE;
+      for (const r of [...document.querySelectorAll(".pip-panel, [data-anchor-wall]")].map((e) => e.getBoundingClientRect())) {
+        if (!r.width || !r.height) continue;
+        const l = r.left - frame.left;
+        const rt = r.right - frame.left;
+        if (l + rt > W) hi = Math.min(hi, l - WALL_GAP);
+        else lo = Math.max(lo, rt + WALL_GAP);
+      }
       const floor = (x: number) =>
         below.reduce((bottom, r) => (x < r.right - frame.left && x + w > r.left - frame.left ? Math.min(bottom, r.top - frame.top - PIP_GAP) : bottom), H - EDGE);
       const fit = (x: number) => {
@@ -65,7 +78,7 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
         el.style.setProperty("--anchor-max-h", `${Math.max(120, bottom - top)}px`);
         return bottom;
       };
-      const clampX = (x: number) => Math.min(Math.max(x, EDGE), Math.max(EDGE, W - w - EDGE));
+      const clampX = (x: number) => Math.min(Math.max(x, lo), Math.max(lo, hi - w));
       const put = (x: number, y: number) => {
         at.current = { x, y };
         el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
@@ -77,14 +90,14 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
         put(x, Math.min(Math.max(manual.current.y, top), Math.max(top, bottom - el.offsetHeight)));
         return;
       }
-      const room = { right: W - maxX - EDGE, left: minX - EDGE };
+      const room = { right: hi - maxX, left: minX - lo };
       const fits = { right: room.right >= w, left: room.left >= w, pinLeft: true, pinRight: true };
       // beside the route where there's room; when there's none (a trip across the globe, or zoomed right in), at the top
       // of the screen's side with more room, never across the middle, and it stays there while the view moves
       if (!side || !fits[side]) {
         side = fits.right || fits.left ? (room.right >= room.left && fits.right ? "right" : fits.left ? "left" : "right") : room.left > room.right ? "pinLeft" : "pinRight";
       }
-      const x = side === "right" ? maxX : side === "left" ? minX - w : side === "pinLeft" ? EDGE : W - w - EDGE;
+      const x = clampX(side === "right" ? maxX : side === "left" ? minX - w : side === "pinLeft" ? lo : hi - w);
       const bottom = fit(x);
       const height = el.offsetHeight;
       const clampY = (y: number) => Math.min(Math.max(y, top), Math.max(top, bottom - height));
