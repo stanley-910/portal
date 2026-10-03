@@ -280,3 +280,10 @@ find_meetup({
 **Without a model key:**
 - The model needs `DEEPSEEK_API_KEY` in `.env.local`.
 - Without it, Pip answers only meet-up questions ("meet", "middle", "halfway"). It places each member where their first leg starts.
+
+**Starting without a trip (2026-10-03):**
+- Pip's launcher is on the home globe too (`src/components/agent/home-pip.tsx`).
+- The first message calls `startTripWithPip`, which creates a solo trip with the message already in its thread, wakes Pip, and opens the trip with the chat showing (`?pip=open`).
+- A guest who hasn't picked a name yet is called "Traveller".
+- Friends join later from the trip's URL, and from then on Pip needs an @mention.
+- Without a model key, Pip reads city names from the message ("I'm in Hong Kong, my friend's in Seoul"), so a meet-up question works before any legs exist.

@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState, useTransition } from "react";
 
+import { HomePip } from "@/components/agent/home-pip";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { MyTrips } from "@/components/trip-plan/my-trips";
 import { TicketSearch } from "@/components/ticket-search";
@@ -101,6 +102,7 @@ export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; tr
         onDismiss={() => globe.current?.cancel()}
       />
     ) : null}
+    <HomePip />
   </main>;
 }
 

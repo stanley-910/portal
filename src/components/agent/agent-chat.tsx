@@ -19,8 +19,8 @@ const NUDGE = "Tell me where everyone's starting from. I'll find where to meet."
 const NUDGE_DELAY_MS = 900;
 const TYPE_MS = 34;
 
-export function AgentChat() {
-  const [open, setOpen] = useState(false);
+export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
   const thread = useThread();
   // messages read up to when the panel last closed
   const [seen, setSeen] = useState(0);
@@ -33,19 +33,19 @@ export function AgentChat() {
   return open ? <Panel thread={thread} onClose={() => toggle(false)} /> : <Launcher unread={unread} onOpen={() => toggle(true)} />;
 }
 
-function Launcher({ unread, onOpen }: { unread: boolean; onOpen: () => void }) {
+export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; onOpen: () => void; nudge?: string }) {
   const [hover, setHover] = useState(false);
-  const typed = useTyping(NUDGE);
+  const typed = useTyping(nudge);
   return (
     <div className="pip-launcher">
       {typed !== null ? (
         <button type="button" className="pip-nudge" onClick={onOpen}>
           <span className="pip-nudge-inner">
             <span className="pip-nudge-text">
-              <span aria-hidden className="pip-nudge-ghost">{NUDGE}</span>
+              <span aria-hidden className="pip-nudge-ghost">{nudge}</span>
               <span className="pip-nudge-typed">
                 {typed}
-                {typed.length < NUDGE.length ? <span className="pip-caret">▌</span> : null}
+                {typed.length < nudge.length ? <span className="pip-caret">▌</span> : null}
               </span>
             </span>
             <span className="pip-nudge-foot">{AGENT_NAME} · tap to chat</span>
@@ -97,6 +97,7 @@ function Panel({ thread, onClose }: { thread: ThreadMessage[]; onClose: () => vo
   const activity = usePipActivity();
   const busy = usePipBusy();
   const scroller = useRef<HTMLDivElement>(null);
+  const send = useSendMessage();
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming?.text ? "talk" : busy || activity ? "think" : "idle";
   const others = Object.entries(members ?? {}).filter(([id]) => id !== me).map(([, m]) => m.name);
@@ -125,7 +126,7 @@ function Panel({ thread, onClose }: { thread: ThreadMessage[]; onClose: () => vo
         ))}
       </div>
 
-      <Composer />
+      <Composer send={send} />
     </section>
   );
 }
@@ -272,8 +273,8 @@ function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "c
   );
 }
 
-function Composer() {
-  const send = useSendMessage();
+/** The message box and chips. `send` posts to a trip, or (on the home globe) starts one. */
+export function Composer({ send, chips = CHIPS, placeholder = `Message the group, or ask @${AGENT_NAME}` }: { send: (text: string) => Promise<void>; chips?: string[]; placeholder?: string }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
   const [pending, start] = useTransition();
@@ -299,7 +300,7 @@ function Composer() {
       }}
     >
       <div className="pip-chips">
-        {CHIPS.map((chip) => (
+        {chips.map((chip) => (
           <button key={chip} type="button" className="pip-chip" disabled={pending} onClick={() => submit(chip)}>
             {chip.replace(/^@Pip /, "")}
           </button>
@@ -311,7 +312,7 @@ function Composer() {
           className="pip-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={`Message the group, or ask @${AGENT_NAME}`}
+          placeholder={placeholder}
           aria-label="Message"
           maxLength={2000}
         />
