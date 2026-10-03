@@ -160,7 +160,7 @@ and the app still runs on seeds and estimates.
 
 | Var | Provider | Where to get it |
 |---|---|---|
-| `DUFFEL_ACCESS_TOKEN` | Live flights and hotel rates | app.duffel.com → Developers → Access tokens. Self-serve; a test token only returns Duffel's sandbox airlines (bookable in test mode, shown with a Sandbox badge) and test hotels. |
+| `DUFFEL_ACCESS_TOKEN` | Live flights and hotel rates | app.duffel.com → Developers → Access tokens. Self-serve; a test token only returns Duffel's sandbox airlines (bookable in test mode, flagged `sandbox` with no badge) and test hotels. |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Booking a leg | dashboard.stripe.com → Developers → API keys; the webhook secret from `stripe listen`. Without the key, paying is a no-charge test checkout. See `docs/booking/README.md`. |
 | `SUPABASE_SECRET_KEY`, `BOOKING_ENCRYPTION_KEY` | Booking a leg | Supabase → Project Settings → API keys; `openssl rand -base64 32`. Without them, booking rows live in memory. |
 | `TRAVELPAYOUTS_TOKEN`, `_MARKER`, `_TRS` | Flights, 12Go links | app.travelpayouts.com → Profile → API token. Marker is the partner ID on the dashboard; TRS is the project ID. |

@@ -162,7 +162,7 @@ Keys in `.env.local` (all optional; see `.env.example`):
 
 | Var | Without it |
 | --- | --- |
-| `DUFFEL_ACCESS_TOKEN` | No Duffel offers, so nothing to settle. A test token sells Duffel's sandbox airlines: those fares are Bookable like live ones, carry a Sandbox badge, and hold every fare. |
+| `DUFFEL_ACCESS_TOKEN` | No Duffel offers, so nothing to settle. A test token sells Duffel's sandbox airlines: those fares are Bookable like live ones and hold every fare. They carry a `sandbox` flag but no badge. |
 | `STRIPE_SECRET_KEY` | "Pay my share" is a no-charge test checkout: the seat is held at once and nobody's card is touched. Only with a Duffel test token; with a live one, paying is refused until Stripe is set. |
 | `STRIPE_WEBHOOK_SECRET` | The webhook refuses everything; the return route alone confirms holds. Locally: `stripe listen --forward-to localhost:3000/api/booking/stripe --events checkout.session.completed,checkout.session.async_payment_succeeded,payment_intent.canceled`. |
 | `SUPABASE_SECRET_KEY` + `BOOKING_ENCRYPTION_KEY` | Details, payments and leases stay in memory. Run `pnpm db:migrate` once the key is set. |

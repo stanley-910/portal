@@ -143,7 +143,6 @@ function OptionList({
               {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
               {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
             {isBookable(row.offer) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
-            {row.offer.sandbox ? <span className="ts-badge ts-badge-quiet">Sandbox</span> : null}
             </span>
             <span className="ts-price" data-none={price === null || undefined}>
               {priceText(price, currency)}
