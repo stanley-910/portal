@@ -309,7 +309,7 @@ export async function startPayment(roomId: string, legId: string, actor: Actor, 
       description: booking.mode === "group" ? "Your seat. Held until everyone has paid." : "Your seat.",
       email: actor.email,
       successUrl: `${origin}/api/booking/return?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${origin}/t/${tripIdOf(roomId)}`,
+      cancelUrl: `${origin}/t/${tripIdOf(roomId)}?book=${encodeURIComponent(legId)}`,
       metadata: { roomId, legId, riderId: actor.id },
       expiresInSec: booking.deadline ? Math.floor((Date.parse(booking.deadline) - Date.now()) / 1000) : undefined,
     });

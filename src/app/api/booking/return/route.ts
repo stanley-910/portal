@@ -12,5 +12,6 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const sessionId = new URL(request.url).searchParams.get("session_id");
   const where = sessionId && /^cs_[A-Za-z0-9_]+$/.test(sessionId) ? await confirmCheckout(sessionId) : null;
-  redirect(where ? `/t/${where.roomId.replace(/^trip:/, "")}` : "/");
+  // back to the leg they were paying for, open and in view, not the collapsed plan
+  redirect(where ? `/t/${where.roomId.replace(/^trip:/, "")}?book=${encodeURIComponent(where.legId)}` : "/");
 }

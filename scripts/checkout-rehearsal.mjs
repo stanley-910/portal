@@ -2,7 +2,7 @@
 // Checkout with the 4242 test card, and the leg ends Booked. Needs the dev server, `stripe listen` and a trip from
 // src/lib/booking/demo-seed.test.ts:  node scripts/checkout-rehearsal.mjs <TRIP_ID>   (SKIP_SETTLE=1 resumes at paying, BASE_URL=https://… for a tunnel)
 import { chromium } from "playwright";
-const TRIP = process.argv[2]; const BASE = process.env.BASE_URL ?? "http://localhost:3000"; const url = `${BASE}/t/${TRIP}?book=leg1`; // ?book opens the leg, whose booking controls are inside it
+const TRIP = process.argv[2]; const BASE = process.env.BASE_URL ?? "http://localhost:3000"; const url = `${BASE}/t/${TRIP}?book=leg1`; // the leg open, as the Stripe return lands it
 const S = process.env.SHOTS;
 // software WebGL: the trip page shows its plan only once the globe can draw
 const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
@@ -34,7 +34,7 @@ const payStripe = async (p, who) => {
   if (await p.locator("#billingPostalCode").count()) await p.fill("#billingPostalCode", "000000").catch(()=>{});
   if (S) await p.screenshot({ path: `${S}/${who}-stripe.png` });
   await p.locator(".SubmitButton").click();
-  await p.waitForURL((u) => u.origin === BASE, { timeout: 60000 });
+  await p.waitForURL((u) => u.origin === BASE && u.searchParams.get("book") === "leg1", { timeout: 60000 });
   log(who, "back at", p.url());
   await p.waitForTimeout(3000);
 };
@@ -43,9 +43,11 @@ try {
   if (process.env.SKIP_SETTLE) { await ann.locator(".tp-book").waitFor({ timeout: 30000 }); log("resuming:", await status(ann)); } else {
   await ann.getByRole("button", { name: "Settle and book" }).waitFor({ timeout: 30000 });
   log("ann settling"); await ann.getByRole("button", { name: "Settle and book" }).click();
+  // the group price may differ a little from the single-seat quote: accept the prompt, then wait for the booking panel
+  const accept = ann.getByRole("button", { name: /^Continue$/ });
+  await Promise.race([accept.waitFor({ timeout: 30000 }), ann.locator(".tp-book").waitFor({ timeout: 30000 })]);
+  if (await accept.count()) { log("accepting price change:", (await ann.locator(".tp-book-row, .tp-price").first().textContent().catch(()=>""))?.trim().slice(0, 60)); await accept.click(); }
   await ann.locator(".tp-book").waitFor({ timeout: 30000 });
-  // a price-change prompt may appear: accept it
-  const accept = ann.getByRole("button", { name: /Accept|Continue|Go on/i }); if (await accept.count()) { await accept.click(); await ann.waitForTimeout(2000); }
   log("after settle:", await status(ann));
   await details(ann, "Ann", "1990-01-01"); log("ann details:", await status(ann));
   await details(bo, "Bo", "1992-02-02"); log("bo details:", await status(bo));
