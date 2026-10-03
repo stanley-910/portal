@@ -442,6 +442,8 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<"failed" | "sign-in" | null>(null);
   const [pending, setPending] = useState(false);
+  // the suggestions start open, and fold away behind their toggle once you've sent something
+  const [suggest, setSuggest] = useState(true);
   const openAuth = useOpenAuth();
   // Not a transition: the message has to show the moment it's sent, and a transition holds every update back until
   // the request finishes. The box clears at once and gets the text back if sending fails.
@@ -450,6 +452,7 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
     if (!t || pending) return;
     setError(null);
     setDraft("");
+    setSuggest(false);
     setPending(true);
     try {
       await send(t);
@@ -468,13 +471,33 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
         submit(draft);
       }}
     >
-      <div className="pip-chips">
-        {chips.map((chip) => (
-          <button key={chip} type="button" className="pip-chip" disabled={pending} onClick={() => submit(chip)}>
-            {chip}
+      {chips.length ? (
+        <div className="pip-suggest">
+          <button type="button" className="pip-suggest-toggle" aria-expanded={suggest} onClick={() => setSuggest(!suggest)}>
+            Suggestions
+            <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden>
+              <path d="M2 4 L5 7 L8 4" />
+            </svg>
           </button>
-        ))}
-      </div>
+          {suggest ? (
+            <div className="pip-suggest-list" role="menu" aria-label="Suggested messages">
+              {chips.map((chip, i) => (
+                <button
+                  key={chip}
+                  type="button"
+                  role="menuitem"
+                  className="pip-suggestion"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                  disabled={pending}
+                  onClick={() => void submit(chip)}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
       {error === "sign-in" ? (
         <p className="pip-caption" role="alert">

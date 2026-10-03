@@ -101,11 +101,19 @@
 
 /* Composer */
 .pip-composer { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; border-top: var(--line-control) solid var(--line); flex: none; }
-.pip-chips { display: flex; gap: 6px; padding: 5px 0; margin: -5px 0; overflow-x: auto; scrollbar-width: none; }
-/* chips look 34px but keep a 44px tap area */
-.pip-chip::before { content: ""; position: absolute; inset: -5px 0; }
-.pip-chip { position: relative; flex: none; height: 34px; padding: 0 12px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper-raised); color: var(--ink); font-size: 13px; line-height: 18px; font-weight: 500; cursor: pointer; }
-.pip-chip:hover:not(:disabled) { background: var(--control-hover); }
+/* Suggested messages: a drop-down stack of small "you" bubbles, right-aligned where your messages go */
+.pip-suggest { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.pip-suggest-toggle { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--ink-muted); font-size: 12px; line-height: 16px; font-weight: 600; cursor: pointer; }
+.pip-suggest-toggle::before { content: ""; position: absolute; inset: -14px -8px; }
+.pip-suggest-toggle:hover { color: var(--ink); }
+.pip-suggest-toggle svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms ease; }
+.pip-suggest-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.pip-suggest-list { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 88%; }
+.pip-suggestion { position: relative; min-height: 30px; padding: 5px 11px; border: var(--line-control) solid var(--control-border); border-radius: 14px 4px 14px 14px; background: var(--paper); color: var(--ink); font-size: 13px; line-height: 18px; text-align: right; cursor: pointer; animation: pip-suggest-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* each bubble looks 30px tall; its tap area reaches 44px into the gaps */
+.pip-suggestion::before { content: ""; position: absolute; inset: -7px 0; }
+.pip-suggestion:hover:not(:disabled) { background: var(--control-hover); }
+.pip-suggestion:disabled { opacity: 0.5; cursor: default; }
 /* the input and send look 36px; the row's padding (a label, so it focuses the input) and the button's ::before keep 44px tap areas */
 .pip-input-row { display: flex; gap: 6px; padding: 4px 0; margin: -4px 0; cursor: text; }
 .pip-input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper); color: var(--ink); font-size: 14px; }
@@ -114,7 +122,7 @@
 .pip-send::before { content: ""; position: absolute; inset: -7px; }
 .pip-send:disabled { opacity: 0.45; cursor: not-allowed; }
 .pip-send svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
-.pip-chip:focus-visible, .pip-send:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pip-suggestion:focus-visible, .pip-suggest-toggle:focus-visible, .pip-send:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* a text box shows focus on every click, not just from the keyboard; its own border carries it instead of a ring */
 .pip-input:focus { outline: none; border-color: var(--ink-muted); }
 
@@ -126,9 +134,10 @@
 
 @keyframes pip-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes pip-open { from { transform: translateY(8px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pip-suggest-in { from { transform: translateY(-4px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pip-blink { 50% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .pip-launcher, .pip-panel { animation: none; }
-  .pip-caret, .pip-step-running .pip-step-mark { animation: none; }
+  .pip-caret, .pip-step-running .pip-step-mark, .pip-suggestion { animation: none; }
 }
