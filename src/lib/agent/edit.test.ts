@@ -1,9 +1,9 @@
 import { LiveMap, LiveObject, type Lson, type LsonObject } from "@liveblocks/node";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Stop } from "@/lib/liveblocks/types";
+import type { LegBooking, Stop } from "@/lib/liveblocks/types";
 
-import { editPlan } from "./edit";
+import { editPlan, undoChangeset } from "./edit";
 import { handlesFor, type PlanJson } from "./snapshot";
 
 // A room's Storage held in memory: editPlan writes to it through the same LiveObject API as a real room.
@@ -107,6 +107,72 @@ describe("editPlan, members", () => {
     expect(result.refused.map((r) => [r.op, r.code])).toEqual([[0, "UNKNOWN_HANDLE"], [1, "UNKNOWN_HANDLE"]]);
     expect(result.changesetId).toBeNull();
     expect(Object.keys(json().legs ?? {})).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("editPlan, dates", () => {
+  // Stanley takes the train HK → Taichung on the 4th, then on to Bintulu on the 7th; the trip ends on the 9th
+  const dated: PlanJson = {
+    ...plan,
+    legs: { a: leg("hk", "tc", 1), c: { ...leg("tc", "bt", 3), date: "2026-10-07" } },
+    ends: "2026-10-09",
+  };
+  const dates = () => Object.fromEntries(Object.entries(json().legs ?? {}).map(([id, l]) => [id, l.date]));
+
+  beforeEach(() => {
+    root = storageFrom(dated);
+    root.set("ends", "2026-10-09");
+  });
+
+  it("pushes the next leg along, and the trip's end, when a leg moves past them", async () => {
+    const h = handlesFor(dated);
+    const result = await editPlan("room", dated, h, [{ op: "set_date", leg: "L1", date: "2026-10-10" }], "agent:pip");
+    expect(dates()).toEqual({ a: "2026-10-10", c: "2026-10-10" });
+    expect(json().ends).toBe("2026-10-10");
+    expect(result.applied).toEqual([
+      "Moved Hong Kong → Taichung (Qingshui) to Sat 10 Oct",
+      "Moved Taichung (Qingshui) → Bintulu to Sat 10 Oct so it still comes after Hong Kong → Taichung (Qingshui)",
+      "Trip now ends the morning of Sat 10 Oct, the day of its last leg",
+    ]);
+    // one Undo puts all three back
+    await undoChangeset("room", result.changesetId!);
+    expect(dates()).toEqual({ a: "2026-10-04", c: "2026-10-07" });
+    expect(json().ends).toBe("2026-10-09");
+  });
+
+  it("won't move a leg before the leg that gets its riders there", async () => {
+    const result = await editPlan("room", dated, handlesFor(dated), [{ op: "set_date", leg: "L2", date: "2026-10-01" }], "agent:pip");
+    expect(dates()).toEqual({ a: "2026-10-04", c: "2026-10-04" });
+    expect(result.applied).toEqual(["Moved Taichung (Qingshui) → Bintulu to Sun 4 Oct, the earliest after Hong Kong → Taichung (Qingshui)"]);
+  });
+
+  it("refuses a move that would push a leg being booked", async () => {
+    const booked: PlanJson = { ...dated, legs: { ...dated.legs, c: { ...dated.legs!.c, booking: { status: "paying" } as unknown as LegBooking } } };
+    root = storageFrom(booked);
+    const result = await editPlan("room", booked, handlesFor(booked), [{ op: "set_date", leg: "L1", date: "2026-10-08" }], "agent:pip");
+    expect(result.refused).toMatchObject([{ op: 0, code: "LOCKED" }]);
+    expect(dates()).toEqual({ a: "2026-10-04", c: "2026-10-07" });
+  });
+
+  it("keeps the trip's end and leave dates inside the legs", async () => {
+    const result = await editPlan("room", dated, handlesFor(dated), [
+      { op: "set_leaves", member: "M1", date: "2026-10-01" },
+      { op: "set_trip_end", date: "2026-10-05" },
+    ], "agent:pip");
+    expect(json().members?.u1?.leaves).toBe("2026-10-04");
+    expect(json().ends).toBe("2026-10-07");
+    expect(result.applied).toEqual([
+      "Stanley leaves on Sun 4 Oct, the day of their first leg",
+      "Trip ends the morning of Wed 7 Oct, the day of its last leg",
+    ]);
+  });
+
+  it("brings a leave date back to an earlier trip end", async () => {
+    await editPlan("room", dated, handlesFor(dated), [{ op: "set_leaves", member: "M1", date: "2026-10-12" }], "agent:pip");
+    expect(json().members?.u1?.leaves).toBe("2026-10-09");
+    const result = await editPlan("room", json(), handlesFor(json()), [{ op: "set_trip_end", date: "2026-10-08" }], "agent:pip");
+    expect(json().members?.u1?.leaves).toBe("2026-10-08");
+    expect(result.applied).toContain("Stanley now leaves on Thu 8 Oct, to stay within the trip");
   });
 });
 

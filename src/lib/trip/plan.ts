@@ -6,8 +6,10 @@ import { useCallback, useEffect } from "react";
 
 import { searchLeg } from "@/app/t/actions";
 import { refreshTripTitle } from "@/app/t/title-actions";
+import { localIso } from "@/components/ticket-search/parts";
 import type { LandedTrip } from "@/components/trip-globe";
 import type { LegBooking, LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
+import * as dates from "./dates";
 import { computeSplit, type MemberSplit, type SplitInput } from "./split";
 import { sameStop, stopFromPoint } from "@/lib/trip/stops";
 
@@ -25,9 +27,6 @@ export const initialTripStorage = (): TripStorage => ({
 
 const newId = () => crypto.randomUUID().slice(0, 8);
 const pending = (): LegSearch => ({ id: newId(), status: "searching", offers: [] });
-/** YYYY-MM-DD in the browser's time zone. */
-const localDate = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 export type PlanLeg = {
   id: string;
@@ -108,6 +107,39 @@ export function usePlanEnd() {
   return useStorage((root) => root.ends ?? null);
 }
 
+/** Just the dates: each leg's date and riders, leave dates and the trip's end. Feed it to `@/lib/trip/dates`. */
+export function usePlanDates(): dates.DatePlan | null {
+  return useStorage(
+    (root) => ({
+      legs: Object.fromEntries(
+        Object.entries(root.legs).map(([id, l]) => [id, { date: l.date, riders: l.riders, createdAt: l.createdAt, booking: l.booking ?? null }]),
+      ),
+      members: Object.fromEntries(Object.entries(root.members).map(([id, m]) => [id, { leaves: m.leaves ?? null }])),
+      ends: root.ends ?? null,
+    }),
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
+}
+
+type Root = LiveObject<TripStorage>;
+
+/** The dates out of live Storage, as `@/lib/trip/dates` reads them. */
+function datesIn(storage: Root): dates.DatePlan {
+  return {
+    legs: Object.fromEntries(
+      [...storage.get("legs").entries()].map(([id, l]) => [id, { date: l.get("date"), riders: l.get("riders"), createdAt: l.get("createdAt"), booking: l.get("booking") ?? null }]),
+    ),
+    members: Object.fromEntries([...storage.get("members").entries()].map(([id, m]) => [id, { leaves: m.get("leaves") ?? null }])),
+    ends: storage.get("ends") ?? null,
+  };
+}
+
+/** Writes leave dates and the trip's end from `@/lib/trip/dates`. Leg dates go through `reset`, which searches again. */
+function writeDates(storage: Root, changes: dates.DateChanges) {
+  for (const [id, leaves] of Object.entries(changes.leaves)) storage.get("members").get(id)?.set("leaves", leaves);
+  if (changes.ends !== undefined) storage.set("ends", changes.ends);
+}
+
 /** Records you in the trip's member list, and keeps your name and colour there current. Call once in the room. */
 export function useRecordMember(nationalities: string[] = []) {
   const ready = usePlanReady();
@@ -180,7 +212,7 @@ export function usePlanActions() {
       new LiveObject({
         from: stopAt(stopFromPoint(trip.origin, trip.from)),
         to: stopAt(stopFromPoint(trip.destination, trip.to)),
-        date: localDate(trip.departDate),
+        date: localIso(trip.departDate),
         createdBy: self.id,
         riders: [self.id],
         search,
@@ -189,19 +221,28 @@ export function usePlanActions() {
         createdAt: Date.now(),
       }),
     );
+    // a leg after the trip's end moves the end along
+    writeDates(storage, dates.settle(datesIn(storage)));
     return { id, searchId: search.id };
   }, []);
 
   /** Starts a fresh search for a leg, dropping its old options, votes and pick. */
-  const resetMutation = useMutation(({ storage }, legId: string, patch: { date?: string }) => {
-    const leg = storage.get("legs").get(legId);
-    // a settled leg's options are fixed until its booking is cancelled
-    if (!leg || leg.get("booking")) return null;
-    const search = pending();
-    leg.update({ ...patch, search, chosen: null });
-    const votes = leg.get("votes");
-    for (const who of [...votes.keys()]) votes.delete(who);
-    return search.id;
+  const resetMutation = useMutation(({ storage }, legId: string, patch: { date?: string }) => reset(storage, legId, patch), []);
+
+  /**
+   * Moves a leg, pushing later legs its riders take along with it (`dates.moveLeg`). Returns the searches to start,
+   * or null when a leg that would have to move is being booked, in which case nothing changes.
+   */
+  const setDateMutation = useMutation(({ storage }, legId: string, date: string) => {
+    const changes = dates.moveLeg(datesIn(storage), legId, date);
+    if (changes.blocked.length || storage.get("legs").get(legId)?.get("booking")) return null;
+    const searches: { legId: string; searchId: string }[] = [];
+    for (const [id, d] of Object.entries(changes.legs)) {
+      const searchId = reset(storage, id, { date: d });
+      if (searchId) searches.push({ legId: id, searchId });
+    }
+    writeDates(storage, changes);
+    return searches;
   }, []);
 
   const voteMutation = useMutation(({ storage, self }, legId: string, offerId: string) => {
@@ -227,13 +268,17 @@ export function usePlanActions() {
     if (!leg || leg.get("booking")) return;
     const riders = leg.get("riders");
     leg.set("riders", riders.includes(guestId) ? riders.filter((r) => r !== guestId) : [...riders, guestId]);
+    // a rider's first leg may have moved, and their leave date with it
+    writeDates(storage, dates.settle(datesIn(storage)));
   }, []);
 
+  /** Your leave date, kept between your first leg and the trip's end (`dates.clampLeave`). */
   const setLeaveMutation = useMutation(({ storage, self }, date: string | null) => {
-    storage.get("members").get(self.id)?.set("leaves", date);
+    storage.get("members").get(self.id)?.set("leaves", dates.clampLeave(datesIn(storage), self.id, date));
   }, []);
+  /** The trip's end, never before its latest leg; leave dates after it come back to it. */
   const setEndsMutation = useMutation(({ storage }, date: string | null) => {
-    storage.set("ends", date);
+    writeDates(storage, dates.setEnds(datesIn(storage), date));
   }, []);
 
   /** Removes a leg, and any stop no other leg uses. */
@@ -245,6 +290,7 @@ export function usePlanActions() {
     const used = new Set<string>();
     for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));
     for (const stop of [leg.get("from"), leg.get("to")]) if (!used.has(stop)) storage.get("stops").delete(stop);
+    writeDates(storage, dates.settle(datesIn(storage)));
   }, []);
 
   return {
@@ -254,10 +300,13 @@ export function usePlanActions() {
       retitle();
       return id;
     },
+    /** False when a later leg that would have to move is being booked, so nothing changed. */
     setDate: (legId: string, date: string) => {
-      const searchId = resetMutation(legId, { date });
-      if (searchId) search(legId, searchId);
+      const searches = setDateMutation(legId, date);
+      if (!searches) return false;
+      for (const s of searches) search(s.legId, s.searchId);
       retitle();
+      return true;
     },
     retrySearch: (legId: string) => {
       const searchId = resetMutation(legId, {});
@@ -274,6 +323,18 @@ export function usePlanActions() {
       retitle();
     },
   };
+}
+
+/** Starts a fresh search for a leg, dropping its old options, votes and pick. Null for a leg being booked. */
+function reset(storage: Root, legId: string, patch: { date?: string }) {
+  const leg = storage.get("legs").get(legId);
+  // a settled leg's options are fixed until its booking is cancelled
+  if (!leg || leg.get("booking")) return null;
+  const search = pending();
+  leg.update({ ...patch, search, chosen: null });
+  const votes = leg.get("votes");
+  for (const who of [...votes.keys()]) votes.delete(who);
+  return search.id;
 }
 
 function legsEqual(a: PlanLeg[] | null, b: PlanLeg[] | null) {
