@@ -1,5 +1,5 @@
 import { COUNTRY_LABELS, type CountryLabel } from "@/components/trip-globe/countries";
-import { HUBS } from "@/lib/transport/hubs/catalog";
+import { HUBS } from "@/lib/transport/hubs/browser";
 import type { Hub } from "@/lib/transport/hubs/types";
 
 import { fold, regionName, type PlaceResult } from "./place";
@@ -69,9 +69,10 @@ function rank(key: string, q: string): number | null {
 let defaultIndex: Entry[] | null = null;
 
 /** Places whose name or airport code matches `query`, best first. */
-export function searchPlaces(query: string, index: Entry[] = (defaultIndex ??= buildPlaceIndex()), limit = LIMIT): PlaceResult[] {
+export function searchPlaces(query: string, index?: Entry[], limit = LIMIT): PlaceResult[] {
   const q = fold(query);
   if (!q) return [];
+  index ??= (defaultIndex ??= buildPlaceIndex());
   const codeQuery = /^[a-z]{3}$/.test(q) ? q.toUpperCase() : null;
   const scored: { place: PlaceResult; score: number }[] = [];
   for (const e of index) {

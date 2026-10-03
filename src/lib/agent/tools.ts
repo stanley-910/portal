@@ -6,13 +6,17 @@ import { stopToPlace } from "@/lib/trip/stops";
 import { z } from "zod";
 
 import { editPlan, editTarget, newChangeset, resolvePlace, type EditOp, type PlaceRef, type Refusal } from "@/lib/agent/edit";
-import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
+import { findMeetup, MAX_MEETUP_GROUPS, type MeetupGroup } from "@/lib/agent/meetup";
 import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
+import { cancelSettle, settleLeg } from "@/lib/booking/flow";
+import { liveblocks } from "@/lib/liveblocks/server";
+import type { LegBooking } from "@/lib/liveblocks/types";
+import { isBookable } from "@/lib/trip/offers";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -104,6 +108,22 @@ export const fmt = (o: MeetupOption) => {
   return `${o.id} ${o.place.name}${o.place.code ? ` (${o.place.code})` : ""}: ${legs}. ${total}.`;
 };
 
+/** "group USD 360, booked ref ABC123: M1 Ann USD 180 paid; M2 Bo USD 180 card held" for one leg's bill. */
+function bookingLine(b: LegBooking, plan: PlanJson, h: Handles): string {
+  const seats = Object.entries(b.seats).map(([id, s]) => {
+    const state = s.paid ? (b.status === "booked" ? "paid" : b.mode === "separate" ? "ticketed" : "card held") : s.details ? (b.status === "paying" ? "details in, not paid" : "details in") : "waiting for details";
+    return `${h.member.get(id) ?? "?"} ${plan.members?.[id]?.name ?? "someone"} ${s.share.currency} ${s.share.amount} ${state}`;
+  });
+  const head = `${b.mode === "group" ? "group booking" : "separate tickets"} ${b.total.currency} ${b.total.amount}, ${b.status === "booked" ? `booked${b.reference ? ` ref ${b.reference}` : ""}` : b.status}${b.deadline && b.status !== "booked" ? `, deadline ${b.deadline}` : ""}`;
+  return `${head}: ${seats.join("; ")}`;
+}
+
+/** A leg's options as get_leg_options numbers them: cheapest first by a rough conversion, the top eight. */
+function ranked<O extends { price?: { amount: number; currency: string } | null }>(offers: readonly O[]): O[] {
+  const usd = (o: O) => (o.price ? o.price.amount * (USD_RATE[o.price.currency] ?? Infinity) : Infinity);
+  return [...offers].sort((a, b) => usd(a) - usd(b)).slice(0, 8);
+}
+
 /** What a tool that would change the trip says once the run is out of time. */
 const OUT_OF_TIME = {
   refused: "OUT_OF_TIME",
@@ -112,16 +132,7 @@ const OUT_OF_TIME = {
 } as const;
 
 export function agentTools(ctx: ToolContext) {
-  // Pip's saucer comes out the first time Pip looks somewhere, flying in from off the screen, which takes longer
-  // than gliding on to the next place. Returns how long to give it to get there.
-  let saucerOut = false;
-  const look = (text: string, at?: Parameters<ToolContext["activity"]>[1]) => {
-    const was = saucerOut;
-    ctx.activity(text, at);
-    if (!at) return 0;
-    saucerOut = true;
-    return was ? SAUCER_FLY_MS : SAUCER_ENTER_MS;
-  };
+  const look = (text: string, at?: Parameters<ToolContext["activity"]>[1]) => ctx.activity(text, at);
   return {
     get_trip: tool({
       description: "The trip as it is now: members, stops and legs with handles. Read-only; call it before editing if the plan may have changed.",
@@ -142,13 +153,12 @@ export function agentTools(ctx: ToolContext) {
         const l = id ? plan.legs?.[id] : undefined;
         if (!l) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
         if (l.search.status === "searching") return { status: "searching", note: "Options are still loading. Say so, or check again shortly." };
-        const usd = (o: (typeof l.search.offers)[number]) => (o.price ? o.price.amount * (USD_RATE[o.price.currency] ?? Infinity) : Infinity);
         const votes = new Map<string, number>();
         for (const offer of Object.values(l.votes ?? {})) votes.set(offer, (votes.get(offer) ?? 0) + 1);
-        const options = [...l.search.offers].sort((a, b) => usd(a) - usd(b)).slice(0, 8).map((o, i) => {
+        const options = ranked(l.search.offers).map((o, i) => {
           const price = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
           const time = o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`;
-          const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
+          const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", o.refund ? (o.refund.fee ? `refundable for a ${o.refund.fee.currency} ${o.refund.fee.amount} fee` : "refundable free") : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
         return { leg, total: l.search.offers.length, options, note: "Quote these exactly. Prices in different currencies are ordered by a rough conversion." };
@@ -245,6 +255,79 @@ export function agentTools(ctx: ToolContext) {
       },
     }),
 
+    book_leg: tool({
+      description:
+        "Books a leg for its riders in the app. Picks the option when one is named (its number from get_leg_options; only options marked bookable), settles the group on it at today's fare, and posts a checkout card where each rider confirms their own details and pays their own share without leaving the app. Call it as soon as a rider asks; the card shows the price. A leg already being booked just gets its card again. If the fare moved since it was found, it comes back PRICE_CHANGED: tell them the new price, and call again with accept_price once someone says go.",
+      inputSchema: z.object({
+        leg: z.string().describe("Leg handle from get_trip, e.g. L2"),
+        option: z.number().int().min(1).max(8).optional().describe("Option number from get_leg_options, when they named one; omit to book the option already chosen"),
+        accept_price: z.number().positive().optional().describe("The new per-seat price from PRICE_CHANGED, once they've agreed to it"),
+      }),
+      execute: async ({ leg, option, accept_price }) => {
+        if (Date.now() > ctx.until) return OUT_OF_TIME;
+        const { plan, handles } = await ctx.load();
+        const legId = handles.id.get(leg);
+        const l = legId ? plan.legs?.[legId] : undefined;
+        if (!legId || !l) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        if (l.booking) {
+          await ctx.addCard({ type: "checkout", legId });
+          return { status: "already_settled", booking: bookingLine(l.booking, plan, handles), note: "The checkout card is up again. Each rider confirms their own details and share there." };
+        }
+        const asker = { id: ctx.askedBy, name: plan.members?.[ctx.askedBy]?.name ?? null, email: null };
+        if (!l.riders.includes(asker.id)) return { refused: "NOT_A_RIDER", reason: "Only someone riding this leg can book it.", next: "Say a rider needs to ask, or add them with set_riders first." };
+        let chosen = l.search.offers.find((o) => o.id === l.chosen) ?? null;
+        if (option !== undefined) {
+          const pick = ranked(l.search.offers)[option - 1];
+          if (!pick) return { refused: "UNKNOWN_OPTION", reason: `There's no option ${option}.`, next: "Call get_leg_options and use its numbers." };
+          if (!isBookable(pick)) return { refused: "NOT_BOOKABLE", reason: "That option can't be bought in the app.", next: "Say it's booked on the provider's site, or offer a bookable option." };
+          await liveblocks().mutateStorage(ctx.roomId, ({ root }) => {
+            const live = root.get("legs").get(legId);
+            if (live && !live.get("booking")) live.set("chosen", pick.id);
+          });
+          chosen = pick;
+        }
+        if (!chosen) return { refused: "NO_PICK", reason: "Nothing is chosen on this leg.", next: "Call get_leg_options and ask which bookable option they want, or book the one they named." };
+        if (!isBookable(chosen)) return { refused: "NOT_BOOKABLE", reason: "The chosen option can't be bought in the app.", next: "Say it's booked on the provider's site, or offer a bookable option." };
+        const accept = accept_price !== undefined ? { amount: accept_price, currency: chosen.price?.currency ?? "USD" } : undefined;
+        const result = await settleLeg(ctx.roomId, legId, asker, accept);
+        if (!result.ok) {
+          if ("now" in result) return { status: "PRICE_CHANGED", was: result.was, now: result.now, note: "Per seat. Say the new price and ask whether to go ahead; then call book_leg again with accept_price." };
+          return { refused: result.code, reason: result.message, next: result.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option from get_leg_options." : "Tell them plainly." };
+        }
+        await ctx.addCard({ type: "checkout", legId });
+        const after = (await ctx.load()).plan.legs?.[legId]?.booking;
+        return {
+          status: "settled",
+          booking: after ? bookingLine(after, plan, handles) : result.mode,
+          note: "The checkout card is up. Each rider confirms their own details (saved ones are one tap) and holds their share on their card there; nobody is charged until every seat is held, then the airline books it. You can't enter details or pay for anyone.",
+        };
+      },
+    }),
+
+    get_bill: tool({
+      description: "Each member's bill on legs being booked or booked: their share, and whether their details are in, their card is held, or they've paid. Read-only. Use it for who still owes or what someone's paying.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { plan, handles } = await ctx.load();
+        const legs = Object.entries(plan.legs ?? {}).filter(([, l]) => l.booking);
+        if (!legs.length) return { bills: [], note: "Nothing is being booked yet." };
+        return { bills: legs.map(([id, l]) => `${handles.leg.get(id) ?? "?"}: ${bookingLine(l.booking!, plan, handles)}`), note: "Shares are what each rider's card is held for; quote them exactly." };
+      },
+    }),
+
+    cancel_booking: tool({
+      description: "Undoes a settle on a leg while nobody has paid, releasing any held seats, when a rider asks. After someone has paid it can't.",
+      inputSchema: z.object({ leg: z.string().describe("Leg handle from get_trip, e.g. L2") }),
+      execute: async ({ leg }) => {
+        if (Date.now() > ctx.until) return OUT_OF_TIME;
+        const { plan, handles } = await ctx.load();
+        const legId = handles.id.get(leg);
+        if (!legId || !plan.legs?.[legId]) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        const result = await cancelSettle(ctx.roomId, legId, { id: ctx.askedBy, name: plan.members?.[ctx.askedBy]?.name ?? null, email: null });
+        return result.ok ? { status: "cancelled", note: "The leg is back in planning; nobody was charged." } : { refused: result.code, reason: result.message, next: "Tell them plainly." };
+      },
+    }),
+
     edit_plan: tool({
       description:
         "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, add, change or remove stays (each with its own guests, nights and price, apart from the legs), and when someone leaves. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
@@ -252,26 +335,20 @@ export function agentTools(ctx: ToolContext) {
       execute: async ({ ops }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
         const { plan, handles } = await ctx.load();
-        const wait = (ms: number) => new Promise((done) => setTimeout(done, Math.min(ms, Math.max(0, ctx.until - Date.now() - 1000))));
-        // One op at a time, in order, so everyone watches the trip built piece by piece: the saucer flies to where it
-        // goes, the change lands under it, and it stays a beat before the next. Every op reads the same snapshot, as
-        // one call did, and they share a changeset, so one Undo still puts back all of them.
+        // Ordered changes share one Undo; clients animate the marks without delaying server work.
         const changeset = newChangeset();
         const applied: string[] = [];
         const refused: Refusal[] = [];
         for (const [i, op] of (ops as EditOp[]).entries()) {
           const target = editTarget(plan, handles, [op]);
-          await wait(look("editing the trip", target ?? undefined));
+          look("editing the trip", target ?? undefined);
           const step = await editPlan(ctx.roomId, plan, handles, [op], ctx.agentId, ctx.until, changeset);
           applied.push(...step.applied);
           refused.push(...step.refused.map((r) => ({ ...r, op: i })));
           ctx.marks(step.marks);
-          // a new leg draws out behind the saucer before its mark pops
-          if (op.op === "add_leg" && step.applied.length) await wait(SAUCER_DRAW_MS);
-          if (step.marks.length && i < ops.length - 1) await wait(SAUCER_STAY_MS);
         }
         if (applied.length) await ctx.addCard({ type: "changes", changesetId: changeset.id, lines: applied, undone: false });
-        // searches for new or moved legs go on while the saucer works, and finish before Pip says what it did
+        // Finish searches before Pip quotes what it changed.
         await Promise.all(changeset.searches);
         return { applied, refused };
       },
@@ -289,7 +366,7 @@ export function agentTools(ctx: ToolContext) {
               from: placeRef,
             }),
           )
-          .min(2),
+          .min(2).max(MAX_MEETUP_GROUPS),
         date: date.describe("The day they arrive, YYYY-MM-DD"),
         minimize: z.enum(["price", "duration"]).default("price"),
         fairest: z.boolean().default(false).describe("Minimise the worst-off person instead of the group total"),
@@ -326,8 +403,8 @@ export function agentTools(ctx: ToolContext) {
           { groups, date: input.date, minimize: input.minimize, fairest: input.fairest, candidates: input.candidates },
           async (query) => {
             look(`checking ${query.to.name}`, query.to);
-            return (await searchFromCoordinates(query, AbortSignal.timeout(12_000))).offers;
-          },
+            return (await searchFromCoordinates(query, AbortSignal.timeout(Math.max(1, Math.min(12_000, ctx.until - Date.now()))))).offers;
+          }, undefined, AbortSignal.timeout(Math.max(1, ctx.until - Date.now())),
         );
         if (!result.options.length) {
           return { options: [], note: "No candidate city had routes for every group. Suggest other dates or name candidates." };

@@ -19,6 +19,20 @@ export const stripeConfigured = () => !!env.STRIPE_SECRET_KEY;
  * Whether the no-charge test checkout may stand in for Stripe: only while Duffel itself is in test mode, so a deploy
  * with a live airline token and no Stripe key can't buy real tickets for free.
  */
+/**
+ * Whether booking may run with these keys: Duffel and Stripe both in test mode or both live. A live airline with test
+ * cards would buy real tickets with our balance and collect nothing; test fares on live cards would charge for
+ * nothing. Without Stripe only the no-charge test checkout runs, which needs a Duffel test token.
+ */
+export function bookingModes(duffelToken: string | undefined, stripeKey: string | undefined): { ok: true; mode: "test" | "live" } | { ok: false; reason: string } {
+  const duffel = duffelToken?.startsWith("duffel_live_") ? "live" : duffelToken?.startsWith("duffel_test_") ? "test" : null;
+  const stripeMode = !stripeKey ? null : /^(sk|rk)_live_/.test(stripeKey) ? "live" : /^(sk|rk)_test_/.test(stripeKey) ? "test" : null;
+  if (!duffel) return { ok: false, reason: "Duffel isn't set up on this server." };
+  if (!stripeKey) return duffel === "test" ? { ok: true, mode: "test" } : { ok: false, reason: "Payments aren't set up on this server." };
+  if (stripeMode !== duffel) return { ok: false, reason: `Booking is off: the airline is in ${duffel} mode and payments in ${stripeMode ?? "an unknown"} mode.` };
+  return { ok: true, mode: duffel };
+}
+
 export const testCheckoutAllowed = () => !env.STRIPE_SECRET_KEY && !!env.DUFFEL_ACCESS_TOKEN?.startsWith("duffel_test_");
 
 /** Nested params the way Stripe's form encoding wants them: `a[b][c]=v`. */
@@ -160,3 +174,44 @@ export function verifyStripeSignature(rawBody: string, header: string | null, se
     return null;
   }
 }
+
+// Paying in the app, without leaving it: a PaymentIntent the browser confirms with Stripe.js, on a card saved to the
+// person's Stripe customer or a new one typed into the embedded card field, which saves it for next time.
+
+/** A new Stripe customer for a person; their saved cards hang off it. */
+export const createCustomer = (personId: string, email: string | null, name: string | null) =>
+  stripe<{ id: string }>("POST", "/customers", { email: email ?? undefined, name: name ?? undefined, metadata: { person_id: personId } }, `customer:${personId}`);
+
+export type SavedCard = { id: string; brand: string; last4: string; expMonth: number; expYear: number };
+
+/** The person's saved cards, newest first. */
+export async function listCards(customerId: string): Promise<SavedCard[]> {
+  type Pm = { id: string; card?: { brand: string; last4: string; exp_month: number; exp_year: number } };
+  const res = await stripe<{ data: Pm[] }>("GET", `/customers/${encodeURIComponent(customerId)}/payment_methods`, { type: "card", limit: 5 });
+  return res.data.flatMap((pm) => (pm.card ? [{ id: pm.id, brand: pm.card.brand, last4: pm.card.last4, expMonth: pm.card.exp_month, expYear: pm.card.exp_year }] : []));
+}
+
+export type HoldIntent = { id: string; client_secret: string; status: string };
+
+/**
+ * A card hold for the rider's share, for the browser to confirm: on `paymentMethod` when they picked a saved card, or
+ * on what they type, which is then saved to `customer` for next time.
+ */
+export const createHoldIntent = (input: {
+  share: Money;
+  customer: string;
+  paymentMethod: string | null;
+  description: string;
+  metadata: { roomId: string; legId: string; riderId: string };
+}) =>
+  stripe<HoldIntent>("POST", "/payment_intents", {
+    amount: minorUnits(input.share),
+    currency: input.share.currency.toLowerCase(),
+    customer: input.customer,
+    payment_method: input.paymentMethod ?? undefined,
+    payment_method_types: ["card"],
+    capture_method: "manual",
+    setup_future_usage: input.paymentMethod ? undefined : "on_session",
+    description: input.description,
+    metadata: input.metadata,
+  });

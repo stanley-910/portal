@@ -1,0 +1,544 @@
+{
+  "label": "after",
+  "commit": "22abdf96161762eae1584683272c0c1145f3eb53",
+  "sourceState": "uncommitted implementation on the recorded parent commit",
+  "browser": "145.0.7632.6",
+  "environment": "Local production Next server; no credentials; Chromium headless SwiftShader, 1440x900 DPR1; transport API aborted. Instrumented counts, not a hardware performance benchmark.",
+  "samples": [
+    {
+      "label": "idle before route",
+      "elapsedMs": 2201,
+      "clear2d": {
+        "connected-1440x900": 42,
+        "offscreen-1440x900": 42,
+        "connected-20x20": 18
+      },
+      "drawGL": 210,
+      "frames": 42,
+      "hitTests": 96,
+      "hitTestsTotal": 96
+    },
+    {
+      "label": "after route landing",
+      "elapsedMs": 2201,
+      "clear2d": {
+        "connected-16x13": 19,
+        "connected-1440x900": 16,
+        "offscreen-1440x900": 30,
+        "connected-20x20": 7
+      },
+      "drawGL": 48,
+      "frames": 16,
+      "hitTests": 64,
+      "hitTestsTotal": 320
+    },
+    {
+      "label": "unrelated DOM updates after landing",
+      "elapsedMs": 2201,
+      "clear2d": {
+        "connected-1440x900": 13,
+        "offscreen-1440x900": 13,
+        "connected-16x13": 24,
+        "connected-20x20": 9
+      },
+      "drawGL": 39,
+      "frames": 37,
+      "hitTests": 80,
+      "hitTestsTotal": 416
+    },
+    {
+      "label": "normal motion after extended settling",
+      "elapsedMs": 2201,
+      "clear2d": {
+        "connected-16x13": 55,
+        "connected-20x20": 18
+      },
+      "drawGL": 0,
+      "frames": 264,
+      "hitTests": 96,
+      "hitTestsTotal": 912
+    },
+    {
+      "label": "landed with reduced motion",
+      "elapsedMs": 2203,
+      "clear2d": {
+        "connected-20x20": 19,
+        "connected-16x13": 56
+      },
+      "drawGL": 0,
+      "frames": 261,
+      "hitTests": 112,
+      "hitTestsTotal": 1024
+    }
+  ],
+  "landedText": "You\nPlan with friends\nPKZ → 21.85, 130.97\nPakse\nPKZ\n2,732 km\n21.85, 130.97\nDepart\nMon 5 Oct\nReturn\nAdd date\nBest\n\nSearch failed. Try again\n\nSave trip\nHi, I'm Pip. Pick a place, I'll find the way.",
+  "beforeEscape": {
+    "dialog": 1,
+    "ticket": 1
+  },
+  "afterEscape": {
+    "dialog": 0,
+    "ticket": 1,
+    "body": "You\nPlan with friends\nPKZ → 21.85, 130.97\nPakse\nPKZ\n2,732 km\n21.85, 130.97\nDepart\nMon 5 Oct\nReturn\nAdd date\nBest\n\nSearch failed. Try again\n\nSave trip"
+  },
+  "timings": [
+    {
+      "name": "portal:globe-ready",
+      "durationMs": 2078.5
+    }
+  ],
+  "errors": [],
+  "totals": {
+    "js": {
+      "count": 14,
+      "decodedBytes": 1572990,
+      "encodedBytes": 538278
+    },
+    "css": {
+      "count": 2,
+      "decodedBytes": 114369,
+      "encodedBytes": 21780
+    },
+    "fonts": {
+      "count": 9,
+      "decodedBytes": 249628,
+      "encodedBytes": 249628
+    },
+    "textures": {
+      "count": 3,
+      "decodedBytes": 1246831,
+      "encodedBytes": 1246831
+    }
+  },
+  "initialResources": [
+    {
+      "path": "/_next/static/media/0b7c5b993c1057ea.p.1y9qe_7x2ofb7.woff2",
+      "type": "link",
+      "decodedBytes": 57808,
+      "encodedBytes": 57808,
+      "transferBytes": 58108
+    },
+    {
+      "path": "/_next/static/media/520c929efec0b33f.p.3arxh35s5-kc0.woff2",
+      "type": "link",
+      "decodedBytes": 15960,
+      "encodedBytes": 15960,
+      "transferBytes": 16260
+    },
+    {
+      "path": "/_next/static/media/3cabd365f8c28a7b.p.19q4vxlgtk0rb.woff2",
+      "type": "link",
+      "decodedBytes": 59880,
+      "encodedBytes": 59880,
+      "transferBytes": 60180
+    },
+    {
+      "path": "/_next/static/media/4b23c5ee480ee380.p.0qqufx6vw52v_.woff2",
+      "type": "link",
+      "decodedBytes": 15680,
+      "encodedBytes": 15680,
+      "transferBytes": 15980
+    },
+    {
+      "path": "/_next/static/media/5f440d3eea613716.p.1xmps1tcyqv34.woff2",
+      "type": "link",
+      "decodedBytes": 11588,
+      "encodedBytes": 11588,
+      "transferBytes": 11888
+    },
+    {
+      "path": "/_next/static/media/6a1d08cf467f0848.p.240fzfer9e_rh.woff2",
+      "type": "link",
+      "decodedBytes": 15760,
+      "encodedBytes": 15760,
+      "transferBytes": 16060
+    },
+    {
+      "path": "/_next/static/media/87d3ffffac5dafea.p.3a10o7es2neby.woff2",
+      "type": "link",
+      "decodedBytes": 11192,
+      "encodedBytes": 11192,
+      "transferBytes": 11492
+    },
+    {
+      "path": "/_next/static/chunks/3ksltxz73tz9f.css",
+      "type": "link",
+      "decodedBytes": 9044,
+      "encodedBytes": 2143,
+      "transferBytes": 2443
+    },
+    {
+      "path": "/_next/static/chunks/18fdmz79kdp5-.css",
+      "type": "link",
+      "decodedBytes": 105325,
+      "encodedBytes": 19637,
+      "transferBytes": 19937
+    },
+    {
+      "path": "/_next/static/chunks/29cj9vuuzo0gs.js",
+      "type": "link",
+      "decodedBytes": 12657,
+      "encodedBytes": 3556,
+      "transferBytes": 3856
+    },
+    {
+      "path": "/_next/static/chunks/2jdnhmurjdku9.js",
+      "type": "script",
+      "decodedBytes": 27411,
+      "encodedBytes": 8643,
+      "transferBytes": 8943
+    },
+    {
+      "path": "/_next/static/chunks/turbopack-0b_8cuww1hstr.js",
+      "type": "script",
+      "decodedBytes": 9754,
+      "encodedBytes": 3867,
+      "transferBytes": 4167
+    },
+    {
+      "path": "/_next/static/chunks/1dtkhqzj_p0_r.js",
+      "type": "script",
+      "decodedBytes": 31436,
+      "encodedBytes": 8390,
+      "transferBytes": 8690
+    },
+    {
+      "path": "/_next/static/chunks/03s720yi1c9cx.js",
+      "type": "script",
+      "decodedBytes": 45610,
+      "encodedBytes": 17376,
+      "transferBytes": 17676
+    },
+    {
+      "path": "/_next/static/chunks/0oodfnak0-ost.js",
+      "type": "script",
+      "decodedBytes": 129010,
+      "encodedBytes": 34702,
+      "transferBytes": 35002
+    },
+    {
+      "path": "/_next/static/chunks/35h-jk448o9n_.js",
+      "type": "script",
+      "decodedBytes": 229151,
+      "encodedBytes": 71647,
+      "transferBytes": 71947
+    },
+    {
+      "path": "/_next/static/chunks/0j66yhglybetf.js",
+      "type": "script",
+      "decodedBytes": 27438,
+      "encodedBytes": 8426,
+      "transferBytes": 8726
+    },
+    {
+      "path": "/_next/static/chunks/1ikk0ql62yua7.js",
+      "type": "script",
+      "decodedBytes": 14619,
+      "encodedBytes": 6292,
+      "transferBytes": 6592
+    },
+    {
+      "path": "/_next/static/chunks/05b5l_o0oqagu.js",
+      "type": "script",
+      "decodedBytes": 35039,
+      "encodedBytes": 14299,
+      "transferBytes": 14599
+    },
+    {
+      "path": "/_next/static/chunks/0fgsae7c7kcb0.js",
+      "type": "script",
+      "decodedBytes": 235234,
+      "encodedBytes": 70642,
+      "transferBytes": 70942
+    },
+    {
+      "path": "/_next/static/chunks/1ck6ftegxt88v.js",
+      "type": "script",
+      "decodedBytes": 338659,
+      "encodedBytes": 134637,
+      "transferBytes": 134937
+    },
+    {
+      "path": "/_next/static/chunks/24c0m727jsiqh.js",
+      "type": "script",
+      "decodedBytes": 412049,
+      "encodedBytes": 145698,
+      "transferBytes": 145998
+    },
+    {
+      "path": "/textures/earth.png",
+      "type": "fetch",
+      "decodedBytes": 485288,
+      "encodedBytes": 485288,
+      "transferBytes": 485588
+    },
+    {
+      "path": "/textures/borders.png",
+      "type": "fetch",
+      "decodedBytes": 202551,
+      "encodedBytes": 202551,
+      "transferBytes": 202851
+    },
+    {
+      "path": "/textures/provinces.png",
+      "type": "fetch",
+      "decodedBytes": 558992,
+      "encodedBytes": 558992,
+      "transferBytes": 559292
+    },
+    {
+      "path": "/api/exchange-rates",
+      "type": "fetch",
+      "decodedBytes": 447,
+      "encodedBytes": 447,
+      "transferBytes": 747
+    },
+    {
+      "path": "/",
+      "type": "fetch",
+      "decodedBytes": 1425,
+      "encodedBytes": 805,
+      "transferBytes": 1105
+    },
+    {
+      "path": "/_vercel/insights/script.js",
+      "type": "script",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 300
+    }
+  ],
+  "resources": [
+    {
+      "path": "/_next/static/media/0b7c5b993c1057ea.p.1y9qe_7x2ofb7.woff2",
+      "type": "link",
+      "decodedBytes": 57808,
+      "encodedBytes": 57808,
+      "transferBytes": 58108
+    },
+    {
+      "path": "/_next/static/media/520c929efec0b33f.p.3arxh35s5-kc0.woff2",
+      "type": "link",
+      "decodedBytes": 15960,
+      "encodedBytes": 15960,
+      "transferBytes": 16260
+    },
+    {
+      "path": "/_next/static/media/3cabd365f8c28a7b.p.19q4vxlgtk0rb.woff2",
+      "type": "link",
+      "decodedBytes": 59880,
+      "encodedBytes": 59880,
+      "transferBytes": 60180
+    },
+    {
+      "path": "/_next/static/media/4b23c5ee480ee380.p.0qqufx6vw52v_.woff2",
+      "type": "link",
+      "decodedBytes": 15680,
+      "encodedBytes": 15680,
+      "transferBytes": 15980
+    },
+    {
+      "path": "/_next/static/media/5f440d3eea613716.p.1xmps1tcyqv34.woff2",
+      "type": "link",
+      "decodedBytes": 11588,
+      "encodedBytes": 11588,
+      "transferBytes": 11888
+    },
+    {
+      "path": "/_next/static/media/6a1d08cf467f0848.p.240fzfer9e_rh.woff2",
+      "type": "link",
+      "decodedBytes": 15760,
+      "encodedBytes": 15760,
+      "transferBytes": 16060
+    },
+    {
+      "path": "/_next/static/media/87d3ffffac5dafea.p.3a10o7es2neby.woff2",
+      "type": "link",
+      "decodedBytes": 11192,
+      "encodedBytes": 11192,
+      "transferBytes": 11492
+    },
+    {
+      "path": "/_next/static/chunks/3ksltxz73tz9f.css",
+      "type": "link",
+      "decodedBytes": 9044,
+      "encodedBytes": 2143,
+      "transferBytes": 2443
+    },
+    {
+      "path": "/_next/static/chunks/18fdmz79kdp5-.css",
+      "type": "link",
+      "decodedBytes": 105325,
+      "encodedBytes": 19637,
+      "transferBytes": 19937
+    },
+    {
+      "path": "/_next/static/chunks/29cj9vuuzo0gs.js",
+      "type": "link",
+      "decodedBytes": 12657,
+      "encodedBytes": 3556,
+      "transferBytes": 3856
+    },
+    {
+      "path": "/_next/static/chunks/2jdnhmurjdku9.js",
+      "type": "script",
+      "decodedBytes": 27411,
+      "encodedBytes": 8643,
+      "transferBytes": 8943
+    },
+    {
+      "path": "/_next/static/chunks/turbopack-0b_8cuww1hstr.js",
+      "type": "script",
+      "decodedBytes": 9754,
+      "encodedBytes": 3867,
+      "transferBytes": 4167
+    },
+    {
+      "path": "/_next/static/chunks/1dtkhqzj_p0_r.js",
+      "type": "script",
+      "decodedBytes": 31436,
+      "encodedBytes": 8390,
+      "transferBytes": 8690
+    },
+    {
+      "path": "/_next/static/chunks/03s720yi1c9cx.js",
+      "type": "script",
+      "decodedBytes": 45610,
+      "encodedBytes": 17376,
+      "transferBytes": 17676
+    },
+    {
+      "path": "/_next/static/chunks/0oodfnak0-ost.js",
+      "type": "script",
+      "decodedBytes": 129010,
+      "encodedBytes": 34702,
+      "transferBytes": 35002
+    },
+    {
+      "path": "/_next/static/chunks/35h-jk448o9n_.js",
+      "type": "script",
+      "decodedBytes": 229151,
+      "encodedBytes": 71647,
+      "transferBytes": 71947
+    },
+    {
+      "path": "/_next/static/chunks/0j66yhglybetf.js",
+      "type": "script",
+      "decodedBytes": 27438,
+      "encodedBytes": 8426,
+      "transferBytes": 8726
+    },
+    {
+      "path": "/_next/static/chunks/1ikk0ql62yua7.js",
+      "type": "script",
+      "decodedBytes": 14619,
+      "encodedBytes": 6292,
+      "transferBytes": 6592
+    },
+    {
+      "path": "/_next/static/chunks/05b5l_o0oqagu.js",
+      "type": "script",
+      "decodedBytes": 35039,
+      "encodedBytes": 14299,
+      "transferBytes": 14599
+    },
+    {
+      "path": "/_next/static/chunks/0fgsae7c7kcb0.js",
+      "type": "script",
+      "decodedBytes": 235234,
+      "encodedBytes": 70642,
+      "transferBytes": 70942
+    },
+    {
+      "path": "/_next/static/chunks/1ck6ftegxt88v.js",
+      "type": "script",
+      "decodedBytes": 338659,
+      "encodedBytes": 134637,
+      "transferBytes": 134937
+    },
+    {
+      "path": "/_next/static/chunks/24c0m727jsiqh.js",
+      "type": "script",
+      "decodedBytes": 412049,
+      "encodedBytes": 145698,
+      "transferBytes": 145998
+    },
+    {
+      "path": "/textures/earth.png",
+      "type": "fetch",
+      "decodedBytes": 485288,
+      "encodedBytes": 485288,
+      "transferBytes": 485588
+    },
+    {
+      "path": "/textures/borders.png",
+      "type": "fetch",
+      "decodedBytes": 202551,
+      "encodedBytes": 202551,
+      "transferBytes": 202851
+    },
+    {
+      "path": "/textures/provinces.png",
+      "type": "fetch",
+      "decodedBytes": 558992,
+      "encodedBytes": 558992,
+      "transferBytes": 559292
+    },
+    {
+      "path": "/api/exchange-rates",
+      "type": "fetch",
+      "decodedBytes": 447,
+      "encodedBytes": 447,
+      "transferBytes": 747
+    },
+    {
+      "path": "/",
+      "type": "fetch",
+      "decodedBytes": 1425,
+      "encodedBytes": 805,
+      "transferBytes": 1105
+    },
+    {
+      "path": "/_vercel/insights/script.js",
+      "type": "script",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 300
+    },
+    {
+      "path": "/_next/static/media/64e306be6f430f77.0acte72hu2i0h.woff2",
+      "type": "css",
+      "decodedBytes": 4804,
+      "encodedBytes": 4804,
+      "transferBytes": 5104
+    },
+    {
+      "path": "/_next/static/chunks/0bqygncq9q3sv.js",
+      "type": "script",
+      "decodedBytes": 24923,
+      "encodedBytes": 10103,
+      "transferBytes": 10403
+    },
+    {
+      "path": "/_next/static/media/71264d256c100793.1ym-6fflcxrbh.woff2",
+      "type": "css",
+      "decodedBytes": 56956,
+      "encodedBytes": 56956,
+      "transferBytes": 57256
+    },
+    {
+      "path": "/api/transport/search",
+      "type": "fetch",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 0
+    },
+    {
+      "path": "/api/transport/search",
+      "type": "fetch",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 0
+    }
+  ]
+}

@@ -108,6 +108,7 @@ export class Sky {
   private pBake: Program;
   private vao: WebGLVertexArrayObject | null;
   private count = 0;
+  private corners: WebGLBuffer | null;
   private bufStar: WebGLBuffer | null;
   private bufLook: WebGLBuffer | null;
   readonly texture: WebGLTexture | null;
@@ -121,8 +122,8 @@ export class Sky {
 
     this.vao = gl.createVertexArray();
     gl.bindVertexArray(this.vao);
-    const corners = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, corners);
+    this.corners = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.corners);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
@@ -182,6 +183,7 @@ export class Sky {
   dispose() {
     const gl = this.gl;
     gl.deleteTexture(this.texture);
+    gl.deleteBuffer(this.corners);
     gl.deleteBuffer(this.bufStar);
     gl.deleteBuffer(this.bufLook);
     gl.deleteVertexArray(this.vao);

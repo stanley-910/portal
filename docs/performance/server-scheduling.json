@@ -1,0 +1,38 @@
+{
+  "baseline": "22abdf9",
+  "workload": "offline scheduling fixtures; milliseconds use a virtual clock",
+  "transport": {
+    "queries": 20,
+    "distinctQueries": 5,
+    "before": {
+      "firstUsefulMs": 1000,
+      "providerCalls": 20,
+      "peakProviderCalls": 20
+    },
+    "after": {
+      "firstUsefulMs": 0,
+      "providerCalls": 5,
+      "peakProviderCalls": 5,
+      "completeMs": 1000
+    }
+  },
+  "pip": {
+    "legs": 2,
+    "before": {
+      "animationWaitMs": 4900
+    },
+    "after": {
+      "animationWaitMs": 0
+    }
+  },
+  "queue": {
+    "windowMs": 60000,
+    "before": {
+      "polls": 40
+    },
+    "after": {
+      "polls": 14,
+      "localCompletionWakeMs": 0
+    }
+  }
+}

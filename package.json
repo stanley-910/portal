@@ -11,7 +11,7 @@
     "provinces": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-provinces.mts",
     "dev": "node scripts/tokens.mts && next dev",
     "dev:party": "pnpm dlx liveblocks@1.9.0 dev --no-check --cmd 'node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-party.mts && node scripts/tokens.mts && next dev'",
-    "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && next build",
+    "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts --check && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -21,7 +21,8 @@
     "srt:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-srt.mts",
     "airlines:snapshot": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-airline-logos.mts",
     "db:migrate": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
-    "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts"
+    "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
+    "browser-hubs": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^3.0.58",
@@ -29,6 +30,7 @@
     "@liveblocks/client": "3.24.2",
     "@liveblocks/node": "3.24.2",
     "@liveblocks/react": "3.24.2",
+    "@stripe/stripe-js": "^10.0.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@vercel/analytics": "^2.0.1",
@@ -36,6 +38,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "d3-geo": "^3.1.1",
+    "libphonenumber-js": "^1.13.14",
     "lucide-react": "^1.49.0",
     "next": "16.3.8",
     "next-themes": "^0.4.6",

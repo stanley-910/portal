@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { formEncode, verifyStripeSignature } from "./stripe";
+import { bookingModes, formEncode, verifyStripeSignature } from "./stripe";
 
 const secret = "whsec_test";
 const body = JSON.stringify({ id: "evt_1", type: "checkout.session.completed", data: { object: { id: "cs_1" } } });
@@ -42,5 +42,20 @@ describe("formEncode", () => {
     expect(decodeURIComponent(encoded)).toBe(
       "mode=payment&line_items[0][quantity]=1&line_items[0][price_data][currency]=usd&line_items[0][price_data][unit_amount]=1250&payment_intent_data[capture_method]=manual&payment_intent_data[metadata][legId]=L1&expand[0]=payment_intent",
     );
+  });
+});
+
+describe("bookingModes", () => {
+  it("books only when the airline and the cards are in the same mode", () => {
+    expect(bookingModes("duffel_test_x", "sk_test_x")).toEqual({ ok: true, mode: "test" });
+    expect(bookingModes("duffel_live_x", "sk_live_x")).toEqual({ ok: true, mode: "live" });
+    expect(bookingModes("duffel_live_x", "rk_live_x")).toEqual({ ok: true, mode: "live" });
+    expect(bookingModes("duffel_live_x", "sk_test_x").ok).toBe(false);
+    expect(bookingModes("duffel_test_x", "sk_live_x").ok).toBe(false);
+  });
+  it("runs the no-charge checkout only on test fares", () => {
+    expect(bookingModes("duffel_test_x", undefined)).toEqual({ ok: true, mode: "test" });
+    expect(bookingModes("duffel_live_x", undefined).ok).toBe(false);
+    expect(bookingModes(undefined, "sk_test_x").ok).toBe(false);
   });
 });

@@ -46,6 +46,8 @@ export type ThreadCard = (
   | { type: "meetup"; title: string; options: MeetupOption[]; applied: string | null; changesetId: string | null; undone: boolean }
   /** What one run changed on the trip, with Undo. */
   | { type: "changes"; changesetId: string; lines: string[]; undone: boolean }
+  /** A leg's checkout: each rider's share and state, read live from the leg, and the viewer's own details and card. */
+  | { type: "checkout"; legId: string }
 ) & {
   /** Where in the reply's text it goes: the text's length when it was added. Missing: after the text. */
   at?: number;

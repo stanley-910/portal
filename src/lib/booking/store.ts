@@ -45,6 +45,12 @@ export interface BookingStore {
   markActive(roomId: string, legId: string): Promise<void>;
   clearActive(roomId: string, legId: string): Promise<void>;
   listActive(): Promise<{ roomId: string; legId: string }[]>;
+  /** A person's saved traveller details, for their next booking. */
+  getProfile(personId: string): Promise<TravellerDetails | null>;
+  putProfile(personId: string, details: TravellerDetails): Promise<void>;
+  /** The Stripe customer a person's saved cards belong to. */
+  getCustomer(personId: string): Promise<string | null>;
+  putCustomer(personId: string, customerId: string): Promise<void>;
   /** Takes a short lease on `key`, or false if someone holds it. The purchase runs under one so a retried webhook can't buy twice. */
   acquire(key: string, ttlMs: number): Promise<boolean>;
   release(key: string): Promise<void>;
@@ -84,6 +90,20 @@ class MemoryStore implements BookingStore {
   }
   async listPayments(roomId: string, legId: string) {
     return [...this.payments.values()].filter((p) => p.roomId === roomId && p.legId === legId);
+  }
+  profiles = new Map<string, TravellerDetails>();
+  customers = new Map<string, string>();
+  async getProfile(personId: string) {
+    return this.profiles.get(personId) ?? null;
+  }
+  async putProfile(personId: string, details: TravellerDetails) {
+    this.profiles.set(personId, details);
+  }
+  async getCustomer(personId: string) {
+    return this.customers.get(personId) ?? null;
+  }
+  async putCustomer(personId: string, customerId: string) {
+    this.customers.set(personId, customerId);
   }
   private readonly active = new Set<string>();
   async markActive(roomId: string, legId: string) {
@@ -138,11 +158,23 @@ const fromRecord = (r: PaymentRecord): PaymentRow => ({
   updatedAt: r.updated_at,
 });
 
+const LIVE_NS = "live:";
+
 class SupabaseStore implements BookingStore {
   constructor(
     private readonly db: SupabaseClient,
     private readonly key: Buffer,
+    /**
+     * Prefixes this deployment's room ids and lease keys: the live and demo sites share one database, and each must
+     * see only its own bookings ("live:" on the live site, nothing on the demo).
+     */
+    private readonly ns = "",
   ) {}
+
+  private room = (roomId: string) => this.ns + roomId;
+  /** A row this deployment wrote. */
+  private mine = (roomId: string) => (this.ns ? roomId.startsWith(this.ns) : !roomId.startsWith(LIVE_NS));
+  private fromRow = (r: PaymentRecord): PaymentRow => ({ ...fromRecord(r), roomId: r.room_id.slice(this.ns.length) });
 
   private async run<T>(label: string, query: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
     const { data, error } = await query;
@@ -153,13 +185,13 @@ class SupabaseStore implements BookingStore {
   async putTraveller(roomId: string, legId: string, riderId: string, details: TravellerDetails) {
     await this.run(
       "put traveller",
-      this.db.from("booking_travellers").upsert({ room_id: roomId, leg_id: legId, rider_id: riderId, sealed: seal(JSON.stringify(details), this.key) }),
+      this.db.from("booking_travellers").upsert({ room_id: this.room(roomId), leg_id: legId, rider_id: riderId, sealed: seal(JSON.stringify(details), this.key) }),
     );
   }
   async getTravellers(roomId: string, legId: string) {
     const rows = await this.run<{ rider_id: string; sealed: string }[] | null>(
       "get travellers",
-      this.db.from("booking_travellers").select("rider_id, sealed").eq("room_id", roomId).eq("leg_id", legId),
+      this.db.from("booking_travellers").select("rider_id, sealed").eq("room_id", this.room(roomId)).eq("leg_id", legId),
     );
     const out: Record<string, TravellerDetails> = {};
     for (const row of rows ?? []) {
@@ -169,7 +201,7 @@ class SupabaseStore implements BookingStore {
     return out;
   }
   async deleteTravellers(roomId: string, legId: string, riderId?: string) {
-    let q = this.db.from("booking_travellers").delete().eq("room_id", roomId).eq("leg_id", legId);
+    let q = this.db.from("booking_travellers").delete().eq("room_id", this.room(roomId)).eq("leg_id", legId);
     if (riderId) q = q.eq("rider_id", riderId);
     await this.run("delete travellers", q);
   }
@@ -177,7 +209,7 @@ class SupabaseStore implements BookingStore {
     await this.run(
       "upsert payment",
       this.db.from("booking_payments").upsert({
-        room_id: row.roomId,
+        room_id: this.room(row.roomId),
         leg_id: row.legId,
         rider_id: row.riderId,
         provider: row.provider,
@@ -195,43 +227,61 @@ class SupabaseStore implements BookingStore {
   async getPayment(roomId: string, legId: string, riderId: string) {
     const row = await this.run<PaymentRecord | null>(
       "get payment",
-      this.db.from("booking_payments").select("*").eq("room_id", roomId).eq("leg_id", legId).eq("rider_id", riderId).maybeSingle(),
+      this.db.from("booking_payments").select("*").eq("room_id", this.room(roomId)).eq("leg_id", legId).eq("rider_id", riderId).maybeSingle(),
     );
-    return row ? fromRecord(row) : null;
+    return row && this.mine(row.room_id) ? this.fromRow(row) : null;
   }
   async findPaymentBySession(sessionId: string) {
     const row = await this.run<PaymentRecord | null>("find by session", this.db.from("booking_payments").select("*").eq("session_id", sessionId).maybeSingle());
-    return row ? fromRecord(row) : null;
+    return row && this.mine(row.room_id) ? this.fromRow(row) : null;
   }
   async findPaymentByIntent(paymentIntentId: string) {
     const row = await this.run<PaymentRecord | null>("find by intent", this.db.from("booking_payments").select("*").eq("payment_intent_id", paymentIntentId).maybeSingle());
-    return row ? fromRecord(row) : null;
+    return row && this.mine(row.room_id) ? this.fromRow(row) : null;
   }
   async listPayments(roomId: string, legId: string) {
-    const rows = await this.run<PaymentRecord[] | null>("list payments", this.db.from("booking_payments").select("*").eq("room_id", roomId).eq("leg_id", legId));
-    return (rows ?? []).map(fromRecord);
+    const rows = await this.run<PaymentRecord[] | null>("list payments", this.db.from("booking_payments").select("*").eq("room_id", this.room(roomId)).eq("leg_id", legId));
+    return (rows ?? []).map(this.fromRow);
+  }
+  async getProfile(personId: string) {
+    const row = await this.run<{ sealed: string } | null>("get profile", this.db.from("traveller_profiles").select("sealed").eq("person_id", personId).maybeSingle());
+    const plain = row ? open(row.sealed, this.key) : null;
+    return plain ? (JSON.parse(plain) as TravellerDetails) : null;
+  }
+  async putProfile(personId: string, details: TravellerDetails) {
+    await this.run(
+      "put profile",
+      this.db.from("traveller_profiles").upsert({ person_id: personId, sealed: seal(JSON.stringify(details), this.key), updated_at: new Date().toISOString() }),
+    );
+  }
+  async getCustomer(personId: string) {
+    const row = await this.run<{ customer_id: string } | null>("get customer", this.db.from("payment_customers").select("customer_id").eq("person_id", personId).maybeSingle());
+    return row?.customer_id ?? null;
+  }
+  async putCustomer(personId: string, customerId: string) {
+    await this.run("put customer", this.db.from("payment_customers").upsert({ person_id: personId, customer_id: customerId, updated_at: new Date().toISOString() }));
   }
   async markActive(roomId: string, legId: string) {
-    await this.run("mark active", this.db.from("booking_active").upsert({ room_id: roomId, leg_id: legId, updated_at: new Date().toISOString() }));
+    await this.run("mark active", this.db.from("booking_active").upsert({ room_id: this.room(roomId), leg_id: legId, updated_at: new Date().toISOString() }));
   }
   async clearActive(roomId: string, legId: string) {
-    await this.run("clear active", this.db.from("booking_active").delete().eq("room_id", roomId).eq("leg_id", legId));
+    await this.run("clear active", this.db.from("booking_active").delete().eq("room_id", this.room(roomId)).eq("leg_id", legId));
   }
   async listActive() {
     const rows = await this.run<{ room_id: string; leg_id: string }[] | null>("list active", this.db.from("booking_active").select("room_id, leg_id"));
-    return (rows ?? []).map((r) => ({ roomId: r.room_id, legId: r.leg_id }));
+    return (rows ?? []).filter((r) => this.mine(r.room_id)).map((r) => ({ roomId: r.room_id.slice(this.ns.length), legId: r.leg_id }));
   }
   async acquire(key: string, ttlMs: number) {
     // one row per key; the insert wins the lease, an expired lease is taken over
     const now = new Date();
     const until = new Date(now.getTime() + ttlMs).toISOString();
-    const { error } = await this.db.from("booking_leases").insert({ key, expires_at: until });
+    const { error } = await this.db.from("booking_leases").insert({ key: this.ns + key, expires_at: until });
     if (!error) return true;
-    const { data } = await this.db.from("booking_leases").update({ expires_at: until }).eq("key", key).lt("expires_at", now.toISOString()).select("key");
+    const { data } = await this.db.from("booking_leases").update({ expires_at: until }).eq("key", this.ns + key).lt("expires_at", now.toISOString()).select("key");
     return !!data?.length;
   }
   async release(key: string) {
-    await this.db.from("booking_leases").delete().eq("key", key);
+    await this.db.from("booking_leases").delete().eq("key", this.ns + key);
   }
 }
 
@@ -244,7 +294,7 @@ export function bookingStore(): BookingStore {
   if (env.SUPABASE_SECRET_KEY && config) {
     if (!env.BOOKING_ENCRYPTION_KEY) throw new Error("BOOKING_ENCRYPTION_KEY is required with SUPABASE_SECRET_KEY: traveller details are sealed before they're stored.");
     const db = createClient(config.url, env.SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-    globalStore.__bookingStore = new SupabaseStore(db, parseKey(env.BOOKING_ENCRYPTION_KEY));
+    globalStore.__bookingStore = new SupabaseStore(db, parseKey(env.BOOKING_ENCRYPTION_KEY), env.DUFFEL_ACCESS_TOKEN?.startsWith("duffel_live_") ? LIVE_NS : "");
   } else {
     console.warn("[booking] SUPABASE_SECRET_KEY not set; traveller details and payments are kept in memory until restart.");
     globalStore.__bookingStore = new MemoryStore();

@@ -180,7 +180,7 @@ export function visibleTabs(offers: Offer[]): Tab[] {
  * The top rows for a tab: the best-ranked option, then the cheapest if it isn't already first, then the rest in
  * ranked order. `offers` must already be ranked best first (the search API does this).
  */
-export function rowsFor(offers: Offer[], tab: Tab, rates: ExchangeRates | null): OptionRow[] {
+export function rowsFor(offers: Offer[], tab: Tab, rates: ExchangeRates | null, selectedId?: string | null): OptionRow[] {
   const list = offersFor(offers, tab);
   if (!list.length) return [];
   let cheapest: Offer | null = null;
@@ -198,6 +198,12 @@ export function rowsFor(offers: Offer[], tab: Tab, rates: ExchangeRates | null):
   for (const o of list) {
     if (picked.length >= SHOWN) break;
     if (!picked.includes(o)) picked.push(o);
+  }
+  // A later progressive batch may outrank the selected fare; keep that exact choice in view.
+  const selected = selectedId ? list.find((offer) => offer.id === selectedId) : null;
+  if (selected && !picked.includes(selected)) {
+    if (picked.length >= SHOWN) picked.pop();
+    picked.push(selected);
   }
   return picked.map((offer) => ({
     offer,

@@ -51,21 +51,25 @@ export async function POST(request: Request) {
   if (!person) return Response.json({ code: "SIGN_IN" }, { status: 401 });
   if (!allow(person.id)) return Response.json({ code: "RATE_LIMITED" }, { status: 429, headers: { "retry-after": "60" } });
 
+  const disconnected = new AbortController();
+  const signal = AbortSignal.any([request.signal, disconnected.signal]);
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const emit = (event: SoloEvent) => {
+        if (signal.aborted) return;
         try {
           controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
         } catch {
-          // the reader went away
+          disconnected.abort(); // the reader went away
         }
       };
-      await runSolo({ ...body.data, name: person.name, nationalities: person.nationalities }, emit, request.signal);
+      await runSolo({ ...body.data, name: person.name, nationalities: person.nationalities }, emit, signal);
       try {
         controller.close();
       } catch {}
     },
+    cancel() { disconnected.abort(); },
   });
   return new Response(stream, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
 }

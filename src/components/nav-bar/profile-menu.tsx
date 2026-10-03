@@ -90,7 +90,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
         {name ? initials(name) : <PersonGlyph />}
       </button>
       {open ? (
-        <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
+        <div id={panelId} data-globe-obstacle className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
           <div className="pn-tabs" role="tablist" aria-label="Menu">
             {TABS.map((t) => (
               <button key={t.value} type="button" role="tab" aria-selected={t.value === tab} className="pn-tab" onClick={() => setTab(t.value)}>

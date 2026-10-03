@@ -27,6 +27,15 @@ const direct = (id: string, mode: Mode, amount: number | null) =>
   offer(id, mode, amount, [seg(mode, "Hong Kong", "Shanghai", "2026-10-04T08:00:00+08:00", "2026-10-04T16:00:00+08:00", 480)]);
 
 describe("ticket search options", () => {
+  it("keeps the selected fare visible when a later batch outranks it", () => {
+    const chosen = direct("chosen", "flight", 200);
+    const late = [direct("new-best", "flight", 100), direct("cheap", "train", 40), direct("third", "flight", 120), chosen];
+    expect(rowsFor(late, "best", null).map((r) => r.offer.id)).not.toContain(chosen.id);
+    const rows = rowsFor(late, "best", null, chosen.id);
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.offer.id)).toContain(chosen.id);
+    expect(rows.find((r) => r.offer.id === chosen.id)?.offer).toBe(chosen);
+  });
   it("puts the best option first and the cheapest second, with badges", () => {
     const rows = rowsFor([direct("a", "flight", 200), direct("b", "train", 150), direct("c", "bus", 40), direct("d", "flight", 300)], "best", null);
     expect(rows.map((r) => [r.offer.id, r.badge])).toEqual([

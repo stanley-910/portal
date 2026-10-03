@@ -126,6 +126,7 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
   useEffect(() => {
     const slash = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.defaultPrevented || document.querySelector('dialog[open], [aria-modal="true"]')) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
@@ -173,7 +174,7 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
         <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
       </button>
       {open ? (
-        <div className="pn-search-panel" data-closing={closing || undefined}>
+        <div data-globe-obstacle className="pn-search-panel" data-closing={closing || undefined}>
           <label className="pn-search-field">
             <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
             <input

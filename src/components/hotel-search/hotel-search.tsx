@@ -48,6 +48,7 @@ export function HotelSearch({
   const [filter, setFilter] = useState<HotelFilter>(4);
   const [occupants, setOccupants] = useState(() => Math.min(4, Math.max(1, defaultOccupants)));
   const [guestNationality, setGuestNationality] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<HotelSearchResult | null>(null);
   const queryKey = hotelQueryKey({ city, lat, lng, checkIn, checkOut, occupants, filter, guestNationality });
   const { hotels, status } = resultForHotelQuery(queryKey, result);
@@ -64,7 +65,7 @@ export function HotelSearch({
       })
       .catch(() => { if (!controller.signal.aborted) setResult({ queryKey, hotels: [], status: "failed" }); });
     return () => controller.abort();
-  }, [queryKey]);
+  }, [queryKey, attempt]);
 
   // a pick made for another filter, head count or dates no longer matches what's listed
   const refine = <T,>(set: (value: T) => void) => (value: T) => {
@@ -104,14 +105,14 @@ export function HotelSearch({
         ))}
       </div>
       <div className="ts-rows hs-rows">
-        {queryKey && !result ? [0, 1].map((i) => (
+        {status === "searching" ? [0, 1].map((i) => (
           <div key={i} className="ts-row ts-row-ghost" aria-hidden>
             <span className="ts-ghost ts-ghost-head" />
             <span className="ts-ghost ts-ghost-price" />
             <span className="ts-ghost ts-ghost-desc" />
           </div>
         )) : null}
-        {status === "failed" ? <p className="ts-empty" role="alert">Hotel search failed. Try again.</p> : null}
+        {status === "failed" ? <p className="ts-empty" role="alert">Hotel search failed. <button type="button" className="ts-oneway" onClick={() => { setResult(null); setAttempt((n) => n + 1); }}>Try again</button></p> : null}
         {status === "done" && hotels.length === 0 ? <p className="ts-empty">No stays match that filter.</p> : null}
         {hotels.map((hotel) => {
           const isPicked = picked?.id === hotel.id;

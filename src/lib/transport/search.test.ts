@@ -545,3 +545,59 @@ describe("fanOut", () => {
   });
 });
 });
+
+describe("progressive provider results", () => {
+  it("publishes the fast validated result before the slow provider finishes", async () => {
+    vi.useFakeTimers();
+    const slow = provider({ id: "duffel", search: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      return [offer("slow", { provider: "duffel" })];
+    } });
+    const progress = vi.fn();
+    const started = Date.now();
+    const visible: number[] = [];
+    const pending = fanOut(query, { providers: [provider(), slow], onProgress: (result) => {
+      if (result.offers.length) visible.push(Date.now() - started);
+      progress(result);
+    } });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(progress).toHaveBeenCalledTimes(1);
+    expect(progress.mock.calls[0][0].offers.map((o: Offer) => o.id)).toEqual(["ok"]);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect((await pending).offers).toHaveLength(2);
+    expect(visible[0]).toBe(0);
+    expect(Date.now() - started).toBe(1_000);
+  });
+
+  it("coalesces identical active queries while keeping reader cancellation independent", async () => {
+    vi.useFakeTimers();
+    const p = provider({ search: vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return [offer("shared")];
+    }) });
+    const abort = new AbortController();
+    const a = fanOut(query, { providers: [p], signal: abort.signal });
+    const b = fanOut(query, { providers: [p] });
+    await vi.advanceTimersByTimeAsync(0);
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(100);
+    expect((await a).errors[0].code).toBe("TIMEOUT");
+    expect((await b).offers[0].id).toBe("shared");
+    expect(p.search).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds concurrent calls per provider including separate coordinate searches", async () => {
+    vi.useFakeTimers();
+    let active = 0, peak = 0;
+    const p = provider({ search: async () => {
+      peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      active--;
+      return [offer("bounded")];
+    } });
+    const work = Promise.all(Array.from({ length: 20 }, (_, i) => fanOut({ ...query, date: `2026-11-${String(i + 1).padStart(2, "0")}` }, { providers: [p] })));
+    await vi.advanceTimersByTimeAsync(500);
+    expect(await work).toHaveLength(20);
+    expect(peak).toBe(6);
+  });
+});

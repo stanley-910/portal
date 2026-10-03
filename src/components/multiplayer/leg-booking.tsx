@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import { cancelSettleAction, dismissBookingNoticeAction, payShareAction, settleLegAction, submitDetailsAction } from "@/app/t/booking-actions";
 import { Button, Select } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
+import type { TravellerDetails } from "@/lib/booking/offer";
+import { dialCode, formatPhone, phoneCountry } from "@/lib/booking/phone";
 import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
 import { countries } from "@/lib/nationality";
@@ -40,6 +42,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
   const members = usePlanMembers();
   const { retrySearch } = usePlanActions();
   const [busy, start] = useTransition();
+  const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
   const [price, setPrice] = useState<PriceChange | null>(null);
   const [form, setForm] = useState(false);
@@ -71,7 +74,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
     start(async () => {
       setError(null);
       setPrice(null);
-      const result = await task();
+      const result = await task().catch((): Failure => { setUncertain(true); return { ok: false, code: "UPSTREAM_ERROR", message: "Connection lost. Check the booking status before trying again." }; });
       if (!result.ok) {
         if ("now" in result) setPrice(result);
         else setError(result);
@@ -96,6 +99,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
   const problem = error ? (
     <p className="tp-notice" role="alert">
       <span>{error.message}</span>
+      {uncertain ? <a className="ts-oneway" href={`/t/${tripId}?book=${encodeURIComponent(leg.id)}`}>Check booking</a> : null}
       {/* an offer the airline no longer sells, as after a day away: a fresh search brings today's fares */}
       {error.code === "OFFER_GONE" && !leg.booking ? (
         <button type="button" className="ts-oneway" onClick={() => { setError(null); retrySearch(leg.id); }}>
@@ -111,7 +115,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
         {price.was ? `Now ${fmt(price.now)} a seat, was ${fmt(price.was)}.` : `${fmt(price.now)} a seat.`}
       </span>
       <span className="tp-notice-actions">
-        <button type="button" className="ts-oneway" disabled={busy} onClick={() => (booking ? pay(price.now) : settle(price.now))}>
+        <button type="button" className="ts-oneway" disabled={busy || uncertain} onClick={() => (booking ? pay(price.now) : settle(price.now))}>
           Continue
         </button>
         <button type="button" className="ts-oneway" onClick={() => setPrice(null)}>
@@ -131,7 +135,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
         {problem}
         {moved}
         {bookable && rider && !price ? (
-          <Button variant="secondary" block disabled={busy} onClick={() => settle()}>
+          <Button variant="secondary" block disabled={busy || uncertain} onClick={() => settle()}>
             Settle and book
           </Button>
         ) : null}
@@ -196,7 +200,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
       {booking.status === "booked" && booking.reference ? <p className="tp-book-ref">Reference {booking.reference}</p> : null}
 
       {needsDetails && !form ? (
-        <Button variant="secondary" block disabled={busy} onClick={() => setForm(true)}>
+        <Button variant="secondary" block disabled={busy || uncertain} onClick={() => setForm(true)}>
           Enter my details
         </Button>
       ) : null}
@@ -205,21 +209,21 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
           documents={booking.documents}
           email={email}
           passportCountry={nationalities[0] ? (iso2(nationalities[0]) ?? "") : ""}
-          busy={busy}
+          busy={busy || uncertain}
           invalid={error?.fields ?? []}
           onCancel={() => setForm(false)}
           onSubmit={(details) => run(() => submitDetailsAction(tripId, leg.id, details))}
         />
       ) : null}
       {canPay && !price ? (
-        <Button block disabled={busy} onClick={() => pay()}>
+        <Button block disabled={busy || uncertain} onClick={() => pay()}>
           {booking.mode === "separate" ? `Buy my seat · ${fmt(seat.share)}` : `Pay my share · ${fmt(seat.share)}`}
         </Button>
       ) : null}
       {seat?.paid && booking.status === "paying" && booking.mode === "group" ? <p className="ts-empty">Your card is held until everyone has paid.</p> : null}
 
       {rider && booking.status !== "booked" && nobodyPaid ? (
-        <button type="button" className="ts-oneway tp-remove" disabled={busy} onClick={() => run(() => cancelSettleAction(tripId, leg.id))}>
+        <button type="button" className="ts-oneway tp-remove" disabled={busy || uncertain} onClick={() => run(() => cancelSettleAction(tripId, leg.id))}>
           Cancel settle
         </button>
       ) : null}
@@ -238,9 +242,16 @@ const COUNTRY_OPTIONS = countries().flatMap((c) => {
   const two = iso2(c.code);
   return two ? [{ value: two, label: c.name }] : [];
 });
+// the country a phone number is read in, with its dialling code
+const PHONE_OPTIONS = COUNTRY_OPTIONS.flatMap((o) => {
+  const dial = dialCode(o.value);
+  return dial ? [{ value: o.value, label: `${o.label} ${dial}` }] : [];
+});
 
 export function DetailsForm({
   documents,
+  showPassport = documents,
+  defaults = null,
   email,
   passportCountry,
   busy,
@@ -249,7 +260,12 @@ export function DetailsForm({
   onCancel,
   onSubmit,
 }: {
+  /** The airline needs a passport: its fields are required. */
   documents: boolean;
+  /** Passport fields shown though not required, e.g. to keep a saved one up to date. */
+  showPassport?: boolean;
+  /** Saved details to start from. */
+  defaults?: TravellerDetails | null;
   email: string | null;
   passportCountry: string;
   busy: boolean;
@@ -270,57 +286,70 @@ export function DetailsForm({
       familyName: text("familyName"),
       bornOn: text("bornOn"),
       email: text("email"),
-      phone: text("phone").replace(/[\s()-]/g, ""),
-      passport: documents ? { number: text("passportNumber"), country: text("passportCountry"), expiresOn: text("passportExpires") } : null,
+      // read in the picked country on the server, unless it starts with + or 00
+      phone: text("phone"),
+      phoneCountry: text("phoneCountry"),
+      passport: showPassport && (documents || text("passportNumber")) ? { number: text("passportNumber"), country: text("passportCountry"), expiresOn: text("passportExpires") } : null,
     });
   };
   return (
     <form className="tp-form" onSubmit={submit}>
       <div className="tp-form-field">
         <span>Title</span>
-        <Select name="title" aria-label="Title" defaultValue="mr" options={TITLE_OPTIONS} aria-invalid={bad("title")} />
+        <Select name="title" aria-label="Title" defaultValue={defaults?.title ?? "mr"} options={TITLE_OPTIONS} aria-invalid={bad("title")} />
       </div>
       <div className="tp-form-field">
         <span>Gender</span>
-        <Select name="gender" aria-label="Gender" defaultValue="" required options={GENDERS} aria-invalid={bad("gender")} />
+        <Select name="gender" aria-label="Gender" defaultValue={defaults?.gender ?? ""} required options={GENDERS} aria-invalid={bad("gender")} />
       </div>
       <label>
         Given names
-        <input name="givenName" required autoComplete="given-name" aria-invalid={bad("givenName")} />
+        <input name="givenName" required defaultValue={defaults?.givenName} autoComplete="given-name" aria-invalid={bad("givenName")} />
       </label>
       <label>
         Family name
-        <input name="familyName" required autoComplete="family-name" aria-invalid={bad("familyName")} />
+        <input name="familyName" required defaultValue={defaults?.familyName} autoComplete="family-name" aria-invalid={bad("familyName")} />
       </label>
-      <label>
+      <label data-wide>
         Date of birth
-        <input name="bornOn" type="date" required autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={bad("bornOn")} />
+        <input name="bornOn" type="date" required defaultValue={defaults?.bornOn} autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={bad("bornOn")} />
       </label>
+      <div className="tp-form-field">
+        <span>Phone country</span>
+        <Select
+          name="phoneCountry"
+          aria-label="Phone country"
+          defaultValue={phoneCountry(defaults?.phone) ?? passportCountry}
+          searchable
+          options={PHONE_OPTIONS}
+          aria-invalid={bad("phone")}
+        />
+      </div>
       <label>
         Phone
-        <input name="phone" type="tel" required placeholder="+852 9123 4567" autoComplete="tel" aria-invalid={bad("phone")} />
+        <input name="phone" type="tel" required defaultValue={defaults?.phone ? formatPhone(defaults.phone) : undefined} placeholder="9123 4567" autoComplete="tel" aria-invalid={bad("phone")} />
       </label>
       <label data-wide>
         Email for the ticket
-        <input name="email" type="email" required defaultValue={email ?? ""} autoComplete="email" aria-invalid={bad("email")} />
+        <input name="email" type="email" required defaultValue={defaults?.email ?? email ?? ""} autoComplete="email" aria-invalid={bad("email")} />
       </label>
-      {documents ? (
+      {showPassport ? (
         <>
           <label>
             Passport number
-            <input name="passportNumber" required autoComplete="off" aria-invalid={bad("passport.number")} />
+            <input name="passportNumber" required={documents} autoComplete="off" defaultValue={defaults?.passport?.number} aria-invalid={bad("passport.number")} />
           </label>
           <label>
             Expires
-            <input name="passportExpires" type="date" required min={new Date().toISOString().slice(0, 10)} aria-invalid={bad("passport.expiresOn")} />
+            <input name="passportExpires" type="date" required={documents} defaultValue={defaults?.passport?.expiresOn} min={new Date().toISOString().slice(0, 10)} aria-invalid={bad("passport.expiresOn")} />
           </label>
           <div className="tp-form-field" data-wide>
             <span>Issuing country</span>
             <Select
               name="passportCountry"
               aria-label="Issuing country"
-              defaultValue={passportCountry}
-              required
+              defaultValue={defaults?.passport?.country ?? passportCountry}
+              required={documents}
               searchable
               options={COUNTRY_OPTIONS}
               aria-invalid={bad("passport.country")}

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
-import { openArea } from "./free-area";
+import { GlobeObstacles } from "./free-area";
 import type { ThemeId } from "./palette";
 
 export type TripGlobeTheme = ThemeId | "auto";
@@ -24,7 +24,9 @@ export interface TripGlobeHandle {
    * where it is instead, with no landing: a stop dragged to a new place.
    */
   showTrip(points: LatLng[], quiet?: boolean): void;
-  /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
+  /** Wake a settled globe when an overlay has new animation work. */
+  requestFrame(): void;
+  /** Calls `cb` after an active frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
   /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
   setRemoteFlights(flights: RemoteFlight[]): void;
@@ -97,6 +99,8 @@ export interface TripGlobeProps {
   cursorShape?: CursorShape;
   /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
   skySeed?: string | number;
+  /** March landed route dashes only while its transport search is running. */
+  searching?: boolean;
   /** The 2D earth data texture (land mask, coast distance, relief). */
   earthUrl?: string;
   /** The country borders data texture, from `pnpm borders`. */
@@ -147,6 +151,7 @@ export function TripGlobe({
   bordersUrl = "/textures/borders.png",
   provincesUrl = "/textures/provinces.png",
   skySeed,
+  searching = false,
   color = 0,
   cursorShape = "arrow",
   className,
@@ -158,12 +163,23 @@ export function TripGlobe({
   const engineRef = useRef<GlobeEngine | null>(null);
   // the pins last set, so an engine that starts later still gets them
   const pins = useRef<GlobePin[]>([]);
+  const initialSkySeed = useRef(skySeed);
+  const pendingTrip = useRef<{ points: LatLng[]; quiet: boolean } | null>(null);
+  const obstacles = useRef<GlobeObstacles | null>(null);
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [landed, setLanded] = useState<LandedTrip[] | null>(null);
   const [unsupported, setUnsupported] = useState(false);
-  const [cursor, setCursor] = useState<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
+  const cursor = useRef<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
+  const cursorStyle = useRef({ mode, resolved: theme === "dark" ? "dark" as const : "light" as const, color, cursorShape });
+  const applyCursor = () => {
+    const root = rootRef.current;
+    if (!root) return;
+    const style = cursorStyle.current;
+    const next = style.mode === "flying" ? "none" : cursorUrl(style.cursorShape, memberColor(style.color), style.resolved, { ...cursor.current, noShadow: true });
+    if (root.style.cursor !== next) root.style.cursor = next;
+  };
   const resolved = useResolvedTheme(theme);
 
   // Latest callbacks, so the engine never needs rebuilding when a parent re-renders.
@@ -174,24 +190,17 @@ export function TripGlobe({
   const frameListeners = useRef(new Set<() => void>());
   const followEnd = useRef<(() => void) | null>(null);
 
-  // While a trip is landed, the page changing (a panel opening, closing, or growing as results arrive) re-frames
-  // its route in the space left open. Settled changes only: it waits for the page to be still for a moment.
   useEffect(() => {
-    if (mode !== "landed") return;
     let timer = 0;
-    const reframe = () => {
+    const registry = new GlobeObstacles(rootRef.current!, () => {
       window.clearTimeout(timer);
+      // A modal blocks globe interaction; its decorative animation can sleep as well.
+      engineRef.current?.setObscured(!!document.querySelector('dialog[open], [aria-modal="true"]'));
       timer = window.setTimeout(() => engineRef.current?.reframe(), 200);
-    };
-    const page = new MutationObserver(reframe);
-    page.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("resize", reframe);
-    return () => {
-      window.clearTimeout(timer);
-      page.disconnect();
-      window.removeEventListener("resize", reframe);
-    };
-  }, [mode]);
+    });
+    obstacles.current = registry;
+    return () => { window.clearTimeout(timer); registry.destroy(); obstacles.current = null; };
+  }, []);
 
   useEffect(() => {
     let lastPointer: LatLng | null = null;
@@ -199,12 +208,14 @@ export function TripGlobe({
     const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, bordersUrl, provincesUrl, {
       onModeChange: (m, a) => {
         setMode(m);
+        cursorStyle.current.mode = m;
+        applyCursor();
         setFrom(a);
         if (m !== "landed") setLanded(null);
         if (m === "flying") handlers.current.onTakeoff?.(a);
       },
       onPreviewChange: (_hub, name) => setPreview(name),
-      onCursorChange: setCursor,
+      onCursorChange: (next) => { cursor.current = next; applyCursor(); },
       onLand: (legs) => {
         setLanded(legs);
         handlers.current.onLand?.(legs);
@@ -217,27 +228,15 @@ export function TripGlobe({
       },
       onRouteClick: (id) => handlers.current.onRouteClick?.(id),
       onFollowEnd: () => followEnd.current?.(),
-      // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
-      // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that
-      // ride on the route itself (data-globe-follow), which would otherwise push the route away from its own card,
-      // nor small floaters that move about on their own, like Pip's launcher (data-globe-float): framing around
-      // them made the globe chase Pip as it hopped out of the card's way.
-      freeArea: () => {
-        const root = rootRef.current!;
-        const box = root.getBoundingClientRect();
-        return openArea(box.width, box.height, (x, y) => {
-          const el = document.elementFromPoint(box.left + x, box.top + y);
-          return !!el && !root.contains(el) && !el.closest("[data-globe-follow], [data-globe-float]");
-        });
-      },
+      freeArea: () => obstacles.current?.read() ?? null,
       onFrame: () => {
-        const ll = roundLatLng(engine.pointerLatLng());
+        const ll = handlers.current.onPointerLatLng ? roundLatLng(engine.pointerLatLng()) : null;
         if (!sameLatLng(ll, lastPointer)) {
           lastPointer = ll;
           handlers.current.onPointerLatLng?.(ll);
         }
-        const flight = roundFlight(engine.flight());
-        const key = JSON.stringify(flight);
+        const flight = handlers.current.onFlightChange ? roundFlight(engine.flight()) : null;
+        const key = handlers.current.onFlightChange ? JSON.stringify(flight) : "null";
         if (key !== lastFlight) {
           lastFlight = key;
           handlers.current.onFlightChange?.(flight);
@@ -245,10 +244,16 @@ export function TripGlobe({
         for (const cb of frameListeners.current) cb();
       },
     });
+    if (initialSkySeed.current !== undefined) engine.setSkySeed(initialSkySeed.current);
     if (!engine.start()) setUnsupported(true);
     engineRef.current = engine;
     // pins set before the engine started
     if (pins.current.length) engine.setPins(pins.current);
+    if (pendingTrip.current) {
+      engine.showTrip(pendingTrip.current.points, pendingTrip.current.quiet);
+      pendingTrip.current = null;
+    }
+    engine.setObscured(!!document.querySelector('dialog[open], [aria-modal="true"]'));
     return () => {
       engine.destroy();
       engineRef.current = null;
@@ -267,12 +272,15 @@ export function TripGlobe({
     engineRef.current?.setColor(color);
   }, [color, earthUrl, bordersUrl, provincesUrl]);
 
-  // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
-    if (rootRef.current)
-      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl(cursorShape, memberColor(color), resolved, { ...cursor, noShadow: true });
+    cursorStyle.current = { mode, resolved, color, cursorShape };
+    applyCursor();
     engineRef.current?.setCursorShape(cursorShape);
-  }, [mode, resolved, cursor, color, cursorShape]);
+  }, [mode, resolved, color, cursorShape]);
+
+  useEffect(() => {
+    engineRef.current?.setSearching(searching);
+  }, [searching, earthUrl, bordersUrl, provincesUrl]);
 
   useImperativeHandle(
     ref,
@@ -293,14 +301,19 @@ export function TripGlobe({
       landing: (stop) => engineRef.current?.landing(stop) ?? null,
       dropStop: (stop, at) => engineRef.current?.dropStop(stop, at),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
+      requestFrame: () => engineRef.current?.requestFrame(),
       onFrame: (cb) => {
         const listeners = frameListeners.current;
         listeners.add(cb);
+        engineRef.current?.requestFrame();
         return () => listeners.delete(cb);
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
       flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
-      showTrip: (points, quiet) => engineRef.current?.showTrip(points, quiet),
+      showTrip: (points, quiet = false) => {
+        if (engineRef.current) engineRef.current.showTrip(points, quiet);
+        else pendingTrip.current = { points, quiet };
+      },
       setAgent: (at) => engineRef.current?.setAgent(at),
       agentSpot: () => engineRef.current?.agentSpot() ?? null,
       followAgent: (on, onEnd) => {

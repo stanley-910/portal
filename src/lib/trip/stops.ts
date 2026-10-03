@@ -1,6 +1,6 @@
 import type { Stop } from "@/lib/liveblocks/types";
 import type { Hub } from "@/lib/transport/hubs/types";
-import { HUBS } from "@/lib/transport/hubs/catalog";
+import { HUBS } from "@/lib/transport/hubs/browser";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Place } from "@/lib/transport/types";

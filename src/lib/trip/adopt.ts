@@ -2,7 +2,7 @@ import "server-only";
 
 import { LiveObject } from "@liveblocks/node";
 
-import { meetupTotal } from "@/lib/agent/meetup";
+import { meetupTotal } from "@/lib/agent/meetup-total";
 import type { PlanJson } from "@/lib/agent/snapshot";
 import { forgetGuest, readGuest } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";

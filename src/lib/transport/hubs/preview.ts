@@ -1,4 +1,13 @@
-import { HUBS, HUB_LIMITS } from "./catalog";
+import { HUBS } from "./browser";
+import { HUB_LIMITS } from "./limits";
+import { GeoIndex } from "./spatial";
+
+const indexes = new WeakMap<readonly Hub[], GeoIndex<Hub>>();
+function indexFor(hubs: readonly Hub[]) {
+  let index = indexes.get(hubs);
+  if (!index) { index = new GeoIndex(hubs, (hub) => hub); indexes.set(hubs, index); }
+  return index;
+}
 import { distanceKm, type Coordinates } from "./geo";
 import type { Hub } from "./types";
 
@@ -8,7 +17,7 @@ export function nearestPreviewHub(point: Coordinates, hubs: readonly Hub[] = HUB
     || Math.abs(point.lat) > 90 || Math.abs(point.lng) > 180) return null;
   let nearest: Hub | null = null;
   let bestDistance = Infinity;
-  for (const hub of hubs) {
+  for (const hub of indexFor(hubs).nearby(point, HUB_LIMITS.radiusKm.flight)) {
     const distance = distanceKm(point, hub);
     if (distance > HUB_LIMITS.radiusKm[hub.mode]) continue;
     if (distance < bestDistance || (distance === bestDistance && nearest && hub.id < nearest.id)) {

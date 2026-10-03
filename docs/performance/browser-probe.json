@@ -1,0 +1,492 @@
+{
+  "commit": "62b1207853b6cc3c2aeab6981aa677fb302cdb59",
+  "browser": "145.0.7632.6",
+  "environment": "Local production Next server; no credentials; Chromium headless SwiftShader, 1440x900 DPR1; transport API aborted. Instrumented counts, not a hardware performance benchmark.",
+  "samples": [
+    {
+      "label": "idle before route",
+      "elapsedMs": 2202,
+      "clear2d": {
+        "connected-1440x900": 44,
+        "connected-120x112": 1,
+        "connected-20x20": 18
+      },
+      "drawGL": 220,
+      "frames": 44
+    },
+    {
+      "label": "after route landing",
+      "elapsedMs": 2204,
+      "clear2d": {
+        "connected-1440x900": 15,
+        "offscreen-1440x900": 15,
+        "connected-16x13": 19,
+        "connected-20x20": 7
+      },
+      "drawGL": 45,
+      "frames": 15
+    },
+    {
+      "label": "landed with reduced motion",
+      "elapsedMs": 2202,
+      "clear2d": {
+        "connected-16x13": 20,
+        "connected-20x20": 9,
+        "connected-1440x900": 16,
+        "offscreen-1440x900": 16
+      },
+      "drawGL": 48,
+      "frames": 16
+    }
+  ],
+  "landedText": "You\nPlan with friends\nPKZ → 21.85, 131.46\nPakse\nPKZ\n2,732 km\n21.85, 131.46\nDepart\nMon 5 Oct\nReturn\nAdd date\nBest\n\nSearch failed. Try again\n\nSave trip\nGreetings, Earthling. I'm Pip. Where to?",
+  "beforeEscape": {
+    "dialog": 1,
+    "ticket": 1
+  },
+  "afterEscape": {
+    "dialog": 0,
+    "ticket": 0,
+    "body": "Plan with friends"
+  },
+  "errors": [],
+  "totals": {
+    "js": {
+      "count": 11,
+      "decodedBytes": 2496645,
+      "encodedBytes": 589419
+    },
+    "css": {
+      "count": 2,
+      "decodedBytes": 112357,
+      "encodedBytes": 21443
+    },
+    "fonts": {
+      "count": 9,
+      "decodedBytes": 249628,
+      "encodedBytes": 249628
+    },
+    "textures": {
+      "count": 4,
+      "decodedBytes": 1732119,
+      "encodedBytes": 1732119
+    }
+  },
+  "initialResources": [
+    {
+      "path": "/_next/static/media/0b7c5b993c1057ea.p.1y9qe_7x2ofb7.woff2",
+      "type": "link",
+      "decodedBytes": 57808,
+      "encodedBytes": 57808,
+      "transferBytes": 58108
+    },
+    {
+      "path": "/_next/static/media/3cabd365f8c28a7b.p.19q4vxlgtk0rb.woff2",
+      "type": "link",
+      "decodedBytes": 59880,
+      "encodedBytes": 59880,
+      "transferBytes": 60180
+    },
+    {
+      "path": "/_next/static/media/520c929efec0b33f.p.3arxh35s5-kc0.woff2",
+      "type": "link",
+      "decodedBytes": 15960,
+      "encodedBytes": 15960,
+      "transferBytes": 16260
+    },
+    {
+      "path": "/_next/static/media/5f440d3eea613716.p.1xmps1tcyqv34.woff2",
+      "type": "link",
+      "decodedBytes": 11588,
+      "encodedBytes": 11588,
+      "transferBytes": 11888
+    },
+    {
+      "path": "/_next/static/media/4b23c5ee480ee380.p.0qqufx6vw52v_.woff2",
+      "type": "link",
+      "decodedBytes": 15680,
+      "encodedBytes": 15680,
+      "transferBytes": 15980
+    },
+    {
+      "path": "/_next/static/media/6a1d08cf467f0848.p.240fzfer9e_rh.woff2",
+      "type": "link",
+      "decodedBytes": 15760,
+      "encodedBytes": 15760,
+      "transferBytes": 16060
+    },
+    {
+      "path": "/_next/static/media/71264d256c100793.p.1ym-6fflcxrbh.woff2",
+      "type": "link",
+      "decodedBytes": 56956,
+      "encodedBytes": 56956,
+      "transferBytes": 57256
+    },
+    {
+      "path": "/_next/static/media/87d3ffffac5dafea.p.3a10o7es2neby.woff2",
+      "type": "link",
+      "decodedBytes": 11192,
+      "encodedBytes": 11192,
+      "transferBytes": 11492
+    },
+    {
+      "path": "/_next/static/chunks/03om8vcv8drb3.css",
+      "type": "link",
+      "decodedBytes": 8959,
+      "encodedBytes": 2122,
+      "transferBytes": 2422
+    },
+    {
+      "path": "/_next/static/chunks/3pil8xnbw05oa.js",
+      "type": "link",
+      "decodedBytes": 5364,
+      "encodedBytes": 1957,
+      "transferBytes": 2257
+    },
+    {
+      "path": "/_next/static/chunks/3gebz2hb6bppy.css",
+      "type": "link",
+      "decodedBytes": 103398,
+      "encodedBytes": 19321,
+      "transferBytes": 19621
+    },
+    {
+      "path": "/_next/static/chunks/09wus5biosovh.js",
+      "type": "script",
+      "decodedBytes": 29048,
+      "encodedBytes": 7702,
+      "transferBytes": 8002
+    },
+    {
+      "path": "/_next/static/chunks/2vzc-ji2h-7d5.js",
+      "type": "script",
+      "decodedBytes": 129581,
+      "encodedBytes": 34852,
+      "transferBytes": 35152
+    },
+    {
+      "path": "/_next/static/chunks/35h-jk448o9n_.js",
+      "type": "script",
+      "decodedBytes": 229151,
+      "encodedBytes": 71647,
+      "transferBytes": 71947
+    },
+    {
+      "path": "/_next/static/chunks/10mc480bu8a49.js",
+      "type": "script",
+      "decodedBytes": 36521,
+      "encodedBytes": 10708,
+      "transferBytes": 11008
+    },
+    {
+      "path": "/_next/static/chunks/turbopack-24dftest02nkk.js",
+      "type": "script",
+      "decodedBytes": 9754,
+      "encodedBytes": 3872,
+      "transferBytes": 4172
+    },
+    {
+      "path": "/_next/static/chunks/2-fbfu7a8fo9e.js",
+      "type": "script",
+      "decodedBytes": 26981,
+      "encodedBytes": 8214,
+      "transferBytes": 8514
+    },
+    {
+      "path": "/_next/static/chunks/3-10y-0-5lw25.js",
+      "type": "script",
+      "decodedBytes": 45512,
+      "encodedBytes": 17331,
+      "transferBytes": 17631
+    },
+    {
+      "path": "/_next/static/chunks/2adnj9g0vq85d.js",
+      "type": "script",
+      "decodedBytes": 36111,
+      "encodedBytes": 15410,
+      "transferBytes": 15710
+    },
+    {
+      "path": "/_next/static/chunks/2p-f3-tqoenko.js",
+      "type": "script",
+      "decodedBytes": 35220,
+      "encodedBytes": 13267,
+      "transferBytes": 13567
+    },
+    {
+      "path": "/_next/static/chunks/42ew6t8vy41eq.js",
+      "type": "script",
+      "decodedBytes": 1913402,
+      "encodedBytes": 404459,
+      "transferBytes": 404759
+    },
+    {
+      "path": "/textures/earth.png",
+      "type": "fetch",
+      "decodedBytes": 485288,
+      "encodedBytes": 485288,
+      "transferBytes": 485588
+    },
+    {
+      "path": "/textures/earth.png",
+      "type": "fetch",
+      "decodedBytes": 485288,
+      "encodedBytes": 485288,
+      "transferBytes": 485588
+    },
+    {
+      "path": "/textures/borders.png",
+      "type": "fetch",
+      "decodedBytes": 202551,
+      "encodedBytes": 202551,
+      "transferBytes": 202851
+    },
+    {
+      "path": "/textures/provinces.png",
+      "type": "fetch",
+      "decodedBytes": 558992,
+      "encodedBytes": 558992,
+      "transferBytes": 559292
+    },
+    {
+      "path": "/api/exchange-rates",
+      "type": "fetch",
+      "decodedBytes": 447,
+      "encodedBytes": 447,
+      "transferBytes": 747
+    },
+    {
+      "path": "/",
+      "type": "fetch",
+      "decodedBytes": 1425,
+      "encodedBytes": 807,
+      "transferBytes": 1107
+    },
+    {
+      "path": "/_vercel/insights/script.js",
+      "type": "script",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 300
+    }
+  ],
+  "resources": [
+    {
+      "path": "/_next/static/media/0b7c5b993c1057ea.p.1y9qe_7x2ofb7.woff2",
+      "type": "link",
+      "decodedBytes": 57808,
+      "encodedBytes": 57808,
+      "transferBytes": 58108
+    },
+    {
+      "path": "/_next/static/media/3cabd365f8c28a7b.p.19q4vxlgtk0rb.woff2",
+      "type": "link",
+      "decodedBytes": 59880,
+      "encodedBytes": 59880,
+      "transferBytes": 60180
+    },
+    {
+      "path": "/_next/static/media/520c929efec0b33f.p.3arxh35s5-kc0.woff2",
+      "type": "link",
+      "decodedBytes": 15960,
+      "encodedBytes": 15960,
+      "transferBytes": 16260
+    },
+    {
+      "path": "/_next/static/media/5f440d3eea613716.p.1xmps1tcyqv34.woff2",
+      "type": "link",
+      "decodedBytes": 11588,
+      "encodedBytes": 11588,
+      "transferBytes": 11888
+    },
+    {
+      "path": "/_next/static/media/4b23c5ee480ee380.p.0qqufx6vw52v_.woff2",
+      "type": "link",
+      "decodedBytes": 15680,
+      "encodedBytes": 15680,
+      "transferBytes": 15980
+    },
+    {
+      "path": "/_next/static/media/6a1d08cf467f0848.p.240fzfer9e_rh.woff2",
+      "type": "link",
+      "decodedBytes": 15760,
+      "encodedBytes": 15760,
+      "transferBytes": 16060
+    },
+    {
+      "path": "/_next/static/media/71264d256c100793.p.1ym-6fflcxrbh.woff2",
+      "type": "link",
+      "decodedBytes": 56956,
+      "encodedBytes": 56956,
+      "transferBytes": 57256
+    },
+    {
+      "path": "/_next/static/media/87d3ffffac5dafea.p.3a10o7es2neby.woff2",
+      "type": "link",
+      "decodedBytes": 11192,
+      "encodedBytes": 11192,
+      "transferBytes": 11492
+    },
+    {
+      "path": "/_next/static/chunks/03om8vcv8drb3.css",
+      "type": "link",
+      "decodedBytes": 8959,
+      "encodedBytes": 2122,
+      "transferBytes": 2422
+    },
+    {
+      "path": "/_next/static/chunks/3pil8xnbw05oa.js",
+      "type": "link",
+      "decodedBytes": 5364,
+      "encodedBytes": 1957,
+      "transferBytes": 2257
+    },
+    {
+      "path": "/_next/static/chunks/3gebz2hb6bppy.css",
+      "type": "link",
+      "decodedBytes": 103398,
+      "encodedBytes": 19321,
+      "transferBytes": 19621
+    },
+    {
+      "path": "/_next/static/chunks/09wus5biosovh.js",
+      "type": "script",
+      "decodedBytes": 29048,
+      "encodedBytes": 7702,
+      "transferBytes": 8002
+    },
+    {
+      "path": "/_next/static/chunks/2vzc-ji2h-7d5.js",
+      "type": "script",
+      "decodedBytes": 129581,
+      "encodedBytes": 34852,
+      "transferBytes": 35152
+    },
+    {
+      "path": "/_next/static/chunks/35h-jk448o9n_.js",
+      "type": "script",
+      "decodedBytes": 229151,
+      "encodedBytes": 71647,
+      "transferBytes": 71947
+    },
+    {
+      "path": "/_next/static/chunks/10mc480bu8a49.js",
+      "type": "script",
+      "decodedBytes": 36521,
+      "encodedBytes": 10708,
+      "transferBytes": 11008
+    },
+    {
+      "path": "/_next/static/chunks/turbopack-24dftest02nkk.js",
+      "type": "script",
+      "decodedBytes": 9754,
+      "encodedBytes": 3872,
+      "transferBytes": 4172
+    },
+    {
+      "path": "/_next/static/chunks/2-fbfu7a8fo9e.js",
+      "type": "script",
+      "decodedBytes": 26981,
+      "encodedBytes": 8214,
+      "transferBytes": 8514
+    },
+    {
+      "path": "/_next/static/chunks/3-10y-0-5lw25.js",
+      "type": "script",
+      "decodedBytes": 45512,
+      "encodedBytes": 17331,
+      "transferBytes": 17631
+    },
+    {
+      "path": "/_next/static/chunks/2adnj9g0vq85d.js",
+      "type": "script",
+      "decodedBytes": 36111,
+      "encodedBytes": 15410,
+      "transferBytes": 15710
+    },
+    {
+      "path": "/_next/static/chunks/2p-f3-tqoenko.js",
+      "type": "script",
+      "decodedBytes": 35220,
+      "encodedBytes": 13267,
+      "transferBytes": 13567
+    },
+    {
+      "path": "/_next/static/chunks/42ew6t8vy41eq.js",
+      "type": "script",
+      "decodedBytes": 1913402,
+      "encodedBytes": 404459,
+      "transferBytes": 404759
+    },
+    {
+      "path": "/textures/earth.png",
+      "type": "fetch",
+      "decodedBytes": 485288,
+      "encodedBytes": 485288,
+      "transferBytes": 485588
+    },
+    {
+      "path": "/textures/earth.png",
+      "type": "fetch",
+      "decodedBytes": 485288,
+      "encodedBytes": 485288,
+      "transferBytes": 485588
+    },
+    {
+      "path": "/textures/borders.png",
+      "type": "fetch",
+      "decodedBytes": 202551,
+      "encodedBytes": 202551,
+      "transferBytes": 202851
+    },
+    {
+      "path": "/textures/provinces.png",
+      "type": "fetch",
+      "decodedBytes": 558992,
+      "encodedBytes": 558992,
+      "transferBytes": 559292
+    },
+    {
+      "path": "/api/exchange-rates",
+      "type": "fetch",
+      "decodedBytes": 447,
+      "encodedBytes": 447,
+      "transferBytes": 747
+    },
+    {
+      "path": "/",
+      "type": "fetch",
+      "decodedBytes": 1425,
+      "encodedBytes": 807,
+      "transferBytes": 1107
+    },
+    {
+      "path": "/_vercel/insights/script.js",
+      "type": "script",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 300
+    },
+    {
+      "path": "/_next/static/media/64e306be6f430f77.0acte72hu2i0h.woff2",
+      "type": "css",
+      "decodedBytes": 4804,
+      "encodedBytes": 4804,
+      "transferBytes": 5104
+    },
+    {
+      "path": "/api/transport/search",
+      "type": "fetch",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 0
+    },
+    {
+      "path": "/api/transport/search",
+      "type": "fetch",
+      "decodedBytes": 0,
+      "encodedBytes": 0,
+      "transferBytes": 0
+    }
+  ]
+}

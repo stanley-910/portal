@@ -64,6 +64,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     mode: offer.mode,
     kind: offer.kind,
     ...(offer.sandbox ? { sandbox: true } : {}),
+    ...(offer.refund ? { refund: { fee: offer.refund.fee ? { amount: offer.refund.fee.amount, currency: offer.refund.fee.currency } : null } } : {}),
     price: offer.price ? { amount: offer.price.amount, currency: offer.price.currency } : null,
     carrier: first.carrier ?? null,
     ...(first.carrierCode ? { carrierCode: first.carrierCode } : {}),
@@ -83,4 +84,11 @@ function flightsOf(offer: Offer): Pick<StoredOffer, "flights"> {
     s.number && s.from.iata && s.to.iata ? { number: s.number, from: s.from.iata, to: s.to.iata, depart: s.depart } : null,
   );
   return offer.mode === "flight" && flights.every((f) => f !== null) ? { flights: flights as NonNullable<StoredOffer["flights"]> } : {};
+}
+
+/** The badge's tooltip for a refundable fare: what a refund before departure costs. */
+export function refundNote(offer: { refund?: { fee: { amount: number; currency: string } | null } }): string | undefined {
+  if (!offer.refund) return undefined;
+  const fee = offer.refund.fee;
+  return fee ? `Refund before departure, ${fee.currency} ${fee.amount} fee per person` : "Free refund before departure";
 }

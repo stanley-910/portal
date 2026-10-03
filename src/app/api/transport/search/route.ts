@@ -1,5 +1,6 @@
-import { searchFromCoordinates } from "@/lib/transport/hub-search";
+import { searchFromCoordinates, type HubSearchResult } from "@/lib/transport/hub-search";
 import { parseSearchQuery } from "@/lib/transport/query";
+import type { TransportSearchEvent } from "@/lib/transport/stream";
 import { searchTransport } from "@/lib/transport/search";
 
 // Provider keys stay server-side. The longest provider deadline (Duffel's 10 s) leaves headroom below this cap, and a
@@ -17,6 +18,52 @@ export async function GET(request: Request) {
   const parsed = parseSearchQuery(params);
   if (!parsed.success) {
     return Response.json({ code: "BAD_QUERY", fields: parsed.fields }, { status: 400, headers });
+  }
+  if (params.get("stream") === "1" && resolution === "hubs") {
+    const stopped = new AbortController();
+    const signal = AbortSignal.any([request.signal, stopped.signal]);
+    const encoder = new TextEncoder();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const clear = () => { clearTimeout(timer); timer = undefined; };
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const emit = (event: TransportSearchEvent) => {
+          if (signal.aborted) return;
+          try { controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`)); }
+          catch { stopped.abort(); }
+        };
+        let pending: HubSearchResult | undefined;
+        let sentUseful = false;
+        const flush = () => {
+          clear();
+          if (!pending) return;
+          sentUseful ||= pending.offers.length > 0;
+          emit({ t: "result", result: pending, done: false });
+          pending = undefined;
+        };
+        const progress = (result: HubSearchResult) => {
+          if (signal.aborted) return;
+          pending = result;
+          // First usable fares are immediate. Afterwards, collapse local provider bursts and cap snapshots at 20 Hz.
+          if (!sentUseful && result.offers.length) flush();
+          else timer ??= setTimeout(flush, 50);
+        };
+        signal.addEventListener("abort", clear, { once: true });
+        try {
+          const result = await searchFromCoordinates(parsed.data, signal, progress);
+          clear();
+          emit({ t: "result", result, done: true });
+        } catch {
+          emit({ t: "failed" });
+        } finally {
+          clear();
+          signal.removeEventListener("abort", clear);
+          try { controller.close(); } catch {}
+        }
+      },
+      cancel() { clear(); stopped.abort(); },
+    });
+    return new Response(stream, { headers: { ...headers, "Content-Type": "application/x-ndjson; charset=utf-8", "X-Accel-Buffering": "no" } });
   }
   // Keep internal/provider failures out of the input-error classification.
   const result = await (resolution === "hubs" ? searchFromCoordinates : searchTransport)(parsed.data, request.signal);

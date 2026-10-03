@@ -1,9 +1,11 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import { createContext, memo, use, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
+import { Activity, createContext, memo, use, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
+import dynamic from "next/dynamic";
+const CheckoutCard = dynamic(() => import("@/components/agent/checkout-card").then((m) => m.CheckoutCard), { loading: () => <p className="pip-caption" role="status">Loading checkout…</p> });
 import { useOpenAuth } from "@/components/auth/links";
 import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
@@ -34,6 +36,7 @@ const TYPE_MS = 34;
 
 export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
   const [open, setOpen] = useState(initialOpen);
+  const [visited, setVisited] = useState(initialOpen);
   // the thread is only read with the panel open; closed, a count of finished replies is enough for the dot
   const replies = usePipReplies();
   // replies seen when the panel last closed; whatever was there when the room loaded counts as seen
@@ -42,10 +45,14 @@ export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
   const unread = !open && replies !== null && seen !== null && replies > seen;
   const toggle = (next: boolean) => {
     setOpen(next);
+    if (next) setVisited(true);
     setSeen(replies);
   };
 
-  return open ? <Panel onClose={() => toggle(false)} /> : <Launcher unread={unread} onOpen={() => toggle(true)} />;
+  return <>
+    {visited ? <Activity mode={open ? "visible" : "hidden"}><Panel onClose={() => toggle(false)} /></Activity> : null}
+    {!open ? <Launcher unread={unread} onOpen={() => toggle(true)} /> : null}
+  </>;
 }
 
 export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean; onOpen: () => void; nudges?: readonly string[] }) {
@@ -204,6 +211,7 @@ function Panel({ onClose }: { onClose: () => void }) {
     () => ({
       apply: (messageId, option) => applyMeetup(tripId, messageId, option),
       undo: (messageId, changesetId) => undoAgentChange(tripId, messageId, changesetId),
+      checkout: (legId) => <CheckoutCard legId={legId} />,
     }),
     [tripId],
   );
@@ -215,7 +223,7 @@ function Panel({ onClose }: { onClose: () => void }) {
   const composer = useComposer(send);
 
   return (
-    <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
+    <section data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
       <header className="pip-head">
         <PipSprite size={32} mood={mood} />
         <div className="min-w-0 flex-1">
@@ -245,6 +253,10 @@ export type CardActions = {
   undo?: (messageId: string, changesetId: string) => Promise<unknown> | void;
   /** The meet-up button's label. Default "Add to trip". */
   applyLabel?: string;
+  retry?: (messageId: string) => void;
+  appliedReplies?: ReadonlySet<string>;
+  /** A leg's checkout, where there's a trip to book in. */
+  checkout?: (legId: string) => ReactNode;
 };
 export const CardActionsContext = createContext<CardActions>({ apply: () => {} });
 
@@ -311,6 +323,7 @@ const Message = memo(function Message({ message: m, me, members, activity }: { m
               {activity ? <Step label={activity} running /> : null}
             </div>
           ) : null}
+          {m.state === "failed" ? <FailedReply messageId={m.id} /> : null}
           {m.state === "queued" ? <Step label="Next in line" /> : null}
         </div>
       </div>
@@ -328,6 +341,12 @@ const Message = memo(function Message({ message: m, me, members, activity }: { m
   );
 });
 
+function FailedReply({ messageId }: { messageId: string }) {
+  const actions = use(CardActionsContext);
+  if (actions.appliedReplies?.has(messageId)) return <p className="pip-caption" role="status">Trip updated. Send a follow-up to continue the interrupted reply.</p>;
+  return <p className="pip-caption" role="status">Reply interrupted.{actions.retry ? <> <button type="button" className="pip-undo" onClick={() => actions.retry?.(messageId)}>Try again</button></> : " Send a follow-up to continue."}</p>;
+}
+
 /** One thing Pip did with a tool. While it runs, what it's doing right now follows the label. */
 function Step({ label, running = false, detail = null }: { label: string; running?: boolean; detail?: string | null }) {
   return (
@@ -342,7 +361,13 @@ function Step({ label, running = false, detail = null }: { label: string; runnin
 function Card({ card, messageId, members, activity }: { card: ThreadCard; messageId: string; members: Members; activity: string | null }) {
   if (card.type === "meetup") return <MeetupCard card={card} messageId={messageId} members={members} />;
   if (card.type === "changes") return <ChangesCard card={card} messageId={messageId} />;
+  if (card.type === "checkout") return <CheckoutSlot legId={card.legId} />;
   return <Step label={card.label} running={!card.done} detail={card.done ? null : activity} />;
+}
+
+function CheckoutSlot({ legId }: { legId: string }) {
+  const actions = use(CardActionsContext);
+  return actions.checkout ? actions.checkout(legId) : null;
 }
 
 function MeetupCard({ card, messageId, members }: { card: Extract<ThreadCard, { type: "meetup" }>; messageId: string; members: Members }) {

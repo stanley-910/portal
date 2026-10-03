@@ -8,8 +8,8 @@ import { z } from "zod";
 import { dateIn } from "@/lib/agent/dates";
 import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { legMarks, midpoint, SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
-import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
+import { legMarks, midpoint, type AgentMark } from "@/lib/agent/marks";
+import { findMeetup, MAX_MEETUP_GROUPS, type MeetupGroup } from "@/lib/agent/meetup";
 import { citiesIn, MODEL, REASONING_EFFORT } from "@/lib/agent/run";
 import { showDate } from "@/lib/agent/snapshot";
 import { stepLabel } from "@/lib/agent/steps";
@@ -88,7 +88,7 @@ type Emit = (event: SoloEvent) => void;
 /** What one reply's tools share: the legs on the globe now (plan_trip replaces them) and the person's passports. */
 type SoloState = { trip: SoloLeg[]; nationalities: string[]; meetups: Map<string, MeetupOption> };
 
-function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
+function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: AbortSignal) {
   const { meetups } = state;
   return {
     plan_trip: tool({
@@ -107,30 +107,10 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           const day = dates[i] ?? nextDay(dates[dates.length - 1], i - dates.length + 1);
           return { from: resolved[i], to, date: day };
         });
-        // one change at a time, each under the saucer, as in a shared trip: a leg that goes reels in to where it ends,
-        // under the saucer; a new one draws out behind it from where it starts. Legs that go come off first, then new
-        // ones go on in order, and the saucer stays a beat after each.
-        const key = (l: SoloLeg) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
-        const keep = new Set(legs.map(key));
-        const had = new Set(state.trip.map(key));
-        const going = state.trip.filter((l) => !keep.has(key(l)));
-        const coming = legs.filter((l) => !had.has(key(l)));
-        const steps = [
-          ...going.map((l, i) => ({ at: l.to, draws: false, trip: state.trip.filter((x) => !going.slice(0, i + 1).includes(x)) })),
-          ...coming.map((l, i) => ({ at: l.from, draws: true, trip: legs.filter((x) => had.has(key(x)) || coming.slice(0, i + 1).includes(x)) })),
-        ];
-        for (const [i, step] of steps.entries()) {
-          emit({ t: "activity", label: "planning the trip", at: { lat: step.at.lat, lng: step.at.lng } });
-          // the first flies in from off the screen
-          await new Promise((done) => setTimeout(done, i ? SAUCER_FLY_MS : SAUCER_ENTER_MS));
-          emit({ t: "trip", legs: step.trip });
-          emit({ t: "marks", marks: legMarks(state.trip, step.trip) });
-          state.trip = step.trip;
-          if (step.draws) await new Promise((done) => setTimeout(done, SAUCER_DRAW_MS));
-          if (i < steps.length - 1) await new Promise((done) => setTimeout(done, SAUCER_STAY_MS));
-        }
-        // the legs it kept take their new dates
-        if (JSON.stringify(state.trip) !== JSON.stringify(legs)) emit({ t: "trip", legs });
+        signal.throwIfAborted();
+        // Animation is presentation: the browser queues the marks while fares and the model continue.
+        emit({ t: "trip", legs });
+        emit({ t: "marks", marks: legMarks(state.trip, legs) });
         state.trip = legs;
         return {
           onGlobe: legs.map((l) => `${l.from.name} → ${l.to.name} on ${showDate(l.date)}`),
@@ -150,7 +130,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
         emit({ t: "activity", label: `checking ${a.name} to ${b.name}`, at: midpoint(a, b) });
         const result = await searchFromCoordinates(
           { from: stopToPlace(a), to: stopToPlace(b), date: day, modes: [], passengers: 1, currency: "USD" },
-          AbortSignal.timeout(15_000),
+          AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
         ).catch(() => null);
         emit({ t: "activity", label: null });
         if (!result) return { refused: "SEARCH_FAILED", reason: "The search didn't come back.", next: "Say so; the trip card searches too." };
@@ -178,7 +158,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
         emit({ t: "activity", label: "checking nearby train stations" });
         try {
           return await searchNearbyRail({ from: stopToPlace(a), to: stopToPlace(b), date: day,
-            modes: ["train"], passengers: 1, currency: preferences.currency }, preferences, AbortSignal.timeout(15_000));
+            modes: ["train"], passengers: 1, currency: preferences.currency }, preferences, AbortSignal.any([signal, AbortSignal.timeout(15_000)]));
         } catch { return { refused: "SEARCH_FAILED", next: "Say the nearby rail search failed; do not infer that no trains exist." }; }
         finally { emit({ t: "activity", label: null }); }
       },
@@ -219,7 +199,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
       description:
         "Where should people coming from different places meet? Scores the big cities, searches real routes for the best few and ranks them. Shows a card. The first group is the person you're talking to.",
       inputSchema: z.object({
-        groups: z.array(z.object({ from: z.string(), people: z.number().int().min(1).default(1) })).min(2),
+        groups: z.array(z.object({ from: z.string(), people: z.number().int().min(1).default(1) })).min(2).max(MAX_MEETUP_GROUPS),
         date: date.describe("The day they arrive"),
         minimize: z.enum(["price", "duration"]).default("price"),
         fairest: z.boolean().default(false),
@@ -236,8 +216,8 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           { groups, date: input.date, minimize: input.minimize, fairest: input.fairest, candidates: [] },
           async (query) => {
             emit({ t: "activity", label: `checking ${query.to.name}`, at: { lat: query.to.lat, lng: query.to.lng } });
-            return (await searchFromCoordinates(query, AbortSignal.timeout(12_000))).offers;
-          },
+            return (await searchFromCoordinates(query, AbortSignal.any([signal, AbortSignal.timeout(12_000)]))).offers;
+          }, undefined, signal,
         );
         emit({ t: "activity", label: null });
         if (!result.options.length) return { options: [], note: "No city had routes for every group. Suggest other dates." };
@@ -270,7 +250,10 @@ export async function runSolo({ messages, trip, name, nationalities }: SoloInput
   const today = new Date().toISOString().slice(0, 10);
   let text = "";
   const state: SoloState = { trip, nationalities, meetups: new Map() };
-  const tools = soloTools(emit, () => text.length, state);
+  const deadline = AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]);
+  const send = emit;
+  emit = (event) => { if (!signal.aborted) send(event); };
+  const tools = soloTools(emit, () => text.length, state, deadline);
   const asked = messages.at(-1)?.text ?? "";
   const write = (d: string) => {
     text += d;
@@ -278,6 +261,7 @@ export async function runSolo({ messages, trip, name, nationalities }: SoloInput
   };
 
   try {
+    deadline.throwIfAborted();
     if (!process.env.DEEPSEEK_API_KEY) return finish(await fallback(asked, today, tools, state));
     let started = false;
     const did: SoloRecord = { planned: false, aborted: false, finish: undefined };
@@ -292,7 +276,7 @@ export async function runSolo({ messages, trip, name, nationalities }: SoloInput
         stopWhen: isStepCount(MAX_STEPS),
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         providerOptions: { deepseek: { reasoningEffort: REASONING_EFFORT } satisfies DeepSeekLanguageModelChatOptions },
-        abortSignal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
+        abortSignal: deadline,
       });
       for await (const part of result.stream) {
         if (part.type === "text-delta") {
@@ -312,14 +296,15 @@ export async function runSolo({ messages, trip, name, nationalities }: SoloInput
         else if (part.type === "finish") did.finish = part.finishReason;
       }
     } catch (error) {
-      if (started || signal.aborted) throw error;
+      if (started || deadline.aborted) throw error;
       console.error("PIP_SOLO_MODEL_UNAVAILABLE", error instanceof Error ? error.message : error);
       return finish(await fallback(asked, today, tools, state));
     }
     if (did.aborted && !signal.aborted) console.warn("PIP_SOLO_TIMEOUT");
     finish(soloEnding(text, did));
   } catch (error) {
-    if (!signal.aborted) console.error("PIP_SOLO_FAILED", error);
+    if (signal.aborted) return;
+    console.error("PIP_SOLO_FAILED", error);
     if (!text.trim()) write("Something went wrong on my side. Try asking again.");
     emit({ t: "failed" });
   }

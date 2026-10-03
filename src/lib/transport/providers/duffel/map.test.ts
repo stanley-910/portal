@@ -73,6 +73,14 @@ describe("long-haul offers", () => {
     const [live] = mapOffers([{ ...input, live_mode: true }], query, "HKG", "PVG");
     expect(live.sandbox).toBeUndefined();
   });
+  it("marks a fare refundable before departure, with its fee per passenger", () => {
+    const input = validFixture();
+    const rule = (r: unknown) => mapOffers([{ ...input, conditions: { refund_before_departure: r } }], { ...query, passengers: 2 }, "HKG", "PVG")[0];
+    expect(rule({ allowed: true, penalty_amount: "60.00", penalty_currency: "USD" }).refund).toEqual({ fee: { amount: 30, currency: "USD" } });
+    expect(rule({ allowed: true, penalty_amount: "0.00", penalty_currency: "USD" }).refund).toEqual({ fee: null });
+    expect(rule({ allowed: false, penalty_amount: null, penalty_currency: null }).refund).toBeUndefined();
+    expect(rule(null).refund).toBeUndefined();
+  });
   it("keeps overnight local dates and measures duration in UTC", () => {
     const input = validFixture();
     const segment = input.slices[0].segments[0];

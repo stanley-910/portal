@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useActionState, useEffect, useId, useRef } from "react";
+import { useActionState, useEffect, useLayoutEffect, useId, useRef } from "react";
 
 import { signIn, signInWithGoogle, signUp, type AuthState } from "@/app/(auth)/actions";
 import { Button, PixelClose } from "@/components/paper-atlas";
@@ -49,16 +49,20 @@ function Panel({ mode, notice }: { mode: AuthMode; notice?: string }) {
     open(null, { replace: true });
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+  const dialog = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const el = dialog.current;
+    if (el && !el.open) el.showModal();
+    return () => el?.close();
+  }, []);
 
   return (
-    <div className="au-layer">
+    <dialog ref={dialog} className="au-layer" aria-labelledby={titleId}
+      onCancel={(e) => { e.preventDefault(); close(); }}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Escape") { e.preventDefault(); close(); } }}>
+
       <div className="au-scrim" aria-hidden onClick={close} />
-      <section className="au-panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <section className="au-panel" data-globe-obstacle>
         <div className="au-body">
           <header className="au-head">
             <h2 id={titleId} className="au-title">
@@ -88,7 +92,7 @@ function Panel({ mode, notice }: { mode: AuthMode; notice?: string }) {
           <AuthForm key={mode} mode={mode} notice={notice} />
         </div>
       </section>
-    </div>
+    </dialog>
   );
 }
 

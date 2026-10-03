@@ -6,6 +6,7 @@ import { finishSoloBookingAction, startSoloBookingAction, type SoloStep } from "
 import { DetailsForm } from "@/components/multiplayer/leg-booking";
 import { Button } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
+import { recordTiming } from "@/lib/performance";
 import { iso2 } from "@/lib/entry/iso";
 import type { Money } from "@/lib/liveblocks/types";
 
@@ -34,6 +35,7 @@ export function SoloCheckout({
   actions?: SoloCheckoutActions;
 }) {
   const [busy, start] = useTransition();
+  const [uncertain, setUncertain] = useState(false);
   const [at, setAt] = useState<SoloStep | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [price, setPrice] = useState<{ change: PriceChange; then: "settle" | "pay" } | null>(null);
@@ -44,7 +46,7 @@ export function SoloCheckout({
     start(async () => {
       setError(null);
       setPrice(null);
-      const result = await actions.start(tripId, legId, accept);
+      const result = await actions.start(tripId, legId, accept).catch((): Failure => ({ ok: false, code: "UPSTREAM_ERROR", message: "Connection lost while checking the fare. Open the trip to check its status." }));
       if (result.ok) return setAt(result);
       if ("now" in result) setPrice({ change: result, then: "settle" });
       else setError(result);
@@ -55,12 +57,14 @@ export function SoloCheckout({
       setError(null);
       setPrice(null);
       setDetails(input);
-      const result = await actions.finish(tripId, legId, input, accept);
+      const started = performance.now();
+      const result = await actions.finish(tripId, legId, input, accept).catch((): Failure => { setUncertain(true); return { ok: false, code: "UPSTREAM_ERROR", message: "Connection lost. Check your booking before trying payment again." }; });
       if (!result.ok) {
         if ("now" in result) setPrice({ change: result, then: "pay" });
         else setError(result);
         return;
       }
+      recordTiming("checkout", started);
       if (result.url) return window.location.assign(result.url);
       setAt((a) => (a ? { ...a, step: "done" } : a));
     });
@@ -77,7 +81,7 @@ export function SoloCheckout({
         <Button variant="quiet" onClick={onClose}>
           Not now
         </Button>
-        <Button disabled={busy} onClick={() => (price.then === "settle" ? settle(price.change.now) : pay(details, price.change.now))}>
+        <Button disabled={busy || uncertain} onClick={() => (price.then === "settle" ? settle(price.change.now) : pay(details, price.change.now))}>
           Continue
         </Button>
       </div>
@@ -87,11 +91,14 @@ export function SoloCheckout({
   const problem = error ? (
     <div className="ts-checkout-step" role="alert">
       <p className="ts-checkout-note">{error.message}</p>
-      <div className="ts-checkout-actions">
-        <Button variant="quiet" onClick={onClose}>
-          Back
-        </Button>
-      </div>
+      {/* a refused detail is fixed in the form below, which has its own Cancel */}
+      {error.code === "INVALID" ? null : (
+        <div className="ts-checkout-actions">
+          <Button variant="quiet" onClick={onClose}>
+            Back
+          </Button>
+        </div>
+      )}
     </div>
   ) : null;
 
@@ -108,7 +115,7 @@ export function SoloCheckout({
           documents={at.documents}
           email={email}
           passportCountry={nationalities[0] ? (iso2(nationalities[0]) ?? "") : ""}
-          busy={busy}
+          busy={busy || uncertain}
           invalid={error?.fields ?? []}
           submitLabel={busy ? "Opening checkout…" : `Pay · ${fmt(at.share)}`}
           onCancel={onClose}
@@ -116,7 +123,7 @@ export function SoloCheckout({
         />
       ) : null}
       {at?.step === "pay" && !price ? (
-        <Button block disabled={busy} onClick={() => pay(null)}>
+        <Button block disabled={busy || uncertain} onClick={() => pay(null)}>
           {busy ? "Opening checkout…" : `Pay · ${fmt(at.share)}`}
         </Button>
       ) : null}

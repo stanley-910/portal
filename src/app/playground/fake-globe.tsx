@@ -144,6 +144,8 @@ export function FakeGlobe({ ref, zoom = 0, onTakeoff, onLand, onCancel, onRouteC
     project: (ll) => ({ ...project(ll), visible: true }),
     routePoint: (from, to, t = 0.5) => ({ ...along(project(from), project(to), t), visible: true }),
     showTrip: (points) => land(points),
+    // the flat globe draws every frame anyway
+    requestFrame: () => {},
     onFrame(cb) {
       frames.current.add(cb);
       return () => frames.current.delete(cb);

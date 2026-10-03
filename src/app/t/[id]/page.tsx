@@ -6,7 +6,7 @@ import "@/components/auth/auth.css";
 import { Button } from "@/components/paper-atlas";
 import { MAX_NAME } from "@/lib/guest";
 import { expireBookings } from "@/lib/booking/flow";
-import { currentPerson } from "@/lib/identity";
+import { displayPerson } from "@/lib/identity";
 import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 import { tripOwner } from "@/lib/trip/leave";
@@ -18,9 +18,10 @@ import { TripRoom } from "./trip-room";
 export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   const { id } = await params;
   if (!TRIP_ID.test(id)) notFound();
-  const person = await currentPerson();
+  const [person, room] = await Promise.all([
+    displayPerson(), liveblocks().getRoom(tripRoomId(id)).catch(() => null),
+  ]);
   if (!person?.name) return <NamePrompt tripPath={`/t/${id}`} />;
-  const room = await liveblocks().getRoom(tripRoomId(id)).catch(() => null);
   if (!room) notFound();
   // the owner: whoever made the trip, until they leave and it passes on (the room then reads it from Storage)
   const hostId = tripOwner(room.metadata);
