@@ -2,6 +2,7 @@
 
 import { Glyph } from "./glyphs";
 import type { TimelineLeg } from "./options";
+import { PixelFlag } from "./pixel-flag";
 
 // Pieces of the ticket search popover that the trip plan reuses: the route header, a date field with its one-week
 // strip, and the leg timeline. Styles: ticket-search.css.
@@ -36,19 +37,20 @@ const IATA = /^[A-Z]{3}$/;
 /** "Shanghai (Minhang)" → "Shanghai": airport data names the district, the card names the city. */
 const cityName = (name: string) => name.replace(/\s*\([^)]*\)$/, "");
 
-/** City to city: names as the title, an airport code beneath when there is one, and the distance when known. */
+/** City to city: each end's flag, names as the title, an airport code beneath when there is one, and the distance when known. */
 export function RouteHeader({
   from,
   to,
   distanceKm,
 }: {
-  from: { code?: string | null; name: string };
-  to: { code?: string | null; name: string };
+  from: { code?: string | null; name: string; country?: string | null };
+  to: { code?: string | null; name: string; country?: string | null };
   distanceKm?: number;
 }) {
   return (
     <div className="ts-route">
       <span className="ts-place">
+        {from.country ? <PixelFlag country={from.country} /> : null}
         <span className="ts-city">{cityName(from.name)}</span>
         {from.code && IATA.test(from.code) ? <span className="ts-code">{from.code}</span> : null}
       </span>
@@ -61,6 +63,7 @@ export function RouteHeader({
         </span>
       </span>
       <span className="ts-place ts-place-end">
+        {to.country ? <PixelFlag country={to.country} /> : null}
         <span className="ts-city">{cityName(to.name)}</span>
         {to.code && IATA.test(to.code) ? <span className="ts-code">{to.code}</span> : null}
       </span>

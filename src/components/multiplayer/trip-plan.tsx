@@ -12,9 +12,11 @@ import { carrierLabel, duration } from "@/components/ticket-search/options";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import { useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
-import { memberColor, type Stay, type StoredOffer } from "@/lib/liveblocks/types";
+import { memberColor, type Stay, type Stop, type StoredOffer } from "@/lib/liveblocks/types";
 import { lastLegDate, leaveBounds, legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
+import { HUBS } from "@/lib/transport/hubs/catalog";
+import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { editorChoice, stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, useSplit, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
@@ -24,6 +26,10 @@ import { isBookable, shownOffers } from "@/lib/trip/offers";
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
 
 const SHOWN = 3;
+
+const HUB_COUNTRY = new Map(HUBS.map((hub) => [hub.id, hub.country]));
+/** A stop's country for its flag: its hub's, else the nearest hub's, for stops saved without one. */
+const stopCountry = (stop: Stop) => (stop.hub && HUB_COUNTRY.get(stop.hub)) || nearestPreviewHub(stop)?.country || null;
 
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
@@ -244,7 +250,10 @@ function LegCard({
 
   return (
     <article className="tp-leg">
-      <RouteHeader from={{ code: leg.from.code, name: leg.from.name }} to={{ code: leg.to.code, name: leg.to.name }} />
+      <RouteHeader
+        from={{ code: leg.from.code, name: leg.from.name, country: stopCountry(leg.from) }}
+        to={{ code: leg.to.code, name: leg.to.name, country: stopCountry(leg.to) }}
+      />
 
       <div className="ts-dates">
         <DateField label="Depart" value={leg.date} open={picking} onToggle={() => !locked && setPicking((p) => !p)} />

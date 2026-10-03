@@ -140,6 +140,7 @@ function endpoints(trip: LandedTrip, result: HubSearchResult | null) {
   const end = (preview: Hub | null, resolved: Hub | undefined, point: LatLng) => ({
     name: preview?.city || resolved?.city || preview?.name || resolved?.name || coordinates(point),
     code: airportCode(preview) ?? airportCode(resolved),
+    country: preview?.country ?? resolved?.country ?? null,
     // a hub or city near the point, rather than open sea or countryside named by its coordinates
     known: Boolean(preview || resolved),
   });
@@ -168,6 +169,7 @@ const samePoint = (a: LatLng, b: LatLng) => a.lat === b.lat && a.lng === b.lng;
 const placeEnd = (hub: Hub | null, point: LatLng) => ({
   name: hub?.city || hub?.name || coordinates(point),
   code: airportCode(hub),
+  country: hub?.country ?? null,
   known: Boolean(hub),
 });
 
