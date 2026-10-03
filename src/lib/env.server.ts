@@ -40,6 +40,8 @@ const schema = z.object({
   // booking (docs/booking/README.md): card holds through Stripe Checkout; unset = a no-charge test checkout
   STRIPE_SECRET_KEY: optional,
   STRIPE_WEBHOOK_SECRET: optional,
+  // pk_test_… or pk_live_…: the embedded card field. Without it, paying falls back to Stripe Checkout.
+  STRIPE_PUBLISHABLE_KEY: optional,
   // server-only Supabase key for traveller details and payment rows; unset = in-memory, lost on restart
   SUPABASE_SECRET_KEY: optional,
   // 32 random bytes, base64: traveller details are sealed with it before they reach Supabase

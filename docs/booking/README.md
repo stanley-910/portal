@@ -91,9 +91,30 @@ whether to switch flights.
 - **Any rider can check out their own seat, guests included.** Guests give an email at checkout; it's where their
   ticket and booking link go. A rider can't pay for someone else's seat.
 - **Settling** needs a rider. Any rider can also undo a settle while nobody has paid yet.
-- **Pip stages, people pay.** Pip can settle a leg when asked, prefill details a member saved, show who still owes and
-  remind them. It can't place card holds or complete payments. Pip completing a checkout within a limit the user sets
-  comes later, enforced on the server, never by the prompt.
+- **Pip books, each rider approves their own share.** A rider asks Pip ("book us on the 9:40") and `book_leg` picks
+  that option, settles at once and posts a checkout card in the thread. Pip can also read each member's bill
+  (`get_bill`) and cancel a settle nobody has paid for (`cancel_booking`). It can't enter anyone's details or pay:
+  every card hold is a click by the rider whose share it is, on the card.
+
+## Pip's checkout card
+
+`src/components/agent/checkout-card.tsx`, a `checkout` thread card. Everyone sees the bill, read live from the leg:
+each rider's share and whether they're waiting, have details in, have a card held or have paid. Each viewer gets
+buttons only for their own seat, with their details and cards fetched by the server for them alone
+(`myWalletAction`), never through the room:
+
+1. **Details.** Saved details show as a summary with Looks good (`submitSavedDetailsAction`) or Edit. Edit, or a
+   first booking, opens the form in a modal; what's entered is saved to the person for next time
+   (`saveAndSubmitDetailsAction`). A passport is asked for only when the airline needs one; a saved one the airline
+   didn't ask for stays out of the order.
+2. **Card.** With a saved card: Confirm · $X on Visa ·4242, one click. Otherwise a modal with Stripe's embedded card
+   field. Both are PaymentIntents with manual capture that the browser confirms with Stripe.js
+   (`startCardHoldAction`), so 3-D Secure shows in place and nobody leaves the app; the new card is saved to the
+   person's Stripe customer. `confirmCardHoldAction` and the `payment_intent.amount_capturable_updated` webhook record
+   the hold, whichever comes first. Without `STRIPE_PUBLISHABLE_KEY`, the card falls back to Stripe Checkout.
+
+Saved details (sealed like any traveller details) and the person's Stripe customer id live in `traveller_profiles` and
+`payment_customers` (`supabase/migrations/0004_booking_wallet.sql`), keyed by person id.
 
 ## Where data lives
 
@@ -131,7 +152,7 @@ Only the server writes `booking`: clients can't mark themselves paid.
   pay share, dismiss notice). Each checks the caller is a member of the room first.
 - **Stripe**: Checkout Sessions with `payment_intent_data[capture_method]=manual`. `/api/booking/return` is where
   Checkout sends the rider back; it confirms the hold with Stripe and returns them to the trip. `/api/booking/stripe`
-  is the webhook (`checkout.session.completed`, `payment_intent.canceled`), verified by hand against
+  is the webhook (`checkout.session.completed`, `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`, `payment_intent.canceled`), verified by hand against
   `STRIPE_WEBHOOK_SECRET`. Either path marks the seat; the purchase runs under a lease and asks Duffel whether the
   order is already paid, so a retry can't buy twice.
 - **Expiry**: `expireBookings` runs after a trip page renders and before every booking action. Rooms nobody opens are covered by the scheduled sweep: `vercel.json` runs `/api/booking/expire` once a day (the Hobby plan allows no more; on Pro, every ten minutes is the right cadence), which calls `sweepBookings` over every leg in the store's active list (`booking_active`, kept in step by the flow whenever a leg is settled, booked or rolled back). Vercel authenticates the call with `CRON_SECRET`; without it the route refuses everything. Locally: `curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/booking/expire`.
@@ -194,13 +215,14 @@ Testing:
 
 ## What's built, and what isn't
 
-Built: settle with the price check, traveller details, the hold order, card holds through Stripe Checkout or the test
-checkout, the purchase and capture, separate tickets, the deadline and expiry, cancel settle, the lock on a settled leg,
+Built: settle with the price check, traveller details, the hold order, card holds in the app on saved or new cards,
+through Stripe Checkout or the test checkout, Pip booking on request with the checkout card, saved details and cards, the purchase and capture, separate tickets, the deadline and expiry, cancel settle, the lock on a settled leg,
 the settled share in the cost split, and Pip seeing who still owes.
 
 Not yet:
 
-1. **Pip staging.** Settle on request and reminders. Pip already reads the booking from the plan.
+1. **Link agent wallet (Shared Payment Tokens).** Approval in Link instead of our card field. Public preview, US, Canada
+   and parts of Europe only.
 2. **Duffel's order webhook** for schedule changes and cancellations.
 3. **Changing or cancelling a booked ticket** from the app.
 4. **Hotels.** The same group checkout for stays, once Duffel enables Stays on our account.

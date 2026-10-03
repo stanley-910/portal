@@ -23,6 +23,12 @@ export function stepLabel(tool: string, output: unknown = null): { doing: string
       };
     case "apply_meetup":
       return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
+    case "book_leg":
+      return { doing: "Settling the fare", done: failed ? "Couldn't settle it" : (o as { status?: string }).status === "PRICE_CHANGED" ? "The fare moved" : "Checkout is up" };
+    case "get_bill":
+      return { doing: "Checking who's paid", done: "Checked who's paid" };
+    case "cancel_booking":
+      return { doing: "Cancelling the settle", done: failed ? "Couldn't cancel it" : "Cancelled the settle" };
     case "plan_trip":
       return { doing: "Putting it on the globe", done: failed ? "Couldn't place that" : "Put it on the globe" };
     case "search_nearby_trains":

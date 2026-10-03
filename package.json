@@ -29,6 +29,7 @@
     "@liveblocks/client": "3.24.2",
     "@liveblocks/node": "3.24.2",
     "@liveblocks/react": "3.24.2",
+    "@stripe/stripe-js": "^10.0.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@vercel/analytics": "^2.0.1",

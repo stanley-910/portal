@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import { cancelSettleAction, dismissBookingNoticeAction, payShareAction, settleLegAction, submitDetailsAction } from "@/app/t/booking-actions";
 import { Button } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
+import type { TravellerDetails } from "@/lib/booking/offer";
 import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
 import { countries } from "@/lib/nationality";
@@ -231,6 +232,8 @@ const TITLES = ["mr", "ms", "mrs", "miss", "dr"] as const;
 
 export function DetailsForm({
   documents,
+  showPassport = documents,
+  defaults = null,
   email,
   passportCountry,
   busy,
@@ -239,7 +242,12 @@ export function DetailsForm({
   onCancel,
   onSubmit,
 }: {
+  /** The airline needs a passport: its fields are required. */
   documents: boolean;
+  /** Passport fields shown though not required, e.g. to keep a saved one up to date. */
+  showPassport?: boolean;
+  /** Saved details to start from. */
+  defaults?: TravellerDetails | null;
   email: string | null;
   passportCountry: string;
   busy: boolean;
@@ -261,14 +269,14 @@ export function DetailsForm({
       bornOn: text("bornOn"),
       email: text("email"),
       phone: text("phone").replace(/[\s()-]/g, ""),
-      passport: documents ? { number: text("passportNumber"), country: text("passportCountry"), expiresOn: text("passportExpires") } : null,
+      passport: showPassport && (documents || text("passportNumber")) ? { number: text("passportNumber"), country: text("passportCountry"), expiresOn: text("passportExpires") } : null,
     });
   };
   return (
     <form className="tp-form" onSubmit={submit}>
       <label>
         Title
-        <select name="title" defaultValue="mr" aria-invalid={bad("title")}>
+        <select name="title" defaultValue={defaults?.title ?? "mr"} aria-invalid={bad("title")}>
           {TITLES.map((t) => (
             <option key={t} value={t}>
               {t[0].toUpperCase() + t.slice(1)}
@@ -278,7 +286,7 @@ export function DetailsForm({
       </label>
       <label>
         Gender
-        <select name="gender" defaultValue="" required aria-invalid={bad("gender")}>
+        <select name="gender" defaultValue={defaults?.gender ?? ""} required aria-invalid={bad("gender")}>
           <option value="" disabled>
             Pick
           </option>
@@ -288,37 +296,37 @@ export function DetailsForm({
       </label>
       <label>
         Given names
-        <input name="givenName" required autoComplete="given-name" aria-invalid={bad("givenName")} />
+        <input name="givenName" required defaultValue={defaults?.givenName} autoComplete="given-name" aria-invalid={bad("givenName")} />
       </label>
       <label>
         Family name
-        <input name="familyName" required autoComplete="family-name" aria-invalid={bad("familyName")} />
+        <input name="familyName" required defaultValue={defaults?.familyName} autoComplete="family-name" aria-invalid={bad("familyName")} />
       </label>
       <label>
         Date of birth
-        <input name="bornOn" type="date" required autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={bad("bornOn")} />
+        <input name="bornOn" type="date" required defaultValue={defaults?.bornOn} autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={bad("bornOn")} />
       </label>
       <label>
         Phone
-        <input name="phone" type="tel" required placeholder="+852 9123 4567" autoComplete="tel" aria-invalid={bad("phone")} />
+        <input name="phone" type="tel" required defaultValue={defaults?.phone} placeholder="+852 9123 4567" autoComplete="tel" aria-invalid={bad("phone")} />
       </label>
       <label data-wide>
         Email for the ticket
-        <input name="email" type="email" required defaultValue={email ?? ""} autoComplete="email" aria-invalid={bad("email")} />
+        <input name="email" type="email" required defaultValue={defaults?.email ?? email ?? ""} autoComplete="email" aria-invalid={bad("email")} />
       </label>
-      {documents ? (
+      {showPassport ? (
         <>
           <label>
             Passport number
-            <input name="passportNumber" required autoComplete="off" aria-invalid={bad("passport.number")} />
+            <input name="passportNumber" required={documents} autoComplete="off" defaultValue={defaults?.passport?.number} aria-invalid={bad("passport.number")} />
           </label>
           <label>
             Expires
-            <input name="passportExpires" type="date" required min={new Date().toISOString().slice(0, 10)} aria-invalid={bad("passport.expiresOn")} />
+            <input name="passportExpires" type="date" required={documents} defaultValue={defaults?.passport?.expiresOn} min={new Date().toISOString().slice(0, 10)} aria-invalid={bad("passport.expiresOn")} />
           </label>
           <label data-wide>
             Issuing country
-            <select name="passportCountry" defaultValue={passportCountry} required aria-invalid={bad("passport.country")}>
+            <select name="passportCountry" defaultValue={defaults?.passport?.country ?? passportCountry} required={documents} aria-invalid={bad("passport.country")}>
               <option value="" disabled>
                 Pick
               </option>

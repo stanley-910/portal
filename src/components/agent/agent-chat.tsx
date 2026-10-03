@@ -1,9 +1,10 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import { createContext, memo, use, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
+import { createContext, memo, use, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
+import { CheckoutCard } from "@/components/agent/checkout-card";
 import { useOpenAuth } from "@/components/auth/links";
 import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
@@ -204,6 +205,7 @@ function Panel({ onClose }: { onClose: () => void }) {
     () => ({
       apply: (messageId, option) => applyMeetup(tripId, messageId, option),
       undo: (messageId, changesetId) => undoAgentChange(tripId, messageId, changesetId),
+      checkout: (legId) => <CheckoutCard legId={legId} />,
     }),
     [tripId],
   );
@@ -244,6 +246,8 @@ export type CardActions = {
   undo?: (messageId: string, changesetId: string) => Promise<unknown> | void;
   /** The meet-up button's label. Default "Add to trip". */
   applyLabel?: string;
+  /** A leg's checkout, where there's a trip to book in. */
+  checkout?: (legId: string) => ReactNode;
 };
 export const CardActionsContext = createContext<CardActions>({ apply: () => {} });
 
@@ -337,7 +341,13 @@ function Step({ label, running = false, detail = null }: { label: string; runnin
 function Card({ card, messageId, members, activity }: { card: ThreadCard; messageId: string; members: Members; activity: string | null }) {
   if (card.type === "meetup") return <MeetupCard card={card} messageId={messageId} members={members} />;
   if (card.type === "changes") return <ChangesCard card={card} messageId={messageId} />;
+  if (card.type === "checkout") return <CheckoutSlot legId={card.legId} />;
   return <Step label={card.label} running={!card.done} detail={card.done ? null : activity} />;
+}
+
+function CheckoutSlot({ legId }: { legId: string }) {
+  const actions = use(CardActionsContext);
+  return actions.checkout ? actions.checkout(legId) : null;
 }
 
 function MeetupCard({ card, messageId, members }: { card: Extract<ThreadCard, { type: "meetup" }>; messageId: string; members: Members }) {

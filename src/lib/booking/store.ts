@@ -45,6 +45,12 @@ export interface BookingStore {
   markActive(roomId: string, legId: string): Promise<void>;
   clearActive(roomId: string, legId: string): Promise<void>;
   listActive(): Promise<{ roomId: string; legId: string }[]>;
+  /** A person's saved traveller details, for their next booking. */
+  getProfile(personId: string): Promise<TravellerDetails | null>;
+  putProfile(personId: string, details: TravellerDetails): Promise<void>;
+  /** The Stripe customer a person's saved cards belong to. */
+  getCustomer(personId: string): Promise<string | null>;
+  putCustomer(personId: string, customerId: string): Promise<void>;
   /** Takes a short lease on `key`, or false if someone holds it. The purchase runs under one so a retried webhook can't buy twice. */
   acquire(key: string, ttlMs: number): Promise<boolean>;
   release(key: string): Promise<void>;
@@ -84,6 +90,20 @@ class MemoryStore implements BookingStore {
   }
   async listPayments(roomId: string, legId: string) {
     return [...this.payments.values()].filter((p) => p.roomId === roomId && p.legId === legId);
+  }
+  profiles = new Map<string, TravellerDetails>();
+  customers = new Map<string, string>();
+  async getProfile(personId: string) {
+    return this.profiles.get(personId) ?? null;
+  }
+  async putProfile(personId: string, details: TravellerDetails) {
+    this.profiles.set(personId, details);
+  }
+  async getCustomer(personId: string) {
+    return this.customers.get(personId) ?? null;
+  }
+  async putCustomer(personId: string, customerId: string) {
+    this.customers.set(personId, customerId);
   }
   private readonly active = new Set<string>();
   async markActive(roomId: string, legId: string) {
@@ -210,6 +230,24 @@ class SupabaseStore implements BookingStore {
   async listPayments(roomId: string, legId: string) {
     const rows = await this.run<PaymentRecord[] | null>("list payments", this.db.from("booking_payments").select("*").eq("room_id", roomId).eq("leg_id", legId));
     return (rows ?? []).map(fromRecord);
+  }
+  async getProfile(personId: string) {
+    const row = await this.run<{ sealed: string } | null>("get profile", this.db.from("traveller_profiles").select("sealed").eq("person_id", personId).maybeSingle());
+    const plain = row ? open(row.sealed, this.key) : null;
+    return plain ? (JSON.parse(plain) as TravellerDetails) : null;
+  }
+  async putProfile(personId: string, details: TravellerDetails) {
+    await this.run(
+      "put profile",
+      this.db.from("traveller_profiles").upsert({ person_id: personId, sealed: seal(JSON.stringify(details), this.key), updated_at: new Date().toISOString() }),
+    );
+  }
+  async getCustomer(personId: string) {
+    const row = await this.run<{ customer_id: string } | null>("get customer", this.db.from("payment_customers").select("customer_id").eq("person_id", personId).maybeSingle());
+    return row?.customer_id ?? null;
+  }
+  async putCustomer(personId: string, customerId: string) {
+    await this.run("put customer", this.db.from("payment_customers").upsert({ person_id: personId, customer_id: customerId, updated_at: new Date().toISOString() }));
   }
   async markActive(roomId: string, legId: string) {
     await this.run("mark active", this.db.from("booking_active").upsert({ room_id: roomId, leg_id: legId, updated_at: new Date().toISOString() }));

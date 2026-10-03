@@ -10,7 +10,7 @@ import { offerExpired, perSeat, travellerSchema, type BookableOffer, type Travel
 import { refusedPassenger, settleReady, storedFlights } from "./ready";
 import { allDetailsIn, allPaid, anyonePaid, bookingDeadline, openSeats, priceRose, splitShares } from "./shares";
 import { bookingStore, type PaymentRow } from "./store";
-import { cancelPayment, capturePayment, captureBefore, createHoldCheckout, getCheckoutSession, getPaymentIntent, stripeConfigured, testCheckoutAllowed } from "./stripe";
+import { cancelPayment, capturePayment, captureBefore, createCustomer, createHoldCheckout, createHoldIntent, getCheckoutSession, getPaymentIntent, listCards, stripeConfigured, testCheckoutAllowed, type SavedCard } from "./stripe";
 
 // The booking flow from docs/booking/README.md. Every step reads the leg from the room, decides, calls Duffel or
 // Stripe, then writes status back. Only this module writes `booking`; clients and Pip only read it.
@@ -184,7 +184,9 @@ export async function submitDetails(roomId: string, legId: string, actor: Actor,
     if (!booking.seats[actor.id]) throw new BookingError("NOT_ALLOWED", "You're not riding this leg.");
     if (booking.status === "booked" || (booking.mode === "group" && booking.status !== "details")) throw new BookingError("WRONG_STATE", "The seats are already held.");
     if (booking.seats[actor.id].paid) throw new BookingError("WRONG_STATE", "You've already paid.");
-    const parsed = travellerSchema(booking.documents).safeParse(input);
+    // a saved passport the airline didn't ask for stays out of the order
+    const given = !booking.documents && input && typeof input === "object" ? { ...input, passport: null } : input;
+    const parsed = travellerSchema(booking.documents).safeParse(given);
     if (!parsed.success) return { ok: false, code: "INVALID", message: "Check the highlighted fields.", fields: [...new Set(parsed.error.issues.map((i) => i.path.join(".")))] };
     await bookingStore().putTraveller(roomId, legId, actor.id, parsed.data as TravellerDetails);
     const updated = await updateSeat(roomId, legId, actor.id, { details: true });
@@ -270,33 +272,10 @@ async function holdSeats(roomId: string, legId: string) {
 export async function startPayment(roomId: string, legId: string, actor: Actor, origin: string, accept?: Money): Promise<{ ok: true; url: string | null } | PriceChange | Failure> {
   try {
     const store = bookingStore();
-    const { plan, leg } = await readLeg(roomId, legId);
-    const booking = leg?.booking;
-    const seat = booking?.seats[actor.id];
-    if (!leg || !booking || !seat) throw new BookingError("NOT_ALLOWED", "You're not riding this leg.");
-    if (booking.status !== "paying") throw new BookingError("WRONG_STATE", booking.status === "booked" ? "This leg is booked." : "Waiting for everyone's details.");
-    if (!seat.details) throw new BookingError("WRONG_STATE", "Enter your details first.");
-    if (seat.paid) throw new BookingError("WRONG_STATE", "You've already paid.");
-    const existing = await store.getPayment(roomId, legId, actor.id);
-    if (existing?.status === "held") {
-      await recordHold(roomId, legId, actor.id);
-      return { ok: true, url: null };
-    }
-
-    let amount = seat.share;
-    let offerId: string | null = null;
-    if (booking.mode === "separate") {
-      const offer = await currentOffer(booking, 1);
-      if (!offer) throw new BookingError("OFFER_GONE");
-      const now = offer.total;
-      if (!accept ? over(now, seat.share) : over(now, accept)) return { ok: false, code: "PRICE_CHANGED", was: accept ?? seat.share, now };
-      amount = now.amount < seat.share.amount ? now : seat.share;
-      offerId = offer.id;
-      if (amount.amount !== seat.share.amount) await updateSeat(roomId, legId, actor.id, { share: amount });
-    }
-
-    const from = plan.stops?.[leg.from]?.name ?? leg.from;
-    const to = plan.stops?.[leg.to]?.name ?? leg.to;
+    const charge = await seatCharge(roomId, legId, actor, accept);
+    if (charge.kind === "price") return charge.change;
+    if (charge.kind === "held") return { ok: true, url: null };
+    const { amount, offerId, booking } = charge;
     if (!stripeConfigured()) {
       if (!testCheckoutAllowed()) throw new BookingError("NOT_CONFIGURED", "Payments aren't set up on this server.");
       await store.upsertPayment({ roomId, legId, riderId: actor.id, provider: "test", sessionId: null, paymentIntentId: null, amount, status: "held", captureBefore: null, offerId });
@@ -305,8 +284,8 @@ export async function startPayment(roomId: string, legId: string, actor: Actor, 
     }
     const session = await createHoldCheckout({
       share: amount,
-      name: `${from} → ${to}, ${leg.date}`,
-      description: booking.mode === "group" ? "Your seat. Held until everyone has paid." : "Your seat.",
+      name: charge.name,
+      description: charge.description,
       email: actor.email,
       successUrl: `${origin}/api/booking/return?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${origin}/t/${tripIdOf(roomId)}?book=${encodeURIComponent(legId)}`,
@@ -318,6 +297,135 @@ export async function startPayment(roomId: string, legId: string, actor: Actor, 
   } catch (e) {
     return failure(e);
   }
+}
+
+type Charge =
+  | { kind: "held" }
+  | { kind: "price"; change: PriceChange }
+  | { kind: "charge"; amount: Money; offerId: string | null; booking: LegBooking; name: string; description: string };
+
+/**
+ * What the rider pays now, after the checks every payment makes. Separate tickets price the seat again first, so a
+ * rise shows before paying; a hold already recorded comes back as held.
+ */
+async function seatCharge(roomId: string, legId: string, actor: Actor, accept?: Money): Promise<Charge> {
+  const store = bookingStore();
+  const { plan, leg } = await readLeg(roomId, legId);
+  const booking = leg?.booking;
+  const seat = booking?.seats[actor.id];
+  if (!leg || !booking || !seat) throw new BookingError("NOT_ALLOWED", "You're not riding this leg.");
+  if (booking.status !== "paying") throw new BookingError("WRONG_STATE", booking.status === "booked" ? "This leg is booked." : "Waiting for everyone's details.");
+  if (!seat.details) throw new BookingError("WRONG_STATE", "Enter your details first.");
+  if (seat.paid) throw new BookingError("WRONG_STATE", "You've already paid.");
+  const existing = await store.getPayment(roomId, legId, actor.id);
+  if (existing?.status === "held") {
+    await recordHold(roomId, legId, actor.id);
+    return { kind: "held" };
+  }
+
+  let amount = seat.share;
+  let offerId: string | null = null;
+  if (booking.mode === "separate") {
+    const offer = await currentOffer(booking, 1);
+    if (!offer) throw new BookingError("OFFER_GONE");
+    const now = offer.total;
+    if (!accept ? over(now, seat.share) : over(now, accept)) return { kind: "price", change: { ok: false, code: "PRICE_CHANGED", was: accept ?? seat.share, now } };
+    amount = now.amount < seat.share.amount ? now : seat.share;
+    offerId = offer.id;
+    if (amount.amount !== seat.share.amount) await updateSeat(roomId, legId, actor.id, { share: amount });
+  }
+  // a pending hold from an earlier try is released, so a rider is never holding twice
+  if (existing?.status === "pending" && existing.provider === "stripe" && existing.paymentIntentId) {
+    await cancelPayment(existing.paymentIntentId).catch(() => {});
+  }
+  const from = plan.stops?.[leg.from]?.name ?? leg.from;
+  const to = plan.stops?.[leg.to]?.name ?? leg.to;
+  return {
+    kind: "charge",
+    amount,
+    offerId,
+    booking,
+    name: `${from} → ${to}, ${leg.date}`,
+    description: booking.mode === "group" ? "Your seat. Held until everyone has paid." : "Your seat.",
+  };
+}
+
+/** The Stripe customer a person's cards are saved to, made on first use. */
+async function customerFor(actor: Actor): Promise<string> {
+  const store = bookingStore();
+  const known = await store.getCustomer(actor.id);
+  if (known) return known;
+  const customer = await createCustomer(actor.id, actor.email, actor.name);
+  await store.putCustomer(actor.id, customer.id);
+  return customer.id;
+}
+
+/** A person's saved cards; none without Stripe or before their first in-app payment. */
+export async function savedCards(personId: string): Promise<SavedCard[]> {
+  if (!stripeConfigured()) return [];
+  const customer = await bookingStore().getCustomer(personId);
+  return customer ? listCards(customer).catch(() => []) : [];
+}
+
+/**
+ * Paying in the app: a card hold for the browser to confirm with Stripe.js, on a saved card (`paymentMethod`) or a
+ * new one typed into the embedded field. Null secret means the seat is already held.
+ */
+export async function startCardHold(roomId: string, legId: string, actor: Actor, paymentMethod: string | null, accept?: Money): Promise<{ ok: true; clientSecret: string | null } | PriceChange | Failure> {
+  try {
+    if (!stripeConfigured()) throw new BookingError("NOT_CONFIGURED", "Payments aren't set up on this server.");
+    const charge = await seatCharge(roomId, legId, actor, accept);
+    if (charge.kind === "price") return charge.change;
+    if (charge.kind === "held") return { ok: true, clientSecret: null };
+    const customer = await customerFor(actor);
+    // only the rider's own saved cards
+    if (paymentMethod && !(await listCards(customer)).some((c) => c.id === paymentMethod)) throw new BookingError("NOT_ALLOWED", "That card isn't yours.");
+    const intent = await createHoldIntent({ share: charge.amount, customer, paymentMethod, description: `${charge.name}. ${charge.description}`, metadata: { roomId, legId, riderId: actor.id } });
+    await bookingStore().upsertPayment({ roomId, legId, riderId: actor.id, provider: "stripe", sessionId: null, paymentIntentId: intent.id, amount: charge.amount, status: "pending", captureBefore: null, offerId: charge.offerId });
+    return { ok: true, clientSecret: intent.client_secret };
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+/** The browser confirmed the hold (or Stripe's webhook says so): record it, which books the leg once it's the last. */
+export async function confirmCardHold(paymentIntentId: string): Promise<boolean> {
+  const store = bookingStore();
+  const row = await store.findPaymentByIntent(paymentIntentId);
+  if (!row) return false;
+  if (row.status === "held" || row.status === "captured") return true;
+  if (row.status !== "pending") return false;
+  const intent = await getPaymentIntent(paymentIntentId);
+  if (intent.status !== "requires_capture" && intent.status !== "succeeded") return false;
+  await store.upsertPayment({ ...row, status: intent.status === "succeeded" ? "captured" : "held", captureBefore: captureBefore(intent) });
+  await recordHold(row.roomId, row.legId, row.riderId);
+  return true;
+}
+
+/** The rider's pending in-app hold on this leg, to confirm after the browser is done with it. */
+export async function pendingIntent(roomId: string, legId: string, riderId: string): Promise<string | null> {
+  const row = await bookingStore().getPayment(roomId, legId, riderId);
+  return row?.provider === "stripe" && !row.sessionId ? row.paymentIntentId : null;
+}
+
+/** A person's saved traveller details. */
+export const savedTraveller = (personId: string) => bookingStore().getProfile(personId);
+
+/** Saves what a person typed as their traveller details for next time. A passport is kept when they gave one. */
+export async function saveTraveller(personId: string, input: unknown): Promise<{ ok: true; details: TravellerDetails } | Failure> {
+  const withPassport = !!(input as { passport?: unknown } | null)?.passport;
+  const parsed = travellerSchema(withPassport).safeParse(input);
+  if (!parsed.success) return { ok: false, code: "INVALID", message: "Check the highlighted fields.", fields: [...new Set(parsed.error.issues.map((i) => i.path.join(".")))] };
+  const details = parsed.data as TravellerDetails;
+  await bookingStore().putProfile(personId, details);
+  return { ok: true, details };
+}
+
+/** The rider's saved details, used for this leg as they are. */
+export async function submitSavedDetails(roomId: string, legId: string, actor: Actor): Promise<{ ok: true } | Failure> {
+  const saved = await savedTraveller(actor.id);
+  if (!saved) return { ok: false, code: "WRONG_STATE", message: "No saved details yet." };
+  return submitDetails(roomId, legId, actor, saved);
 }
 
 /**
