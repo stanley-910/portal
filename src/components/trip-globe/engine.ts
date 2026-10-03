@@ -1,5 +1,6 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
+import { CURSOR_ARROW_PATH, cursorLieMatrix, type CursorLie } from "@/components/paper-atlas/cursor";
 import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { CITY_LABELS } from "./cities";
@@ -15,6 +16,18 @@ import {
 } from "./vec";
 
 export type GlobeMode = "idle" | "flying" | "landed";
+
+/**
+ * The viewer's own pointer: how it lies on the globe, how far its image is held back from the pointer while
+ * it peels off, and how the ring marking the ground under it lies, or null for no ring. The ring goes in the
+ * cursor image so it never lags the pointer; the overlay draws the shadow, which trails it on purpose.
+ */
+export interface GlobeCursor {
+  lie: CursorLie;
+  offset: [number, number];
+  marker: CursorLie | null;
+}
+const FLAT: CursorLie = { angle: 0, squash: 1 };
 
 export interface LatLng {
   lat: number;
@@ -57,12 +70,25 @@ export interface GlobeEvents {
   onPreviewChange?: (hub: Hub | null, name: string | null) => void;
   onLand?: (trip: LandedTrip) => void;
   onCancel?: () => void;
+  /** When the pointer's lie on the ground under it changes, so it can be drawn flat on the globe. */
+  onCursorChange?: (cursor: GlobeCursor) => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
   onFrame?: () => void;
 }
 
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
 const ALT = 0.03; // flying altitude, fully zoomed out
+// The pointer's shadow falls toward the globe's middle: CURSOR_SHADOW px to the side at the left and right
+// edges, from CURSOR_DROP + CURSOR_SHADOW below at the top edge to CURSOR_SHADOW - CURSOR_DROP above at the bottom.
+const CURSOR_SHADOW = 8;
+const CURSOR_DROP = 4;
+const CURSOR_CHASE = 0.035; // s for the shadow to close most of the gap when the pointer moves
+// Leaving the globe, the pointer peels off it: it springs back to full width past flat, is held up to
+// CURSOR_PULL px back toward the globe before it lets go, and its shadow springs out CURSOR_FLOAT and fades.
+const CURSOR_PEEL = 0.32; // s
+const CURSOR_PULL = 8;
+const CURSOR_FLOAT = { x: 6, y: 8 };
+const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
 const CENTRE_Y = 0.455; // globe centre, as a fraction of the screen height
 const LAT_MAX = 1.25; // how far the view can turn toward a pole
@@ -302,6 +328,15 @@ export class GlobeEngine {
   private my = -9999;
   private hasPointer = false;
   private hover: Vec3 | null = null;
+  private cursorLie: CursorLie = FLAT;
+  private cursorMarker: CursorLie | null = null;
+  private shadowAlpha = 1;
+  private cursorOffset: [number, number] = [0, 0];
+  // while the pointer peels off the globe: when it left, how it lay, its shadow's stuck spot and the way back to the globe
+  private peel: { t0: number; lie: CursorLie; from: { x: number; y: number }; back: [number, number] } | null = null;
+  // where the pointer's shadow is drawn, easing after the pointer; null when the overlay isn't drawing it
+  private shadowAt: { x: number; y: number } | null = null;
+  private arrowPath: Path2D | null = null;
   private down: { x: number; y: number; lx: number; ly: number; lt: number; drag: boolean; grab: Vec3 | null } | null = null;
   // touch pointers, for pinch
   private touches = new Map<number, [number, number]>();
@@ -892,6 +927,113 @@ export class GlobeEngine {
     return out;
   }
 
+  /**
+   * Lays the pointer flat on the ground under it, like the hover ring, in steps coarse enough to cache,
+   * and eases its shadow after it. The shadow falls toward the globe's middle. Leaving the globe, it peels
+   * off. True when the shadow needs redrawing.
+   */
+  private updateCursor(dt: number, t: number) {
+    const before = this.shadowAt && { ...this.shadowAt };
+    let lie = FLAT;
+    let offset: [number, number] = [0, 0];
+    let marker: CursorLie | null = null;
+    const hover = this.mode !== "flying" ? this.hover : null;
+    if (hover) this.peel = null;
+    this.shadowAlpha = 1;
+    if (hover) {
+      // the ring flattens all the way to the horizon, as the route's ground marks do
+      const { rot, minor } = this.groundTilt(hover);
+      const squash = Math.round(minor * 20) / 20;
+      const angle = ((Math.round((rot / D2R) / 5) * 5) % 180 + 180) % 180;
+      marker = squash < 1 ? { angle, squash } : FLAT;
+    }
+    if (hover && !this.reduceMotion) {
+      const { rot, minor } = this.groundTilt(hover);
+      const squash = Math.round(Math.max(CURSOR_SQUASH, minor) * 20) / 20;
+      // the long axis is a line, so 0° and 180° are the same lie
+      const angle = ((Math.round((rot / D2R) / 5) * 5) % 180 + 180) % 180;
+      if (squash < 1) lie = { angle, squash };
+    }
+    if (hover) {
+      const d = this.disc();
+      const sx = clamp((this.mx - d.x) / d.r, -1, 1);
+      const sy = clamp((this.my - d.y) / d.r, -1, 1);
+      const x = this.mx - CURSOR_SHADOW * sx;
+      const y = this.my + CURSOR_DROP - CURSOR_SHADOW * sy;
+      if (!this.shadowAt || this.reduceMotion) this.shadowAt = { x, y };
+      else {
+        const k = 1 - Math.exp(-dt / CURSOR_CHASE);
+        this.shadowAt.x += (x - this.shadowAt.x) * k;
+        this.shadowAt.y += (y - this.shadowAt.y) * k;
+      }
+    } else if (this.shadowAt && this.hasPointer && this.mode !== "flying" && !this.down?.drag && !this.pinch &&
+        !this.reduceMotion) {
+      if (!this.peel) {
+        const d = this.disc();
+        const bx = d.x - this.mx, by = d.y - this.my;
+        const l = Math.hypot(bx, by) || 1;
+        this.peel = { t0: t, lie: this.cursorLie, from: { ...this.shadowAt }, back: [bx / l, by / l] };
+      }
+      const p = this.peel;
+      const k = (t - p.t0) / CURSOR_PEEL;
+      if (k >= 1) {
+        this.peel = null;
+        this.shadowAt = null;
+      } else {
+        // a damped spring from the squash it had on the globe, through flat and past it
+        const spring = Math.exp(-5 * k) * Math.cos(3 * Math.PI * k);
+        const squash = Math.round(clamp(1 + (p.lie.squash - 1) * spring, CURSOR_SQUASH, 1.3) * 20) / 20;
+        if (squash !== 1) lie = { angle: p.lie.angle, squash };
+        // held back toward the globe, then let go
+        const pull = CURSOR_PULL * Math.sin(Math.PI * k) * (1 - k);
+        offset = [Math.round(p.back[0] * pull), Math.round(p.back[1] * pull)];
+        // the shadow springs out from where it was stuck, overshooting a little, and fades as the pointer lifts away
+        const e = 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
+        this.shadowAlpha = 1 - k * k;
+        this.shadowAt = {
+          x: p.from.x + (this.mx + CURSOR_FLOAT.x - p.from.x) * e,
+          y: p.from.y + (this.my + CURSOR_FLOAT.y - p.from.y) * e,
+        };
+      }
+    } else {
+      this.peel = null;
+      this.shadowAt = null;
+    }
+
+    const now = this.shadowAt;
+    let redraw = !before || !now ? before !== now : Math.abs(now.x - before.x) + Math.abs(now.y - before.y) > 0.02;
+    const same = (a: CursorLie | null, b: CursorLie | null) =>
+      a === b || (!!a && !!b && a.angle === b.angle && a.squash === b.squash);
+    if (!same(lie, this.cursorLie) || !same(marker, this.cursorMarker) ||
+        offset[0] !== this.cursorOffset[0] || offset[1] !== this.cursorOffset[1]) {
+      this.cursorLie = lie;
+      this.cursorMarker = marker;
+      this.cursorOffset = offset;
+      this.events.onCursorChange?.({ lie, offset, marker });
+      redraw = true;
+    }
+    return redraw;
+  }
+
+  /** The pointer's shadow, on top of the overlay: the cursor image itself has none. */
+  private cursorShadow() {
+    const s = this.shadowAt;
+    if (!s || typeof Path2D === "undefined") return;
+    const ctx = this.hud;
+    const dpr = this.hudEl.width / this.W;
+    const [a, b, c, d] = cursorLieMatrix(this.cursorLie);
+    this.arrowPath ??= new Path2D(CURSOR_ARROW_PATH);
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(s.x + this.cursorOffset[0], s.y + this.cursorOffset[1]);
+    ctx.transform(a, b, c, d, 0, 0);
+    ctx.filter = "blur(1.2px)";
+    ctx.globalAlpha = this.shadowAlpha;
+    ctx.fillStyle = this.P.cursorShadow;
+    ctx.fill(this.arrowPath);
+    ctx.restore();
+  }
+
   private pos(e: { clientX: number; clientY: number }): [number, number] {
     const r = this.root.getBoundingClientRect();
     return [(e.clientX - r.left) * (this.W / (r.width || 1)), (e.clientY - r.top) * (this.H / (r.height || 1))];
@@ -1101,11 +1243,12 @@ export class GlobeEngine {
     // Use the surface raycast after the camera moves, not the elevated plane's
     // normal or a clamped horizon point. Pan/zoom under a still cursor also updates.
     this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
+    const shadowMoved = this.updateCursor(dt, t);
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && (hover || this.mode === "landed" ||
+    const animated = !this.reduceMotion && (this.mode === "landed" ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
-    if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated ||
+    if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
     if (this.glDirty) {
       this.drawGL();
@@ -1113,6 +1256,7 @@ export class GlobeEngine {
     }
     if (this.hudDirty) {
       this.drawHud(t);
+      this.cursorShadow();
       this.hudDirty = false;
       this.hudHover = hover;
       this.hudAnimated = animated;
@@ -1715,33 +1859,44 @@ export class GlobeEngine {
     ctx.restore();
   }
 
+  /**
+   * How a small circle lying flat on the ground at n looks on screen: an ellipse whose
+   * short axis points at the globe's centre and shrinks toward the horizon.
+   */
+  private groundTilt(n: Vec3) {
+    const c = this.cam!;
+    let e1 = cross(sub(n, c.C), n);
+    e1 = len(e1) < 1e-6 ? tangent(c.R, n) : norm(e1);
+    const e2 = cross(n, e1);
+    const eps = 1e-3;
+    const p0 = this.proj(n);
+    const p1 = this.proj(add(n, mul(e1, eps)));
+    const p2 = this.proj(add(n, mul(e2, eps)));
+    if (!p0 || !p1 || !p2) return { rot: 0, minor: 1 };
+    const ax = p1.x - p0.x, ay = p1.y - p0.y;
+    const s = Math.hypot(ax, ay) || 1;
+    // the part of e2's screen step across the long axis
+    const minor = Math.abs((p2.x - p0.x) * -ay + (p2.y - p0.y) * ax) / (s * s);
+    return { rot: Math.atan2(ay, ax), minor: Math.max(0.12, Math.min(1, minor)) };
+  }
+
+  /** Adds a circle of radius r px lying on the ground at n, centred on its screen point x, y. */
+  private groundCircle(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number, r: number) {
+    const { rot, minor } = this.groundTilt(n);
+    ctx.ellipse(x, y, r, r * minor, rot, 0, Math.PI * 2);
+  }
+
   /** The route's start: a small ring at the foot of the line. */
-  private startMark(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  private startMark(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number) {
     const P = this.P;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    this.groundCircle(ctx, n, x, y, 4.5);
     ctx.fillStyle = P.raised;
     ctx.fill();
     ctx.lineWidth = 2; // line-route
     ctx.strokeStyle = P.ink;
     ctx.stroke();
-    ctx.restore();
-  }
-
-  private ring(ctx: CanvasRenderingContext2D, x: number, y: number, t: number) {
-    const P = this.P;
-    const r = this.reduceMotion ? 8 : 8 + Math.sin(t * 4) * 1.5;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = `rgba(${P.inkRGB},0.7)`;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, y, 1.6, 0, Math.PI * 2);
-    ctx.fillStyle = P.ink;
-    ctx.fill();
     ctx.restore();
   }
 
@@ -1835,7 +1990,6 @@ export class GlobeEngine {
     this.countryNames(ctx, clear, t);
     this.cityNames(ctx, clear, t);
 
-    if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
 
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
@@ -1844,7 +1998,7 @@ export class GlobeEngine {
       this.route(ctx, r.o, r.pl, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
-        this.startMark(ctx, op.x, op.y);
+        this.startMark(ctx, r.o, op.x, op.y);
         if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
@@ -1859,21 +2013,21 @@ export class GlobeEngine {
     if (!origin || !pl || this.mode === "idle") return;
     this.route(ctx, origin, pl, this.mode === "landed" && !this.reduceMotion, t);
 
-    const ripple = (p: ScreenPoint | null, t0: number) => {
+    const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;
       if (this.reduceMotion || !p || !p.vis || k < 0 || k > 1) return;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6 + k * 34, 0, Math.PI * 2);
+      this.groundCircle(ctx, n, p.x, p.y, 6 + k * 34);
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = `rgba(${P.inkRGB},${(0.6 * (1 - k)).toFixed(3)})`;
       ctx.stroke();
       ctx.restore();
     };
     const op = this.proj(origin);
-    ripple(op, this.tTake);
+    ripple(origin, op, this.tTake);
     if (op && op.vis) {
-      this.startMark(ctx, op.x, op.y);
+      this.startMark(ctx, origin, op.x, op.y);
       // Keep the origin label above its pin; the moving/landing preview is below
       // the plane, so short hops do not immediately stack the longer hub names.
       if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName);
@@ -1886,7 +2040,7 @@ export class GlobeEngine {
         this.tag(ctx, at.x, at.y, this.hoverName);
       }
     } else if (this.mode === "landed") {
-      ripple(pp, this.tLand);
+      ripple(pl.n, pp, this.tLand);
       if (pp && pp.vis && this.destinationName) {
         const at = this.underPlane(pl, pp);
         this.tag(ctx, at.x, at.y, this.destinationName);

@@ -45,6 +45,8 @@ export interface Palette {
   inkRGB: string;
   muted: string;
   tagShadow: string;
+  /** The viewer's own cursor's shadow, which the overlay draws so it can trail the pointer. */
+  cursorShadow: string;
   /** Opacity of the sky's stippled ink. Light paper takes it a touch softer. */
   skyInk: number;
   gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
@@ -65,6 +67,7 @@ function build(theme: ThemeId): Palette {
     inkRGB: ink.map((c) => Math.round(c * 255)).join(","),
     muted: token("ink-muted", theme),
     tagShadow: shadowColor("shadow-tag", theme),
+    cursorShadow: token("sticker-shadow", theme),
     skyInk: SKY_INK[theme],
     gl: {
       uPaper: rgb("paper", theme),
