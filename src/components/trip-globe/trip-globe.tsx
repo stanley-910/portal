@@ -169,13 +169,14 @@ export function TripGlobe({
       onCancel: () => handlers.current.onCancel?.(),
       onRouteClick: () => handlers.current.onRouteClick?.(),
       // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
-      // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count.
+      // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that
+      // ride on the route itself (data-globe-follow), which would otherwise push the route away from its own card.
       freeArea: () => {
         const root = rootRef.current!;
         const box = root.getBoundingClientRect();
         return openArea(box.width, box.height, (x, y) => {
           const el = document.elementFromPoint(box.left + x, box.top + y);
-          return !!el && !root.contains(el);
+          return !!el && !root.contains(el) && !el.closest("[data-globe-follow]");
         });
       },
       onFrame: () => {
@@ -260,6 +261,7 @@ export function TripGlobe({
   return (
     <div
       ref={rootRef}
+      data-globe-root
       className={cn("relative h-full w-full touch-none overflow-hidden bg-paper select-none", className)}
       onPointerDown={(e) => engineRef.current?.pointerDown(e.nativeEvent)}
       onPointerMove={(e) => engineRef.current?.pointerMove(e.nativeEvent)}

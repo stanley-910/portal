@@ -31,23 +31,23 @@ export function readColors(el: Element): Colors {
 
 /**
  * Draws an asset with its top-left at cell (ox, oy). `rows` draws only that many rows from the top, for things
- * appearing a line at a time.
+ * appearing a line at a time; `from` skips rows above it, to draw a front half over something.
  */
-export function drawAsset(ctx: CanvasRenderingContext2D, colors: Colors, asset: Asset, ox: number, oy: number, rows = Infinity) {
+export function drawAsset(ctx: CanvasRenderingContext2D, colors: Colors, asset: Asset, ox: number, oy: number, rows = Infinity, from = 0) {
   const g = asset.grid;
   const h = Math.min(g.length, rows);
-  const filled = (x: number, y: number) => y >= 0 && y < h && x >= 0 && x < g[y].length && g[y][x] !== ".";
+  const filled = (x: number, y: number) => y >= from && y < h && x >= 0 && x < g[y].length && g[y][x] !== ".";
   const put = (x: number, y: number, key: Key) => {
     ctx.fillStyle = colors[key];
     ctx.fillRect(ox + x, oy + y, 1, 1);
   };
-  for (let y = -1; y <= (asset.outline === false ? -2 : h); y++) {
+  for (let y = from - 1; y <= (asset.outline === false ? -2 : h); y++) {
     for (let x = -1; x <= (g[0]?.length ?? 0); x++) {
       if (filled(x, y)) continue;
       if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) put(x, y, "ink");
     }
   }
-  for (let y = 0; y < h; y++) {
+  for (let y = from; y < h; y++) {
     for (let x = 0; x < g[y].length; x++) {
       if (g[y][x] === ".") continue;
       const key = asset.paint(g[y][x], x, y);
@@ -200,4 +200,34 @@ export function beam(height: number, tick: number): Asset {
     return Array.from({ length: 18 }, (_, x) => (Math.abs(x - 8.5) < half ? "Y" : "."));
   });
   return { grid, paint: (_, x, y) => ((x + y + tick) % 2 ? "light" : null), outline: false };
+}
+
+// —— The portal: a flat pixel ring on the ground that Pip drops into and pops out of ——
+
+/** Its full size in cells. */
+export const PORTAL_SIZE = { w: 22, h: 6 };
+
+/**
+ * The portal `open` (0 to 1) of the way, at a tick: a starlight rim around a dark well whose sparks swirl. Flat on
+ * the ground, so it's much wider than tall.
+ */
+export function portal(open: number, tick: number): Asset {
+  const w = 2 * Math.max(1, Math.round((PORTAL_SIZE.w / 2) * open));
+  const h = 2 * Math.max(1, Math.round((PORTAL_SIZE.h / 2) * open));
+  const grid = Array.from({ length: h }, (_, y) =>
+    Array.from({ length: w }, (_, x) => {
+      const dx = (x + 0.5 - w / 2) / (w / 2);
+      const dy = (y + 0.5 - h / 2) / (h / 2);
+      const d = dx * dx + dy * dy;
+      return d > 1 ? "." : d > 0.5 ? "R" : "V";
+    }),
+  );
+  return {
+    grid,
+    paint: (c, x, y) => {
+      if (c === "R") return (x + tick) % 4 === 0 ? "cheek" : "light";
+      // the well: ink, with sparks that drift round
+      return (x * 3 + y * 5 + tick) % 7 === 0 ? "body" : "ink";
+    },
+  };
 }
