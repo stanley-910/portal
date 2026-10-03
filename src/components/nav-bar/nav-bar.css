@@ -154,7 +154,6 @@
    Closing runs the stretch backwards, into the button. */
 .pn-search-panel { --pn-from: inset(0 0 0 calc(100% - max(var(--ctrl-h), 36px)) round calc(max(var(--ctrl-h), 36px) / 2)); }
 .pn-search-field { animation: pn-search-grow 340ms cubic-bezier(0.2, 0.9, 0.25, 1.12) both; }
-.pn-search-field svg { animation: pn-search-wiggle 420ms ease-out 60ms both; }
 .pn-search-field input { animation: pn-search-text 200ms ease-out 140ms both; }
 .pn-search-list { animation: pn-search-drop 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 100% 0; }
 .pn-search-option { animation: pn-search-row 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 28ms + 60ms); }
@@ -163,13 +162,12 @@
 .pn-search-panel[data-closing] .pn-search-list { animation: pn-search-lift 120ms ease-in both; }
 @keyframes pn-search-grow { from { clip-path: var(--pn-from); } to { clip-path: inset(0 round var(--radius-control)); } }
 @keyframes pn-search-shrink { from { clip-path: inset(0 round var(--radius-control)); } to { clip-path: var(--pn-from); } }
-@keyframes pn-search-wiggle { 0% { transform: rotate(0); } 35% { transform: rotate(-18deg) scale(1.15); } 70% { transform: rotate(8deg); } 100% { transform: none; } }
 @keyframes pn-search-text { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
 @keyframes pn-search-drop { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } to { opacity: 1; transform: none; } }
 @keyframes pn-search-lift { to { opacity: 0; transform: translateY(-4px); } }
 @keyframes pn-search-row { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .pn-search-field, .pn-search-field svg, .pn-search-field input, .pn-search-list, .pn-search-option,
+  .pn-search-field, .pn-search-field input, .pn-search-list, .pn-search-option,
   .pn-search-panel[data-closing] .pn-search-field, .pn-search-panel[data-closing] .pn-search-list { animation: none; }
 }
 /* From and To, with the date between: one wide bar, its three parts split by hairlines, and Search at the end */
