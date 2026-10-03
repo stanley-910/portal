@@ -11,8 +11,8 @@ import { currentPerson } from "@/lib/identity";
 // not this response: everyone in the trip sees it at once.
 
 export const runtime = "nodejs";
-// a run is capped at 90 s (lib/agent/run.ts); this leaves room to write the reply
-export const maxDuration = 120;
+// a message can wait up to 180 s for earlier ones, then run for up to 90 s (lib/agent/run.ts)
+export const maxDuration = 300;
 
 const MAX_TEXT = 2_000;
 

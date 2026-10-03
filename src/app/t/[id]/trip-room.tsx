@@ -1,9 +1,9 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AgentChat } from "@/components/agent/agent-chat";
 import { PipCursor } from "@/components/agent/pip-cursor";
@@ -46,6 +46,15 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLeg, setLandedLeg] = useState<string | null>(null);
+  // whether that leg is still on the trip, with both its stops: Pip or a friend may have taken it off
+  const landedOnTrip = useStorage((root) => {
+    const leg = landedLeg ? root.legs[landedLeg] : undefined;
+    return !!leg && !!root.stops[leg.from] && !!root.stops[leg.to];
+  });
+  useEffect(() => {
+    // your plane would keep its route and lit country for a leg that's gone, so put it away
+    if (landedLeg && landedOnTrip === false) globe.current?.cancel();
+  }, [landedLeg, landedOnTrip]);
   useRecordMember();
 
   useErrorListener((error) => {

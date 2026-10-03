@@ -159,6 +159,7 @@ function Message({ message: m, me, members, activity }: { message: ThreadMessage
             activity ? <Status label={activity} /> : <span className="pa-dots" aria-label="Pip is thinking"><span /><span /><span /></span>
           ) : null}
           {m.state === "streaming" && m.text && activity ? <Status label={activity} /> : null}
+          {m.state === "queued" ? <Status label="next in line" /> : null}
           {m.cards.map((card, i) => (
             <Card key={i} card={card} messageId={m.id} members={members} />
           ))}
