@@ -1,7 +1,8 @@
 import { NEARBY_RAIL_INSTRUCTION } from "./nearby-rail";
+import { OPTIMIZE_INSTRUCTION } from "./optimize";
 import "server-only";
 
-import { deepseek, type DeepSeekLanguageModelChatOptions } from "@ai-sdk/deepseek";
+import { deepseek } from "@ai-sdk/deepseek";
 import { LiveObject } from "@liveblocks/node";
 import { isStepCount, streamText } from "ai";
 
@@ -10,6 +11,7 @@ import { bigCities } from "@/lib/agent/meetup";
 import { abandoned, LEASE_MS, LOST_REPLY, owed, QUEUE_BEAT_MS, waiting } from "@/lib/agent/queue";
 import { describePlan, describeThread, handlesFor, showDate, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import { stepLabel } from "@/lib/agent/steps";
+import { prepareEffort } from "@/lib/agent/effort";
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
 import { PERSONA, STYLE } from "@/lib/agent/voice";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
@@ -37,19 +39,13 @@ const THREAD_WAIT_MS = 5_000;
 export const TRIP_RUNS_PER_DAY = 40;
 /**
  * Output tokens per model call. Replies are one to three sentences and tool calls are small, but DeepSeek's hidden
- * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing. At REASONING_EFFORT
+ * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing. At reasoning effort
  * "high" a hard step was measured at about 1,300 tokens (2026-10-03), so this leaves room for one several times that.
  * Flash writes roughly 150 tokens a second, so even a call that uses it all (about 55 s) ends inside LEASE_MS; the
  * run's deadline, not this, is what stops a slow run, and silentReply covers a reply cut off either way.
  */
 const MAX_OUTPUT_TOKENS = 8_000;
-/**
- * How hard DeepSeek thinks before each step. The API has three tiers, low, high and max; "medium" is an alias it
- * (and @ai-sdk/deepseek, with a warning) maps to "high" (api-docs.deepseek.com/guides/thinking_mode, 2026-10-03).
- * Raised from "low" for asks with several parts (plan, fares and visas at once); "high" is also the API default.
- * Reasoning tokens are billed as output, so a hard ask costs more and takes longer; a simple one barely changes.
- */
-export const REASONING_EFFORT = "high" satisfies DeepSeekLanguageModelChatOptions["reasoningEffort"];
+/** Reasoning effort is set per step by `prepareEffort`: low to pick tools, high once a planning tool has returned. */
 
 /** Logs each tool call and result. Off by default: tool inputs carry what people typed (harness: no content in logs). */
 const DEBUG = process.env.AGENT_DEBUG === "1";
@@ -71,6 +67,7 @@ How to work:
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
+- ${OPTIMIZE_INSTRUCTION} In this trip that's optimize_leg. When another member is heading to the same city, pass their leg as arrive_with so you arrive together. Once someone picks a via route, call apply_route with the leg and the via station.
 - ${NEARBY_RAIL_INSTRUCTION}
 - For visa, passport or entry questions, call check_entry for each leg it's about; it covers every member and every passport each one holds. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When someone's passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. Say who has no passport recorded, mention estimated rules as estimates, and end with the official-source reminder.
 - For who pays what, call get_split and quote it. Never add up costs yourself.
@@ -281,6 +278,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
       marks,
       meetups,
       until: runEnds,
+      currency: requester.currency,
     };
 
     if (!process.env.DEEPSEEK_API_KEY || overLimit) {
@@ -300,7 +298,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
           maxOutputTokens: MAX_OUTPUT_TOKENS,
-          providerOptions: { deepseek: { reasoningEffort: REASONING_EFFORT } satisfies DeepSeekLanguageModelChatOptions },
+          prepareStep: prepareEffort,
           abortSignal: AbortSignal.timeout(Math.max(0, runEnds - Date.now())),
         });
         for await (const part of result.stream) {

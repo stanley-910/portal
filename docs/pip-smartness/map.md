@@ -49,7 +49,7 @@ An in-memory, short-TTL cache in front of `searchTransport` keyed by the normali
 leg searches, `find_meetup`, nearby rail and the composer. In-flight requests are deduplicated.
 Blocked by: none.
 
-### T4 · Route composer — `open`
+### T4 · Route composer — `review`
 
 A pure, tested library: given a from/to place, date, currency and optional ceiling or arrival
 target, try the direct search and each gateway near the origin (from hubs and connectors), chain
@@ -58,7 +58,7 @@ fares, and return the top few itineraries with savings against the cheapest dire
 door-to-door time and arrival gap. Never invents a price: an itinerary with an unknown fare says so.
 Blocked by: T1, T2, T3.
 
-### T5 · `optimize_leg` tool, apply, prompt and context — `open`
+### T5 · `optimize_leg` tool, apply, prompt and context — `review`
 
 Room tool `optimize_leg` (and solo `optimize_route`) over the composer; results get handles R1–R3;
 `apply_route` replaces the leg with the route's legs as one changeset. The system prompt routes
@@ -66,7 +66,7 @@ Room tool `optimize_leg` (and solo `optimize_route`) over the composer; results 
 origin and each leg's cheapest fare and earliest arrival so Pip can reason without extra calls.
 Blocked by: T4.
 
-### T6 · Per-step reasoning effort — `open`
+### T6 · Per-step reasoning effort — `review`
 
 `prepareStep` runs the first step at low effort and switches to high once a planning tool has been
 called (`find_meetup`, `optimize_leg`/`optimize_route`, `search_routes`, `search_nearby_trains`).

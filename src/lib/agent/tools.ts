@@ -16,6 +16,8 @@ import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegBooking } from "@/lib/liveblocks/types";
 import { isBookable } from "@/lib/trip/offers";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
+import { KIND } from "@/lib/agent/kind";
+import { describeRoutes, optimize } from "@/lib/agent/optimize";
 import { SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
@@ -42,6 +44,8 @@ export type ToolContext = {
   meetups: Map<string, MeetupOption>;
   /** When the run's turn ends: past it the next reply may have started, so the trip mustn't change any more. */
   until: number;
+  /** The asker's display currency, for totals they didn't give a currency for. */
+  currency: string;
 };
 
 const placeRef = z
@@ -90,8 +94,7 @@ const editOp = z.discriminatedUnion("op", [
   }),
 ]);
 
-/** How fresh a price is, said the same way every time so the model can't guess. */
-export const KIND = { live: "live fare", cached: "cached fare", timetable: "timetable fare", estimated: "estimated" } as const;
+export { KIND };
 
 /** Amounts per currency, never converted: "HKD 1,240 + USD 67". */
 const money = (sums: Record<string, number>) =>
@@ -337,6 +340,77 @@ export function agentTools(ctx: ToolContext) {
       },
     }),
 
+    optimize_leg: tool({
+      description:
+        "Finds cheaper or better-timed ways to make one leg: the direct options, and routes that first get to a nearby station (by metro and a border crossing, or a short train) and go on from there, with connections chained and totals added up. Use it whenever a leg is too expensive, someone gives a budget, wants it cheaper, or wants to arrive with another member. Read-only; apply a route with apply_route.",
+      inputSchema: z.object({
+        leg: z.string().describe("Leg handle from get_trip, e.g. L1"),
+        max_fare: z.number().positive().optional().describe("Per-person ceiling in `currency`, only if someone gave a number"),
+        currency: z.string().regex(/^[A-Z]{3}$/).optional().describe("Currency to total in; defaults to the asker's display currency"),
+        arrive_with: z.string().optional().describe("Another leg handle whose chosen option's arrival to line up with"),
+        arrive_near: z.string().optional().describe("Or an ISO time to arrive close to, e.g. 2026-10-20T19:30:00+08:00"),
+      }),
+      execute: async (input) => {
+        const { plan, handles } = await ctx.load();
+        const id = handles.id.get(input.leg);
+        const leg = id ? plan.legs?.[id] : undefined;
+        const from = leg && plan.stops?.[leg.from], to = leg && plan.stops?.[leg.to];
+        if (!leg || !from || !to) return { refused: "UNKNOWN_HANDLE", reason: `${input.leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        let arriveNear = input.arrive_near;
+        let note = "";
+        if (input.arrive_with) {
+          const otherId = handles.id.get(input.arrive_with);
+          const other = otherId ? plan.legs?.[otherId] : undefined;
+          const chosen = other?.search.offers.find((o) => o.id === other.chosen);
+          if (chosen && chosen.kind !== "estimated") arriveNear = chosen.arrive;
+          else note = `${input.arrive_with} has no chosen option with a time yet, so arrivals weren't lined up; ask them to pick one or give a time. `;
+        }
+        if (Date.now() >= ctx.until) return OUT_OF_TIME;
+        look("looking for a cheaper way", from);
+        try {
+          const composed = await optimize({
+            from: stopToPlace(from), to: stopToPlace(to), date: leg.date,
+            currency: input.currency ?? ctx.currency, maxFare: input.max_fare, arriveNear,
+          }, AbortSignal.timeout(Math.max(1, Math.min(20_000, ctx.until - Date.now()))));
+          const out = describeRoutes(composed);
+          return { leg: input.leg, ...out, note: `${note}${out.note} To take a via route, call apply_route with this leg and its via station.` };
+        } catch {
+          return { refused: "SEARCH_FAILED", next: "Say the search failed; don't guess fares." };
+        }
+      },
+    }),
+
+    apply_route: tool({
+      description:
+        "Puts a via route from optimize_leg on the trip: splits the leg at the via station into two legs on the same day, for all its riders or just the ones named (the rest stay on the original leg). One change, undoable. Only when someone asked to go ahead or picked the route.",
+      inputSchema: z.object({
+        leg: z.string().describe("The leg handle optimize_leg ran on"),
+        via: z.string().describe("The via station's name exactly as optimize_leg gave it, e.g. Shenzhen North"),
+        riders: z.array(z.string()).optional().describe("Member handles taking the new route; leave out for everyone on the leg"),
+      }),
+      execute: async (input) => {
+        if (Date.now() > ctx.until) return OUT_OF_TIME;
+        const { plan, handles } = await ctx.load();
+        const id = handles.id.get(input.leg);
+        const leg = id ? plan.legs?.[id] : undefined;
+        if (!leg) return { refused: "UNKNOWN_HANDLE", reason: `${input.leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        // Check everything first: a refused add after the old leg went would lose the leg.
+        if (leg.booking) return { refused: "LOCKED", reason: `${input.leg} is being booked, so it can't change.`, next: "Ask a rider to cancel the settle first." };
+        const via = resolvePlace(input.via);
+        if ("refusal" in via) return { refused: via.refusal.code, reason: via.refusal.reason, next: via.refusal.next };
+        const ops = routeOps(input.leg, leg.riders.map((r) => handles.member.get(r)!).filter(Boolean), leg.date,
+          handles.stop.get(leg.from)!, handles.stop.get(leg.to)!, { at: via.stop }, input.riders);
+        if ("refused" in ops) return ops;
+        look("rerouting", plan.stops?.[leg.from]);
+        const result = await editPlan(ctx.roomId, plan, handles, ops, ctx.agentId, ctx.until);
+        ctx.marks(result.marks);
+        if (result.applied.length && result.changesetId) {
+          await ctx.addCard({ type: "changes", changesetId: result.changesetId, lines: result.applied, undone: false });
+        }
+        return { applied: result.applied, refused: result.refused, note: "The new legs search for their own options; say which ones match the route." };
+      },
+    }),
+
     edit_plan: tool({
       description:
         "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, add, change or remove stays (each with its own guests, nights and price, apart from the legs), and when someone leaves. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
@@ -480,4 +554,19 @@ export function meetupOps(o: MeetupOption, handles: Handles): EditOp[] {
     date: o.date,
     riders: leg.members.map((m) => handles.member.get(m)).filter((m): m is string => !!m),
   }));
+}
+
+/** The edits that split a leg at `via`: the riders taking the route get two new legs; anyone else keeps the old one. */
+export function routeOps(
+  leg: string, onLeg: string[], date: string, from: string, to: string, via: PlaceRef, riders?: string[],
+): EditOp[] | { refused: string; reason: string; next: string } {
+  const moving = riders?.length ? riders : onLeg;
+  const strangers = moving.filter((m) => !onLeg.includes(m));
+  if (strangers.length) return { refused: "NOT_ON_LEG", reason: `${strangers.join(", ")} isn't on ${leg}.`, next: "Use the leg's own riders." };
+  const staying = onLeg.filter((m) => !moving.includes(m));
+  return [
+    staying.length ? { op: "set_riders", leg, riders: staying } : { op: "remove_leg", leg },
+    { op: "add_leg", from: { stop: from }, to: via, date, riders: moving },
+    { op: "add_leg", from: via, to: { stop: to }, date, riders: moving },
+  ];
 }
