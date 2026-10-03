@@ -43,7 +43,7 @@ describe("Travelpayouts mapper", () => {
       attribution: expect.stringContaining("availability unverified"),
       transfers: 0,
       segments: [{
-        carrier: "HX", number: "HX765", durationMin: 165,
+        carrier: "HX", carrierCode: "HX", number: "HX765", durationMin: 165,
         arrive: "2026-11-15T10:45:00+07:00",
         to: { iata: "BKK", lat: 13.69, lng: 100.75 },
       }],

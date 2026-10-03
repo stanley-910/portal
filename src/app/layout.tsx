@@ -9,7 +9,7 @@ import { fontVariables } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Trip Globe",
+  title: "Portal",
   description: "Draw a trip on the globe and find the best way to get there.",
 };
 

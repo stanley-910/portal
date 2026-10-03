@@ -154,25 +154,73 @@ describe("editPlan, dates", () => {
     expect(dates()).toEqual({ a: "2026-10-04", c: "2026-10-07" });
   });
 
-  it("keeps the trip's end and leave dates inside the legs", async () => {
-    const result = await editPlan("room", dated, handlesFor(dated), [
-      { op: "set_leaves", member: "M1", date: "2026-10-01" },
-      { op: "set_trip_end", date: "2026-10-05" },
-    ], "agent:pip");
+  it("keeps a leave date after the member's first leg", async () => {
+    const result = await editPlan("room", dated, handlesFor(dated), [{ op: "set_leaves", member: "M1", date: "2026-10-01" }], "agent:pip");
     expect(json().members?.u1?.leaves).toBe("2026-10-04");
-    expect(json().ends).toBe("2026-10-07");
-    expect(result.applied).toEqual([
-      "Stanley leaves on Sun 4 Oct, the day of their first leg",
-      "Trip ends the morning of Wed 7 Oct, the day of its last leg",
-    ]);
+    expect(result.applied).toEqual(["Stanley leaves on Sun 4 Oct, the day of their first leg"]);
+  });
+});
+
+describe("editPlan, stays", () => {
+  const two: PlanJson = { ...plan, members: { u1: { name: "Stanley", color: 1 }, u2: { name: "Mei", color: 2 } } };
+  beforeEach(() => {
+    root = storageFrom(two);
   });
 
-  it("brings a leave date back to an earlier trip end", async () => {
-    await editPlan("room", dated, handlesFor(dated), [{ op: "set_leaves", member: "M1", date: "2026-10-12" }], "agent:pip");
-    expect(json().members?.u1?.leaves).toBe("2026-10-09");
-    const result = await editPlan("room", json(), handlesFor(json()), [{ op: "set_trip_end", date: "2026-10-08" }], "agent:pip");
-    expect(json().members?.u1?.leaves).toBe("2026-10-08");
-    expect(result.applied).toContain("Stanley now leaves on Thu 8 Oct, to stay within the trip");
+  it("adds a stay with its own guests and nights, apart from who rides there", async () => {
+    const h = handlesFor(two);
+    const result = await editPlan("room", two, h, [
+      { op: "set_stay", stop: h.stop.get("tc")!, check_in: "2026-10-04", check_out: "2026-10-07", guests: ["M2"], nightly: { amount: 900, currency: "TWD" }, label: "Flat" },
+    ], "agent:pip");
+    const stays = Object.values(json().stays ?? {});
+    expect(stays).toMatchObject([{ stop: "tc", checkIn: "2026-10-04", checkOut: "2026-10-07", guests: ["u2"], nightly: { amount: 900, currency: "TWD" }, label: "Flat", estimated: false }]);
+    expect(result.applied).toEqual(["Added a stay in Taichung (Qingshui) (Flat): Sun 4 Oct to Wed 7 Oct for Mei, TWD 900 a night"]);
+  });
+
+  it("changes a stay by its handle, removes it, and Undo puts it back", async () => {
+    const h = handlesFor(two);
+    await editPlan("room", two, h, [{ op: "set_stay", stop: h.stop.get("tc")!, check_in: "2026-10-04", check_out: "2026-10-07", guests: ["M1"] }], "agent:pip");
+    const after = json();
+    const h2 = handlesFor(after, h);
+    await editPlan("room", after, h2, [{ op: "set_stay", stay: "H1", guests: ["M1", "M2"], check_out: "2026-10-06" }], "agent:pip");
+    expect(Object.values(json().stays ?? {})).toMatchObject([{ guests: ["u1", "u2"], checkIn: "2026-10-04", checkOut: "2026-10-06" }]);
+    const removed = await editPlan("room", json(), handlesFor(json(), h2), [{ op: "remove_stay", stay: "H1" }], "agent:pip");
+    expect(Object.keys(json().stays ?? {})).toEqual([]);
+    await undoChangeset("room", removed.changesetId!);
+    expect(Object.values(json().stays ?? {})).toMatchObject([{ guests: ["u1", "u2"] }]);
+  });
+
+  it("refuses a new stay without its nights or guests", async () => {
+    const h = handlesFor(two);
+    const result = await editPlan("room", two, h, [
+      { op: "set_stay", stop: h.stop.get("tc")!, check_in: "2026-10-07", check_out: "2026-10-04", guests: ["M1"] },
+      { op: "set_stay", stop: h.stop.get("tc")!, check_in: "2026-10-04", check_out: "2026-10-07" },
+    ], "agent:pip");
+    expect(result.refused.map((r) => r.code)).toEqual(["BAD_DATE", "UNKNOWN_HANDLE"]);
+  });
+
+  it("keeps a stop a stay uses when its last leg goes", async () => {
+    const h = handlesFor(two);
+    await editPlan("room", two, h, [{ op: "set_stay", stop: h.stop.get("bt")!, check_in: "2026-10-04", check_out: "2026-10-07", guests: ["M1"] }], "agent:pip");
+    await editPlan("room", json(), handlesFor(json(), h), [{ op: "remove_leg", leg: "L3" }], "agent:pip");
+    expect(json().stops?.bt).toBeDefined();
+  });
+
+  it("writes an older room's stop-keyed stay out whole before changing it", async () => {
+    // Stanley reaches Taichung on the 4th and leaves on the 7th, so the old rule gave him three nights there
+    const older: PlanJson = {
+      ...two,
+      legs: { a: leg("hk", "tc", 1), c: { ...leg("tc", "bt", 3), date: "2026-10-07" } },
+      stays: { tc: { nightly: { amount: 900, currency: "TWD" }, label: null } },
+    };
+    root = storageFrom(older);
+    root.set("stays", new LiveMap([["tc", new LiveObject({ nightly: { amount: 900, currency: "TWD" }, label: null })]]) as never);
+    const h = handlesFor(older);
+    expect(h.stay.get("tc")).toBe("H1");
+    const result = await editPlan("room", older, h, [{ op: "set_stay", stay: "H1", guests: ["M1", "M2"] }], "agent:pip");
+    expect(json().stays?.tc).toMatchObject({ stop: "tc", checkIn: "2026-10-04", checkOut: "2026-10-07", guests: ["u1", "u2"], nightly: { amount: 900, currency: "TWD" } });
+    await undoChangeset("room", result.changesetId!);
+    expect(json().stays?.tc).toEqual({ nightly: { amount: 900, currency: "TWD" }, label: null });
   });
 });
 

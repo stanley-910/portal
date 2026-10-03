@@ -22,6 +22,7 @@ export interface SearchQuery {
 export interface Segment {
   mode: Mode;
   carrier?: string;           // airline / operator name
+  carrierCode?: string;       // airline IATA code (2 chars) for the logo, when the provider gives it
   number?: string;            // flight / train number
   from: Place; to: Place;
   depart: string; arrive: string; // ISO 8601 with offset

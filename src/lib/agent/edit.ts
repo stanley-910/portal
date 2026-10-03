@@ -8,7 +8,8 @@ import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegSearch, Stay, Stop } from "@/lib/liveblocks/types";
 import { sharesStop } from "@/lib/trip/stops";
 import { searchPlaces } from "@/lib/places/search";
-import { clampLeave, legBefore, moveLeg, setEnds, settle, type DateChanges, type DatePlan } from "@/lib/trip/dates";
+import { clampLeave, legBefore, moveLeg, settle, type DateChanges, type DatePlan } from "@/lib/trip/dates";
+import { staysOf, type SplitInput } from "@/lib/trip/split";
 import { runLegSearch } from "@/lib/trip/search-leg";
 
 // edit_plan (harness G5): the agent's only way to change the trip. Each run's edits are one changeset that Undo
@@ -22,9 +23,19 @@ export type EditOp =
   | { op: "set_date"; leg: string; date: string }
   | { op: "set_riders"; leg: string; riders: string[] }
   | { op: "remove_leg"; leg: string }
-  | { op: "set_stay_cost"; stop: string; nightly: { amount: number; currency: string } | null; label?: string | null }
-  | { op: "set_leaves"; member: string; date: string | null }
-  | { op: "set_trip_end"; date: string | null };
+  | {
+      op: "set_stay";
+      /** An existing stay's handle to change; without one, a new stay at `stop`. */
+      stay?: string;
+      stop?: string;
+      check_in?: string;
+      check_out?: string;
+      guests?: string[];
+      nightly?: { amount: number; currency: string } | null;
+      label?: string | null;
+    }
+  | { op: "remove_stay"; stay: string }
+  | { op: "set_leaves"; member: string; date: string | null };
 
 /**
  * What a changeset puts back, as JSON. Each id maps to the entry's old value, or null if the run created it.
@@ -88,10 +99,15 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     | { kind: "date"; op: number; leg: string; date: string }
     | { kind: "riders"; op: number; leg: string; riders: string[] }
     | { kind: "remove"; op: number; leg: string }
-    | { kind: "stay"; stop: string; stay: Stay | null }
-    | { kind: "leaves"; member: string; date: string | null }
-    | { kind: "ends"; date: string | null };
+    | { kind: "stay"; id: string; stay: Stay | null; created: boolean }
+    | { kind: "leaves"; member: string; date: string | null };
   const planned: Planned[] = [];
+  // every stay whole, older stop-keyed ones included, so a handle always means one stay with dates and guests
+  const stays = staysOf(plan as SplitInput);
+  const stayFor = (handle: string) => {
+    const id = h.id.get(handle);
+    return stays.find((s) => s.id === id);
+  };
   ops.forEach((op, i) => {
     const refuse = (r: Omit<Refusal, "op">) => refused.push({ op: i, ...r });
     const unknown = (handle: string) => refuse({ code: "UNKNOWN_HANDLE", reason: `${handle} isn't in the trip.`, next: "Call get_trip and use its handles." });
@@ -119,10 +135,9 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       if (missing.length) return unknown(missing.join(", ")), null;
       return ids as string[];
     };
-    const date = "date" in op ? op.date : null;
-    if (date !== null && !DATE.test(date)) {
-      return refuse({ code: "BAD_DATE", reason: `${date} isn't YYYY-MM-DD.`, next: "Retry with an ISO date." });
-    }
+    const dates = ["date" in op ? op.date : null, "check_in" in op ? op.check_in : null, "check_out" in op ? op.check_out : null];
+    const bad = dates.find((d) => d != null && !DATE.test(d));
+    if (bad) return refuse({ code: "BAD_DATE", reason: `${bad} isn't YYYY-MM-DD.`, next: "Retry with an ISO date." });
     switch (op.op) {
       case "add_leg": {
         const from = ref(op.from);
@@ -153,15 +168,34 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         planned.push({ kind: "remove", op: i, leg });
         return;
       }
-      case "set_stay_cost": {
-        const stop = h.id.get(op.stop);
-        if (!stop || !plan.stops?.[stop]) return unknown(op.stop);
+      case "set_stay": {
+        const was = op.stay ? stayFor(op.stay) : undefined;
+        if (op.stay && !was) return unknown(op.stay);
+        const stop = op.stop ? h.id.get(op.stop) : was?.stop;
+        if (op.stop && (!stop || !plan.stops?.[stop])) return unknown(op.stop);
+        if (!stop) return refuse({ code: "UNKNOWN_HANDLE", reason: "A new stay needs a stop.", next: "Retry with the stop handle it's at." });
+        const guests = op.guests ? riders(op.guests) : (was?.guests ?? null);
+        if (!guests) return op.guests ? undefined : refuse({ code: "UNKNOWN_HANDLE", reason: "A new stay needs its guests.", next: "Retry with the member handles staying there." });
+        const checkIn = op.check_in ?? was?.checkIn;
+        const checkOut = op.check_out ?? was?.checkOut;
+        if (!checkIn || !checkOut || checkOut <= checkIn) {
+          return refuse({ code: "BAD_DATE", reason: "A stay needs a check-in and a later check-out.", next: "Ask which nights they stay." });
+        }
         if (op.nightly && !(op.nightly.amount >= 0)) {
           return refuse({ code: "BAD_DATE", reason: "A nightly cost can't be negative.", next: "Ask what it costs." });
         }
-        // clearing both the price and the label removes the stay
-        const label = op.label ?? plan.stays?.[stop]?.label ?? null;
-        planned.push({ kind: "stay", stop, stay: op.nightly || label ? { nightly: op.nightly, label } : null });
+        const nightly = op.nightly === undefined ? (was?.nightly ?? null) : op.nightly;
+        // a price someone says isn't an estimate; one left as it was keeps what it was
+        const estimated = op.nightly === undefined ? (was?.estimated ?? false) : false;
+        const stay: Stay = { stop, checkIn, checkOut, guests, nightly, label: op.label === undefined ? (was?.label ?? null) : op.label, estimated, createdAt: was?.createdAt || Date.now() };
+        // nobody left in it removes it
+        planned.push({ kind: "stay", id: was?.id ?? newId(), stay: guests.length ? stay : null, created: !was });
+        return;
+      }
+      case "remove_stay": {
+        const was = stayFor(op.stay);
+        if (!was) return unknown(op.stay);
+        planned.push({ kind: "stay", id: was.id, stay: null, created: false });
         return;
       }
       case "set_leaves": {
@@ -170,9 +204,6 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         planned.push({ kind: "leaves", member: who, date: op.date });
         return;
       }
-      case "set_trip_end":
-        planned.push({ kind: "ends", date: op.date });
-        return;
     }
   });
 
@@ -238,6 +269,28 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       before.ends ??= { value: root.get("ends") ?? null };
       root.set("ends", date);
     };
+    /**
+     * The stays map, with any older stop-keyed stays written out whole first (`staysOf`), each remembered for Undo, so
+     * a handle's stay is the one stored.
+     */
+    const staysMap = () => {
+      let map = root.get("stays");
+      if (!map) root.set("stays", (map = new LiveMap()));
+      if ([...map.values()].some((s) => !s.get("stop"))) {
+        before.stays ??= {};
+        for (const [id, s] of [...map.entries()]) {
+          if (s.get("stop")) continue;
+          if (!(id in before.stays)) before.stays[id] = s.toJSON() as Stay;
+          map.delete(id);
+        }
+        for (const { id, ...stay } of stays) {
+          if (map.has(id)) continue;
+          if (!(id in before.stays)) before.stays[id] = null;
+          map.set(id, new LiveObject<Stay>(stay));
+        }
+      }
+      return map;
+    };
     /** Leave dates and the trip's end that other edits pushed along, each said in the changes. */
     const follow = (changes: DateChanges) => {
       for (const [id, date] of Object.entries(changes.leaves)) {
@@ -252,17 +305,18 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
 
     for (const p of planned) {
       if (p.kind === "stay") {
-        let stays = root.get("stays");
-        if (!stays) root.set("stays", (stays = new LiveMap()));
+        const map = staysMap();
         before.stays ??= {};
-        if (!(p.stop in before.stays)) before.stays[p.stop] = plan.stays?.[p.stop] ?? null;
-        if (p.stay) stays.set(p.stop, new LiveObject(p.stay));
-        else stays.delete(p.stop);
-        const where = stopName(p.stop);
+        if (!(p.id in before.stays)) before.stays[p.id] = (map.get(p.id)?.toJSON() as Stay | undefined) ?? null;
+        if (p.stay) map.set(p.id, new LiveObject(p.stay));
+        else map.delete(p.id);
+        const where = stopName(p.stay?.stop ?? stays.find((s) => s.id === p.id)?.stop ?? "");
+        const who = p.stay ? names(p.stay.guests!.map((g) => members.get(g)?.get("name") ?? h.member.get(g) ?? "someone")) : "";
+        const price = p.stay?.nightly ? `, ${p.stay.nightly.currency} ${p.stay.nightly.amount} a night` : "";
         applied.push(
-          p.stay?.nightly
-            ? `Set ${where}${p.stay.label ? ` (${p.stay.label})` : ""} to ${p.stay.nightly.currency} ${p.stay.nightly.amount} a night`
-            : `Cleared the cost of staying in ${where}`,
+          !p.stay
+            ? `Removed the stay in ${where}`
+            : `${p.created ? "Added a stay" : "Set the stay"} in ${where}${p.stay.label ? ` (${p.stay.label})` : ""}: ${showDate(p.stay.checkIn!)} to ${showDate(p.stay.checkOut!)} for ${who}${price}`,
         );
         continue;
       }
@@ -273,15 +327,6 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         if (!who) continue;
         const why = !date || !p.date || date === p.date ? "" : date > p.date ? ", the day of their first leg" : ", when the trip ends";
         applied.push(date ? `${who} leaves on ${showDate(date)}${why}` : `${who} stays to the end`);
-        continue;
-      }
-      if (p.kind === "ends") {
-        // never before the latest leg; leave dates after it come back to it
-        const changes = setEnds(datesNow(), p.date);
-        setTripEnd(changes.ends ?? null);
-        const why = changes.ends && p.date && changes.ends !== p.date ? ", the day of its last leg" : "";
-        applied.push(changes.ends ? `Trip ends the morning of ${showDate(changes.ends)}${why}` : "Trip ends after its last leg");
-        follow({ ...changes, ends: undefined });
         continue;
       }
       if (p.kind === "add" || p.kind === "riders") {
@@ -367,6 +412,8 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
 
     const used = new Set<string>();
     for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));
+    // a stay keeps its stop, whoever rides there; an older stop-keyed one is keyed by it
+    for (const [id, s] of root.get("stays")?.entries() ?? []) used.add(s.get("stop") ?? id);
     for (const stop of freed) {
       if (used.has(stop)) continue;
       if (!(stop in before.stops)) before.stops[stop] = stops.get(stop)?.toJSON() ?? null;

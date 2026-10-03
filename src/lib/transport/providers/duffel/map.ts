@@ -68,9 +68,11 @@ export function mapOffers(raw: readonly unknown[], query: SearchQuery, origin: s
       if (!depart || !arrive || !(durationMin > 0)) break;
       // the operating airline goes up front: US rules require it on the first screen an offer shows
       const marketing = s.marketing_carrier;
+      const shown = s.operating_carrier ?? marketing;
       segments.push({
         mode: "flight",
-        carrier: s.operating_carrier?.name ?? marketing.name,
+        carrier: shown.name,
+        ...(shown.iata_code?.length === 2 ? { carrierCode: shown.iata_code } : {}),
         number: marketing.iata_code && s.marketing_carrier_flight_number ? `${marketing.iata_code}${s.marketing_carrier_flight_number}` : undefined,
         from: place(s.origin, query.from),
         to: place(s.destination, query.to),

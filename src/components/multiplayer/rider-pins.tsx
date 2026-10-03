@@ -50,7 +50,7 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
 
   if (!members || !list.length) return null;
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 isolate overflow-hidden">
       {list.map(({ stop, riders }) => {
         const said = names.format(riders.map((id) => (id === me ? "you" : members[id]?.name ?? "someone")));
         return <PinTarget key={stop.id} globe={globe} stop={stop} who={said.charAt(0).toUpperCase() + said.slice(1)} onOpen={onOpen} />;

@@ -60,22 +60,24 @@ const editOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("set_riders"), leg: z.string(), riders: z.array(z.string()) }),
   z.object({ op: z.literal("remove_leg"), leg: z.string() }),
   z.object({
-    op: z.literal("set_stay_cost"),
-    stop: z.string().describe("Stop handle"),
+    op: z.literal("set_stay"),
+    stay: z.string().optional().describe("A stay handle (H1) to change; leave it out to add a new stay"),
+    stop: z.string().optional().describe("Stop handle the stay is at; needed for a new stay"),
+    check_in: date.optional().describe("YYYY-MM-DD, the first night; needed for a new stay"),
+    check_out: date.optional().describe("YYYY-MM-DD, the morning they leave; needed for a new stay"),
+    guests: z.array(z.string()).optional().describe("Member handles sleeping there, e.g. [\"M1\",\"M2\"]; needed for a new stay. Riding a leg there doesn't make anyone a guest"),
     nightly: z
       .object({ amount: z.number().min(0), currency: z.string().length(3).describe("ISO code, e.g. HKD") })
       .nullable()
-      .describe("What staying there costs the whole group per night, as someone said it; null clears it. Never estimate one."),
+      .optional()
+      .describe("What the stay costs per night for all its guests, as someone said it; null clears it. Never estimate one."),
     label: z.string().max(60).nullable().optional().describe("e.g. Shinjuku apartment"),
   }),
+  z.object({ op: z.literal("remove_stay"), stay: z.string().describe("Stay handle") }),
   z.object({
     op: z.literal("set_leaves"),
     member: z.string().describe("Member handle"),
-    date: date.nullable().describe("The day they leave early; their last night is the one before. Kept between their first leg and the trip's end. Null: they stay to the end"),
-  }),
-  z.object({
-    op: z.literal("set_trip_end"),
-    date: date.nullable().describe("The morning after the whole group's last night, never before the last leg. Null: it ends after the last leg"),
+    date: date.nullable().describe("The day they leave early; they stop sharing stays from that night. Kept after their first leg. Null: they stay to the end"),
   }),
 ]);
 
@@ -173,7 +175,7 @@ export function agentTools(ctx: ToolContext) {
 
     get_split: tool({
       description:
-        "Who pays what: each member's fares by leg and their share of each night's stay, totalled per currency, with what's missing (no option chosen on a leg, no stay cost). Nights come from legs, leave dates and the trip end. Quote it; never add up costs yourself.",
+        "Who pays what: each member's fares by leg and their share of each night of the stays they're guests in, totalled per currency, with what's missing (no option chosen on a leg, no stay cost). Fares go to a leg's riders and nights to a stay's guests, separately. Quote it; never add up costs yourself.",
       inputSchema: z.object({}),
       execute: async () => {
         const { plan, handles } = await ctx.load();
@@ -183,22 +185,22 @@ export function agentTools(ctx: ToolContext) {
         const members = Object.entries(split.members).map(([id, m]) => {
           const who = `${handles.member.get(id) ?? "?"} ${plan.members?.[id]?.name ?? "someone"}`;
           const fares = m.fares.map((f) => `${legName(f.leg)} ${f.price ? `${f.price.currency} ${f.price.amount} (${KIND[f.kind ?? "estimated"]})` : "no option chosen"}`);
-          // nights grouped by stop, each stop's shares added per currency
-          const byStop = new Map<string, { nights: number; sums: Record<string, number> }>();
+          // nights grouped by stay, each stay's shares added per currency
+          const byStay = new Map<string, { stop: string; nights: number; sums: Record<string, number> }>();
           for (const n of m.nightShares) {
-            const e = byStop.get(n.stop) ?? { nights: 0, sums: {} };
+            const e = byStay.get(n.stay) ?? { stop: n.stop, nights: 0, sums: {} };
             e.nights++;
             e.sums[n.share.currency] = Math.round(((e.sums[n.share.currency] ?? 0) + n.share.amount) * 100) / 100;
-            byStop.set(n.stop, e);
+            byStay.set(n.stay, e);
           }
-          const stays = [...byStop].map(([stop, e]) => `${stopName(stop)} ${e.nights} night${e.nights > 1 ? "s" : ""} ${money(e.sums)}`);
+          const stays = [...byStay].map(([stay, e]) => `${handles.stay.get(stay) ?? "?"} ${stopName(e.stop)} ${e.nights} night${e.nights > 1 ? "s" : ""} ${money(e.sums)}`);
           const unpriced = split.nights.filter((n) => !n.nightly && n.present.includes(id)).length;
           return [
             who,
             `fares: ${fares.join("; ") || "none"}`,
             `stays: ${stays.join("; ") || "none priced"}${unpriced ? ` (+${unpriced} unpriced night${unpriced > 1 ? "s" : ""})` : ""}`,
             `total: ${money(m.totals) || "nothing yet"}`,
-            m.missing.length ? `missing: ${m.missing.map((x) => (x === "no_chosen_offer" ? "a leg has no option chosen" : "a stop has no stay cost")).join(", ")}` : "",
+            m.missing.length ? `missing: ${m.missing.map((x) => (x === "no_chosen_offer" ? "a leg has no option chosen" : "a stay has no price")).join(", ")}` : "",
           ].filter(Boolean).join(" · ");
         });
         return {
@@ -211,7 +213,7 @@ export function agentTools(ctx: ToolContext) {
 
     edit_plan: tool({
       description:
-        "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, set what a stay costs a night, when someone leaves, and when the trip ends. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
+        "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, add, change or remove stays (each with its own guests, nights and price, apart from the legs), and when someone leaves. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
       inputSchema: z.object({ ops: z.array(editOp).min(1) }),
       execute: async ({ ops }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;

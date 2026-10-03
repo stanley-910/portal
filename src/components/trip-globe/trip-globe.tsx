@@ -9,7 +9,6 @@ import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import { openArea } from "./free-area";
 import type { ThemeId } from "./palette";
-import { GlobeInfo } from "./globe-info";
 
 export type TripGlobeTheme = ThemeId | "auto";
 
@@ -314,7 +313,6 @@ export function TripGlobe({
       <output aria-label="Nearby place" aria-live="polite" className="sr-only">
         {preview ?? ""}
       </output>
-      <GlobeInfo />
       {unsupported ? (
         <p className="type-body absolute inset-x-0 top-1/2 text-center text-ink-muted">This browser cannot draw the globe.</p>
       ) : null}

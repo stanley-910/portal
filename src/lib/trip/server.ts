@@ -6,8 +6,10 @@ import { z } from "zod";
 
 import { liveblocks } from "@/lib/liveblocks/server";
 import { tripRoomId, type Leg, type MemberInfo, type Stay, type Stop, type TripStorage } from "@/lib/liveblocks/types";
+import { arrivalDate } from "@/lib/transport/arrival";
 import type { Offer, ProviderId } from "@/lib/transport/types";
 
+import { stayDates } from "./leg-edit";
 import { tripOwner } from "./leave";
 import { MAX_OFFERS, toStoredOffer, webUrlOrNull } from "./offers";
 import { sameStop, sharesStop } from "./stops";
@@ -132,6 +134,7 @@ const offerSchema = z.object({
       z.object({
         mode: z.enum(MODES),
         carrier: z.string().max(120).optional(),
+        carrierCode: z.string().regex(/^[A-Z0-9]{2}$/).optional(),
         number: z.string().max(40).optional(),
         from: placeSchema,
         to: placeSchema,
@@ -223,9 +226,11 @@ export function buildSoloStorage(
     stops[id] = stop;
     return id;
   };
+  const picked: { to: string; date: string; arrival: string; stay: NonNullable<SoloSaveInput["legs"][number]["stay"]> }[] = [];
   input.legs.forEach((leg, i) => {
     const from = stopAt(leg.from);
     const to = stopAt(leg.to);
+    const offers = leg.offers.map((o) => toStoredOffer(o as Offer));
     legs[newId()] = {
       from,
       to,
@@ -233,14 +238,20 @@ export function buildSoloStorage(
       createdBy: user.id,
       riders: [user.id],
       // the schema checked each offer's fields; `provider` is a ProviderId there too
-      search: { id: newId(), status: "done", offers: leg.offers.map((o) => toStoredOffer(o as Offer)) },
+      search: { id: newId(), status: "done", offers },
       votes: {},
       chosen: leg.chosen,
       // in order, so legs on the same day keep the order they were flown in
       createdAt: now + i,
     };
-    if (leg.stay) stays[to] = leg.stay;
+    if (leg.stay) picked.push({ to, date: leg.date, arrival: arrivalDate(leg.date, offers.find((o) => o.id === leg.chosen)), stay: leg.stay });
   });
+  // a hotel picked on `/` is for the saver, from the leg's arrival to their next leg out of there, else one night
+  const legList = Object.values(legs);
+  for (const p of picked) {
+    const { checkIn, checkOut } = stayDates(legList, { to: p.to, date: p.date, arrival: p.arrival, riders: [user.id] });
+    stays[newId()] = { stop: p.to, checkIn, checkOut, guests: [user.id], ...p.stay, createdAt: now };
+  }
   return {
     members: { [user.id]: { name: user.displayName, color: 1 } },
     stops,

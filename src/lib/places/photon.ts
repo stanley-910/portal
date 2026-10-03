@@ -4,7 +4,9 @@ import { regionName, type PlaceKind, type PlaceResult } from "./place";
 // https://photon.komoot.io
 const ENDPOINT = "https://photon.komoot.io/api/";
 const USER_AGENT = "Portal trip globe (HKU Hackathon)";
-const TIMEOUT_MS = 1500;
+// Bundled matches show while this runs, so it can wait out a slow Photon (about 2.7 s on 2026-10-04) rather than drop
+// every place outside the index.
+const TIMEOUT_MS = 4000;
 const LIMIT = 8;
 const CACHE_SIZE = 500;
 

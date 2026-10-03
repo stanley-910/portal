@@ -2,7 +2,8 @@ import { arrivalDate } from "@/lib/transport/arrival";
 import type { Stay, StoredOffer, TripMember } from "@/lib/liveblocks/types";
 
 // Who pays for what. Pure: takes the room's Storage as JSON, so the UI and Pip read the same numbers.
-// Presence is derived from legs and leave dates, never stored, so moving a leg moves its nights too.
+// Fares go to each leg's riders and nights to each stay's guests; the two are separate, so riding a leg never puts
+// anyone in a hotel, and leaving one doesn't take the other with it.
 
 export type Money = { amount: number; currency: string };
 
@@ -24,30 +25,45 @@ export type SplitInput = {
     }
   >;
   stays?: Record<string, Stay>;
+  /** Only rooms from before stays had their own dates read it (`staysOf`). */
   ends?: string | null;
 };
 
+/** A stay with every field, as `staysOf` reads it: rooms' old stop-keyed stays come out the same way. */
+export type PlanStay = {
+  id: string;
+  stop: string;
+  checkIn: string;
+  checkOut: string;
+  guests: string[];
+  nightly: Money | null;
+  label: string | null;
+  estimated: boolean;
+  createdAt: number;
+};
+
 export type SplitNight = {
+  stay: string;
   stop: string;
   /** The night of this date: check in that day, out the next morning. */
   date: string;
-  /** Member ids sleeping there that night. */
+  /** Guests sleeping there that night: the stay's guests, less anyone who has left the trip by then. */
   present: string[];
-  /** The group's cost for the night, or null if nobody has priced the stop. */
+  /** The stay's cost for the night, or null if nobody has priced it. */
   nightly: Money | null;
 };
 
 export type MemberSplit = {
   /** One per leg they ride. Null price means the leg has no chosen option yet. */
   fares: { leg: string; price: Money | null; kind: StoredOffer["kind"] | null }[];
-  nightShares: { stop: string; date: string; share: Money }[];
+  nightShares: { stay: string; stop: string; date: string; share: Money }[];
   /** Currency → amount. Never converted, since offers mix currencies. */
   totals: Record<string, number>;
   missing: ("no_chosen_offer" | "no_stay_cost")[];
 };
 
 export type Split = {
-  /** The morning after the last night, or null with no legs. */
+  /** The morning after the last night of any stay, or null with none. */
   ends: string | null;
   nights: SplitNight[];
   members: Record<string, MemberSplit>;
@@ -59,55 +75,118 @@ const round = (n: number) => Math.round(n * 100) / 100;
 const minDate = (...dates: (string | null | undefined)[]) =>
   dates.filter((d): d is string => !!d).reduce<string | null>((a, b) => (a === null || b < a ? b : a), null);
 
-export function computeSplit(plan: SplitInput): Split {
-  const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+/**
+ * Every stay with all its fields. A stay from before stays had their own guests and dates (keyed by stop id, with only
+ * a price) becomes one stay per run of nights the old rule gave that stop with the same people in it: riders sleep at a
+ * leg's destination until their next leg, they leave, or the trip ends, and never at home. The first keeps the stop id.
+ */
+export function staysOf(plan: SplitInput): PlanStay[] {
+  const out: PlanStay[] = [];
+  const legacy: Record<string, Stay> = {};
+  for (const [id, stay] of Object.entries(plan.stays ?? {})) {
+    if (stay.stop && stay.checkIn && stay.checkOut) {
+      out.push({
+        id,
+        stop: stay.stop,
+        checkIn: stay.checkIn,
+        checkOut: stay.checkOut,
+        guests: stay.guests ?? [],
+        nightly: stay.nightly,
+        label: stay.label,
+        estimated: stay.estimated ?? false,
+        createdAt: stay.createdAt ?? 0,
+      });
+    } else legacy[id] = stay;
+  }
+  if (Object.keys(legacy).length) out.push(...legacyStays(plan, legacy));
+  return out.sort((a, b) => a.checkIn.localeCompare(b.checkIn) || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+}
+
+function legacyStays(plan: SplitInput, legacy: Record<string, Stay>): PlanStay[] {
+  const legs = Object.values(plan.legs ?? {}).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
   const members = plan.members ?? {};
-
-  const destinationDate = (leg: NonNullable<SplitInput["legs"]>[string]) =>
-    arrivalDate(leg.date, leg.search.offers.find((offer) => offer.id === leg.chosen));
-  const latestLeg = legs.map(([, l]) => destinationDate(l)).sort().at(-1);
+  const latestLeg = legs.map((l) => destinationDate(l)).sort().at(-1);
   const latestLeave = Object.values(members).map((m) => m.leaves).filter((d): d is string => !!d).sort().at(-1);
-  // Default trip end is the morning after the latest known local arrival.
-  // An explicit leave date still wins and excludes that member's leave-day night.
   const ends = plan.ends ?? latestLeave ?? (latestLeg ? nextDay(latestLeg) : null);
-
   const ids = new Set(Object.keys(members));
-  for (const [, leg] of legs) for (const r of leg.riders) ids.add(r);
+  for (const leg of legs) for (const r of leg.riders) ids.add(r);
 
-  const nights = new Map<string, SplitNight>();
-  const out: Record<string, MemberSplit> = {};
-
+  // stop → date → who slept there
+  const nights = new Map<string, Map<string, Set<string>>>();
   for (const id of ids) {
-    const mine = legs.filter(([, l]) => l.riders.includes(id));
-    const split: MemberSplit = { fares: [], nightShares: [], totals: {}, missing: [] };
-    out[id] = split;
-
-    for (const [legId, leg] of mine) {
-      const seat = leg.booking?.seats[id];
-      const offer = leg.chosen ? leg.search.offers.find((o) => o.id === leg.chosen) : undefined;
-      // a settled seat is the price the airline quoted for this rider; a quote from the search is only an estimate of it
-      split.fares.push(seat ? { leg: legId, price: seat.share, kind: "live" } : { leg: legId, price: offer?.price ?? null, kind: offer?.kind ?? null });
-    }
-
-    // After each leg they sleep at its destination until their next leg, they leave, or the trip ends.
-    // Nobody pays for nights at home, which is where their first leg left from.
-    const home = mine[0]?.[1].from;
-    mine.forEach(([, leg], i) => {
-      if (leg.to === home) return;
-      const until = minDate(mine[i + 1]?.[1].date, members[id]?.leaves, ends);
+    const mine = legs.filter((l) => l.riders.includes(id));
+    const home = mine[0]?.from;
+    mine.forEach((leg, i) => {
+      if (leg.to === home || !legacy[leg.to]) return;
+      const until = minDate(mine[i + 1]?.date, members[id]?.leaves, ends);
       for (let d = destinationDate(leg); until && d < until; d = nextDay(d)) {
-        const key = `${leg.to}|${d}`;
-        let night = nights.get(key);
-        if (!night) {
-          night = { stop: leg.to, date: d, present: [], nightly: plan.stays?.[leg.to]?.nightly ?? null };
-          nights.set(key, night);
-        }
-        if (!night.present.includes(id)) night.present.push(id);
+        const byDate = nights.get(leg.to) ?? new Map<string, Set<string>>();
+        nights.set(leg.to, byDate);
+        const present = byDate.get(d) ?? new Set<string>();
+        byDate.set(d, present.add(id));
       }
     });
   }
 
-  const sorted = [...nights.values()].sort((a, b) => a.date.localeCompare(b.date) || a.stop.localeCompare(b.stop));
+  const out: PlanStay[] = [];
+  for (const [stop, stay] of Object.entries(legacy)) {
+    const dates = [...(nights.get(stop)?.keys() ?? [])].sort();
+    const present = (d: string) => [...nights.get(stop)!.get(d)!].sort().join();
+    let run = 0;
+    for (let i = 0; i < dates.length; ) {
+      // a run of consecutive nights with the same people, so everyone keeps paying for exactly the nights they had
+      let j = i;
+      while (j + 1 < dates.length && dates[j + 1] === nextDay(dates[j]!) && present(dates[j + 1]!) === present(dates[i]!)) j++;
+      const guests = nights.get(stop)!.get(dates[i]!)!;
+      out.push({
+        id: run ? `${stop}#${run + 1}` : stop,
+        stop,
+        checkIn: dates[i]!,
+        checkOut: nextDay(dates[j]!),
+        guests: [...guests],
+        nightly: stay.nightly,
+        label: stay.label,
+        estimated: stay.estimated ?? false,
+        createdAt: 0,
+      });
+      run++;
+      i = j + 1;
+    }
+  }
+  return out;
+}
+
+const destinationDate = (leg: NonNullable<SplitInput["legs"]>[string]) =>
+  arrivalDate(leg.date, leg.search.offers.find((offer) => offer.id === leg.chosen));
+
+export function computeSplit(plan: SplitInput): Split {
+  const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+  const members = plan.members ?? {};
+  const stays = staysOf(plan);
+
+  const out: Record<string, MemberSplit> = {};
+  const member = (id: string) => (out[id] ??= { fares: [], nightShares: [], totals: {}, missing: [] });
+  for (const id of Object.keys(members)) member(id);
+
+  for (const [legId, leg] of legs) {
+    const offer = leg.chosen ? leg.search.offers.find((o) => o.id === leg.chosen) : undefined;
+    for (const id of leg.riders) {
+      const seat = leg.booking?.seats[id];
+      // a settled seat is the price the airline quoted for this rider; a quote from the search is only an estimate of it
+      member(id).fares.push(seat ? { leg: legId, price: seat.share, kind: "live" } : { leg: legId, price: offer?.price ?? null, kind: offer?.kind ?? null });
+    }
+  }
+
+  // each night of a stay is split among its guests still on the trip that night
+  const nights: SplitNight[] = [];
+  for (const stay of stays) {
+    for (let d = stay.checkIn; d < stay.checkOut; d = nextDay(d)) {
+      const present = stay.guests.filter((g) => !members[g]?.leaves || d < members[g]!.leaves!);
+      if (present.length) nights.push({ stay: stay.id, stop: stay.stop, date: d, present, nightly: stay.nightly });
+    }
+  }
+
+  const sorted = nights.sort((a, b) => a.date.localeCompare(b.date) || a.stop.localeCompare(b.stop));
   const raw: Record<string, Record<string, number>> = {};
   const add = (id: string, m: Money) => {
     const t = (raw[id] ??= {});
@@ -116,13 +195,13 @@ export function computeSplit(plan: SplitInput): Split {
 
   for (const night of sorted) {
     for (const id of night.present) {
-      const split = out[id]!;
+      const split = member(id);
       if (!night.nightly) {
         if (!split.missing.includes("no_stay_cost")) split.missing.push("no_stay_cost");
         continue;
       }
       const share = { amount: night.nightly.amount / night.present.length, currency: night.nightly.currency };
-      split.nightShares.push({ stop: night.stop, date: night.date, share: { ...share, amount: round(share.amount) } });
+      split.nightShares.push({ stay: night.stay, stop: night.stop, date: night.date, share: { ...share, amount: round(share.amount) } });
       add(id, share);
     }
   }
@@ -135,6 +214,7 @@ export function computeSplit(plan: SplitInput): Split {
     split.totals = Object.fromEntries(Object.entries(raw[id] ?? {}).map(([c, n]) => [c, round(n)]));
   }
 
+  const ends = stays.map((s) => s.checkOut).sort().at(-1) ?? null;
   return { ends, nights: sorted, members: out };
 }
 
@@ -150,7 +230,7 @@ export function nightsByStop(shares: MemberSplit["nightShares"]): { stop: string
   return [...byStop.values()];
 }
 
-/** What the totals leave out, for the whole group: legs someone rides with no option chosen, and stops with nights nobody has priced. */
+/** What the totals leave out, for the whole group: legs someone rides with no option chosen, and stops with a stay nobody has priced. */
 export function splitGaps(split: Split): { legs: string[]; stops: string[] } {
   const legs = new Set<string>();
   for (const m of Object.values(split.members)) for (const f of m.fares) if (!f.price) legs.add(f.leg);

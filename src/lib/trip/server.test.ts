@@ -107,6 +107,13 @@ describe("buildSoloStorage", () => {
     expect(planTitle(doc)).toBe("Hong Kong → Shanghai");
   });
 
+  it("keeps a saved offer's airline code", () => {
+    const coded = offer("tp:c", { segments: [{ ...seg, carrierCode: "CX" }] });
+    const doc = buildSoloStorage(save({ ...input, offers: [coded], chosen: "tp:c" }), user, ids(), 1_000);
+    expect(doc.legs.l1.search.offers[0].carrierCode).toBe("CX");
+    expect(() => save({ ...input, offers: [offer("tp:d", { segments: [{ ...seg, carrierCode: "<script>" }] })] })).toThrow();
+  });
+
   it("stores a stop without a code as null", () => {
     const noCode: Partial<typeof HKG> = { ...HKG };
     delete noCode.code;
@@ -114,10 +121,15 @@ describe("buildSoloStorage", () => {
     expect(doc.stops.s1.code).toBeNull();
   });
 
-  it("saves a picked hotel as the destination's stay, marked estimated", () => {
+  it("saves a picked hotel as the saver's stay at the destination, marked estimated", () => {
     const stay = { label: "4★ hotel, Nanjing Road", nightly: { amount: 112, currency: "USD" } };
     const doc = buildSoloStorage(save({ ...input, stay }), user, ids(), 1);
-    expect(doc.stays).toEqual({ s2: { ...stay, estimated: true } });
+    const leg = Object.values(doc.legs)[0]!;
+    // one night from the leg's day, with no leg out of there yet
+    expect(Object.values(doc.stays!)).toEqual([
+      { stop: "s2", checkIn: leg.date, checkOut: expect.any(String), guests: ["u1"], ...stay, estimated: true, createdAt: 1 },
+    ]);
+    expect(Object.values(doc.stays!)[0]!.checkOut! > leg.date).toBe(true);
     const lson = toStorageLson(doc).data as Record<string, { liveblocksType: string }>;
     expect(lson.stays.liveblocksType).toBe("LiveMap");
   });
@@ -135,7 +147,7 @@ describe("buildSoloStorage", () => {
 
   it("keeps a live hotel rate unmarked as estimated", () => {
     const stay = { label: "Hotel Nikko", nightly: { amount: 980, currency: "CNY" }, estimated: false };
-    expect(buildSoloStorage(save({ ...input, stay }), user, ids(), 1).stays).toEqual({ s2: stay });
+    expect(Object.values(buildSoloStorage(save({ ...input, stay }), user, ids(), 1).stays!)[0]).toMatchObject({ stop: "s2", ...stay });
   });
 
   it("leaves stays out when no hotel was picked", () => {

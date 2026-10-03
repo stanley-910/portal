@@ -1,5 +1,7 @@
 "use client";
 
+import type { Mode } from "@/lib/transport/types";
+
 import { Glyph } from "./glyphs";
 import type { TimelineLeg } from "./options";
 
@@ -36,15 +38,33 @@ const IATA = /^[A-Z]{3}$/;
 /** "Shanghai (Minhang)" → "Shanghai": airport data names the district, the card names the city. */
 const cityName = (name: string) => name.replace(/\s*\([^)]*\)$/, "");
 
-/** City to city: names as the title, an airport code beneath when there is one, and the distance when known. */
+/**
+ * The route as it's charted on the globe, in little: a ring where it leaves, a dashed line, a ringed dot where it lands,
+ * and the vehicle in the middle of the line when there is one. It stretches to fill the gap between the two names.
+ */
+function RouteArc({ mode }: { mode?: Mode | null }) {
+  return (
+    <span className="ts-arc" aria-hidden>
+      <span className="ts-arc-from" />
+      <span className="ts-arc-path" />
+      <span className="ts-arc-to" />
+      {mode ? <Glyph kind={mode} size={13} className="ts-arc-glyph" /> : null}
+    </span>
+  );
+}
+
+/** City to city: names as the title, an airport code beneath when there is one, the route between, and the distance when known. */
 export function RouteHeader({
   from,
   to,
   distanceKm,
+  mode = null,
 }: {
   from: { code?: string | null; name: string };
   to: { code?: string | null; name: string };
   distanceKm?: number;
+  /** What's taking them, shown on the route. */
+  mode?: Mode | null;
 }) {
   return (
     <div className="ts-route">
@@ -53,12 +73,8 @@ export function RouteHeader({
         {from.code && IATA.test(from.code) ? <span className="ts-code">{from.code}</span> : null}
       </span>
       <span className="ts-distance">
-        <span>{distanceKm === undefined ? "\u00a0" : `${distanceKm.toLocaleString("en-US")} km`}</span>
-        <span className="ts-line" aria-hidden>
-          <span />
-          <span />
-          <span />
-        </span>
+        <RouteArc mode={mode} />
+        {distanceKm === undefined ? null : <span>{distanceKm.toLocaleString("en-US")} km</span>}
       </span>
       <span className="ts-place ts-place-end">
         <span className="ts-city">{cityName(to.name)}</span>
