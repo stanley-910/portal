@@ -36,9 +36,19 @@ const THREAD_WAIT_MS = 5_000;
 export const TRIP_RUNS_PER_DAY = 40;
 /**
  * Output tokens per model call. Replies are one to three sentences and tool calls are small, but DeepSeek's hidden
- * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing.
+ * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing. At REASONING_EFFORT
+ * "high" a hard step was measured at about 1,300 tokens (2026-10-03), so this leaves room for one several times that.
+ * Flash writes roughly 150 tokens a second, so even a call that uses it all (about 55 s) ends inside LEASE_MS; the
+ * run's deadline, not this, is what stops a slow run, and silentReply covers a reply cut off either way.
  */
-const MAX_OUTPUT_TOKENS = 4_000;
+const MAX_OUTPUT_TOKENS = 8_000;
+/**
+ * How hard DeepSeek thinks before each step. The API has three tiers, low, high and max; "medium" is an alias it
+ * (and @ai-sdk/deepseek, with a warning) maps to "high" (api-docs.deepseek.com/guides/thinking_mode, 2026-10-03).
+ * Raised from "low" for asks with several parts (plan, fares and visas at once); "high" is also the API default.
+ * Reasoning tokens are billed as output, so a hard ask costs more and takes longer; a simple one barely changes.
+ */
+export const REASONING_EFFORT = "high" satisfies DeepSeekLanguageModelChatOptions["reasoningEffort"];
 
 /** Logs each tool call and result. Off by default: tool inputs carry what people typed (harness: no content in logs). */
 const DEBUG = process.env.AGENT_DEBUG === "1";
@@ -276,8 +286,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
           maxOutputTokens: MAX_OUTPUT_TOKENS,
-          // the edits and lookups here don't need deep thought, and every reasoning token delays the reply
-          providerOptions: { deepseek: { reasoningEffort: "low" } satisfies DeepSeekLanguageModelChatOptions },
+          providerOptions: { deepseek: { reasoningEffort: REASONING_EFFORT } satisfies DeepSeekLanguageModelChatOptions },
           abortSignal: AbortSignal.timeout(Math.max(0, runEnds - Date.now())),
         });
         for await (const part of result.stream) {
