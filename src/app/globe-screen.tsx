@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { HomePip, startTrip } from "@/components/agent/home-pip";
 import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
-import { MyTrips } from "@/components/trip-plan/my-trips";
 import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
@@ -14,7 +13,6 @@ import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
 import { MAX_OFFERS } from "@/lib/trip/offers";
-import type { TripSummary } from "@/lib/trip/server";
 import { stopFromPoint } from "@/lib/trip/stops";
 
 import { createTrip } from "./t/actions";
@@ -27,7 +25,7 @@ function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
   return kept;
 }
 
-export function GlobeScreen({ person, trips = [] }: { person: Person | null; trips?: TripSummary[] }) {
+export function GlobeScreen({ person }: { person: Person | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
@@ -106,9 +104,6 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
     </NavBar>
-    <div className="absolute top-20 left-(--space-4) z-[5]">
-      <MyTrips trips={trips} />
-    </div>
     {trip ? (
       <TicketSearch
         key={`${trip.origin.lat},${trip.origin.lng}-${trip.destination.lat},${trip.destination.lng}`}
@@ -123,8 +118,8 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
             from: stopFromPoint(trip.origin, trip.from),
             to: stopFromPoint(trip.destination, trip.to),
             date: depart,
-            offers: savedOptions(offer, offers),
-            chosen: offer.id,
+            offers: offer ? savedOptions(offer, offers) : [],
+            chosen: offer?.id ?? null,
             ...(stay ? { stay } : {}),
           };
           if (account) return save(input);
@@ -137,4 +132,3 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
     <HomePip account={account} />
   </main>;
 }
-

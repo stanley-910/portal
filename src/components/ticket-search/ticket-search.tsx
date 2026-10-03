@@ -8,7 +8,7 @@ import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelResult } from "@/lib/hotels/types";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
-import type { Offer } from "@/lib/transport/types";
+import type { Mode, Offer } from "@/lib/transport/types";
 
 import { formatPrice, rowPrice, rowsFor, TABS, visibleTabs, type Tab } from "./options";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "./parts";
@@ -21,6 +21,13 @@ import { useOffers } from "./use-offers";
 const EDGE = 24;
 /** Clearance between the popover and the route's ends, wide enough to clear the hub tags. */
 const GAP = 56;
+
+const SAVE_LABEL: Record<Mode, string> = {
+  flight: "Save flight",
+  train: "Save train",
+  bus: "Save bus",
+  ferry: "Save ferry",
+};
 
 type Side = "right" | "left" | "under" | "pinned";
 
@@ -151,7 +158,7 @@ export interface TicketSearchProps {
   rates: ExchangeRates | null;
   /** Called with the selected option, every outbound option shown, and the dates when someone presses Save trip. */
   /** `stay` is the hotel picked in the Hotels tab, as the group's nightly cost there. */
-  onAdd: (choice: { offer: Offer; offers: Offer[]; depart: string; return: string | null; stay: PickedStay | null }) => void;
+  onAdd: (choice: { offer: Offer | null; offers: Offer[]; depart: string; return: string | null; stay: PickedStay | null }) => void;
   /** The offer already added, which turns the button into a done state. */
   addedId?: string | null;
   /** A save is in flight: the button waits and says so. */
@@ -354,11 +361,21 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
 
           <Button
             block
-            disabled={!choice || choice.offer.id === addedId || saving}
+            disabled={(!choice && !hotel) || (!!choice && choice.offer.id === addedId) || saving}
             aria-busy={saving || undefined}
-            onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null })}
+            onClick={() => onAdd({ offer: choice?.offer ?? null, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null })}
           >
-            {saving ? "Saving trip…" : choice && choice.offer.id === addedId ? "Saved" : hotel ? "Save trip with stay" : "Save trip"}
+            {saving
+              ? "Saving trip…"
+              : choice && choice.offer.id === addedId
+                ? "Saved"
+                : hotel && choice
+                  ? "Save trip with stay"
+                  : hotel
+                    ? "Save hotel"
+                    : choice
+                      ? SAVE_LABEL[choice.offer.mode]
+                      : "Save trip"}
           </Button>
           {error && !saving ? (
             <p className="ts-empty" role="alert">

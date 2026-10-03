@@ -3,10 +3,12 @@
 import { useSelf } from "@liveblocks/react";
 import { Fragment, useState } from "react";
 
+import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
-import { usePlanActions, usePlanLegs, usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
+import { useMySplit, usePlanActions, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, type PlanLeg } from "@/lib/trip/plan";
+import type { HotelResult } from "@/lib/hotels/types";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
@@ -35,25 +37,54 @@ const describe = (o: StoredOffer) =>
 
 export function TripPlan() {
   const legs = usePlanLegs();
+  const split = useMySplit();
+  const end = usePlanEnd();
+  const { setEnds } = usePlanActions();
+  const stays = usePlanStays();
   if (!legs?.length) return null;
   return (
     <section aria-label="Trip plan" className="ts tp">
+      {split?.totals && Object.keys(split.totals).length ? (
+        <div className="tp-total">
+          Your share: {Object.entries(split.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
+        </div>
+      ) : null}
+      <label className="tp-end">
+        Trip ends
+        <input type="date" value={end ?? ""} min={legs[legs.length - 1]?.date} onChange={(event) => setEnds(event.target.value || null)} />
+      </label>
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
-          <LegCard leg={leg} />
+          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} />
         </Fragment>
       ))}
     </section>
   );
 }
 
-function LegCard({ leg }: { leg: PlanLeg }) {
+function LegCard({ leg, stay }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null }) {
   const me = useSelf((s) => s.id);
   const members = usePlanMembers();
-  const { setDate, retrySearch, vote, choose, toggleRider, removeLeg } = usePlanActions();
+  const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg, setLeave } = usePlanActions();
   const [picking, setPicking] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [pendingChoice, setPendingChoice] = useState(leg.chosen?.id ?? null);
+  const [pendingHotel, setPendingHotel] = useState<HotelResult | null>(null);
   const offers = leg.search.offers.slice(0, SHOWN);
+
+  const changed = pendingChoice !== (leg.chosen?.id ?? null) || pendingHotel !== null;
+  const commit = () => {
+    choose(leg.id, pendingChoice);
+    if (pendingHotel) {
+      setStay(leg.to.id, {
+        label: pendingHotel.name,
+        nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
+      });
+    }
+    setPendingHotel(null);
+    setEditing(false);
+  };
 
   return (
     <article className="tp-leg">
@@ -82,6 +113,12 @@ function LegCard({ leg }: { leg: PlanLeg }) {
               : null}
           </ul>
         </div>
+        {me ? (
+          <label className="tp-leave">
+            My leave date
+            <input type="date" value={members?.[me]?.leaves ?? ""} min={leg.date} onChange={(event) => setLeave(event.target.value || null)} />
+          </label>
+        ) : null}
       </div>
 
       {picking ? (
@@ -94,6 +131,38 @@ function LegCard({ leg }: { leg: PlanLeg }) {
             if (iso !== leg.date) setDate(leg.id, iso);
           }}
         />
+      ) : null}
+      <div className="tp-edit-row">
+        {stay ? <span className="type-meta text-ink-muted">Stay: {stay.label ?? "Hotel selected"}</span> : null}
+        <button type="button" className="ts-oneway" onClick={() => setEditing((value) => !value)}>{editing ? "Close edit" : "Edit trip"}</button>
+      </div>
+
+      {editing ? (
+        <div className="tp-editor">
+          <div className="ts-rows">
+            {offers.map((o) => (
+              <button key={o.id} type="button" className="ts-row" aria-pressed={pendingChoice === o.id} onClick={() => setPendingChoice(o.id)}>
+                <span className="ts-head">{duration(o.durationMin)}{pendingChoice === o.id ? <span className="ts-badge">Selected</span> : null}</span>
+                <span className="ts-price">{money(o) ?? "No fare"}</span>
+                <span className="ts-desc">{describe(o)}</span>
+              </button>
+            ))}
+          </div>
+          <HotelSearch
+            city={leg.to.name}
+            lat={leg.to.lat}
+            lng={leg.to.lng}
+            checkIn={leg.date}
+            checkOut={addDays(leg.date, 1)}
+            currency="USD"
+            rates={null}
+            picked={pendingHotel}
+            onPick={setPendingHotel}
+          />
+          <button type="button" className="ts-oneway" disabled={(!pendingChoice && !pendingHotel && !stay) || !changed} onClick={commit}>
+            Save changes
+          </button>
+        </div>
       ) : null}
 
       <div className="ts-rows">
@@ -127,7 +196,7 @@ function LegCard({ leg }: { leg: PlanLeg }) {
                 className="ts-row"
                 aria-pressed={chosen}
                 title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
-                onClick={() => choose(leg.id, chosen ? null : o.id)}
+                onClick={() => setPendingChoice(chosen ? null : o.id)}
               >
                 <span className="ts-head">
                   {duration(o.durationMin)}

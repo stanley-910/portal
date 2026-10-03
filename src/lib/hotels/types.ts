@@ -14,6 +14,7 @@ export interface Hotel {
   freshness: "estimated";
   distanceKm: number;
   score: number;
+  bookingUrl?: string;
 }
 
 export interface HotelSearchQuery {

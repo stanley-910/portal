@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 
@@ -65,6 +66,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
       {open ? (
         <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
           <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
+          {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
           <ThemeSetting />
           {children}
         </div>
