@@ -1,7 +1,6 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { HomePip, type HomePipHandle } from "@/components/agent/home-pip";
@@ -66,7 +65,6 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
   const [saved, setSaved] = useState<{ id: string; offer: string | null } | null>(null);
-  const router = useRouter();
   // dates for the legs Pip just put on the globe, applied when the globe reports them landed
   const pipDates = useRef<string[] | null>(null);
   const pip = useRef<HomePipHandle>(null);
@@ -81,9 +79,9 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       const result = await saveSoloTrip(input).catch(() => ({ error: "failed" as const }));
       if ("error" in result) return setSaveFailed(true);
       const legs = (input as { legs?: { chosen?: string | null }[] }).legs;
+      // No refresh: nothing on the globe screen shows saved trips, and /trips is dynamic, so it reads them fresh when
+      // opened. A refresh here re-rendered the whole screen and held the button on "Saving" for another round trip.
       setSaved({ id: result.id, offer: legs?.at(-1)?.chosen ?? null });
-      // the trips list and anything else that shows them
-      router.refresh();
     });
   const save = (input: Parameters<typeof saveSoloTrip>[0]) => {
     setSaveFailed(false);

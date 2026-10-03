@@ -38,6 +38,7 @@ Leaving early is setting `leaves`, or adding a leg home.
 - A night's cost is split evenly among whoever is there that night.
 - Totals are kept per currency. The split never converts, since one trip mixes yuan, won and dollars. The currency setting converts for display only.
 - `missing` flags a leg with no chosen option or a night at a stop nobody has priced. Those are left out of the totals, and the split should say so.
+- My trips reads every trip's plan side by side for what you owe on each. A plan that isn't read within 2.5 seconds lists its trip without costs, and says so, rather than holding up the page.
 
 The plan panel shows the split for the whole group (`TripSplit`): each member's totals, opening to their fares by leg and their nights by stop, then the legs with no option chosen and the stops with no stay cost.
 

@@ -25,6 +25,7 @@ export interface FanOutOptions {
   signal?: AbortSignal;
 }
 
+/** Each provider's deadline unless it sets its own (`TransportProvider.timeoutMs`). */
 export const PROVIDER_TIMEOUT_MS = 8_000;
 
 const mode = z.enum(["flight", "train", "bus", "ferry"]);
@@ -171,20 +172,11 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
     }
   });
   const settled = await Promise.allSettled(applicable.map((provider) =>
-    searchProvider(provider, query, opts.signal, opts.timeoutMs ?? PROVIDER_TIMEOUT_MS)));
+    searchProvider(provider, query, opts.signal, provider.timeoutMs ?? opts.timeoutMs ?? PROVIDER_TIMEOUT_MS)));
   const offers: Offer[] = [];
-  settled.forEach((result, index) => {
-    const provider = applicable[index];
-    if (result.status === "rejected") {
-      errors.push(errorFor(provider.id, result.reason, !best));
-      return;
-    }
-    if (!Array.isArray(result.value)) {
-      errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
-      return;
-    }
+  const accept = (provider: TransportProvider, batch: unknown[]) => {
     let malformed = false;
-    for (const offer of result.value) {
+    for (const offer of batch as Offer[]) {
       if (!offerSchema.safeParse(offer).success || offer.provider !== provider.id ||
           !provider.modes.includes(offer.mode)) {
         malformed = true;
@@ -193,6 +185,29 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
       }
     }
     if (malformed) errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
+  };
+  settled.forEach((result, index) => {
+    const provider = applicable[index];
+    if (result.status === "rejected") {
+      errors.push(errorFor(provider.id, result.reason, !best));
+      // A timed-out or failed provider still gives its modelled estimates, so a slow API never empties the route.
+      // The failure stays in `errors` and every estimate is marked as one.
+      if (provider.fallback) {
+        let estimates: unknown = [];
+        try {
+          estimates = provider.fallback(query);
+        } catch {
+          // a broken fallback is no worse than none
+        }
+        if (Array.isArray(estimates)) accept(provider, estimates.filter((o: Offer) => o?.kind === "estimated"));
+      }
+      return;
+    }
+    if (!Array.isArray(result.value)) {
+      errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
+      return;
+    }
+    accept(provider, result.value);
   });
   errors.sort((a, b) => compareText(a.provider, b.provider));
   const tookMs = Date.now() - started;

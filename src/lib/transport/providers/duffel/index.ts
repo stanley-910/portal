@@ -1,6 +1,6 @@
 import "server-only";
 
-import { requestOffers } from "./client";
+import { DUFFEL_TIMEOUT_MS, requestOffers } from "./client";
 import { mapOffers } from "./map";
 import { toIata } from "../travelpayouts/places";
 import { ProviderFailure, type SearchQuery, type TransportProvider } from "../../types";
@@ -10,6 +10,9 @@ import { ProviderFailure, type SearchQuery, type TransportProvider } from "../..
 export const duffel: TransportProvider = {
   id: "duffel",
   modes: ["flight"],
+  // Duffel waits up to SUPPLIER_TIMEOUT_MS for the airlines and then needs a couple of seconds of its own (about 2 s
+  // seen from Hong Kong even for its instant test airline), so the default 8 s cut it off just as it answered.
+  timeoutMs: DUFFEL_TIMEOUT_MS,
   covers(query: SearchQuery) {
     const origin = toIata(query.from);
     const destination = toIata(query.to);

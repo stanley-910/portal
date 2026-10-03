@@ -2,7 +2,8 @@ import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { parseSearchQuery } from "@/lib/transport/query";
 import { searchTransport } from "@/lib/transport/search";
 
-// Provider keys stay server-side; provider deadlines leave headroom below this cap.
+// Provider keys stay server-side. The longest provider deadline (Duffel's 10 s) leaves headroom below this cap, and a
+// provider past its deadline still answers with its estimates, so the route never times out into an empty card.
 export const runtime = "nodejs";
 export const maxDuration = 15;
 const headers = { "Cache-Control": "no-store" };

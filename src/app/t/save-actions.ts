@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 
 import { liveblocks } from "@/lib/liveblocks/server";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getAccountClaims, profileName } from "@/lib/supabase/server";
 import { buildSoloStorage, soloSaveSchema, toStorageLson } from "@/lib/trip/server";
 import { planTitle } from "@/lib/trip/title";
 
@@ -19,15 +19,20 @@ const shortId = () => randomBytes(6).toString("base64url");
  * returns its id. It doesn't open it: the globe stays as it is, and the trip is in their trips to open or share.
  * Without an account, goes to sign in. Invalid input or a Liveblocks failure returns an error instead, and leaves no
  * room behind.
+ *
+ * It's two Liveblocks calls in a row (create the room, then fill its Storage), so nothing else waits in front of them:
+ * the account comes from the session's verified claims, with no Supabase round trip, and the profile name is looked
+ * up while the room is being created.
  */
 export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/");
+  const account = await getAccountClaims();
+  if (!account) redirect("/login?next=/");
   const parsed = soloSaveSchema.safeParse(input);
   if (!parsed.success) return { error: "invalid" };
 
   const now = Date.now();
-  const storage = buildSoloStorage(parsed.data, user, shortId, now);
+  const name = profileName(account.id);
+  const storage = buildSoloStorage(parsed.data, { id: account.id, displayName: account.name }, shortId, now);
   const id = randomBytes(12).toString("base64url");
   const roomId = tripRoomId(id);
   const lb = liveblocks();
@@ -36,10 +41,13 @@ export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> 
     // the same access shape as createTrip: private, the saver is the only member
     await lb.createRoom(roomId, {
       defaultAccesses: [],
-      usersAccesses: { [user.id]: ["room:write"] },
-      metadata: { members: [user.id], title: planTitle(storage), updatedAt: new Date(now).toISOString() },
+      usersAccesses: { [account.id]: ["room:write"] },
+      metadata: { members: [account.id], title: planTitle(storage), updatedAt: new Date(now).toISOString() },
     });
     created = true;
+    // the profile's name, when it has one, is the one the trip shows, as everywhere else
+    const profile = await name;
+    if (profile) storage.members[account.id].name = profile;
     // a brand-new room has empty Storage and nobody connected, which initializeStorageDocument requires
     await lb.initializeStorageDocument(roomId, toStorageLson(storage));
   } catch {

@@ -2,9 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProviderFailure, type Mode, type Offer, type ProviderId, type SearchQuery, type TransportProvider } from "./types";
 
-const { providers } = vi.hoisted(() => ({ providers: [] as TransportProvider[] }));
+const { providers, env } = vi.hoisted(() => ({
+  providers: [] as TransportProvider[],
+  env: { DUFFEL_ACCESS_TOKEN: "offline-duffel", TRAVELPAYOUTS_TOKEN: "offline-tp", TRAVELPAYOUTS_MARKET: "us" } as Record<string, string | undefined>,
+}));
 vi.mock("./registry", () => ({ providers }));
+vi.mock("@/lib/env.server", () => ({ env }));
 
+import { duffel } from "./providers/duffel";
+import { DUFFEL_TIMEOUT_MS } from "./providers/duffel/client";
+import { travelpayouts } from "./providers/travelpayouts";
 import { fanOut, PROVIDER_TIMEOUT_MS, rankFareOffers, rankOffers, searchTransport } from "./search";
 
 const query: SearchQuery = {
@@ -291,6 +298,80 @@ describe("searchTransport", () => {
   it("rejects a malformed non-array batch", async () => {
     providers.push(provider({ search: async () => null as unknown as Offer[] }));
     expect(await search()).toMatchObject({ offers: [], errors: [{ provider: "travelpayouts", code: "BAD_RESPONSE", retryable: false }] });
+  });
+});
+
+describe("a provider past its deadline", () => {
+  const estimate = offer("estimate", { kind: "estimated", price: { amount: 150, currency: "USD" } });
+  const hanging = () => new Promise<Offer[]>(() => {});
+
+  it("still gives its estimates, with the timeout in errors", async () => {
+    vi.useFakeTimers();
+    providers.push(provider({ search: hanging, fallback: () => [estimate] }));
+    const pending = search();
+    await vi.advanceTimersByTimeAsync(PROVIDER_TIMEOUT_MS);
+    expect(await pending).toMatchObject({
+      offers: [estimate],
+      errors: [{ provider: "travelpayouts", code: "TIMEOUT", retryable: true }],
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("gives its estimates when it fails, too", async () => {
+    providers.push(provider({ search: async () => { throw new ProviderFailure("RATE_LIMITED", true); }, fallback: () => [estimate] }));
+    expect(await search()).toMatchObject({ offers: [estimate], errors: [{ code: "RATE_LIMITED" }] });
+  });
+
+  it("never passes off a fallback offer that isn't marked estimated, and survives a throwing fallback", async () => {
+    providers.push(
+      provider({ search: hanging, fallback: () => [offer("posing-as-cached"), estimate] }),
+      provider({ id: "12go", search: async () => { throw new ProviderFailure("UPSTREAM_ERROR", true); }, fallback: () => { throw new Error("broken"); } }),
+    );
+    const result = await fanOut(query, { timeoutMs: 20 });
+    expect(result.offers.map((o) => o.id)).toEqual(["estimate"]);
+    expect(result.errors.map((e) => e.code)).toEqual(["UPSTREAM_ERROR", "TIMEOUT"]);
+  });
+
+  it("waits for a provider's own longer deadline before giving up on it", async () => {
+    vi.useFakeTimers();
+    let answer: (offers: Offer[]) => void = () => {};
+    providers.push(provider({ timeoutMs: PROVIDER_TIMEOUT_MS + 2_000, search: () => new Promise<Offer[]>((resolve) => { answer = resolve; }) }));
+    const pending = search();
+    await vi.advanceTimersByTimeAsync(PROVIDER_TIMEOUT_MS + 1_000);
+    answer([offer("late-but-live")]);
+    expect((await pending).offers.map((o) => o.id)).toEqual(["late-but-live"]);
+  });
+});
+
+describe("live flight providers time out", () => {
+  // the real Duffel and Travelpayouts adapters, with keys, against APIs that never answer
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn((_url: string, init?: RequestInit) => new Promise((_, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+    })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("still returns an estimated flight, and says which providers timed out", async () => {
+    vi.useFakeTimers();
+    providers.push(duffel, travelpayouts);
+    const pending = search(query);
+    await vi.advanceTimersByTimeAsync(PROVIDER_TIMEOUT_MS);
+    // Duffel has longer than the default, so the search waits for it
+    await vi.advanceTimersByTimeAsync(DUFFEL_TIMEOUT_MS - PROVIDER_TIMEOUT_MS);
+    const result = await pending;
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.offers).toHaveLength(1);
+    expect(result.offers[0]).toMatchObject({
+      provider: "travelpayouts", mode: "flight", kind: "estimated",
+      segments: [{ from: { iata: "HKG" }, to: { iata: "BKK" } }],
+      price: { currency: "USD" },
+    });
+    expect(result.errors).toEqual([
+      { provider: "duffel", code: "TIMEOUT", retryable: true },
+      { provider: "travelpayouts", code: "TIMEOUT", retryable: true },
+    ]);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 

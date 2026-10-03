@@ -5,8 +5,10 @@ import { env } from "@/lib/env.server";
 import { fetchJson } from "../../http";
 import { ProviderFailure, type SearchQuery } from "../../types";
 
-/** Airlines get this long to answer, under the 8-second provider deadline so slow ones drop out instead of us. */
+/** Airlines get this long to answer, well under Duffel's own deadline, so slow airlines drop out instead of us. */
 const SUPPLIER_TIMEOUT_MS = 6_000;
+/** The fan-out's deadline for Duffel: the airlines' time plus Duffel's own overhead and a 500 KB answer. */
+export const DUFFEL_TIMEOUT_MS = 10_000;
 
 const responseSchema = z.object({ data: z.object({ offers: z.array(z.unknown()) }) });
 

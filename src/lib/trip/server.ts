@@ -27,10 +27,10 @@ export type TripSummary = {
   costs?: Record<string, number>; breakdown?: TripCostBreakdown;
 };
 
-/** The saved plan of a trip room as plain JSON. Unreadable Storage reads as an empty plan. */
-export async function readPlan(tripId: string): Promise<unknown> {
+/** The saved plan of a trip room as plain JSON. Unreadable Storage, or a read `signal` cut short, reads as an empty plan. */
+export async function readPlan(tripId: string, signal?: AbortSignal): Promise<unknown> {
   try {
-    return await liveblocks().getStorageDocument(tripRoomId(tripId), "json");
+    return await liveblocks().getStorageDocument(tripRoomId(tripId), "json", signal ? { signal } : undefined);
   } catch {
     return {};
   }
@@ -52,15 +52,22 @@ export function toTripSummaries(rooms: Pick<RoomData, "id" | "metadata" | "creat
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
+/**
+ * How long the trips list waits for any one trip's plan. The plans are read side by side, so the slowest sets the
+ * page's time; a trip whose plan is later than this is listed without its costs rather than holding up the rest.
+ */
+export const PLAN_READ_MS = 2_500;
+
 /** The trips this user belongs to. Liveblocks being down gives an empty list, never an error. */
 export async function listMyTrips(userId: string): Promise<TripSummary[]> {
   try {
     const { data } = await liveblocks().getRooms({ userId });
     const summaries = toTripSummaries(data.filter((room) => room.id.startsWith("trip:")), userId);
+    const deadline = AbortSignal.timeout(PLAN_READ_MS);
     return await Promise.all(
       summaries.map(async (summary) => {
         try {
-          const plan = (await readPlan(summary.id)) as SplitInput & { stops?: Record<string, { name: string }> };
+          const plan = (await readPlan(summary.id, deadline)) as SplitInput & { stops?: Record<string, { name: string }> };
           const split = computeSplit(plan);
           const mine = split.members[userId];
           const legs = plan.legs ?? {};

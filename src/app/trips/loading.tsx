@@ -1,16 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { MyTrips } from "@/components/trip-plan/my-trips";
-import { getAccountClaims } from "@/lib/supabase/server";
-import { listMyTrips } from "@/lib/trip/server";
-
-export default async function TripsPage() {
-  // only accounts have trips; the verified session claims say who, without a Supabase round trip
-  const account = await getAccountClaims();
-  if (!account) redirect("/login?next=/trips");
-
-  const trips = await listMyTrips(account.id);
+/** Shown at once while the trips are read, so opening My trips never sits on the page you left. */
+export default function TripsLoading() {
   return (
     <main className="min-h-dvh bg-paper px-(--space-4) py-(--space-6) text-ink">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-(--space-5)">
@@ -21,7 +12,12 @@ export default async function TripsPage() {
           <h1 className="type-title">My trips</h1>
           <p className="type-body text-ink-muted">Your saved solo and multiplayer trips.</p>
         </header>
-        <MyTrips trips={trips} />
+        <div
+          role="status"
+          className="w-full max-w-2xl rounded-ticket border-(length:--line-ink) border-ink bg-paper-raised shadow-ticket"
+        >
+          <p className="type-body px-(--space-4) py-(--space-5) text-ink-muted">Loading your trips.</p>
+        </div>
       </div>
     </main>
   );
