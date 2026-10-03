@@ -1,6 +1,6 @@
 import type { LatLng, RemoteFlight, Vehicle } from "@/components/trip-globe";
 
-/** The parts of trip storage a parked leg needs. */
+/** The parts of trip storage a stored leg needs. */
 export type StoredPlan = {
   readonly legs: {
     readonly [id: string]: {
@@ -16,8 +16,8 @@ export type StoredPlan = {
 };
 
 /**
- * Each stored leg as a landed trip: parked at its end as its chosen offer's vehicle, facing along the route, in its
- * drawer's colour.
+ * Each stored leg as a landed trip, in its drawer's colour: its route, with its end facing along it. A landed leg
+ * parks no vehicle (its riders' pins mark where it goes), so `vehicle` only matters if it's ever drawn in the air.
  */
 export function storedFlights(root: StoredPlan): RemoteFlight[] {
   const flights: RemoteFlight[] = [];

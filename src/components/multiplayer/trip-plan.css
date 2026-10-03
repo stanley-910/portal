@@ -26,3 +26,15 @@
 .ts .tp-vote[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 
 .ts .tp-remove { color: var(--ink-muted); }
+
+/* Rider pins: the globe draws a pin per rider at each stop; this is the unseen target over a stop's pins, which
+   names their riders on a tag-style label while pointed at. */
+.rp { position: absolute; top: 0; left: 0; padding: 0; border: 0; border-radius: var(--radius-round); background: none; cursor: pointer; pointer-events: auto; will-change: transform; }
+.rp:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rp-name { position: absolute; left: calc(100% + 2px); top: 50%; padding: 1px var(--space-2); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; color: var(--sticker-ink); background: var(--sticker-fill); border: var(--line-hair) solid var(--sticker-ink); border-radius: var(--radius-tag); box-shadow: var(--shadow-tag); opacity: 0; transform: translate(-3px, -50%) rotate(-1.2deg); transition: opacity 140ms ease-out, transform 140ms ease-out; pointer-events: none; }
+.rp:hover .rp-name, .rp:focus-visible .rp-name { opacity: 1; transform: translate(0, -50%) rotate(-1.2deg); }
+.rp[data-flip] .rp-name { left: auto; right: calc(100% + 2px); transform: translate(3px, -50%) rotate(-1.2deg); }
+.rp[data-flip]:hover .rp-name, .rp[data-flip]:focus-visible .rp-name { transform: translate(0, -50%) rotate(-1.2deg); }
+@media (prefers-reduced-motion: reduce) {
+  .rp-name { transition: none; }
+}

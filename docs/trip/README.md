@@ -32,3 +32,7 @@ Leaving early is setting `leaves`, or adding a leg home.
 - `missing` flags a leg with no chosen option or a night at a stop nobody has priced. Those are left out of the totals, and the split should say so.
 
 Not covered yet: who paid what and settling up, shared extras, and overnight legs that replace a night.
+
+## A test party locally
+
+`pnpm dev:party` runs the app against the local Liveblocks dev server (needs Bun) instead of a real project, and seeds a trip at `/t/partyTestRoom001`: Mei, Ada, Joon and Sam meeting in Shanghai and Tokyo, then on to Osaka, with picks, votes and stays already made (`scripts/seed-party.mts`). Join it as a guest. Each start reseeds it fresh, and the seed refuses to write anywhere but localhost.

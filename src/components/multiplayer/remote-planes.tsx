@@ -8,10 +8,10 @@ import type { RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
 import { storedFlights } from "./stored-flights";
 
 /**
- * Everyone else's trips on the globe and every stored leg, parked as its chosen vehicle: the globe draws each plane, route and
- * pins; this adds a member's name label beside their plane while it flies. Flights go straight from presence to the
- * globe engine, and labels are positioned after every frame, so a moving plane never re-renders React. React only
- * re-renders when someone takes off or stops, or the plan changes.
+ * Everyone else's trips on the globe and every stored leg's route: the globe draws each plane and route (a landed leg
+ * parks no plane; RiderPins marks where it goes), and this adds a member's name label beside their plane while it
+ * flies. Flights go straight from presence to the globe engine, and labels are positioned after every frame, so a
+ * moving plane never re-renders React. React only re-renders when someone takes off or stops, or the plan changes.
  *
  * `hideLegs` are the legs you just landed, which your own globe is still showing.
  */

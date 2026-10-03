@@ -72,6 +72,12 @@ uniform float uDark;
 uniform vec3 uShP;
 uniform float uShR;
 uniform float uShA;
+// up to MAX_PIN_SHADOWS pins' shadows: where the needle's point and the head fall on the ground (xyz), with the
+// shadow's strength (A.w) and the head's radius in radians (B.w)
+uniform vec4 uPinA[12];
+uniform vec4 uPinB[12];
+uniform int uPinN;
+uniform float uPinW;
 uniform sampler2D uSky;
 uniform float uSkyInk;
 out vec4 outColor;
@@ -196,6 +202,16 @@ void main() {
       float sa = acos(clamp(dot(n, uShP), -1.0, 1.0));
       g = mix(g, g * uShade * 0.8, (1.0 - smoothstep(uShR * 0.45, uShR, sa)) * uShA);
     }
+    // pins' shadows: the needle's line and the head's disc
+    for (int i = 0; i < 12; i++) {
+      if (i >= uPinN) break;
+      vec3 a = uPinA[i].xyz;
+      vec3 ab = uPinB[i].xyz - a;
+      float h = clamp(dot(n - a, ab) / max(dot(ab, ab), 1e-12), 0.0, 1.0);
+      float needle = 1.0 - smoothstep(uPinW * 0.4, uPinW, length(n - a - ab * h));
+      float head = 1.0 - smoothstep(uPinB[i].w * 0.55, uPinB[i].w, length(n - uPinB[i].xyz));
+      g = mix(g, g * uShade * 0.8, max(needle * 0.8, head) * uPinA[i].w);
+    }
 
     float facing = max(dot(n, -d), 0.0);
     g *= mix(0.8, 1.0, smoothstep(0.0, 0.45, facing));
@@ -207,6 +223,9 @@ void main() {
   col += (hash(floor(px)) - 0.5) * 0.045 + (hash(floor(px / (3.0 * uDpr))) - 0.5) * 0.02;
   outColor = vec4(col, 1.0);
 }`;
+
+/** How many pins' shadows the globe shader prints (`uPinA`, `uPinB`). */
+export const MAX_PIN_SHADOWS = 12;
 
 export const VS_PLANE = `#version 300 es
 in vec3 aPos;
@@ -226,6 +245,8 @@ uniform vec3 uPY;
 uniform vec3 uPZ;
 uniform float uHull;
 uniform vec2 uRes;
+// mediump, to match the fragment shader's default for ints, or the program won't link
+uniform mediump int uVehicle;
 out vec3 vFN;
 out vec3 vW;
 out vec3 vObj;
@@ -243,11 +264,13 @@ vec3 toW(vec3 o) { return uPP + uPX * o.x + uPY * o.y + uPZ * o.z; }
 void main() {
   vec3 w = toW(aPos);
   vec4 c = proj(w);
-  if (uHull > 0.0) {
+  // a pin's needle keeps a hairline of outline, so it stays fine
+  float hull = uVehicle == 4 && aPart > 0.5 ? uHull * 0.3 : uHull;
+  if (hull > 0.0) {
     vec4 c2 = proj(toW(aPos + aSm * 0.05));
     vec2 dir = c2.xy / c2.w - c.xy / c.w;
     float l = length(dir);
-    if (l > 1e-6) c.xy += dir / l * uHull * 2.0 / uRes * c.w;
+    if (l > 1e-6) c.xy += dir / l * hull * 2.0 / uRes * c.w;
   }
   vFN = normalize(uPX * aNrm.x + uPY * aNrm.y + uPZ * aNrm.z);
   vW = w;
@@ -269,6 +292,8 @@ uniform vec3 uFill;
 uniform vec3 uInkS;
 uniform vec3 uRoundel;
 uniform int uVehicle;
+// a pin's head: its rider's member colour
+uniform vec3 uPin;
 out vec4 outColor;
 ` + GLSL_COMMON + `
 void main() {
@@ -307,7 +332,7 @@ void main() {
       if (o.y > 0.115 && abs(o.x) > 0.095 && o.z > -0.47 && o.z < 0.38) base = uRoundel;
       if (o.z > 0.38 && o.y > 0.04) base = mix(base, uInkS, 0.85);
     }
-  } else {
+  } else if (uVehicle == 3) {
     // ferry: a roundel funnel, a row of windows along each deck
     if (part == 2) base = uRoundel;
     if (part == 1) {
@@ -316,12 +341,17 @@ void main() {
       float y = lower ? 0.035 : 0.1;
       if (abs(o.x) > w && abs(o.y - y) < 0.012 && fract(o.z * 25.0) < 0.5) base = uInkS;
     }
+  } else {
+    // pin: a head in the rider's colour on an ink needle
+    base = part == 0 ? uPin : uInkS;
   }
-  // flat paper with a soft smooth shade: no dot screen, so it can't be mistaken for the globe's print showing through
+  // flat paper with a soft smooth shade: no dot screen, so it can't be mistaken for the globe's print showing through.
+  // A pin's head is shaded deeper and catches a glint, so it reads as a ball.
+  bool pin = uVehicle == 4;
   float dif = max(dot(vFN, uL), 0.0);
   float k = clamp((1.0 - dif) * 0.85 - 0.12, 0.0, 1.0);
-  vec3 col = mix(base, uInkS, k * 0.16);
-  col += vec3(0.04) * pow(dif, 8.0);
+  vec3 col = mix(base, uInkS, k * (pin ? 0.34 : 0.16));
+  col += vec3(pin ? 0.2 : 0.04) * pow(dif, pin ? 14.0 : 8.0);
   outColor = vec4(col, 1.0);
 }`;
 

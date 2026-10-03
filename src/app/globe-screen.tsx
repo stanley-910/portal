@@ -96,15 +96,23 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       color={cursorPref.color}
       cursorShape={cursorPref.shape}
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
-      onTakeoff={() => setLegs(null)}
+      onTakeoff={() => {
+        setLegs(null);
+        globe.current?.setPins([]);
+      }}
       onLand={(landed) => {
+        // your pin drops at each stop once your plane has landed and gone
+        globe.current?.setPins(landed.map((leg, i) => ({ key: `you:${i}`, stop: `stop:${i}`, at: leg.destination, color: cursorPref.color })));
         setLegs(landed);
         setActive(0);
         setCollapsed(false);
         setPicks([]);
         setSaveFailed(false);
       }}
-      onCancel={() => setLegs(null)}
+      onCancel={() => {
+        setLegs(null);
+        globe.current?.setPins([]);
+      }}
       onRouteClick={() => setCollapsed(false)}
     />
     <NavBar
@@ -162,7 +170,6 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           openAuth("signup");
         }}
         onDismiss={() => globe.current?.cancel()}
-        onChoiceMode={(mode) => globe.current?.setVehicle(mode ?? "flight")}
         collapsed={collapsed}
         onCollapse={() => setCollapsed(true)}
         onExpand={() => setCollapsed(false)}

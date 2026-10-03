@@ -14,10 +14,11 @@ import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
 import { RemotePlanes } from "@/components/multiplayer/remote-planes";
 import { useCursorPref } from "@/lib/cursor-pref";
 import { LegTags } from "@/components/multiplayer/leg-tags";
+import { RiderPins } from "@/components/multiplayer/rider-pins";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { initialTripStorage, usePlanActions, usePlanLegs, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
@@ -28,6 +29,7 @@ export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: st
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
+      baseUrl={process.env.NEXT_PUBLIC_LIVEBLOCKS_BASE_URL}
       throttle={32}
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
@@ -68,10 +70,6 @@ function TripScreen({ name, email, account, nationalities, hostId }: Me & { host
   }, [landedLegs, landedOnTrip]);
   // the plan panel; folded away, each leg's ticket stub on its route opens it again
   const [planOpen, setPlanOpen] = useState(true);
-  // your own vehicle still stands in for the last of those legs, so it parks as that leg's chosen offer
-  const planLegs = usePlanLegs();
-  const landedMode = planLegs?.find((leg) => leg.id === landedLegs.at(-1))?.chosen?.mode ?? "flight";
-  useEffect(() => globe.current?.setVehicle(landedMode), [landedMode]);
   useRecordMember();
 
   useErrorListener((error) => {
@@ -108,6 +106,7 @@ function TripScreen({ name, email, account, nationalities, hostId }: Me & { host
         <AvatarStack />
         <InviteButton />
       </NavBar>
+      <RiderPins globe={globe} onOpen={() => setPlanOpen(true)} />
       <LegTags globe={globe} onOpen={() => setPlanOpen(true)} />
       {/* below the navbar */}
       {planOpen ? (

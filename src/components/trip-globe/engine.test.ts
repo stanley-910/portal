@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GlobeEngine, type GlobeCursor, type GlobeEvents } from "./engine";
-import { angle, D2R, dot, EARTH_RADIUS_KM, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
+import { add, angle, D2R, dot, EARTH_RADIUS_KM, len, mul, norm, slerp, sub, vecOf, type Vec3 } from "./vec";
 
 function engine() {
   const onLand = vi.fn();
@@ -87,6 +87,7 @@ type Internals = {
   range: number;
   rangeTarget: number;
   reduceMotion: boolean;
+  tLand: number;
   lastInteract: number;
   nameT: number;
   nameSprites: Map<string, HTMLCanvasElement>;
@@ -450,23 +451,86 @@ describe("vehicles", () => {
   const own = (engine: unknown) => (engine as { pl: Drawn | null }).pl;
   const remote = (engine: unknown, id: string) => (engine as { remotes: Map<string, { pl: Drawn }> }).remotes.get(id)!.pl;
 
-  it("parks the picked vehicle once landed, keeps the plane in the air, and resets on takeoff", () => {
-    const { engine, frames } = setup();
-    engine["takeoff"](point(22.3, 114.17));
-    engine.setVehicle("train");
+  it("touches down, then shrinks the plane away, and drops the trip's pins once it has gone", () => {
+    const { engine, state, frames, drawGL } = setup();
+    state.reduceMotion = false;
+    type Pin = { h: number; t0: number; squash: number };
+    const pins = () => (engine as unknown as { pins: Map<string, Pin> }).pins;
+    const left = () => (engine as unknown as { planeLeft(t0: number): number }).planeLeft(state.tLand);
     frames(1);
-    expect(own(engine)!.vehicle).toBe("flight");
+    engine["takeoff"](point(22.3, 114.17));
+    frames(30);
     engine["land"](point(31.23, 121.47));
-    engine.setVehicle("train");
+    engine.setPins([
+      { key: "sha:me", stop: "sha", at: { lat: 31.23, lng: 121.47 }, color: 0 },
+      { key: "sha:ada", stop: "sha", at: { lat: 31.23, lng: 121.47 }, color: 1 },
+    ]);
     frames(1);
-    expect(own(engine)!.vehicle).toBe("train");
-    engine.setVehicle("flight");
+    expect(left()).toBe(1);
+    // nothing drops while the plane is still on the ground
+    for (const p of pins().values()) expect(p.h).toBe(Infinity);
+    frames(30); // 0.5 s: shrinking away
+    expect(left()).toBeGreaterThan(0);
+    expect(left()).toBeLessThan(1);
+    drawGL.mockClear();
+    frames(15); // the plane has gone, and the first pin is falling
+    expect(left()).toBe(0);
+    const [first, second] = [...pins().values()];
+    expect(first.h).toBeGreaterThan(0);
+    expect(first.h).toBeLessThan(4);
+    // the second rider's pin follows a moment later
+    expect(second.t0).toBeGreaterThan(first.t0);
+    expect(drawGL.mock.calls.length).toBeGreaterThanOrEqual(10);
+    frames(60);
+    // in: the point sunk a little way into the ground, the spring settled
+    for (const p of pins().values()) {
+      expect(p.h).toBeLessThan(0);
+      expect(Math.abs(p.squash)).toBeLessThan(0.01);
+    }
+  });
+
+  it("drops pins at once when nothing is landing, and fans a stop's riders out from its point", () => {
+    const { engine, frames } = setup();
+    type Pin = { h: number; g: Vec3; fan: number };
+    const pins = () => (engine as unknown as { pins: Map<string, Pin> }).pins;
     frames(1);
-    expect(own(engine)!.vehicle).toBe("flight");
-    engine.setVehicle("ferry");
-    engine.cancel();
-    engine["takeoff"](point(22.3, 114.17));
-    expect(own(engine)!.vehicle).toBe("flight");
+    const at = { lat: 35.68, lng: 139.77 };
+    engine.setPins([
+      { key: "a", stop: "tyo", at, color: 0 },
+      { key: "b", stop: "tyo", at, color: 1 },
+      { key: "c", stop: "tyo", at, color: 2 },
+      { key: "d", stop: "osa", at: { lat: 34.73, lng: 135.5 }, color: 3 },
+    ]);
+    frames(1);
+    const list = [...pins().values()];
+    // reduced motion: straight in
+    for (const p of list) expect(p.h).toBeLessThan(0);
+    // all stuck in the stop itself, leaning left to right
+    for (const p of list.slice(0, 3)) expect(angle(p.g, point(at.lat, at.lng))).toBeLessThan(1e-9);
+    expect(list.slice(0, 3).map((p) => p.fan)).toEqual([-0.8, 0, 0.8]);
+    // alone at its stop, a pin stands straight
+    expect(list[3].fan).toBe(0);
+    engine.setPins([{ key: "d", stop: "osa", at: { lat: 34.73, lng: 135.5 }, color: 3 }]);
+    expect([...pins().keys()]).toEqual(["d"]);
+  });
+
+  it("leans each pin back so its needle shows from above, and casts its shadow down and to the right", () => {
+    const { engine, state, frames } = setup();
+    frames(1);
+    engine.setPins([{ key: "a", stop: "s", at: { lat: 0, lng: 0 }, color: 0 }]);
+    engine.flyTo({ lat: 0, lng: 0 }, 20);
+    frames(200);
+    const c = state.camera();
+    const L = norm(add(add(mul(c.R, -0.5), mul(c.U, 0.55)), mul(c.F, -0.68)));
+    const [f] = (engine as unknown as { pinFrames(c: unknown, L: Vec3, size: number): { tip: Vec3; Z: Vec3; shadowHead: Vec3 }[] })
+      .pinFrames(c, L, 0.05);
+    const tip = state.proj(f.tip)!;
+    const head = state.proj(add(f.tip, f.Z))!;
+    const shadow = state.proj(f.shadowHead)!;
+    // the head is above its point on screen, and its shadow falls below and to the right of it
+    expect(head.y).toBeLessThan(tip.y - 5);
+    expect(shadow.x).toBeGreaterThan(head.x);
+    expect(shadow.y).toBeGreaterThan(head.y);
   });
 
   it("turns into whatever the leg being drawn looks like, once the guess has held", () => {
@@ -491,14 +555,18 @@ describe("vehicles", () => {
     expect(own(engine)!.next).toBe("train");
   });
 
+  // a guess that has already held, so the plane turns into `v` on the next frame
+  const want = (engine: unknown, v: string) =>
+    ((engine as { want: unknown }).want = { vehicle: v, t: -Infinity, checked: Infinity });
+
   it("pops between vehicles over a quarter second, redrawing as it goes", () => {
     const { engine, state, frames, drawGL } = setup();
     state.reduceMotion = false;
     engine["takeoff"](point(22.3, 114.17));
-    engine["land"](point(31.23, 121.47));
-    frames(120);
+    want(engine, "flight");
+    frames(60);
     drawGL.mockClear();
-    engine.setVehicle("bus");
+    want(engine, "bus");
     frames(3);
     expect(own(engine)!.vehicle).toBe("flight");
     expect(own(engine)!.swap).toBeGreaterThan(0);
@@ -512,13 +580,13 @@ describe("vehicles", () => {
     const { engine, state, frames } = setup();
     state.reduceMotion = false;
     engine["takeoff"](point(22.3, 114.17));
-    engine["land"](point(31.23, 121.47));
-    engine.setVehicle("train");
+    want(engine, "train");
     frames(10);
     const before = own(engine)!.swap;
     expect(before).toBeGreaterThan(0.5);
-    engine.setVehicle("bus");
-    expect(own(engine)!.swap).toBeCloseTo(1 - before);
+    want(engine, "bus");
+    frames(1);
+    expect(own(engine)!.swap).toBeLessThan(0.5);
     frames(30);
     expect(own(engine)!.vehicle).toBe("bus");
   });
