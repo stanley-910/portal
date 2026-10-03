@@ -27,7 +27,7 @@ describe("tripContext", () => {
       legs: { l1: leg("hk", "sh", "2026-10-09", ["a"]), l2: leg("sh", "tyo", "2026-10-12", ["a"]) },
     };
     const ctx = tripContext(plan, "a");
-    expect(ctx.line).toBe("Hong Kong → Shanghai → Tokyo · Fri 9 Oct · 2 people");
+    expect(ctx.line).toBe("Hong Kong → Tokyo · 2 people");
     expect(ctx.chips).toEqual(["How does Joon get to Shanghai?", "How do we get back to Hong Kong?", "Who pays what?"]);
   });
 
@@ -42,6 +42,6 @@ describe("tripContext", () => {
       stops,
       legs: { l1: leg("hk", "sh", "2026-10-09", ["a"]), l2: leg("sh", "sel", "2026-10-10", ["a"]), l3: leg("sel", "tyo", "2026-10-11", ["a"]) },
     };
-    expect(tripContext(plan, "a").line).toBe("Hong Kong → … → Tokyo · Fri 9 Oct");
+    expect(tripContext(plan, "a").line).toBe("Hong Kong → Tokyo");
   });
 });

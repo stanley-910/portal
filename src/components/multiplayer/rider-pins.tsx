@@ -1,10 +1,20 @@
 "use client";
 
 import { useSelf } from "@liveblocks/react";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type RefObject } from "react";
 
 import type { GlobePin, TripGlobeHandle } from "@/components/trip-globe";
-import { usePlanLegs, usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
+import { usePlanActions, usePlanLegs, usePlanMembers, type EditResult, type PlanLeg } from "@/lib/trip/plan";
+import { stopFromPoint } from "@/lib/trip/stops";
+
+/** Pointer travel before a press on a stop's pins becomes a drag rather than a click. */
+const SLOP = 5;
+/** Why a dropped stop didn't move, said where it was dropped. */
+const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
+  gone: "That stop was removed.",
+  locked: "A leg there is being booked, so it can't move.",
+  replaced: "That stop changed. Try again.",
+};
 
 type Arrival = { stop: PlanLeg["to"]; riders: string[] };
 
@@ -33,7 +43,8 @@ const names = new Intl.ListFormat("en", { type: "conjunction" });
 
 /**
  * A pin dropped at each stop the trip goes to for every rider arriving there, in their member colour; the globe
- * draws them. Pointing at a stop's pins names its riders, and clicking them opens the trip plan.
+ * draws them. Pointing at a stop's pins names its riders, clicking them opens the trip plan, and dragging them moves
+ * the stop for everyone: its legs search again from where it's dropped.
  */
 export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle | null>; onOpen: () => void }) {
   const legs = usePlanLegs();
@@ -59,9 +70,28 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
   );
 }
 
-/** An unseen button over a stop's pins: their riders' names on a label while pointed at, the plan on a click. */
-function PinTarget({ globe, stop, who, onOpen }: { globe: RefObject<TripGlobeHandle | null>; stop: Arrival["stop"]; who: string; onOpen: () => void }) {
+/**
+ * An unseen button over a stop's pins: their riders' names on a label while pointed at, the plan on a click. Dragged,
+ * the globe lifts the stop's pins and carries them, routes and all, with the place they'd land at on a tag beside the
+ * pointer; dropping them moves the stop there, and Escape puts them back.
+ */
+function PinTarget({
+  globe,
+  stop,
+  who,
+  onOpen,
+}: {
+  globe: RefObject<TripGlobeHandle | null>;
+  stop: Arrival["stop"];
+  who: string;
+  onOpen: () => void;
+}) {
   const target = useRef<HTMLButtonElement>(null);
+  const dragged = useRef(false);
+  const { moveStop } = usePlanActions();
+  // while dragging: where the pointer is in the overlay, and the place under it
+  const [drag, setDrag] = useState<{ x: number; y: number; name: string | null } | null>(null);
+  const [notice, setNotice] = useState<{ x: number; y: number; text: string } | null>(null);
   const id = stop.id;
   useEffect(() => {
     const g = globe.current;
@@ -80,19 +110,97 @@ function PinTarget({ globe, stop, who, onOpen }: { globe: RefObject<TripGlobeHan
     place();
     return g.onFrame(place);
   }, [globe, id]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const press = (event: PointerEvent<HTMLButtonElement>) => {
+    const g = globe.current;
+    const box = target.current?.offsetParent?.getBoundingClientRect();
+    if (!g || !box || event.button !== 0) return;
+    const from = { x: event.clientX, y: event.clientY };
+    const handle = event.currentTarget;
+    const pointer = event.pointerId;
+    dragged.current = false;
+    const at = (e: globalThis.PointerEvent) => ({ x: e.clientX - box.left, y: e.clientY - box.top });
+    const move = (e: globalThis.PointerEvent) => {
+      if (!dragged.current && Math.hypot(e.clientX - from.x, e.clientY - from.y) < SLOP) return;
+      if (!dragged.current) {
+        dragged.current = true;
+        // best effort: a pointer that's already gone can't be captured, and the drag works without it
+        try {
+          handle.setPointerCapture(pointer);
+        } catch {}
+      }
+      const p = at(e);
+      // the pins hang with their heads under the pointer; the place is the ground below them
+      const place = g.liftStop(id, p.x, p.y);
+      setDrag({ ...p, name: place?.name ?? null });
+    };
+    const stopListening = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", drop);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("keydown", escape);
+      setDrag(null);
+    };
+    const drop = (e: globalThis.PointerEvent) => {
+      stopListening();
+      if (!dragged.current) return;
+      const p = at(e);
+      const place = g.landing(id);
+      // off the globe, the pins go back
+      if (!place) return g.dropStop(id, null);
+      const result = moveStop(id, stopFromPoint(place.at, place.hub));
+      g.dropStop(id, result === "ok" ? place.at : null);
+      if (result !== "ok") setNotice({ ...p, text: REFUSED[result] });
+    };
+    const cancel = () => {
+      stopListening();
+      g.dropStop(id, null);
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cancel();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", drop);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("keydown", escape);
+  };
+
   return (
-    <button
-      ref={target}
-      type="button"
-      className="rp"
-      data-globe-follow
-      style={{ visibility: "hidden" }}
-      aria-label={`${who} to ${stop.name}. Open the plan`}
-      onClick={onOpen}
-    >
-      <span className="rp-name" aria-hidden>
-        {who}
-      </span>
-    </button>
+    <>
+      <button
+        ref={target}
+        type="button"
+        className="rp"
+        data-globe-follow
+        data-dragging={drag ? "" : undefined}
+        style={{ visibility: "hidden" }}
+        aria-label={`${who} to ${stop.name}. Open the plan, or drag to move the stop`}
+        onPointerDown={press}
+        onClick={() => {
+          // the press that ended a drag isn't a click
+          if (dragged.current) dragged.current = false;
+          else onOpen();
+        }}
+      >
+        <span className="rp-name" aria-hidden>
+          {who}
+        </span>
+      </button>
+      {drag ? (
+        <div className="rp-ghost" style={{ transform: `translate(${Math.round(drag.x)}px, ${Math.round(drag.y)}px)` }} aria-hidden>
+          <span className="rp-ghost-name">{drag.name ? `Move ${stop.name} to ${drag.name}` : `Move ${stop.name}`}</span>
+        </div>
+      ) : null}
+      {notice ? (
+        <p className="rp-ghost rp-ghost-name rp-notice" role="status" style={{ transform: `translate(${Math.round(notice.x)}px, ${Math.round(notice.y)}px)` }}>
+          {notice.text}
+        </p>
+      ) : null}
+    </>
   );
 }

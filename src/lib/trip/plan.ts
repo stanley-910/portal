@@ -349,6 +349,24 @@ export function usePlanActions() {
     writeDates(storage, dates.setEnds(datesIn(storage), date));
   }, []);
 
+  /**
+   * Moves a stop to a new place, for everyone: every leg into or out of it searches again from there, and its stays
+   * stay with it. Refused while one of those legs is being booked, since its flights are fixed.
+   */
+  const moveStopMutation = useMutation(({ storage }, stopId: string, to: Stop) => {
+    const stop = storage.get("stops").get(stopId);
+    if (!stop) return { result: "gone" as EditResult, searches: [] };
+    const touching = [...storage.get("legs").entries()].filter(([, l]) => l.get("from") === stopId || l.get("to") === stopId);
+    if (touching.some(([, l]) => l.get("booking"))) return { result: "locked" as EditResult, searches: [] };
+    stop.update(to);
+    const searches: { legId: string; searchId: string }[] = [];
+    for (const [legId] of touching) {
+      const searchId = reset(storage, legId, {});
+      if (searchId) searches.push({ legId, searchId });
+    }
+    return { result: "ok" as EditResult, searches };
+  }, []);
+
   /** Removes a leg, and any stop no other leg or stay uses. Its riders' stays stay. */
   const removeLegMutation = useMutation(({ storage }, legId: string) => {
     const legs = storage.get("legs");
@@ -391,6 +409,13 @@ export function usePlanActions() {
     setLeave: (date: string | null) => setLeaveMutation(date),
     setColor: (color: number) => setColorMutation(color),
     setEnds: (date: string | null) => setEndsMutation(date),
+    /** Moves a stop for everyone; its legs search again. Says why when it can't. */
+    moveStop: (stopId: string, to: Stop): EditResult => {
+      const { result, searches } = moveStopMutation(stopId, to);
+      for (const s of searches) search(s.legId, s.searchId);
+      if (result === "ok") retitle();
+      return result;
+    },
     removeLeg: (legId: string) => {
       removeLegMutation(legId);
       retitle();

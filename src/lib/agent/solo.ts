@@ -7,7 +7,7 @@ import { z } from "zod";
 import { dateIn } from "@/lib/agent/dates";
 import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { legMarks, midpoint, type AgentMark } from "@/lib/agent/marks";
+import { legMarks, midpoint, SAUCER_FLY_MS, type AgentMark } from "@/lib/agent/marks";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
 import { citiesIn, MODEL, REASONING_EFFORT } from "@/lib/agent/run";
 import { showDate } from "@/lib/agent/snapshot";
@@ -105,6 +105,10 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
           const day = dates[i] ?? nextDay(dates[dates.length - 1], i - dates.length + 1);
           return { from: resolved[i], to, date: day };
         });
+        // send the saucer to where the trip ends and let it get there, so the trip lands under it
+        const end = legs.at(-1)!.to;
+        emit({ t: "activity", label: "planning the trip", at: { lat: end.lat, lng: end.lng } });
+        await new Promise((done) => setTimeout(done, SAUCER_FLY_MS));
         emit({ t: "trip", legs });
         emit({ t: "marks", marks: legMarks(state.trip, legs) });
         state.trip = legs;

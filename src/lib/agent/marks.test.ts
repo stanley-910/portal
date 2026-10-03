@@ -23,4 +23,8 @@ describe("legMarks", () => {
     const marks = legMarks([{ from: hk, to: sh }, { from: sh, to: hk }], [{ from: hk, to: sh }, { from: sh, to: tk }]);
     expect(marks.map((m) => m.text)).toEqual(["Removed Shanghai → Hong Kong", "Added Shanghai → Tokyo"]);
   });
+
+  it("pops each over where its leg ends, not out at sea between", () => {
+    expect(legMarks([], [{ from: hk, to: tk }])[0]!.at).toEqual({ lat: tk.lat, lng: tk.lng });
+  });
 });

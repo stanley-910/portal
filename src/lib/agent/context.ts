@@ -1,7 +1,5 @@
-import { showDate } from "@/lib/agent/snapshot";
-
 // What the chat's header says about the trip, and what it suggests asking Pip next, from the plan as it stands:
-// the route so far, and the next gap in it (someone with no way there, a leg nobody has compared, no way home).
+// where it starts and ends and who's on it, kept short enough for one line, and the next gap in it (someone with no way there, a leg nobody has compared, no way home).
 
 /** The parts of Storage this reads; both the room's snapshot and the server's JSON fit. */
 export type PlanView = {
@@ -22,16 +20,12 @@ export function tripContext(plan: PlanView, me: string | undefined): TripContext
   const legs = Object.values(plan.legs ?? {}).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
   const group = members.length > 1;
 
-  // the route as one chain of places, repeats folded: Hong Kong → Shanghai → Tokyo
-  const places: string[] = [];
-  for (const leg of legs) {
-    if (places.at(-1) !== name(leg.from)) places.push(name(leg.from));
-    places.push(name(leg.to));
-  }
-  const route = places.length > 3 ? `${places[0]} → … → ${places.at(-1)}` : places.join(" → ");
-  const line = [route || "No legs yet", legs[0] ? showDate(legs[0].date) : null, group ? `${members.length} people` : null]
-    .filter(Boolean)
-    .join(" · ");
+  // where it starts and ends, short enough for the header's one line: "Hong Kong → Tokyo · 3 people"
+  const city = (stop: string) => name(stop).replace(/\s*\([^)]*\)$/, "");
+  const first = legs[0];
+  const last = legs.at(-1);
+  const route = first && last ? (city(first.from) === city(last.to) ? `${city(first.from)} round trip` : `${city(first.from)} → ${city(last.to)}`) : null;
+  const line = [route ?? "No legs yet", group ? `${members.length} people` : null].filter(Boolean).join(" · ");
 
   if (!legs.length) {
     const chips = group

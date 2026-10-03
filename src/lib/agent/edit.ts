@@ -2,7 +2,7 @@ import "server-only";
 
 import { LiveMap, LiveObject } from "@liveblocks/node";
 
-import { midpoint, type AgentMark } from "@/lib/agent/marks";
+import type { AgentMark } from "@/lib/agent/marks";
 import type { Handles, PlanJson } from "@/lib/agent/snapshot";
 import { showDate } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
@@ -76,6 +76,36 @@ export function resolvePlace(text: string): { stop: Stop } | { refusal: Omit<Ref
 }
 
 type LegJson = NonNullable<PlanJson["legs"]>[string];
+
+/**
+ * Where the first of these ops changes the trip, read before any is applied, so Pip's saucer can get there first: a
+ * leg's destination, or a stay's stop. Null when none says (a leave date).
+ */
+export function editTarget(plan: PlanJson, h: Handles, ops: EditOp[]): { lat: number; lng: number } | null {
+  const stop = (id: string | undefined) => (id ? plan.stops?.[id] : undefined);
+  const point = (s: { lat: number; lng: number } | undefined) => (s ? { lat: s.lat, lng: s.lng } : null);
+  for (const op of ops) {
+    let at: { lat: number; lng: number } | null = null;
+    if (op.op === "add_leg") {
+      const to = op.to;
+      if ("at" in to) at = point(to.at);
+      else if ("stop" in to) at = point(stop(h.id.get(to.stop)));
+      else {
+        const r = resolvePlace(to.place);
+        at = "stop" in r ? point(r.stop) : null;
+      }
+    } else if (op.op === "set_date" || op.op === "set_riders" || op.op === "remove_leg") {
+      at = point(stop(plan.legs?.[h.id.get(op.leg) ?? ""]?.to));
+    } else if (op.op === "set_stay") {
+      const stay = op.stay ? staysOf(plan as SplitInput).find((s) => s.id === h.id.get(op.stay!)) : undefined;
+      at = point(stop(op.stop ? h.id.get(op.stop) : stay?.stop));
+    } else if (op.op === "remove_stay") {
+      at = point(stop(staysOf(plan as SplitInput).find((s) => s.id === h.id.get(op.stay))?.stop));
+    }
+    if (at) return at;
+  }
+  return null;
+}
 
 /**
  * Applies ops for the agent as one changeset, then starts the searches they need. A run passes `until`, when its
@@ -224,12 +254,11 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     const legs = root.get("legs");
     const stopName = (id: string) => created[id]?.name ?? stops.get(id)?.get("name") ?? plan.stops?.[id]?.name ?? "?";
     const stopAt = (id: string) => created[id] ?? stops.get(id)?.toJSON() ?? plan.stops?.[id] ?? null;
-    // where a leg's mark goes: the middle of its route
+    // where a leg's mark goes: the stop it ends at, where its pin drops
     const legAt = (id: string) => {
       const l = legs.get(id);
-      const a = l && stopAt(l.get("from"));
       const b = l && stopAt(l.get("to"));
-      return a && b ? midpoint(a, b) : null;
+      return b ? { lat: b.lat, lng: b.lng } : null;
     };
     const mark = (text: string, at: AgentMark["at"]) => marks.push({ text, at });
     const stopFor = (s: string | Stop) => {

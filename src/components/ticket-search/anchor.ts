@@ -9,11 +9,12 @@ const GAP = 56;
 /** Clearance kept above Pip's launcher and the bill. */
 const PIP_GAP = 8;
 
-type Side = "right" | "left" | "under" | "pinned";
+type Side = "right" | "left" | "pinLeft" | "pinRight";
 
 /**
- * Keeps a card beside a route as the globe turns: on the side of the points with the most free space (right, left or
- * under), sticking with a side while it still fits, and pinned to the left edge when nothing fits. It stays below the
+ * Keeps a card beside a route as the globe turns: on the side of the points with the most free space (right or left),
+ * sticking with a side while it still fits. When neither fits it goes to the top of the screen's side with more room,
+ * never across the middle, and stays there while the view moves. It stays below the
  * nav bar and above Pip and anything marked `data-anchor-avoid`, and sets `--anchor-max-h` to the height left between
  * them, so a tall card scrolls instead.
  *
@@ -76,27 +77,18 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
         put(x, Math.min(Math.max(manual.current.y, top), Math.max(top, bottom - el.offsetHeight)));
         return;
       }
-      const h = el.offsetHeight;
-      const room = { right: W - maxX - EDGE, left: minX - EDGE, under: H - maxY - EDGE };
-      const fits = { right: room.right >= w, left: room.left >= w, under: room.under >= Math.min(h, 240), pinned: true };
+      const room = { right: W - maxX - EDGE, left: minX - EDGE };
+      const fits = { right: room.right >= w, left: room.left >= w, pinLeft: true, pinRight: true };
+      // beside the route where there's room; when there's none (a trip across the globe, or zoomed right in), at the top
+      // of the screen's side with more room, never across the middle, and it stays there while the view moves
       if (!side || !fits[side]) {
-        side =
-          fits.right || fits.left
-            ? room.right >= room.left && fits.right
-              ? "right"
-              : fits.left
-                ? "left"
-                : "right"
-            : fits.under
-              ? "under"
-              : "pinned";
+        side = fits.right || fits.left ? (room.right >= room.left && fits.right ? "right" : fits.left ? "left" : "right") : room.left > room.right ? "pinLeft" : "pinRight";
       }
-      const x =
-        side === "right" ? maxX : side === "left" ? minX - w : side === "under" ? clampX((minX + maxX) / 2 - w / 2) : EDGE;
+      const x = side === "right" ? maxX : side === "left" ? minX - w : side === "pinLeft" ? EDGE : W - w - EDGE;
       const bottom = fit(x);
       const height = el.offsetHeight;
       const clampY = (y: number) => Math.min(Math.max(y, top), Math.max(top, bottom - height));
-      const y = side === "under" ? clampY(maxY) : side === "pinned" ? top : clampY((minY + maxY) / 2 - height / 2);
+      const y = side === "pinLeft" || side === "pinRight" ? top : clampY((minY + maxY) / 2 - height / 2);
       put(x, y);
       if (!placed.current) {
         placed.current = true;

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LegBooking, Stop } from "@/lib/liveblocks/types";
 
-import { editPlan, undoChangeset } from "./edit";
+import { editPlan, editTarget, undoChangeset } from "./edit";
 import { handlesFor, type PlanJson } from "./snapshot";
 
 // A room's Storage held in memory: editPlan writes to it through the same LiveObject API as a real room.
@@ -85,17 +85,22 @@ describe("editPlan", () => {
     expect(json().stops?.bt).toBeUndefined();
   });
 
-  it("marks each change for the globe, over the middle of its leg", async () => {
+  it("marks each change for the globe, over where its leg ends", async () => {
     const h = handlesFor(plan);
     const result = await editPlan("room", plan, h, [
       { op: "remove_leg", leg: "L3" },
       { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { stop: h.stop.get("bj")! }, date: "2026-10-05", riders: ["M1"] },
     ], "agent:pip");
     expect(result.marks.map((m) => m.text)).toEqual(["Removed Taichung (Qingshui) → Bintulu", "Added Hong Kong → Beijing"]);
-    // between Taichung and Bintulu, though Bintulu went with the leg
-    expect(result.marks[0].at!.lat).toBeCloseTo(13.7, 0);
-    expect(result.marks[0].at!.lng).toBeGreaterThan(113);
-    expect(result.marks[0].at!.lng).toBeLessThan(121);
+    // at Bintulu, though it went with the leg, and at Beijing: never out at sea between
+    expect(result.marks.map((m) => m.at)).toEqual([{ lat: 3.12, lng: 113.02 }, { lat: 39.9, lng: 116.4 }]);
+  });
+
+  it("knows where an edit lands before making it, so the saucer can get there first", () => {
+    const h = handlesFor(plan);
+    expect(editTarget(plan, h, [{ op: "add_leg", from: { stop: "S1" }, to: { stop: h.stop.get("bj")! }, date: "2026-10-05", riders: ["M1"] }])).toEqual({ lat: 39.9, lng: 116.4 });
+    expect(editTarget(plan, h, [{ op: "remove_leg", leg: "L3" }])).toEqual({ lat: 3.12, lng: 113.02 });
+    expect(editTarget(plan, h, [{ op: "set_leaves", member: "M1", date: null }])).toBeNull();
   });
 });
 

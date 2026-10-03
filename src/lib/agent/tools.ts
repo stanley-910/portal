@@ -3,14 +3,14 @@ import "server-only";
 import { tool } from "ai";
 import { z } from "zod";
 
-import { editPlan, resolvePlace, type EditOp, type PlaceRef } from "@/lib/agent/edit";
+import { editPlan, editTarget, resolvePlace, type EditOp, type PlaceRef } from "@/lib/agent/edit";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
 import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import type { AgentMark } from "@/lib/agent/marks";
+import { SAUCER_FLY_MS, type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -220,8 +220,11 @@ export function agentTools(ctx: ToolContext) {
       inputSchema: z.object({ ops: z.array(editOp).min(1) }),
       execute: async ({ ops }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
-        ctx.activity("editing the trip");
         const { plan, handles } = await ctx.load();
+        // send the saucer to where the change goes and let it get there, so the change lands under it
+        const target = editTarget(plan, handles, ops as EditOp[]);
+        ctx.activity("editing the trip", target ?? undefined);
+        if (target) await new Promise((done) => setTimeout(done, Math.min(SAUCER_FLY_MS, Math.max(0, ctx.until - Date.now() - 1000))));
         const result = await editPlan(ctx.roomId, plan, handles, ops as EditOp[], ctx.agentId, ctx.until);
         ctx.marks(result.marks);
         if (result.changesetId) {

@@ -13,6 +13,12 @@ export type AgentMark = {
 
 const R = Math.PI / 180;
 
+/**
+ * How long Pip gives its saucer to reach a place before changing the trip there, so the change lands under it rather
+ * than ahead of it.
+ */
+export const SAUCER_FLY_MS = 700;
+
 /** The middle of the great circle between two places: where a leg's mark goes. */
 export function midpoint(a: Point, b: Point): Point {
   const v = (p: Point) => [Math.cos(p.lat * R) * Math.sin(p.lng * R), Math.sin(p.lat * R), Math.cos(p.lat * R) * Math.cos(p.lng * R)];
@@ -28,6 +34,7 @@ export function legMarks(before: { from: Point & { name: string }; to: Point & {
   const key = (l: (typeof before)[number]) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
   const had = new Set(before.map(key));
   const has = new Set(after.map(key));
-  const mark = (did: string, l: (typeof before)[number]): AgentMark => ({ text: `${did} ${l.from.name} → ${l.to.name}`, at: midpoint(l.from, l.to) });
+  // over where the leg ends, where its pin drops
+  const mark = (did: string, l: (typeof before)[number]): AgentMark => ({ text: `${did} ${l.from.name} → ${l.to.name}`, at: { lat: l.to.lat, lng: l.to.lng } });
   return [...before.filter((l) => !has.has(key(l))).map((l) => mark("Removed", l)), ...after.filter((l) => !had.has(key(l))).map((l) => mark("Added", l))];
 }

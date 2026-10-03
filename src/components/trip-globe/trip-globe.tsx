@@ -36,6 +36,17 @@ export interface TripGlobeHandle {
   setPins(pins: GlobePin[]): void;
   /** Where the pins at a stop stand on screen: the middle of their heads and a radius round them. Null when hidden. */
   pinSpot(stop: string): { x: number; y: number; r: number } | null;
+  /**
+   * Picks up a stop's pins by their heads at screen point (x, y), CSS px, and carries them, its routes following; call
+   * again as the pointer moves. Returns where they'd land, with its nearest hub and name, or null off the globe.
+   */
+  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null } | null;
+  /** Where a lifted stop's pins would land now, or null when none is lifted. */
+  landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null } | null;
+  /** Drops a lifted stop's pins onto `at`, or back where they stood when null. */
+  dropStop(stop: string, at: LatLng | null): void;
+  /** The ground under a screen point (CSS px from the globe's corner), its nearest hub and the name printed there. */
+  placeAt(x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null } | null;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
@@ -271,6 +282,10 @@ export function TripGlobe({
         engineRef.current?.setPins(list);
       },
       pinSpot: (stop) => engineRef.current?.pinSpot(stop) ?? null,
+      placeAt: (x, y) => engineRef.current?.placeAt(x, y) ?? null,
+      liftStop: (stop, x, y) => engineRef.current?.liftStop(stop, x, y) ?? null,
+      landing: (stop) => engineRef.current?.landing(stop) ?? null,
+      dropStop: (stop, at) => engineRef.current?.dropStop(stop, at),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
         const listeners = frameListeners.current;

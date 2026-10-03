@@ -23,7 +23,14 @@
 
 .pip-nudge { position: relative; margin-bottom: 46px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; filter: drop-shadow(3px 3px 0 var(--sticker-shadow)); }
 /* a sticker speech bubble with pixel-stepped round corners: an ink layer, and the paper layer 2px inside it */
-.pip-nudge-inner { --pip-px-round: polygon(0px 8px, 2px 8px, 2px 4px, 4px 4px, 4px 2px, 8px 2px, 8px 0px, calc(100% - 8px) 0px, calc(100% - 8px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 8px, calc(100% - 0px) 8px, calc(100% - 0px) calc(100% - 8px), calc(100% - 2px) calc(100% - 8px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 8px) calc(100% - 2px), calc(100% - 8px) calc(100% - 0px), 8px calc(100% - 0px), 8px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 8px), 0px calc(100% - 8px)); display: block; width: max-content; max-width: 156px; padding: 2px; background: var(--sticker-ink); clip-path: var(--pip-px-round); }
+/* Pip's pixel bubble: stepped corners, a 2px frame (the outer shape) round the fill (the inner one). By day the
+   speech bubble's cream on ink; at night the page's dark with light ink, so they read as pixels on the night panel.
+   The speech bubble over the globe is a sticker and stays cream either way. */
+.pip-launcher, .pip-panel { --pip-px-fill: var(--star-light); --pip-px-ink: var(--sticker-ink); --pip-px-frame: var(--sticker-ink); --pip-px-hover: var(--sticker-fill); }
+.dark .pip-panel { --pip-px-fill: var(--paper); --pip-px-ink: var(--ink); --pip-px-frame: var(--ink-muted); --pip-px-hover: var(--control-hover); }
+.pip-panel { --pip-px-round-sm: polygon(0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px, calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, calc(100% - 0px) 4px, calc(100% - 0px) calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) calc(100% - 0px), 4px calc(100% - 0px), 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)); --pip-px-round-lg: polygon(0px 6px, 2px 6px, 2px 4px, 4px 4px, 4px 2px, 6px 2px, 6px 0px, calc(100% - 6px) 0px, calc(100% - 6px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 6px, calc(100% - 0px) 6px, calc(100% - 0px) calc(100% - 6px), calc(100% - 2px) calc(100% - 6px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 6px) calc(100% - 2px), calc(100% - 6px) calc(100% - 0px), 6px calc(100% - 0px), 6px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 6px), 0px calc(100% - 6px)); }
+.pip-launcher, .pip-panel { --pip-px-round: polygon(0px 8px, 2px 8px, 2px 4px, 4px 4px, 4px 2px, 8px 2px, 8px 0px, calc(100% - 8px) 0px, calc(100% - 8px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 8px, calc(100% - 0px) 8px, calc(100% - 0px) calc(100% - 8px), calc(100% - 2px) calc(100% - 8px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 8px) calc(100% - 2px), calc(100% - 8px) calc(100% - 0px), 8px calc(100% - 0px), 8px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 8px), 0px calc(100% - 8px)); }
+.pip-nudge-inner { display: block; width: max-content; max-width: 156px; padding: 2px; background: var(--sticker-ink); clip-path: var(--pip-px-round); }
 .pip-nudge-text { display: grid; padding: 5px 10px; background: var(--star-light); color: var(--sticker-ink); clip-path: var(--pip-px-round); font-family: var(--font-sans); font-size: 13px; line-height: 17px; font-weight: 600; }
 .pip-nudge-ghost, .pip-nudge-typed { grid-area: 1 / 1; }
 .pip-nudge-ghost { visibility: hidden; }
@@ -36,7 +43,11 @@
 
 /* Panel */
 /* sized to the conversation, growing up from the corner until it reaches the nav bar, then scrolling */
-.pip-panel { position: absolute; right: var(--space-6); bottom: var(--space-6); max-height: calc(100% - 92px - var(--space-6)); min-height: 280px; z-index: 30; display: flex; flex-direction: column; width: min(380px, calc(100vw - 48px)); background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--shadow-float); overflow: hidden; transform-origin: 100% 100%; animation: pip-open 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; will-change: transform, opacity; font-family: var(--font-sans); }
+.pip-panel { position: absolute; right: var(--space-6); bottom: var(--space-6); max-height: calc(100% - 92px - var(--space-6)); min-height: 280px; z-index: 30; display: flex; flex-direction: column; width: min(380px, calc(100vw - 48px)); color: var(--ink); isolation: isolate; filter: drop-shadow(3px 3px 0 var(--sticker-shadow)); overflow: hidden; transform-origin: 100% 100%; animation: pip-open 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; will-change: transform, opacity; font-family: var(--font-sans); }
+/* the panel is a pixel bubble too: 2px steps round 6px corners, a 2px frame (::before) round its fill (::after) */
+.pip-panel::before, .pip-panel::after { content: ""; position: absolute; z-index: -1; clip-path: var(--pip-px-round-lg); pointer-events: none; }
+.pip-panel::before { inset: 0; background: var(--pip-px-frame); }
+.pip-panel::after { inset: 2px; background: var(--paper-raised); }
 .pip-head { position: relative; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 var(--space-2) 0 var(--space-3); border-bottom: var(--line-control) solid var(--line); flex: none; }
 .pip-head-name { font-size: 14px; line-height: 18px; font-weight: 600; }
 .pip-head-sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -104,29 +115,28 @@
 /* Composer */
 .pip-composer { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; flex: none; }
 /* Suggested messages: a drop-down stack of small "you" bubbles, right-aligned where your messages go */
-.pip-suggest { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding: 4px 12px 6px; flex: none; }
-.pip-suggest-toggle { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--ink-muted); font-size: 12px; line-height: 16px; font-weight: 600; cursor: pointer; }
-.pip-suggest-toggle::before { content: ""; position: absolute; inset: -14px -8px; }
-.pip-suggest-toggle:hover { color: var(--ink); }
-.pip-suggest-toggle svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms ease; }
-.pip-suggest-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.pip-suggest-list { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 88%; }
-.pip-suggestion { position: relative; min-height: 30px; padding: 5px 11px; border: var(--line-control) solid var(--control-border); border-radius: 14px 4px 14px 14px; background: var(--paper); color: var(--ink); font-size: 13px; line-height: 18px; text-align: right; cursor: pointer; animation: pip-suggest-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-/* each bubble looks 30px tall; its tap area reaches 44px into the gaps */
-.pip-suggestion::before { content: ""; position: absolute; inset: -7px 0; }
-.pip-suggestion:hover:not(:disabled) { background: var(--control-hover); }
-.pip-suggestion:disabled { opacity: 0.5; cursor: default; }
-/* the input and send look 36px; the row's padding (a label, so it focuses the input) and the button's ::before keep 44px tap areas */
+/* the suggestions: small pixel bubbles filing into right-aligned rows; while you type they fade out but keep their
+   space, so the panel never changes height */
+.pip-suggest { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; padding: 4px 12px 2px; flex: none; transition: opacity 120ms ease; }
+.pip-suggest[data-hidden] { opacity: 0; pointer-events: none; }
+.pip-suggestion { position: relative; flex: none; padding: 2px; border: 0; background: var(--pip-px-frame); clip-path: var(--pip-px-round-sm); cursor: pointer; animation: pip-suggest-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pip-px { display: block; padding: 3px 9px; background: var(--pip-px-fill); color: var(--pip-px-ink); clip-path: var(--pip-px-round-sm); font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; white-space: nowrap; }
+.pip-suggestion:hover:not(:disabled) .pip-px { background: var(--pip-px-hover); }
+.pip-suggestion:disabled { cursor: default; }
+.pip-suggestion:focus-visible { outline: none; background: var(--focus); }
 .pip-input-row { display: flex; gap: 6px; padding: 4px 0; margin: -4px 0; cursor: text; }
-.pip-input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper); color: var(--ink); font-size: 14px; }
-.pip-input::placeholder { color: var(--ink-muted); }
-.pip-send { position: relative; align-self: center; display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); border: 0; cursor: pointer; }
+/* the message box: the same pixel bubble, its frame in the focus colour while you type */
+.pip-input-frame { flex: 1; min-width: 0; display: flex; padding: 2px; background: var(--pip-px-frame); clip-path: var(--pip-px-round-sm); }
+.pip-input-frame:focus-within { background: var(--focus); }
+.pip-input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 0; background: var(--pip-px-fill); color: var(--pip-px-ink); clip-path: var(--pip-px-round-sm); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
+.pip-input::placeholder { color: var(--pip-px-ink); opacity: 0.55; }
+.pip-send { position: relative; align-self: center; display: grid; place-items: center; width: 34px; height: 34px; flex: none; background: var(--pip-px-ink); color: var(--pip-px-fill); border: 0; clip-path: var(--pip-px-round-sm); cursor: pointer; }
 .pip-send::before { content: ""; position: absolute; inset: -7px; }
 .pip-send:disabled { opacity: 0.45; cursor: not-allowed; }
 .pip-send svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
-.pip-suggestion:focus-visible, .pip-suggest-toggle:focus-visible, .pip-send:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pip-send:focus-visible { outline: none; background: var(--focus); }
 /* a text box shows focus on every click, not just from the keyboard; its own border carries it instead of a ring */
-.pip-input:focus { outline: none; border-color: var(--ink-muted); }
+.pip-input:focus { outline: none; }
 
 /* Pip's saucer on the globe (pip-saucer.tsx): the beam it drops when a change pops, and the pops */
 .pip-beam { position: absolute; top: 0; left: -18px; width: 36px; pointer-events: none; will-change: transform; clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%); background-image: repeating-conic-gradient(var(--star-light) 0 25%, transparent 0 50%); background-size: 4px 4px; animation: pip-blink 160ms steps(1) infinite; }

@@ -153,10 +153,15 @@ const PIN_SCALE = 1.1;
 /** The paper kept clear round a pin where a route passes under it, in px either side of its head and needle. */
 const PIN_CUT = 1.5;
 const PIN_LEAN = 0.62;
-const PIN_FALL = 4;
-const PIN_DROP = 0.42;
+const PIN_FALL = 1.5;
+const PIN_DROP = 0.3;
 const PIN_SINK = 0.05;
 const PIN_SETTLE = 0.5;
+/** A stop's pins picked up to drag hang this far up, in pin sizes, and rise to it at this rate. */
+const PIN_LIFT = 0.9;
+const PIN_LIFT_RATE = 12;
+/** How much of a raised pin's height the routes into its stop rise with it. */
+const ROUTE_LIFT = 0.35;
 const PIN_STAGGER = 0.09;
 const PIN_FAN = 0.8;
 const PIN_FAN_MAX = 2.4;
@@ -476,6 +481,11 @@ export class GlobeEngine {
     fan: number; to: number; h: number; squash: number; head: Vec3 | null;
   }>();
   private pinsMoving = false;
+  /**
+   * A stop whose pins are being dragged: where they stood, the pointer (CSS px) their heads stay under, and the ground
+   * below them, where they'd land.
+   */
+  private lift: { stop: string; from: Vec3; x: number; y: number; at: Vec3 } | null = null;
 
   // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
   /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
@@ -1423,6 +1433,15 @@ export class GlobeEngine {
   // ---------- places on screen ----------
 
   /** The place under the pointer, or null when the pointer is off the globe or has left it. */
+  /** The ground under a screen point (CSS px), its nearest hub and the name the globe prints there; null off the globe. */
+  placeAt(x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null } | null {
+    const p = this.cam ? this.pick(x, y) : null;
+    if (!p) return null;
+    const at = toLatLng(p);
+    const hub = nearestPreviewHub(at);
+    return { at, hub, name: hub && placeName(at, hub) };
+  }
+
   pointerLatLng(): LatLng | null {
     const p = this.hasPointer && this.cam ? this.pick(this.mx, this.my) : null;
     return p ? toLatLng(p) : null;
@@ -1439,6 +1458,88 @@ export class GlobeEngine {
       landed: this.mode === "landed",
       vehicle: pl.next,
     };
+  }
+
+  /**
+   * Picks up a stop's pins by their heads at screen point (x, y), CSS px, and carries them there: they rise off the
+   * ground, casting their shadows, with their heads kept under the pointer, and the routes into and out of the stop
+   * follow them. Call again as the pointer moves. Returns where they'd land, or null off the globe.
+   */
+  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null } | null {
+    if (this.lift?.stop !== stop) {
+      const pin = [...this.pins.values()].find((p) => p.stop === stop && p.h !== Infinity);
+      if (!pin) return null;
+      this.lift = { stop, from: pin.g, x, y, at: pin.g };
+    }
+    Object.assign(this.lift, { x, y });
+    this.aimLift();
+    this.glDirty = true;
+    this.hudDirty = true;
+    return this.landing(stop);
+  }
+
+  /** Where a lifted stop's pins would land now: the ground under them, its nearest hub and name. */
+  landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null } | null {
+    if (this.lift?.stop !== stop) return null;
+    const at = toLatLng(this.lift.at);
+    const hub = nearestPreviewHub(at);
+    return { at, hub, name: hub && placeName(at, hub) };
+  }
+
+  /**
+   * Lets go of a lifted stop's pins: they fall from where they hang onto `at`, or back where they stood when it's
+   * null (a cancelled or refused move), sinking in and springing back like a landing.
+   */
+  dropStop(stop: string, at: LatLng | null) {
+    const lift = this.lift;
+    if (!lift || lift.stop !== stop) return;
+    const land = at ? vecOf(at.lat * D2R, at.lng * D2R) : lift.from;
+    for (const p of this.pins.values()) {
+      if (p.stop !== stop) continue;
+      // carry on the drop from the height they're held at: h = FALL·(1−q) − SINK·q with q = (u/DROP)²
+      const q = clamp((PIN_FALL - Math.max(p.h, 0)) / (PIN_FALL + PIN_SINK), 0, 1);
+      p.t0 = this.t - (this.reduceMotion ? Infinity : PIN_DROP * Math.sqrt(q));
+      p.g = land;
+    }
+    this.lift = null;
+    this.glDirty = true;
+    this.hudDirty = true;
+  }
+
+  /**
+   * Puts a lifted stop's pins on the ground point whose pins' heads, at their current height, sit under the pointer:
+   * start under the pointer, then step back by how far the head stands off its ground point on screen.
+   */
+  private aimLift() {
+    const lift = this.lift;
+    const c = this.cam;
+    if (!lift || !c) return;
+    const pin = [...this.pins.values()].find((p) => p.stop === lift.stop);
+    const h = Math.max(pin?.h ?? 0, 0);
+    const size = S_PLANE * this.planeScale * PIN_SCALE;
+    let g = this.pick(lift.x, lift.y);
+    for (let i = 0; g && i < 3; i++) {
+      const axis = norm(add(mul(g, Math.cos(PIN_LEAN)), mul(tangent(c.U, g), Math.sin(PIN_LEAN))));
+      const head = this.proj(add(g, mul(axis, (h + PIN_HEAD_Z) * size)));
+      const foot = this.proj(g);
+      if (!head || !foot) break;
+      g = this.pick(lift.x - (head.x - foot.x), lift.y - (head.y - foot.y)) ?? g;
+    }
+    if (g) lift.at = g;
+  }
+
+  /** Where a route end at v is drawn: under a lifted stop's pins while they're carried, else v. */
+  private lifted(v: Vec3): Vec3 {
+    return this.lift && angle(v, this.lift.from) < 1e-6 ? this.lift.at : v;
+  }
+
+  /** How high a route end at v reaches: a little way up a raised pin's needle there, lifted or dropping, else the ground. */
+  private liftAlt(v: Vec3): number {
+    for (const p of this.pins.values()) {
+      if (p.h === Infinity || p.h <= 0 || angle(p.g, v) >= 1e-6) continue;
+      return p.h * S_PLANE * this.planeScale * PIN_SCALE * Math.cos(PIN_LEAN) * ROUTE_LIFT;
+    }
+    return 0;
   }
 
   /**
@@ -1465,7 +1566,8 @@ export class GlobeEngine {
       const g = vecOf(p.at.lat * D2R, p.at.lng * D2R);
       const old = this.pins.get(p.key);
       if (old) {
-        Object.assign(old, { stop: p.stop, g, color: p.color, to });
+        // pins being carried stay with the pointer; the stop's new place arrives once they're dropped
+        Object.assign(old, { stop: p.stop, g: this.lift?.stop === p.stop ? old.g : g, color: p.color, to });
         continue;
       }
       const t0 = this.reduceMotion ? -Infinity : Math.max(t, this.landingDone(g)) + PIN_STAGGER * fresh++;
@@ -2099,8 +2201,17 @@ export class GlobeEngine {
    */
   private stepPins(t: number, k: (r: number) => number) {
     let moving = false;
+    // pins being carried rise, so keep their heads under the pointer as they do
+    this.aimLift();
     for (const p of this.pins.values()) {
       p.fan = this.reduceMotion || Math.abs(p.to - p.fan) < 1e-3 ? p.to : p.fan + (p.to - p.fan) * k(8);
+      if (this.lift?.stop === p.stop && p.h !== Infinity) {
+        p.g = this.lift.at;
+        p.squash = 0;
+        p.h = this.reduceMotion ? PIN_LIFT : p.h + (PIN_LIFT - p.h) * k(PIN_LIFT_RATE);
+        moving = true;
+        continue;
+      }
       const u = t - p.t0;
       p.squash = 0;
       if (u < 0) p.h = Infinity;
@@ -3044,18 +3155,37 @@ export class GlobeEngine {
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
       // a landed route parks no vehicle: it comes down at its stop's pins, not where the plane is easing to it
+      // a stop whose pins are being carried takes its routes' ends with it, up to the pins' points
+      const o = this.lifted(r.o);
+      const target = this.lifted(r.target);
       const end: RouteEnd = r.landed
-        ? { v: this.groundEnd(r.target), alt: 0, cut: 0 }
+        ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0 }
         : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
-      this.route(ctx, r.o, end, stroke, false);
-      const op = this.proj(r.o);
+      this.route(ctx, o, end, stroke, false);
+      const op = this.proj(o);
       if (op && op.vis) {
-        if (!this.pinned(r.o)) this.startMark(ctx, r.o, op.x, op.y, stroke);
-        if (r.originName) this.tag(ctx, op.x, this.tagAbove(r.o, op.y), r.originName, op);
+        if (!this.pinned(o)) this.startMark(ctx, o, op.x, op.y, stroke);
+        if (r.originName) this.tag(ctx, op.x, this.tagAbove(o, op.y), r.originName, op);
       }
-      const at = r.landed && r.destinationName ? this.tagBelow(r.target) : null;
+      const at = r.landed && r.destinationName ? this.tagBelow(target) : null;
       // named for the stop, under its pins
-      if (at && r.destinationName) this.tag(ctx, at.x, at.y, r.destinationName, this.proj(r.target) ?? at);
+      if (at && r.destinationName) this.tag(ctx, at.x, at.y, r.destinationName, this.proj(target) ?? at);
+    }
+
+    // where carried pins will land: the ring that marks the ground under a flight's pointer
+    const aim = this.lift && this.proj(this.lift.at);
+    if (this.lift && aim && aim.vis) {
+      ctx.save();
+      ctx.beginPath();
+      this.groundCircle(ctx, this.lift.at, aim.x, aim.y, 8);
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = `rgba(${P.inkRGB},0.7)`;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(aim.x, aim.y, 1.6, 0, Math.PI * 2);
+      ctx.fillStyle = P.ink;
+      ctx.fill();
+      ctx.restore();
     }
 
     // a ring spreads on the ground from each pin as its point goes in
@@ -3081,8 +3211,8 @@ export class GlobeEngine {
     const marching = this.mode === "landed" && !this.reduceMotion;
     const stroke = this.routeColor(this.color);
     this.via.forEach((s, i) => {
-      const end = this.groundEnd(this.via[i + 1]?.v ?? origin);
-      this.route(ctx, s.v, { v: end, alt: 0, cut: 0 }, stroke, marching, t);
+      const next = this.lifted(this.via[i + 1]?.v ?? origin);
+      this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching, t);
     });
     this.route(ctx, origin, this.ownEnd(pl), stroke, marching, t);
 
