@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
-import { NAV_ICONS, NavBar, NavButton } from "@/components/nav-bar";
+import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySelector } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
@@ -48,6 +48,7 @@ export function GlobeScreen() {
       onCancel={() => setTrip(null)}
     />
     <NavBar globe={globe}>
+      <PlaceSearch globe={globe} />
       <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
       <form action={createTrip}>
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />

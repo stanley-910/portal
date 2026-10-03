@@ -903,6 +903,24 @@ export class GlobeEngine {
     return p ? { x: p.x, y: p.y, visible: p.vis } : null;
   }
 
+  /** Turns the globe to centre a place, framing `spanDeg` of arc around it; small spans zoom right in. */
+  flyTo(ll: LatLng, spanDeg: number) {
+    const to = { lon: ll.lng * D2R, lat: clamp(ll.lat * D2R, -LAT_MAX, LAT_MAX), range: this.fitRange(spanDeg * D2R) };
+    const far = angle(vecOf(this.lat0, this.lon0), vecOf(to.lat, to.lon));
+    const dur = this.reduceMotion ? 0.001 : clamp(0.9 + far * 0.5, 0.9, 2);
+    this.zoomAnchor = null;
+    this.vlon = this.vlat = 0;
+    this.turn = {
+      from: { lon: this.lon0, lat: this.lat0, range: this.range },
+      to,
+      hop: this.reduceMotion ? 0 : Math.max(0, Math.min(0.6, 0.35 * far) - (this.range - Math.min(this.range, to.range)) * 0.5),
+      t0: this.t,
+      dur,
+    };
+    // hold the idle drift until well after it arrives
+    this.lastInteract = this.t + dur;
+  }
+
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range, even in log steps. */
   zoom(): number {
     return Math.log(RANGE_MAX / this.range) / Math.log(RANGE_MAX / RANGE_MIN);

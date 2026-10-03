@@ -4,7 +4,7 @@ import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdat
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 
-import { NavBar } from "@/components/nav-bar";
+import { NavBar, PlaceSearch } from "@/components/nav-bar";
 import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
@@ -69,6 +69,7 @@ function TripScreen() {
       <RemotePlanes globe={globe} hideLeg={landedLeg} />
       <RemoteCursors globe={globe} />
       <NavBar globe={globe}>
+        <PlaceSearch globe={globe} />
         <AvatarStack />
         <InviteButton />
       </NavBar>
