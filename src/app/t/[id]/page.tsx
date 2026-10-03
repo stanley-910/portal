@@ -9,7 +9,6 @@ import { expireBookings } from "@/lib/booking/flow";
 import { currentPerson } from "@/lib/identity";
 import { joinTrip, liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
-import { tripOwner } from "@/lib/trip/leave";
 
 import { saveName } from "../actions";
 import { TripRoom } from "./trip-room";
@@ -22,12 +21,10 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   if (!person?.name) return <NamePrompt tripPath={`/t/${id}`} />;
   const room = await liveblocks().getRoom(tripRoomId(id)).catch(() => null);
   if (!room) notFound();
-  // the owner: whoever made the trip, until they leave and it passes on
-  const hostId = tripOwner(room.metadata);
   if ((await joinTrip(tripRoomId(id), person.id)) === null) notFound();
   // a group booking past its deadline goes back to planning before anyone acts on it
   after(() => expireBookings(tripRoomId(id)));
-  return <TripRoom tripId={id} hostId={hostId} name={person.name} email={person.email} account={person.account} nationalities={person.nationalities} />;
+  return <TripRoom tripId={id} name={person.name} email={person.email} account={person.account} nationalities={person.nationalities} />;
 }
 
 /** Before joining, a guest picks the name others will see, or signs in. Styled like the sign-in panel. */

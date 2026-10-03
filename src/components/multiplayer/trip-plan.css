@@ -11,8 +11,11 @@
 .tp-hint { margin: 0; }
 .tp-trip-dates .tp-hint:not(:last-child) { margin-bottom: 6px; }
 .tp-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tp-edit-row > .ts-oneway { flex: none; margin-left: auto; white-space: nowrap; }
 .tp-editor { display: grid; gap: 8px; }
 .tp-editor > button:disabled { opacity: .45; cursor: not-allowed; }
+.tp-stay { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; }
+.tp-refused { margin: 0; padding: 6px 8px; border-radius: var(--radius-tag); background: var(--control-hover); font-size: 11.5px; line-height: 15px; }
 
 /* Riders sit in a box the size of the date field beside them */
 .tp-riders { cursor: default; }

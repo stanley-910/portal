@@ -27,7 +27,7 @@ const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
 
 type Me = { name: string; email: string | null; account: boolean; nationalities: string[] };
 
-export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: string | null } & Me) {
+export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
@@ -36,13 +36,13 @@ export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: st
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen tripId={tripId} {...me} hostId={hostId} />
+        <TripScreen tripId={tripId} {...me} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen({ tripId, name, email, account, nationalities, hostId }: { tripId: string; hostId: string | null } & Me) {
+function TripScreen({ tripId, name, email, account, nationalities }: { tripId: string } & Me) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   // your cursor's shape is yours; its colour is the one the room gave you
@@ -129,7 +129,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {/* below the navbar */}
       {planOpen ? (
         <div className="absolute top-40 right-(--space-4)">
-          <TripPlan hostId={hostId} email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
+          <TripPlan email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
         </div>
       ) : null}
       <AgentChat initialOpen={pipOpen} />
