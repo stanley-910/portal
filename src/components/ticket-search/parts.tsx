@@ -4,6 +4,7 @@ import type { Mode } from "@/lib/transport/types";
 
 import { Glyph } from "./glyphs";
 import type { TimelineLeg } from "./options";
+import { PixelFlag } from "./pixel-flag";
 
 // Pieces of the ticket search popover that the trip plan reuses: the route header, a date field with its one-week
 // strip, and the leg timeline. Styles: ticket-search.css.
@@ -53,15 +54,15 @@ function RouteArc({ mode }: { mode?: Mode | null }) {
   );
 }
 
-/** City to city: names as the title, an airport code beneath when there is one, the route between, and the distance when known. */
+/** City to city: each end's flag, names as the title, an airport code beneath when there is one, the route between, and the distance when known. */
 export function RouteHeader({
   from,
   to,
   distanceKm,
   mode = null,
 }: {
-  from: { code?: string | null; name: string };
-  to: { code?: string | null; name: string };
+  from: { code?: string | null; name: string; country?: string | null };
+  to: { code?: string | null; name: string; country?: string | null };
   distanceKm?: number;
   /** What's taking them, shown on the route. */
   mode?: Mode | null;
@@ -69,6 +70,7 @@ export function RouteHeader({
   return (
     <div className="ts-route">
       <span className="ts-place">
+        {from.country ? <PixelFlag country={from.country} /> : null}
         <span className="ts-city">{cityName(from.name)}</span>
         {from.code && IATA.test(from.code) ? <span className="ts-code">{from.code}</span> : null}
       </span>
@@ -77,6 +79,7 @@ export function RouteHeader({
         {distanceKm === undefined ? null : <span>{distanceKm.toLocaleString("en-US")} km</span>}
       </span>
       <span className="ts-place ts-place-end">
+        {to.country ? <PixelFlag country={to.country} /> : null}
         <span className="ts-city">{cityName(to.name)}</span>
         {to.code && IATA.test(to.code) ? <span className="ts-code">{to.code}</span> : null}
       </span>
