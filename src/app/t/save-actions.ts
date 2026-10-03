@@ -10,13 +10,15 @@ import { getCurrentUser } from "@/lib/supabase/server";
 import { buildSoloStorage, soloSaveSchema, toStorageLson } from "@/lib/trip/server";
 import { planTitle } from "@/lib/trip/title";
 
-export type SaveSoloTripResult = { error: "invalid" | "failed" };
+export type SaveSoloTripResult = { id: string } | { error: "invalid" | "failed" };
 
 const shortId = () => randomBytes(6).toString("base64url");
 
 /**
- * Saves the legs landed on `/`, each with its picked option chosen, as a new trip and opens it. Without an
- * account, goes to sign in. Invalid input or a Liveblocks failure returns an error instead, and leaves no room behind.
+ * Saves the legs landed on `/`, each with its picked option chosen, as a new trip in the person's account, and
+ * returns its id. It doesn't open it: the globe stays as it is, and the trip is in their trips to open or share.
+ * Without an account, goes to sign in. Invalid input or a Liveblocks failure returns an error instead, and leaves no
+ * room behind.
  */
 export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> {
   const user = await getCurrentUser();
@@ -45,6 +47,5 @@ export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> 
     if (created) await lb.deleteRoom(roomId).catch(() => {});
     return { error: "failed" };
   }
-  // outside the try: redirect throws to navigate
-  redirect(`/t/${id}`);
+  return { id };
 }

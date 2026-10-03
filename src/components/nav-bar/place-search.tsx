@@ -83,7 +83,10 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
   };
 
   const pick = (place: PlaceResult) => {
-    globe.current?.flyTo({ lat: place.lat, lng: place.lng }, place.spanDeg);
+    // a city, airport or station is marked and named where it is, whether or not the map prints it; a country or
+    // region already has its name on the map
+    const mark = place.kind === "country" || place.kind === "region" ? undefined : place.name;
+    globe.current?.flyTo({ lat: place.lat, lng: place.lng }, place.spanDeg, mark);
     close(false);
   };
 

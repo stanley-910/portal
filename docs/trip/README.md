@@ -33,6 +33,12 @@ Leaving early is setting `leaves`, or adding a leg home.
 
 Not covered yet: who paid what and settling up, shared extras, and overnight legs that replace a night.
 
+## Leaving
+
+Anyone can leave a trip from the profile menu in the room, or from My trips, after confirming. Leaving takes what they added with them: the legs they drew, their seats on others' legs (a leg left with no riders goes too), their votes, their messages, and any stop no remaining leg uses, with its stay. Pip's legs stay.
+
+The owner is whoever made the trip, until it passes on (`owner` in the room's metadata). When the owner leaves, the trip passes to whoever joined next; when the last person leaves, the trip is deleted. Only the owner can delete a trip. The link is still the invite, so opening it again joins afresh.
+
 ## A test party locally
 
 `pnpm dev:party` runs the app against the local Liveblocks dev server (needs Bun) instead of a real project, and seeds a trip at `/t/partyTestRoom001`: Mei, Ada, Joon and Sam meeting in Shanghai and Tokyo, then on to Osaka, with picks, votes and stays already made (`scripts/seed-party.mts`). Join it as a guest. Each start reseeds it fresh, and the seed refuses to write anywhere but localhost.

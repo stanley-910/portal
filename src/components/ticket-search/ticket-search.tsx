@@ -168,6 +168,8 @@ export interface TicketSearchProps {
   saving?: boolean;
   /** Shown under the button when the last save failed. */
   error?: string | null;
+  /** The saved trip's page, once saved: a link under the button opens it. */
+  savedHref?: string;
   /** Esc, with no date strip open. A click outside is the globe's own cancel. */
   onDismiss: () => void;
   /**
@@ -183,7 +185,7 @@ export interface TicketSearchProps {
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, addedId, saving = false, error, onDismiss, step, collapsed = false, onCollapse, onExpand,
+  trip, globe, currency, rates, onAdd, addedId, saving = false, error, savedHref, onDismiss, step, collapsed = false, onCollapse, onExpand,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -475,6 +477,14 @@ export function TicketSearch({
           {error && !saving ? (
             <p className="ts-empty" role="alert">
               {error}
+            </p>
+          ) : null}
+          {savedHref && !saving ? (
+            <p className="ts-empty" role="status">
+              Saved to your trips ·{" "}
+              <a href={savedHref} className="underline underline-offset-2">
+                Open
+              </a>
             </p>
           ) : null}
         </div>

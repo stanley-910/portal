@@ -58,3 +58,25 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return null;
   }
 }
+
+/**
+ * Who's signed in, from the session's verified token claims: no profile lookup, and with asymmetric signing keys no
+ * network call at all. For hot paths that only need to know it's an account and what to call them, like each message
+ * to Pip; the name is the account's own, not the profile's.
+ */
+export async function getAccountClaims(): Promise<{ id: string; name: string } | null> {
+  const supabase = await createSupabaseServer();
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase.auth.getClaims();
+    const claims = data?.claims;
+    if (error || !claims?.sub) return null;
+    const meta = claims.user_metadata as { display_name?: unknown } | undefined;
+    const email = typeof claims.email === "string" ? claims.email : "";
+    const name = (typeof meta?.display_name === "string" && meta.display_name.trim()) || email.split("@")[0] || "Traveller";
+    return { id: claims.sub, name };
+  } catch (err) {
+    console.warn("[supabase] getClaims failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}

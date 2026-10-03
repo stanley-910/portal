@@ -1,7 +1,7 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
+import { createContext, memo, use, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
 import { useOpenAuth } from "@/components/auth/links";
@@ -58,8 +58,10 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   const [hover, setHover] = useState(false);
   // the first launcher of a page load arrives, by saucer or by portal; the nudge waits for it
   const [arriving, setArriving] = useState(() => !arrival.played);
-  // the arrival is this launcher's entrance, so its own zoom-in doesn't play after it
-  const [entrance] = useState(arriving);
+  // a launcher after the first is Pip coming back from the chat: it rises out of a portal
+  const [returning] = useState(() => arrival.played);
+  // the arrival or the portal is this launcher's entrance, so its own zoom-in doesn't play
+  const [entrance] = useState(arriving || returning);
   // picked in the browser only: the server renders no entrance, so a random pick can't mismatch it
   const kind = useSyncExternalStore(noSubscribe, pickArrival, () => null);
   useEffect(() => {
@@ -72,7 +74,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   // trip cards and panels over Pip's corner send it through a portal to the other one
   const root = useRef<HTMLDivElement>(null);
   const porthole = useRef<HTMLButtonElement>(null);
-  const { side, hop } = usePipCorner(root, porthole, arriving);
+  const { side, hop } = usePipCorner(root, porthole, arriving, returning ? "arrive" : null);
   const hidden = arriving || !!hop;
   const [done, setDone] = useState(() => nudged.has(nudge));
   // the bubble's tail points right, at Pip in the right-hand corner
@@ -118,38 +120,26 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   );
 }
 
-// The speech bubble's tail: a pixel wedge from the box's bottom edge to a point at Pip. Each row of light cells runs
-// from a(y) to b(y), the left edge leaning in faster than the right so it narrows to a point down and to the right;
-// ink outlines it like the box. Row 0 overlaps the box's border so the two read as one shape.
-const TAIL_CELL = 2;
-const TAIL_LIGHT = new Set<string>();
-for (let y = 0; ; y++) {
-  const a = Math.round(y * 1.7);
-  const b = 8 + Math.round(y * 0.9);
-  if (a > b) break;
-  for (let x = a; x <= b; x++) TAIL_LIGHT.add(`${x},${y}`);
-}
-const TAIL_INK = new Set<string>();
-for (const cell of TAIL_LIGHT) {
-  const [x, y] = cell.split(",").map(Number);
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1]]) if (!TAIL_LIGHT.has(`${x + dx},${y + dy}`)) TAIL_INK.add(`${x + dx},${y + dy}`);
-}
-const tailCells = (set: Set<string>) => [...set].map((c) => c.split(",").map(Number) as [number, number]);
-const TAIL_W = Math.max(...tailCells(TAIL_INK).map(([x]) => x)) + 2;
-const TAIL_H = Math.max(...tailCells(TAIL_INK).map(([, y]) => y)) + 1;
+// The speech bubble's tail: a short, straight pixel wedge from under the bubble's right end to Pip's antenna, in 2px
+// cells. Row 0 sits over the bubble's bottom border, on its straight part clear of the stepped corner, so the two
+// read as one shape. K ink · L paper
+const TAIL = [
+  "KLLLLLK......",
+  ".KKLLLLK.....",
+  "...KKLLLK....",
+  ".....KKLLK...",
+  ".......KKLLK.",
+  ".........KKKK",
+];
 
 function NudgeTail() {
   return (
-    <svg
-      aria-hidden
-      className="pip-nudge-tail"
-      width={TAIL_W * TAIL_CELL}
-      height={TAIL_H * TAIL_CELL}
-      viewBox={`-1 0 ${TAIL_W} ${TAIL_H}`}
-      shapeRendering="crispEdges"
-    >
-      {tailCells(TAIL_INK).map(([x, y]) => <rect key={`k${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-ink" />)}
-      {tailCells(TAIL_LIGHT).map(([x, y]) => <rect key={`l${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-light" />)}
+    <svg aria-hidden className="pip-nudge-tail" width={TAIL[0].length * 2} height={TAIL.length * 2} viewBox={`0 0 ${TAIL[0].length} ${TAIL.length}`} shapeRendering="crispEdges">
+      {TAIL.flatMap((row, y) =>
+        [...row].map((c, x) =>
+          c === "." ? null : <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} className={c === "K" ? "pip-nudge-tail-ink" : "pip-nudge-tail-light"} />,
+        ),
+      )}
     </svg>
   );
 }
@@ -191,21 +181,37 @@ function Panel({ onClose }: { onClose: () => void }) {
   const me = useSelf((s) => s.id) ?? undefined;
   const activity = usePipActivity();
   const busy = usePipBusy();
-  const scroller = useRef<HTMLDivElement>(null);
-  // follows new text only while you're at the bottom, so reading back isn't yanked down every token
-  const stuck = useRef(true);
-  const send = useSendMessage();
+  const post = useSendMessage();
+  // your message shows the moment you send it, until the room has it
+  const [pending, setPending] = useState<ThreadMessage[]>([]);
+  const send = async (text: string) => {
+    const local: ThreadMessage = { id: `local-${Date.now()}`, at: Date.now(), author: { kind: "member", id: me ?? "" }, text, state: "done", cards: [] };
+    setPending((p) => [...p, local]);
+    try {
+      const id = await post(text);
+      setPending((p) => p.map((m) => (m === local ? { ...m, id } : m)));
+    } catch (error) {
+      setPending((p) => p.filter((m) => m !== local));
+      throw error;
+    }
+  };
+  const shown = useMemo(() => {
+    const live = pending.filter((m) => !thread.some((t) => t.id === m.id));
+    return live.length ? [...thread, ...live] : thread;
+  }, [thread, pending]);
+  const tripId = useRoom().id.slice("trip:".length);
+  const actions = useMemo<CardActions>(
+    () => ({
+      apply: (messageId, option) => applyMeetup(tripId, messageId, option),
+      undo: (messageId, changesetId) => undoAgentChange(tripId, messageId, changesetId),
+    }),
+    [tripId],
+  );
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming?.text ? "talk" : busy || activity ? "think" : "idle";
   const stops = useStorage((root) => root.stops);
   const legs = useStorage((root) => root.legs);
   const context = useMemo(() => tripContext({ members, stops, legs }, me), [members, stops, legs, me]);
-
-  // before paint, so the panel opens at the latest message instead of jumping there
-  useLayoutEffect(() => {
-    const el = scroller.current;
-    if (el && stuck.current) el.scrollTop = el.scrollHeight;
-  }, [thread, activity]);
 
   return (
     <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
@@ -218,32 +224,62 @@ function Panel({ onClose }: { onClose: () => void }) {
         <PipClose onClick={onClose} />
       </header>
 
-      <div
-        ref={scroller}
-        className="pip-messages"
-        role="log"
-        aria-live="polite"
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-        }}
-      >
-        {thread.length === 0 ? (
+      <CardActionsContext value={actions}>
+        <ThreadLog thread={shown} me={me} members={members ?? NO_MEMBERS} activity={activity}>
           <p className="pip-empty">Ask {AGENT_NAME} how to get somewhere, or where everyone should meet. Everyone in the trip sees the chat.</p>
-        ) : null}
-        {thread.map((m) => (
-          <Message key={m.id} message={m} me={me} members={members ?? NO_MEMBERS} activity={m.state === "streaming" ? activity : null} />
-        ))}
-      </div>
+        </ThreadLog>
+      </CardActionsContext>
 
       <Composer send={send} chips={context.chips} />
     </section>
   );
 }
 
+/**
+ * What a card's buttons do. In a trip room they change the room's plan; on the home globe, the legs on that globe.
+ * `undo` is absent where there's nothing to undo.
+ */
+export type CardActions = {
+  apply: (messageId: string, option: string) => Promise<unknown> | void;
+  undo?: (messageId: string, changesetId: string) => Promise<unknown> | void;
+  /** The meet-up button's label. Default "Add to trip". */
+  applyLabel?: string;
+};
+export const CardActionsContext = createContext<CardActions>({ apply: () => {} });
+
+/**
+ * The conversation, scrolled to the latest message before it paints and following new text while you're at the
+ * bottom, so reading back isn't yanked down every token. `children` shows when it's empty.
+ */
+export function ThreadLog({ thread, me, members, activity, children }: { thread: ThreadMessage[]; me: string | undefined; members: Members; activity: string | null; children?: React.ReactNode }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const stuck = useRef(true);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (el && stuck.current) el.scrollTop = el.scrollHeight;
+  }, [thread, activity]);
+  return (
+    <div
+      ref={scroller}
+      className="pip-messages"
+      role="log"
+      aria-live="polite"
+      onScroll={(e) => {
+        const el = e.currentTarget;
+        stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+      }}
+    >
+      {thread.length === 0 ? children : null}
+      {thread.map((m) => (
+        <Message key={m.id} message={m} me={me} members={members} activity={m.state === "streaming" ? activity : null} />
+      ))}
+    </div>
+  );
+}
+
 const list = (names: string[]) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
 
-type Members = Record<string, { name: string; color: number }>;
+export type Members = Record<string, { name: string; color: number }>;
 const NO_MEMBERS: Members = {};
 
 // Memoised: a streamed token changes only the streaming message, so the rest of the thread doesn't re-render.
@@ -304,12 +340,8 @@ function Card({ card, messageId, members, activity }: { card: ThreadCard; messag
   return <Step label={card.label} running={!card.done} detail={card.done ? null : activity} />;
 }
 
-function useTripId() {
-  return useRoom().id.slice("trip:".length);
-}
-
 function MeetupCard({ card, messageId, members }: { card: Extract<ThreadCard, { type: "meetup" }>; messageId: string; members: Members }) {
-  const tripId = useTripId();
+  const actions = use(CardActionsContext);
   const [pending, start] = useTransition();
   const applied = card.applied && !card.undone ? card.applied : null;
   const date = card.options[0]?.date;
@@ -339,19 +371,19 @@ function MeetupCard({ card, messageId, members }: { card: Extract<ThreadCard, { 
               <Button
                 variant="secondary"
                 disabled={pending || !!applied}
-                onClick={() => start(() => applyMeetup(tripId, messageId, o.id))}
+                onClick={() => start(async () => void (await actions.apply(messageId, o.id)))}
               >
-                Add to trip
+                {actions.applyLabel ?? "Add to trip"}
               </Button>
             )}
           </div>
           {i === 0 && !applied ? <span className="pip-stamp pip-stamp-corner">Pip&apos;s pick</span> : null}
         </div>
       ))}
-      {applied && card.changesetId ? (
-        <Button variant="quiet" disabled={pending} onClick={() => start(() => undoAgentChange(tripId, messageId, card.changesetId!))}>
+      {applied && card.changesetId && actions.undo ? (
+        <button type="button" className="pip-undo" disabled={pending} onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId!)))}>
           Undo
-        </Button>
+        </button>
       ) : null}
     </div>
   );
@@ -374,7 +406,7 @@ function LegLine({ leg, members }: { leg: MeetupLeg; members: Members }) {
 const KIND: Record<MeetupLeg["kind"], string> = { live: "live", cached: "cached fare", timetable: "timetable", estimated: "estimated" };
 
 function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "changes" }>; messageId: string }) {
-  const tripId = useTripId();
+  const actions = use(CardActionsContext);
   const [pending, start] = useTransition();
   return (
     <div className={`pip-changes${card.undone ? " pip-changes-undone" : ""}`}>
@@ -384,12 +416,12 @@ function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "c
         ))}
       </ul>
       {card.undone ? (
-        <span className="pip-caption">Undone</span>
-      ) : (
-        <Button variant="quiet" disabled={pending} onClick={() => start(() => undoAgentChange(tripId, messageId, card.changesetId))}>
+        <span className="pip-changes-note">Undone</span>
+      ) : actions.undo ? (
+        <button type="button" className="pip-undo" disabled={pending} onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId)))}>
           Undo
-        </Button>
-      )}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -409,61 +441,90 @@ export function PipClose({ onClick }: { onClick: () => void }) {
 export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }: { send: (text: string) => Promise<void>; chips: string[]; placeholder?: string }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<"failed" | "sign-in" | null>(null);
-  const [pending, start] = useTransition();
+  const [pending, setPending] = useState(false);
+  // the suggestions start open, and fold away behind their toggle once you've sent something
+  const [suggest, setSuggest] = useState(true);
   const openAuth = useOpenAuth();
-  const submit = (text: string) => {
+  // Not a transition: the message has to show the moment it's sent, and a transition holds every update back until
+  // the request finishes. The box clears at once and gets the text back if sending fails.
+  const submit = async (text: string) => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || pending) return;
     setError(null);
-    start(async () => {
-      try {
-        await send(t);
-        setDraft("");
-      } catch (e) {
-        setError(e instanceof Error && e.message === SIGN_IN_TO_ASK ? "sign-in" : "failed");
-      }
-    });
+    setDraft("");
+    setSuggest(false);
+    setPending(true);
+    try {
+      await send(t);
+    } catch (e) {
+      setDraft(t);
+      setError(e instanceof Error && e.message === SIGN_IN_TO_ASK ? "sign-in" : "failed");
+    } finally {
+      setPending(false);
+    }
   };
   return (
-    <form
-      className="pip-composer"
-      onSubmit={(e: FormEvent) => {
-        e.preventDefault();
-        submit(draft);
-      }}
-    >
-      <div className="pip-chips">
-        {chips.map((chip) => (
-          <button key={chip} type="button" className="pip-chip" disabled={pending} onClick={() => submit(chip)}>
-            {chip}
+    <>
+      {chips.length ? (
+        <div className="pip-suggest">
+          <button type="button" className="pip-suggest-toggle" aria-expanded={suggest} onClick={() => setSuggest(!suggest)}>
+            Suggestions
+            <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden>
+              <path d="M2 4 L5 7 L8 4" />
+            </svg>
           </button>
-        ))}
-      </div>
-      {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
-      {error === "sign-in" ? (
-        <p className="pip-caption" role="alert">
-          <button type="button" className="underline" onClick={() => openAuth("signin")}>
-            Sign in
-          </button>{" "}
-          to talk to {AGENT_NAME}.
-        </p>
+          {suggest ? (
+            <div className="pip-suggest-list" role="menu" aria-label="Suggested messages">
+              {chips.map((chip, i) => (
+                <button
+                  key={chip}
+                  type="button"
+                  role="menuitem"
+                  className="pip-suggestion"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                  disabled={pending}
+                  onClick={() => void submit(chip)}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       ) : null}
-      <label className="pip-input-row">
-        <input
-          className="pip-input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={placeholder}
-          aria-label="Message"
-          maxLength={2000}
-        />
-        <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
-          <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-            <path d="M3 8 H13 M9 4 L13 8 L9 12" />
-          </svg>
-        </button>
-      </label>
-    </form>
+      <form
+        className="pip-composer"
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          void submit(draft);
+        }}
+      >
+        {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
+        {error === "sign-in" ? (
+          <p className="pip-caption" role="alert">
+            <button type="button" className="underline" onClick={() => openAuth("signin")}>
+              Sign in
+            </button>{" "}
+            to talk to {AGENT_NAME}.
+          </p>
+        ) : null}
+        <label className="pip-input-row">
+          <input
+            className="pip-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={placeholder}
+            aria-label="Message"
+            maxLength={2000}
+          />
+          <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
+            <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+              <path d="M3 8 H13 M9 4 L13 8 L9 12" />
+            </svg>
+          </button>
+        </label>
+      </form>
+    </>
   );
 }
 
