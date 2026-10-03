@@ -1,5 +1,7 @@
 import { DEMO_BOOKING } from "@/lib/demo";
 import type { LegBooking, StoredOffer } from "@/lib/liveblocks/types";
+import { HUBS } from "@/lib/transport/hubs/catalog";
+import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { isBookable } from "@/lib/trip/offers";
 
 import { BookingError } from "./errors";
@@ -48,4 +50,16 @@ export function refusedPassenger(field: string | undefined, riders: readonly str
   const m = field?.match(/^\/passengers\/(\d+)\/(.+)$/);
   const rider = m && riders[Number(m[1])];
   return rider ? { rider, field: m[2].split("/").pop()!.replace(/_/g, " ") } : null;
+}
+
+const AIRPORTS = HUBS.filter((h) => h.mode === "flight");
+
+/**
+ * Demo stand-in: the airport for a stop. An airport hub is its own code; a station or a bare point takes the nearest
+ * airport in the catalog (within 200 km), so a trip from West Kowloon flies from HKG.
+ */
+export function airportFor(stop: { lat: number; lng: number; hub: string | null; code?: string | null } | undefined): string | null {
+  if (!stop) return null;
+  if (stop.hub?.startsWith("airport:") && stop.code && /^[A-Z]{3}$/.test(stop.code)) return stop.code;
+  return nearestPreviewHub(stop, AIRPORTS)?.code ?? null;
 }
