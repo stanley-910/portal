@@ -41,3 +41,15 @@ Open http://localhost:3000 for the globe and http://localhost:3000/design for th
 - Tickets are in Linear: [Hackathon MVP](https://linear.app/portaldevs) (team POR). Branch from the issue's git branch name.
 - This is Next.js 16, which has breaking changes from older versions. Check `node_modules/next/dist/docs/` rather than relying on memory. `AGENTS.md` is kept up to date by `next dev`; commit it as is.
 - Never hard-code colours, fonts, radii or shadows. Use the tokens; see `DESIGN.md`.
+
+## Licence
+
+Portal is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md). You may read, run, change and
+share the code for noncommercial purposes: personal study, research, hobby projects, and use by charities, schools and
+public bodies. Any commercial use, including running Portal or a product built on it as a business, needs a separate
+paid licence from the authors. Ask through [GitHub](https://github.com/stanley-910/portal/issues).
+
+Bundled data keeps its own licence and is not covered by ours: OurAirports and Natural Earth are public domain,
+Wikidata is CC0, OpenStreetMap-derived hub data is © OpenStreetMap contributors under the ODbL 1.0, and the Passport
+Index dataset is credited to passportindex.org (see `src/lib/transport/hubs/DATA.md` and `data/entry/`). Dependencies
+keep their own licences.
