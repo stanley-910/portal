@@ -44,4 +44,13 @@ describe("hotel search", () => {
     const [hotel] = searchHotels({ ...query(3), city: "Beijing", lat: 39.93, lng: 116.39 });
     expect(hotel.name).toBe("3★ hotel near the centre");
   });
+
+  it("sends the destination city to Booking.com", () => {
+    const [hotel] = searchHotels(query(4));
+    const booking = new URL(hotel.bookingUrl ?? "");
+    expect(booking.hostname).toBe("www.booking.com");
+    expect(booking.searchParams.get("ss")).toBe("Shanghai");
+    expect(booking.searchParams.get("group_adults")).toBe("4");
+    expect(booking.searchParams.get("no_rooms")).toBe("1");
+  });
 });

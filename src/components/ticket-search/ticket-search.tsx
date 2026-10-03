@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 
 import { Button, RoundButton } from "@/components/paper-atlas";
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
@@ -305,6 +305,7 @@ export function TicketSearch({
       <section ref={card} className="ts" aria-label={`Trip from ${ends.from.name} to ${ends.to.name}`}>
         <div className="ts-top">
           <div className="ts-topbar">
+            <RoundButton label="Delete flight" variant="quiet" className="ts-dismiss" onClick={onDismiss} />
             {multi ? (
               <div className="ts-step">
                 <span>
@@ -379,40 +380,37 @@ export function TicketSearch({
         <div className="ts-bottom">
           <div className="ts-tabs" role="tablist">
             {TABS.filter((t) => tabs.includes(t.id)).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                className="ts-tab"
-                aria-selected={!hotelsOpen && t.id === activeTab}
-                aria-label={t.id === "best" ? undefined : t.label}
-                title={t.id === "best" ? undefined : t.label}
-                onClick={() => {
-                  setHotelsOpen(false);
-                  setTab(t.id);
-                  setSelected(0);
-                }}
-              >
-                {t.id === "best" ? (
-                  t.label
-                ) : (
-                  <Glyph kind={t.id} size={15} />
-                )}
-              </button>
+              <Fragment key={t.id}>
+                <button
+                  type="button"
+                  role="tab"
+                  className="ts-tab"
+                  aria-selected={!hotelsOpen && t.id === activeTab}
+                  aria-label={t.id === "best" ? undefined : t.label}
+                  title={t.id === "best" ? undefined : t.label}
+                  onClick={() => {
+                    setHotelsOpen(false);
+                    setTab(t.id);
+                    setSelected(0);
+                  }}
+                >
+                  {t.id === "best" ? t.label : <Glyph kind={t.id} size={15} />}
+                </button>
+                {t.id === "flight" && ends.to.known ? (
+                  <button
+                    type="button"
+                    role="tab"
+                    className="ts-tab"
+                    aria-selected={hotelsOpen}
+                    aria-label="Hotels"
+                    title="Hotels"
+                    onClick={() => setHotelsOpen(true)}
+                  >
+                    <Glyph kind="hotel" size={15} />
+                  </button>
+                ) : null}
+              </Fragment>
             ))}
-            {ends.to.known ? (
-              <button
-                type="button"
-                role="tab"
-                className="ts-tab"
-                aria-selected={hotelsOpen}
-                aria-label="Hotels"
-                title="Hotels"
-                onClick={() => setHotelsOpen(true)}
-              >
-                <Glyph kind="hotel" size={15} />
-              </button>
-            ) : null}
           </div>
 
           {hotelsOpen && ends.to.known ? (
