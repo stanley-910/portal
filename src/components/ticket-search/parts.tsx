@@ -70,8 +70,10 @@ export function RouteHeader({
   return (
     <div className="ts-route">
       <span className="ts-place">
-        {from.country ? <PixelFlag country={from.country} /> : null}
-        <span className="ts-city">{cityName(from.name)}</span>
+        <span className="ts-place-line">
+          {from.country ? <PixelFlag country={from.country} /> : null}
+          <span className="ts-city">{cityName(from.name)}</span>
+        </span>
         {from.code && IATA.test(from.code) ? <span className="ts-code">{from.code}</span> : null}
       </span>
       <span className="ts-distance">
@@ -79,8 +81,10 @@ export function RouteHeader({
         {distanceKm === undefined ? null : <span>{distanceKm.toLocaleString("en-US")} km</span>}
       </span>
       <span className="ts-place ts-place-end">
-        {to.country ? <PixelFlag country={to.country} /> : null}
-        <span className="ts-city">{cityName(to.name)}</span>
+        <span className="ts-place-line">
+          <span className="ts-city">{cityName(to.name)}</span>
+          {to.country ? <PixelFlag country={to.country} /> : null}
+        </span>
         {to.code && IATA.test(to.code) ? <span className="ts-code">{to.code}</span> : null}
       </span>
     </div>

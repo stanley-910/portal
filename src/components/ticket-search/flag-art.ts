@@ -5,6 +5,22 @@
 export type FlagArt = { rows: string[]; inks: Record<string, string> };
 
 export const FLAG_ART: Record<string, FlagArt> = {
+  // the white bauhinia, five petals swirling round the centre
+  HK: {
+    inks: { R: "#de2910", W: "#ffffff" },
+    rows: [
+      "RRRRRRRRRRRRRR",
+      "RRRRRRWWRRRRRR",
+      "RRRRRRWWRWRRRR",
+      "RRRRWRRWWWRRRR",
+      "RRRWWWRWWRRRRR",
+      "RRRRRWWRWWWRRR",
+      "RRRRWWWRRWRRRR",
+      "RRRRWRWWRRRRRR",
+      "RRRRRRWWRRRRRR",
+      "RRRRRRRRRRRRRR",
+    ],
+  },
   CN: {
     inks: { R: "#de2910", Y: "#ffde00" },
     rows: [
