@@ -120,13 +120,26 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   );
 }
 
-// The speech bubble's tail: a short curl from under the bubble toward Pip. The fill runs up over the bubble's
-// border so the two read as one shape; the outline is drawn on the two curved sides only.
+// The speech bubble's tail: a short pixel curl from under the bubble toward Pip, in 2px cells. Row 0 sits over the
+// bubble's bottom border, so the two read as one shape. K ink · L paper
+const TAIL = [
+  "KLLLLLK...",
+  "KLLLLK....",
+  ".KLLLK....",
+  ".KLLLLK...",
+  "..KLLLLKK.",
+  "...KKLLLLK",
+  ".....KKKK.",
+];
+
 function NudgeTail() {
   return (
-    <svg aria-hidden className="pip-nudge-tail" width={22} height={16} viewBox="0 0 22 16">
-      <path className="pip-nudge-tail-fill" d="M3 0 C 5 7, 11 12, 20 14 C 15 10, 14 5, 15 0 Z" />
-      <path className="pip-nudge-tail-line" d="M3 1.5 C 5 7, 11 12, 20 14 C 15 10, 14 5, 15 1.5" />
+    <svg aria-hidden className="pip-nudge-tail" width={TAIL[0].length * 2} height={TAIL.length * 2} viewBox={`0 0 ${TAIL[0].length} ${TAIL.length}`} shapeRendering="crispEdges">
+      {TAIL.flatMap((row, y) =>
+        [...row].map((c, x) =>
+          c === "." ? null : <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} className={c === "K" ? "pip-nudge-tail-ink" : "pip-nudge-tail-light"} />,
+        ),
+      )}
     </svg>
   );
 }

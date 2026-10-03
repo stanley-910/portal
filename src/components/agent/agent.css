@@ -20,17 +20,17 @@
 .pip-unread { position: absolute; top: 0; right: 0; width: 8px; height: 8px; background: var(--star-light); border: 1px solid var(--sticker-ink); box-shadow: var(--shadow-pixel); }
 
 .pip-nudge { position: relative; margin-bottom: 30px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; filter: drop-shadow(3px 3px 0 var(--sticker-shadow)); }
-/* a rounded sticker speech bubble */
-.pip-nudge-inner { display: block; width: max-content; max-width: 156px; padding: 6px 11px; background: var(--star-light); color: var(--sticker-ink); border: 2px solid var(--sticker-ink); border-radius: var(--radius-panel); }
-.pip-nudge-text { display: grid; font-family: var(--font-sans); font-size: 13px; line-height: 17px; font-weight: 600; }
+/* a sticker speech bubble with pixel-stepped round corners: an ink layer, and the paper layer 2px inside it */
+.pip-nudge-inner { --pip-px-round: polygon(0px 8px, 2px 8px, 2px 4px, 4px 4px, 4px 2px, 8px 2px, 8px 0px, calc(100% - 8px) 0px, calc(100% - 8px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 8px, calc(100% - 0px) 8px, calc(100% - 0px) calc(100% - 8px), calc(100% - 2px) calc(100% - 8px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 8px) calc(100% - 2px), calc(100% - 8px) calc(100% - 0px), 8px calc(100% - 0px), 8px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 8px), 0px calc(100% - 8px)); display: block; width: max-content; max-width: 156px; padding: 2px; background: var(--sticker-ink); clip-path: var(--pip-px-round); }
+.pip-nudge-text { display: grid; padding: 5px 10px; background: var(--star-light); color: var(--sticker-ink); clip-path: var(--pip-px-round); font-family: var(--font-sans); font-size: 13px; line-height: 17px; font-weight: 600; }
 .pip-nudge-ghost, .pip-nudge-typed { grid-area: 1 / 1; }
 .pip-nudge-ghost { visibility: hidden; }
 .pip-caret { animation: pip-blink 450ms steps(1) infinite; }
 /* the tail starts under the box's right end, its top row over the box's 2px border, and points out at Pip */
-/* a short curled tail from under the bubble's right end toward Pip; its top overlaps the bubble's border */
-.pip-nudge-tail { position: absolute; top: calc(100% - 2px); left: calc(100% - 30px); overflow: visible; }
-.pip-nudge-tail-fill { fill: var(--star-light); }
-.pip-nudge-tail-line { fill: none; stroke: var(--sticker-ink); stroke-width: 2px; stroke-linejoin: round; stroke-linecap: round; }
+/* a short pixel tail curling from under the bubble's right end toward Pip; its top row covers the bubble's border */
+.pip-nudge-tail { position: absolute; top: calc(100% - 2px); left: calc(100% - 26px); }
+.pip-nudge-tail-light { fill: var(--star-light); }
+.pip-nudge-tail-ink { fill: var(--sticker-ink); }
 
 /* Panel */
 /* sized to the conversation, growing up from the corner until it reaches the nav bar, then scrolling */
