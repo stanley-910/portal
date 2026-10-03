@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-03T14:27:12.888003+00:00",
+  "capturedAt": "2026-10-03T16:13:49.806995+00:00",
   "collectorVersion": "rail-source-capture/1",
   "sources": [
     {
@@ -839,6 +839,1653 @@
           "url": "https://www.jrkyushu.co.jp/english/pdf/timetable_20260314_20270228.pdf"
         }
       ]
+    },
+    {
+      "source": "ktmb-published",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.ktmb.com.my/robots.txt",
+          "effectiveUrl": "https://www.ktmb.com.my/robots.txt",
+          "retrievedAt": "2026-10-03T15:59:51.266956+00:00",
+          "httpStatus": 200,
+          "contentType": "text/plain",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/robots-0.txt",
+          "role": "robots",
+          "sha256": "2c0f76ae2d26f13dbdfc883e6814ac8b7d67f808fd3ab15f182b33327f72427f",
+          "bytes": 24,
+          "finding": "parsed directives"
+        },
+        {
+          "url": "https://www.ktmb.com.my/TrainTime.html",
+          "effectiveUrl": "https://www.ktmb.com.my/TrainTime.html",
+          "retrievedAt": "2026-10-03T15:59:53.193344+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/index.html",
+          "role": "index",
+          "sha256": "a4927bea0a9a52f19ab26c4cce833abd0ba42bdc08f1345a108581217ccf4feb",
+          "bytes": 25682
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/BC-PS-BC%20Weekday2026_Perubahan%2027042026%20%282%29.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/BC-PS-BC%20Weekday2026_Perubahan%2027042026%20%282%29.pdf",
+          "retrievedAt": "2026-10-03T15:59:55.413494+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-1.pdf",
+          "role": "timetable",
+          "sha256": "593279a3aa34c2e6ff2aeb97c63486298bce206c7d5c568bfe0b028dc03ecfc7",
+          "bytes": 200120,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-1.txt",
+          "textSha256": "936e0acec9543de89290908e9e32a1e9ce0266e87e2fcbc19d5fe724dc652fe2",
+          "textCharacters": 10697,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Batu Caves - Pulau Sebang - Effective 27th April 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/TM-PK-TM%20WEEKDAY%2006072026.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/TM-PK-TM%20WEEKDAY%2006072026.pdf",
+          "retrievedAt": "2026-10-03T15:59:57.778687+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-2.pdf",
+          "role": "timetable",
+          "sha256": "1f0247354c917493bf6695af22ef4325e90a915081df2f0e6820532cc3427e00",
+          "bytes": 224759,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-2.txt",
+          "textSha256": "5cc76fd008d2f612ef681c77360266eb03c5fb966a139e31efb7cd21d1b8b845",
+          "textCharacters": 14775,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Tg. Malim - Pelabuhan Klang - Effective 6th July 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Sementara%20TM-PK-TM%20WEEKEND_MULAI%2026%20-%2027%20September%20%202026%20dan%203%20-%204%20Oktober%202026%20Projek%20RIDT%20Kalumpang.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Sementara%20TM-PK-TM%20WEEKEND_MULAI%2026%20-%2027%20September%20%202026%20dan%203%20-%204%20Oktober%202026%20Projek%20RIDT%20Kalumpang.pdf",
+          "retrievedAt": "2026-10-03T16:00:00.247446+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-3.pdf",
+          "role": "timetable",
+          "sha256": "99cd3e941cf836c248eec4d2ecdabf9f40530d6c080d8d5a4acc98a17dbc98b0",
+          "bytes": 204770,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-3.txt",
+          "textSha256": "0d78f4c315101d0de874f09723f8ceb963d5f71e30d98253d83fd47140d0a3a4",
+          "textCharacters": 13289,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Tg. Malim - Pelabuhan Klang - Effective 26-27 September & 3-4 October 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/2-BC-PS-BC%20Weekend2026_LINE%20BLOK%2010JAM%20%281%29.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/2-BC-PS-BC%20Weekend2026_LINE%20BLOK%2010JAM%20%281%29.pdf",
+          "retrievedAt": "2026-10-03T16:00:02.689835+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-4.pdf",
+          "role": "timetable",
+          "sha256": "4e6743099a72c877436bdc3967931d676d7359511b1b3129575da07eece10e31",
+          "bytes": 182484,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-4.txt",
+          "textSha256": "85e2be87b65c119e35b62eaab66ed390304a24c69776f5d0304a3391880f4917",
+          "textCharacters": 8620,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Batu Caves - Pulau Sebang - Effective 3rd October 2026 Only",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/BC-PS-BC%20Weekend2026_Perubahan%2001052026%20%282%29.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/BC-PS-BC%20Weekend2026_Perubahan%2001052026%20%282%29.pdf",
+          "retrievedAt": "2026-10-03T16:00:05.100623+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-5.pdf",
+          "role": "timetable",
+          "sha256": "7dbdedc4b8e3f2fa18548d3a01c084124e478ec1724eb10d3a6f3e89a430741a",
+          "bytes": 175439,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-5.txt",
+          "textSha256": "743242e129a041de10f416a7ad71a7994acade9f4728cf444f7aa3a92587e1e5",
+          "textCharacters": 8532,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Batu Caves - Pulau Sebang - Effective 1st May 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/TM-PK-TM%20WEEKEND%2004072026.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/TM-PK-TM%20WEEKEND%2004072026.pdf",
+          "retrievedAt": "2026-10-03T16:00:07.502937+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-6.pdf",
+          "role": "timetable",
+          "sha256": "db3740e84226929d9cb366e13b38664456114adffba3fcb5a4b459f8619eee33",
+          "bytes": 211597,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-6.txt",
+          "textSha256": "5e3f4a9f7f11faa1886ce978ad972208b0ce086f053b2227cb0c6445e364c873",
+          "textCharacters": 14049,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Tg. Malim - Pelabuhan Klang - Effective 4th July 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Baharu%20komuter%20Utara%20mulai%2024%20Julai%202026.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Baharu%20komuter%20Utara%20mulai%2024%20Julai%202026.pdf",
+          "retrievedAt": "2026-10-03T16:00:10.079864+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-7.pdf",
+          "role": "timetable",
+          "sha256": "41403fa47ec93590a01125024fbdf9435eb8731ce282fc3c02ac5c81246cbe8d",
+          "bytes": 170552,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-7.txt",
+          "textSha256": "0de13f0844c3982260d6f6ca074919d1e095c99b2cef3d770c99210459ef209c",
+          "textCharacters": 9390,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Timetable starting 24th July 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Shuttle%20Selatan.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Shuttle%20Selatan.pdf",
+          "retrievedAt": "2026-10-03T16:00:20.436072+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-8.pdf",
+          "role": "timetable",
+          "sha256": "1bb5c55dd417e53ef2755d3be7e4deff773200fb48cb809dfe9b382123683105",
+          "bytes": 7707231,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-8.txt",
+          "textSha256": "7060584c3e59f0b2f12f34aa0b40faadf4aa5790a0459f3319852bcd63262cbb",
+          "textCharacters": 2,
+          "parsingStatus": "requires-ocr",
+          "label": "Komuter SELATAN Paloh - JB Sentral - Paloh : Starting 8th August 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20ETS%201%20Jun%202026.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20ETS%201%20Jun%202026.pdf",
+          "retrievedAt": "2026-10-03T16:00:23.056901+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-9.pdf",
+          "role": "timetable",
+          "sha256": "28eb422225fbffdfafbe15182774bb622d38ab0fa30950bb26db292a4ad9677f",
+          "bytes": 332639,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-9.txt",
+          "textSha256": "5aae1941ed5a99d43803a6b547850dae49d146c106e872d25620bbaa57dd084f",
+          "textCharacters": 18851,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Effective 1st June 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20ETS%2018%20Apr%202026.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20ETS%2018%20Apr%202026.pdf",
+          "retrievedAt": "2026-10-03T16:00:25.468908+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-10.pdf",
+          "role": "timetable",
+          "sha256": "8fa8adf600e848cc353051edde0f612d2d87dab5b9302278751a0f3abcd180af",
+          "bytes": 332091,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-10.txt",
+          "textSha256": "98a6aa603a2e2a07f8f1517d8b38980c83734ed3b82ce313e940901efa57a0e9",
+          "textCharacters": 20250,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Effective 18th April 2026",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20Intercity%201%20Oktober%202026%20%28ERT%29.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20Intercity%201%20Oktober%202026%20%28ERT%29.pdf",
+          "retrievedAt": "2026-10-03T16:00:27.889364+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-11.pdf",
+          "role": "timetable",
+          "sha256": "74789df489ff5e7ee3ee823176f9f85e3644bc7fe32c37919a057e2c664d4a3c",
+          "bytes": 237860,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-11.txt",
+          "textSha256": "634059e1d8591e28f0843fcc9a9e6cf0000156f66632c0c8c52e7fa0eea4a495",
+          "textCharacters": 9519,
+          "parsingStatus": "font-encoding-review-required",
+          "label": "Tren Ekspress Rakyat Timuran",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20Intercity%201%20Oktober%202026%20%28ST%29.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/Jadual%20Tren%20Intercity%201%20Oktober%202026%20%28ST%29.pdf",
+          "retrievedAt": "2026-10-03T16:00:30.224825+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-12.pdf",
+          "role": "timetable",
+          "sha256": "dccb7d2d916efbd32ae0400e4902a886164cbcf67f3fd30291aac0c3403f5e88",
+          "bytes": 331497,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-12.txt",
+          "textSha256": "c59e2e93138b15c73176342b4846341556d5abdd6037edee32c9e664db1a6ee0",
+          "textCharacters": 14052,
+          "parsingStatus": "font-encoding-review-required",
+          "label": "Tren Shuttle Timur",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        },
+        {
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/02%20Jadual%20Tren%20Intercity%201%20Ogos%202026.pdf",
+          "effectiveUrl": "https://www.ktmb.com.my/assets/pdf/2026/02%20Jadual%20Tren%20Intercity%201%20Ogos%202026.pdf",
+          "retrievedAt": "2026-10-03T16:00:32.902118+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-13.pdf",
+          "role": "timetable",
+          "sha256": "0763caae2f0bfa73553f31dd1060325cf3b15bd095f088450c6f2802f79460d7",
+          "bytes": 439989,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-13.txt",
+          "textSha256": "2ea27b547e128fa8116f5e597297d946619684ef56afc8be0eb93688bfeed89f",
+          "textCharacters": 24878,
+          "parsingStatus": "font-encoding-review-required",
+          "label": "Intercity Eastbound, Southbound and JB Sentral - Woodlands Train",
+          "discoveredOn": "https://www.ktmb.com.my/TrainTime.html"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "Batu Caves - Pulau Sebang - Effective 27th April 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/BC-PS-BC Weekday2026_Perubahan 27042026 (2).pdf"
+        },
+        {
+          "label": "Tg. Malim - Pelabuhan Klang - Effective 6th July 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/TM-PK-TM WEEKDAY 06072026.pdf"
+        },
+        {
+          "label": "Tg. Malim - Pelabuhan Klang - Effective 26-27 September & 3-4 October 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual Sementara TM-PK-TM WEEKEND_MULAI 26 - 27 September  2026 dan 3 - 4 Oktober 2026 Projek RIDT Kalumpang.pdf"
+        },
+        {
+          "label": "Batu Caves - Pulau Sebang - Effective 3rd October 2026 Only",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/2-BC-PS-BC Weekend2026_LINE BLOK 10JAM (1).pdf"
+        },
+        {
+          "label": "Batu Caves - Pulau Sebang - Effective 1st May 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/BC-PS-BC Weekend2026_Perubahan 01052026 (2).pdf"
+        },
+        {
+          "label": "Tg. Malim - Pelabuhan Klang - Effective 4th July 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/TM-PK-TM WEEKEND 04072026.pdf"
+        },
+        {
+          "label": "Timetable starting 24th July 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual Baharu komuter Utara mulai 24 Julai 2026.pdf"
+        },
+        {
+          "label": "Komuter SELATAN Paloh - JB Sentral - Paloh : Starting 8th August 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Shuttle Selatan.pdf"
+        },
+        {
+          "label": "Effective 1st June 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual Tren ETS 1 Jun 2026.pdf"
+        },
+        {
+          "label": "Effective 18th April 2026",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual Tren ETS 18 Apr 2026.pdf"
+        },
+        {
+          "label": "Tren Ekspress Rakyat Timuran",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual Tren Intercity 1 Oktober 2026 (ERT).pdf"
+        },
+        {
+          "label": "Tren Shuttle Timur",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/Jadual Tren Intercity 1 Oktober 2026 (ST).pdf"
+        },
+        {
+          "label": "Intercity Eastbound, Southbound and JB Sentral - Woodlands Train",
+          "url": "https://www.ktmb.com.my/assets/pdf/2026/02 Jadual Tren Intercity 1 Ogos 2026.pdf"
+        }
+      ]
+    },
+    {
+      "source": "mtr-fares",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.highspeed.mtr.com.hk/robots.txt",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/robots.txt",
+          "retrievedAt": "2026-10-03T15:59:51.192678+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/robots-0.txt",
+          "role": "robots",
+          "sha256": "274a53197b8f8e3d1f9342ff7982adf05e3bd4040309aa1a9be4e8436aab2b68",
+          "bytes": 5426,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html",
+          "retrievedAt": "2026-10-03T15:59:53.095984+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/index.html",
+          "role": "index",
+          "sha256": "df41d561446abfa11aeffdc55cba622559ee1c8bb57abafbb422c66fd7ee3ad0",
+          "bytes": 63665
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-published-fare-chart.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-published-fare-chart.pdf",
+          "retrievedAt": "2026-10-03T15:59:57.008926+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-1.pdf",
+          "role": "published-fares",
+          "sha256": "108d1ebbdad1c94dab09fbd352dfe4ab78ce19f4cf0969c9896feef4b6cce894",
+          "bytes": 1889237,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-1.txt",
+          "textSha256": "7060584c3e59f0b2f12f34aa0b40faadf4aa5790a0459f3319852bcd63262cbb",
+          "textCharacters": 2,
+          "parsingStatus": "requires-ocr",
+          "label": "For trains departing before 1 Apr",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-published-fare-chart-new.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-published-fare-chart-new.pdf",
+          "retrievedAt": "2026-10-03T16:00:00.986954+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-2.pdf",
+          "role": "published-fares",
+          "sha256": "126f39949f0c90c95b85f1d8fcf3e778f930045989de988151259538c22f64de",
+          "bytes": 1897661,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-2.txt",
+          "textSha256": "7060584c3e59f0b2f12f34aa0b40faadf4aa5790a0459f3319852bcd63262cbb",
+          "textCharacters": 2,
+          "parsingStatus": "requires-ocr",
+          "label": "For trains departing from 1 Apr onwards",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-implemented-fare-chart.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-implemented-fare-chart.pdf",
+          "retrievedAt": "2026-10-03T16:00:06.054917+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-3.pdf",
+          "role": "published-fares",
+          "sha256": "e9ead7cf85d3ec20efb6a19b740a3a99391cb440b317e1df20610de9e550191f",
+          "bytes": 2871787,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-3.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "parsingStatus": "requires-ocr",
+          "label": "For trains departing before 1 Apr",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-implemented-fare-chart-new.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-implemented-fare-chart-new.pdf",
+          "retrievedAt": "2026-10-03T16:00:09.321495+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-4.pdf",
+          "role": "published-fares",
+          "sha256": "9e2eb2867fe2cfedce6b7828fe9e1e12932ecd034ae30f8fb8b962d396d2cf4b",
+          "bytes": 2882466,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-4.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "parsingStatus": "requires-ocr",
+          "label": "For trains departing from 1 Apr onwards",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/hkd-implemented-fare-chart.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/hkd-implemented-fare-chart.pdf",
+          "retrievedAt": "2026-10-03T16:00:13.483852+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-5.pdf",
+          "role": "published-fares",
+          "sha256": "c50db3aa9997871a1c7e45ae296b9ab244eba3c67393a5b5f79ed8b17be964ca",
+          "bytes": 2838439,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-5.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "parsingStatus": "requires-ocr",
+          "label": "For trains departing before 1 Apr",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/hkd-implemented-fare-chart-new.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/hkd-implemented-fare-chart-new.pdf",
+          "retrievedAt": "2026-10-03T16:00:17.219560+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-6.pdf",
+          "role": "published-fares",
+          "sha256": "fda540c883aad9d256d45e95d53e722faa42b2b98ddfd885713c285adb365441",
+          "bytes": 2913672,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-6.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "parsingStatus": "requires-ocr",
+          "label": "For trains departing from 1 Apr onwards",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/sleeper-train-rmb-published-fare-chart.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/sleeper-train-rmb-published-fare-chart.pdf",
+          "retrievedAt": "2026-10-03T16:00:20.917320+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-7.pdf",
+          "role": "published-fares",
+          "sha256": "a5b7dd7cf4743ed2054aca6ca1d7b2fcf46bf7b9b81625c20b72688154f04084",
+          "bytes": 2743155,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-7.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "parsingStatus": "requires-ocr",
+          "label": "Published Fare Charts in RMB",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "For trains departing before 1 Apr",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-published-fare-chart.pdf"
+        },
+        {
+          "label": "For trains departing from 1 Apr onwards",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-published-fare-chart-new.pdf"
+        },
+        {
+          "label": "For trains departing before 1 Apr",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-implemented-fare-chart.pdf"
+        },
+        {
+          "label": "For trains departing from 1 Apr onwards",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/rmb-implemented-fare-chart-new.pdf"
+        },
+        {
+          "label": "For trains departing before 1 Apr",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/hkd-implemented-fare-chart.pdf"
+        },
+        {
+          "label": "For trains departing from 1 Apr onwards",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/hkd-implemented-fare-chart-new.pdf"
+        },
+        {
+          "label": "Published Fare Charts in RMB",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/sleeper-train-rmb-published-fare-chart.pdf"
+        }
+      ]
+    },
+    {
+      "source": "korail-fares",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.korail.com/robots.txt",
+          "effectiveUrl": "https://www.korail.com/robots.txt",
+          "retrievedAt": "2026-10-03T15:59:51.031927+00:00",
+          "httpStatus": 200,
+          "contentType": "text/plain",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/robots-0.txt",
+          "role": "robots",
+          "sha256": "e5ab0d231eeb01b4a982d1c79a6729cac9797ad15a69247e4f28ba6afc149b4c",
+          "bytes": 70,
+          "finding": "parsed directives"
+        },
+        {
+          "url": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable",
+          "effectiveUrl": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable",
+          "retrievedAt": "2026-10-03T15:59:53.153047+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html;charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/index.html",
+          "role": "index",
+          "sha256": "50d71e37b18822de7a504ccc3025499288b6b046e5eb224c517e449834b933d1",
+          "bytes": 71672
+        },
+        {
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/22/202609221a0c7d8ec32240.xls",
+          "effectiveUrl": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/22/202609221a0c7d8ec32240.xls",
+          "retrievedAt": "2026-10-03T15:59:59.921056+00:00",
+          "httpStatus": 200,
+          "contentType": "application/vnd.ms-excel",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/document-1.xls",
+          "role": "published-fares",
+          "sha256": "17da4e097143ba0c6adee310e5f456496542f52ab0ab9fb04d73c0cb7b2f62f2",
+          "bytes": 7164928,
+          "parsingStatus": "legacy-workbook-not-normalized",
+          "label": "KTX 운임표(2026. 9. 1. 기준)",
+          "discoveredOn": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable"
+        },
+        {
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202608/19/202608191a018b939e5970.xlsx",
+          "effectiveUrl": "https://www.korail.com/file/cubedata/COMMON/jfile/202608/19/202608191a018b939e5970.xlsx",
+          "retrievedAt": "2026-10-03T16:00:02.421347+00:00",
+          "httpStatus": 200,
+          "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/document-2.xlsx",
+          "role": "published-fares",
+          "sha256": "287423a7bb3d504bccf708252dd52c3854800999dd95b15fd08952b997c7848f",
+          "bytes": 162615,
+          "cellsPath": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/document-2.cells.json",
+          "cellsSha256": "71c2afaece39cecc0427035943ae1d2eaf48057ab78717c734d0b115aa01a1d4",
+          "sheets": [
+            {
+              "name": "1.서울~부산",
+              "nonemptyCells": 2345
+            },
+            {
+              "name": "2.용산~목포",
+              "nonemptyCells": 1688
+            },
+            {
+              "name": "3.용산~광주",
+              "nonemptyCells": 635
+            },
+            {
+              "name": "4.용산~여수엑스포",
+              "nonemptyCells": 1310
+            },
+            {
+              "name": "5.서울~진주",
+              "nonemptyCells": 2843
+            },
+            {
+              "name": "6.용산~장항~익산",
+              "nonemptyCells": 497
+            },
+            {
+              "name": "7.청량리~부전",
+              "nonemptyCells": 1400
+            },
+            {
+              "name": "8.동대구~태화강~부전",
+              "nonemptyCells": 116
+            },
+            {
+              "name": "9.청량리~동해",
+              "nonemptyCells": 905
+            },
+            {
+              "name": "10.서화성~홍성",
+              "nonemptyCells": 68
+            },
+            {
+              "name": "11.홍성~홍성(순환)",
+              "nonemptyCells": 407
+            },
+            {
+              "name": "12.강릉~부전",
+              "nonemptyCells": 1688
+            },
+            {
+              "name": "13.강릉~동대구",
+              "nonemptyCells": 1310
+            },
+            {
+              "name": "14.부전~목포",
+              "nonemptyCells": 464
+            },
+            {
+              "name": "15.대전~제천",
+              "nonemptyCells": 278
+            },
+            {
+              "name": "16.광주~제천",
+              "nonemptyCells": 1139
+            },
+            {
+              "name": "17.여수엑스포~제천",
+              "nonemptyCells": 1400
+            }
+          ],
+          "label": "일반열차(ITX-마음, ITX-새마을, 새마을호) 운임표(2026. 9. 1. 기준)",
+          "discoveredOn": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "KTX 운임표(2026. 9. 1. 기준)",
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/22/202609221a0c7d8ec32240.xls"
+        },
+        {
+          "label": "일반열차(ITX-마음, ITX-새마을, 새마을호) 운임표(2026. 9. 1. 기준)",
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202608/19/202608191a018b939e5970.xlsx"
+        }
+      ]
+    },
+    {
+      "source": "sr-fares",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://etk.srail.kr/robots.txt",
+          "effectiveUrl": "https://etk.srail.kr/error.html",
+          "retrievedAt": "2026-10-03T16:00:05.236491+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/sr-fares/robots-0.txt",
+          "role": "robots",
+          "sha256": "b871c9aba0067070f8e65ef2193c036ee07892bca1093e13b0fec4502db17144",
+          "bytes": 995,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000",
+          "effectiveUrl": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000",
+          "retrievedAt": "2026-10-03T16:00:06.911021+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/sr-fares/index.html",
+          "role": "index",
+          "sha256": "4e1755206fada256380abcb81243d46843f62a32f5ce1e0cde9efb80786c8103",
+          "bytes": 28251
+        },
+        {
+          "url": "https://www.srail.or.kr/robots.txt",
+          "effectiveUrl": "https://www.srail.or.kr/404.html",
+          "retrievedAt": "2026-10-03T16:00:09.748371+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/sr-fares/robots-1.txt",
+          "role": "robots",
+          "sha256": "29f02b78e9b3b394b1dedfbeb7de0daa74cd39ccbcf0390f2107e457fc171576",
+          "bytes": 1653,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://www.srail.or.kr/cms/attach/download.do?pageId=TK0402050000&atchNo=28",
+          "effectiveUrl": "https://www.srail.or.kr/cms/attach/download.do?pageId=TK0402050000&atchNo=28",
+          "retrievedAt": "2026-10-03T16:00:15.134319+00:00",
+          "httpStatus": 200,
+          "contentType": "application/x-octetstream;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/sr-fares/document-1.xls",
+          "role": "published-fares",
+          "sha256": "bc18040242a6186637e71044bd85f18791e7efaad9b921390137cd3ef3db12e5",
+          "bytes": 7133184,
+          "parsingStatus": "legacy-workbook-not-normalized",
+          "label": "운임표 다운로드",
+          "discoveredOn": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "운임표 다운로드",
+          "url": "https://www.srail.or.kr/cms/attach/download.do?pageId=TK0402050000&atchNo=28"
+        }
+      ]
+    },
+    {
+      "source": "smartex-fares",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://smart-ex.jp/robots.txt",
+          "effectiveUrl": "https://smart-ex.jp/robots.txt",
+          "retrievedAt": "2026-10-03T16:00:17.527204+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/robots-0.txt",
+          "role": "robots",
+          "sha256": "b11ddbc18564b3f45ce80b51aef1ce639355b6c7007f2a8ee4c2d86a4d4f2553",
+          "bytes": 20162,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://smart-ex.jp/en/product/plan/service/",
+          "effectiveUrl": "https://smart-ex.jp/en/product/plan/service/",
+          "retrievedAt": "2026-10-03T16:00:19.304816+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/index.html",
+          "role": "index",
+          "sha256": "4f01e4a5ab3c50832f774903ea865c29a3ed47e9f33e955374b52693f447cfe6",
+          "bytes": 35310
+        },
+        {
+          "url": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_reserved.pdf",
+          "effectiveUrl": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_reserved.pdf",
+          "retrievedAt": "2026-10-03T16:00:21.388958+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-1.pdf",
+          "role": "published-fares",
+          "sha256": "b6b5313b86ba3485044369ab7dfad13c22435379ca80b6ab2cdfbfaa3131a84e",
+          "bytes": 459473,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-1.txt",
+          "textSha256": "fb379cc6b0d4c6ae2ad2c38478ece0269126fd8312c53e67ae6972ca74f6fa49",
+          "textCharacters": 58107,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Ordinary Car - Reserved Seat",
+          "discoveredOn": "https://smart-ex.jp/en/product/plan/service/"
+        },
+        {
+          "url": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_green.pdf",
+          "effectiveUrl": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_green.pdf",
+          "retrievedAt": "2026-10-03T16:00:23.355671+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-2.pdf",
+          "role": "published-fares",
+          "sha256": "6c251d14dc93ddca237b353ada4c47dd4f2a5b14c38e79f7a31e6cd6b0cbef92",
+          "bytes": 458684,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-2.txt",
+          "textSha256": "9f83f1c5af11c50e75ba8f4db367eebf19bcf99ec4385d6a9d1cd8a2b3bd57ba",
+          "textCharacters": 58106,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Green Car (First Class Car)",
+          "discoveredOn": "https://smart-ex.jp/en/product/plan/service/"
+        },
+        {
+          "url": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_non_reserved.pdf",
+          "effectiveUrl": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_non_reserved.pdf",
+          "retrievedAt": "2026-10-03T16:00:25.439385+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-3.pdf",
+          "role": "published-fares",
+          "sha256": "c9d3622b24049340e3dca6fcb60945957a1d04619986c55ff73dc8dc0ded43ac",
+          "bytes": 414453,
+          "textPath": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-3.txt",
+          "textSha256": "69f398d21f6f4c68438520ffd549857bded562f9783acbf755d22bc46d318e4d",
+          "textCharacters": 26910,
+          "parsingStatus": "text-extracted-not-normalized",
+          "label": "Ordinary Car - Non-Reserved Seat",
+          "discoveredOn": "https://smart-ex.jp/en/product/plan/service/"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "Ordinary Car - Reserved Seat",
+          "url": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_reserved.pdf"
+        },
+        {
+          "label": "Green Car (First Class Car)",
+          "url": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_green.pdf"
+        },
+        {
+          "label": "Ordinary Car - Non-Reserved Seat",
+          "url": "https://smart-ex.jp/en/product/plan/service/pdf/service_fares_non_reserved.pdf"
+        }
+      ]
+    },
+    {
+      "source": "thsr-fares",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://en.thsrc.com.tw/robots.txt",
+          "effectiveUrl": "https://en.thsrc.com.tw/robots.txt",
+          "retrievedAt": "2026-10-03T16:03:43.446129+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T160341569696Z/thsr-fares/robots-0.txt",
+          "role": "robots",
+          "sha256": "a74e3ff7d5ac40d7106c48adb644c1b00dc3dc1380987d8d68cfaf5c0e1b0f1c",
+          "bytes": 22954,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://en.thsrc.com.tw/ArticleContent/4c3efc1d-e6df-4bfd-97b4-52e89f79ee5c",
+          "effectiveUrl": "https://en.thsrc.com.tw/ArticleContent/4c3efc1d-e6df-4bfd-97b4-52e89f79ee5c",
+          "retrievedAt": "2026-10-03T16:03:46.277230+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T160341569696Z/thsr-fares/index.html",
+          "role": "published-fares",
+          "sha256": "1a9942220a17cd353904cb6a86f3531a833a074ca8cd9e2855411cd734f8a9a6",
+          "bytes": 105099
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "fareBasis": "Published table, not a dated quote; class and adult/concession axes require interpretation."
+    },
+    {
+      "source": "china-12306-sample",
+      "status": "captured",
+      "assets": [
+        {
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/observed-search.json",
+          "sha256": "eb2ddffee0b831fec5d9183deec04971f0b2806f87333fcb068cfbeda3f8b197",
+          "bytes": 28696,
+          "role": "imported-public-search-response",
+          "url": "https://search.12306.cn/search/v1/train/search?keyword=G&date=20261004&type=wx_checi",
+          "importedAt": "2026-10-03T16:11:35.518870+00:00",
+          "retrievedAt": null,
+          "provenanceNote": "Obtained via public mobile form endpoint; exact retrieval timestamp not recorded. Search robots later returned 502; no further search requests by this collector."
+        },
+        {
+          "url": "https://mobile.12306.cn/robots.txt",
+          "effectiveUrl": "https://mobile.12306.cn/robots.txt",
+          "retrievedAt": "2026-10-03T16:11:36.686329+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/robots-0.txt",
+          "role": "robots",
+          "sha256": "1f135e2ede4d2389e481d51d046e533ac485d15dc83396818d41bb81c7e84045",
+          "bytes": 1164,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/initCC?type=xxqg",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/initCC?type=xxqg",
+          "retrievedAt": "2026-10-03T16:11:38.899722+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/form.html",
+          "role": "public-form",
+          "sha256": "f1cb3788bee75c3d2eff39897d109bfa183ad0b30680427e3a4ce044c99430e8",
+          "bytes": 6370
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/resources/weixin/js/index_checi.js?version=2.00",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/resources/weixin/js/index_checi.js?version=2.00",
+          "retrievedAt": "2026-10-03T16:11:40.799103+00:00",
+          "httpStatus": 200,
+          "contentType": "application/javascript;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/form.js",
+          "role": "public-form-code",
+          "sha256": "d908132c1d9ff4ec93903af847eccf4f91d0111381582537602a4d894d181c16",
+          "bytes": 7089
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=24000000G10L&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=24000000G10L&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:11:42.927421+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G1.json",
+          "role": "dated-stop-times",
+          "sha256": "fc5d581c3f51a1eef3d2e2df82a7869185af3ae2225303ad8050d5b9d24beac7",
+          "bytes": 2115
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5l000000G250&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5l000000G250&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:11:45.348358+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G2.json",
+          "role": "dated-stop-times",
+          "sha256": "39999723b41af1dd0c508eca9674224f82175450f905ed3cc7e374d61ec23f0c",
+          "bytes": 2115
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=24000000G320&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=24000000G320&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:11.217652+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G3.json",
+          "role": "dated-stop-times",
+          "sha256": "153394640c588a8cf44491e9f14430a43379690651da6af4e12d96cbe41c730c",
+          "bytes": 1575
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=55000000G400&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=55000000G400&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:14.617652+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G4.json",
+          "role": "dated-stop-times",
+          "sha256": "59a10ae711a4a1a10da41d8da2f820b1e1a24026a51e0d1d095d6b9e5b397c4c",
+          "bytes": 1575
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=24000000G520&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=24000000G520&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:16.796044+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G5.json",
+          "role": "dated-stop-times",
+          "sha256": "6693e08c62662c01c79862a7d3edffb3093c05ceb353b6f3f44a2d1e5add3cec",
+          "bytes": 1569
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5k000000G600&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5k000000G600&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:22.100362+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G6.json",
+          "role": "dated-stop-times",
+          "sha256": "2cc09e1ec01e8f60812920f7776d7409579e8503d189f15dfc434d4a90fd82ce",
+          "bytes": 1845
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5500000G2800&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5500000G2800&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:24.271458+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G28.json",
+          "role": "dated-stop-times",
+          "sha256": "d570beaeaf925bc544306bda34b6fcd82ccb211227cb137fcd29f8383ffdf8fb",
+          "bytes": 1835
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G3730&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G3730&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:27.219530+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G37.json",
+          "role": "dated-stop-times",
+          "sha256": "8c8f925e8d60499f259750cc4fb522c0980f2bb97941a06efed46810bbce3138",
+          "bytes": 2114
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5600000G3840&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5600000G3840&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:30.223359+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G38.json",
+          "role": "dated-stop-times",
+          "sha256": "7872a26b566b7db6803184b59289433f4006dd0b95bef623f5e34eec8d9d3b58",
+          "bytes": 1579
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G4130&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G4130&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:32.304569+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G41.json",
+          "role": "dated-stop-times",
+          "sha256": "1819cab8d74e7d726e649387e3407fb62891a806c191a46f7fe51f54f96fdc8b",
+          "bytes": 2107
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G4520&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G4520&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:34.578365+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G45.json",
+          "role": "dated-stop-times",
+          "sha256": "de3979952006dbb78f8572f6199d0ca9923e8f1e8f26f48e89e9bce72ff412fb",
+          "bytes": 1576
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5j00000G4600&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5j00000G4600&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:36.641459+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G46.json",
+          "role": "dated-stop-times",
+          "sha256": "358d1d67a6cf0afa2d8b07bd5b87d96e8d7ef49be689e6b42cda41a7374547b1",
+          "bytes": 2107
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G4700&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G4700&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:39.138328+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G47.json",
+          "role": "dated-stop-times",
+          "sha256": "e9de91ede98da13eba42dc980ff3b41e24ec9e3ff16a65758cf46f54c8d6a397",
+          "bytes": 2894
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5e00000G4800&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5e00000G4800&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:41.702708+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G48.json",
+          "role": "dated-stop-times",
+          "sha256": "2e1f67a9745c0e9f0cd88b1b32cf0f79641b28dbe365f843f18eb1a14dd1766d",
+          "bytes": 1837
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5600000G5000&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5600000G5000&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:44.175499+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G50.json",
+          "role": "dated-stop-times",
+          "sha256": "c63cd4e6fa0937c28dc8a0471fb566638fa524de41580b3f0e62489e2a41d439",
+          "bytes": 2104
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G5110&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G5110&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:46.273984+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G51.json",
+          "role": "dated-stop-times",
+          "sha256": "deaeb0b77086630a711d9a4b8d270485403aa4a6421514d529793b596564d8fb",
+          "bytes": 1840
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5i00000G5200&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5i00000G5200&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:49.370595+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G52.json",
+          "role": "dated-stop-times",
+          "sha256": "abd42a48a8d66b05dfd68509c61537038f2cfedeade4d7198141f59b3cbf9cd0",
+          "bytes": 1054
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G5310&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G5310&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:51.772180+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G53.json",
+          "role": "dated-stop-times",
+          "sha256": "2e9db386114e2dbc9777a2c05364739dd0aca53ce9e8db0e213ef76921c180d0",
+          "bytes": 1054
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G550T&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G550T&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:53.986625+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G55.json",
+          "role": "dated-stop-times",
+          "sha256": "fc7eed41d76b8f71663148f70e5e024f869320b344d87c1bc07fce24a512d428",
+          "bytes": 1837
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5400000G5800&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5400000G5800&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:56.554531+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G58.json",
+          "role": "dated-stop-times",
+          "sha256": "13b09beeb99e0116ac2c0fe08b40fefdaa0ba6861bd7ffb86d68ca3cec01af36",
+          "bytes": 1576
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G650Y&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G650Y&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:12:59.385329+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G65.json",
+          "role": "dated-stop-times",
+          "sha256": "351b575614e6d2457906c0c1b107ca700d9931778c0a8a3f08213a25dba873d3",
+          "bytes": 1582
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5l00000G6602&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5l00000G6602&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:13:01.645078+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G66.json",
+          "role": "dated-stop-times",
+          "sha256": "30c1ebcb28167a81b2d0228d11265c85c24b6439ccb7c4f919db6fe02c388b6a",
+          "bytes": 1318
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5f00000G6802&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=5f00000G6802&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:13:04.871115+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G68.json",
+          "role": "dated-stop-times",
+          "sha256": "4930c636362af7c02432f994ba8b3c59e96b40922f0ba564eef39015bb5f41cf",
+          "bytes": 1573
+        },
+        {
+          "url": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G690O&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "effectiveUrl": "https://mobile.12306.cn/weixin/wxcore/queryByTrainNo?train_no=2400000G690O&from_station_telecode=BBB&to_station_telecode=BBB&depart_date=2026-10-04",
+          "retrievedAt": "2026-10-03T16:13:07.983107+00:00",
+          "httpStatus": 200,
+          "contentType": "application/json;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G69.json",
+          "role": "dated-stop-times",
+          "sha256": "16bd05f7f03bc6476195a8028c229ca5efb5bff2c4c81e05d805bbbadcb9c940",
+          "bytes": 1576
+        }
+      ],
+      "kind": "dated-sample-evidence",
+      "runtimeIntegrated": false,
+      "completeInventory": false,
+      "reuse": "Local review only; no redistribution licence inferred.",
+      "queriedTravelDate": "2026-10-04",
+      "catalogueRows": 200,
+      "searchMayBeTruncated": true,
+      "trains": [
+        {
+          "train": "G1",
+          "from": "北京南",
+          "to": "上海虹桥",
+          "stops": 7,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G1.json"
+        },
+        {
+          "train": "G2",
+          "from": "上海虹桥",
+          "to": "北京南",
+          "stops": 7,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G2.json"
+        },
+        {
+          "train": "G3",
+          "from": "北京南",
+          "to": "上海",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G3.json"
+        },
+        {
+          "train": "G4",
+          "from": "上海",
+          "to": "北京南",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G4.json"
+        },
+        {
+          "train": "G5",
+          "from": "北京",
+          "to": "上海",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G5.json"
+        },
+        {
+          "train": "G6",
+          "from": "昆山南",
+          "to": "北京南",
+          "stops": 6,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G6.json"
+        },
+        {
+          "train": "G28",
+          "from": "上海",
+          "to": "北京",
+          "stops": 6,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G28.json"
+        },
+        {
+          "train": "G37",
+          "from": "北京南",
+          "to": "杭州东",
+          "stops": 7,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G37.json"
+        },
+        {
+          "train": "G38",
+          "from": "杭州东",
+          "to": "北京南",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G38.json"
+        },
+        {
+          "train": "G41",
+          "from": "北京南",
+          "to": "温州南",
+          "stops": 7,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G41.json"
+        },
+        {
+          "train": "G45",
+          "from": "北京南",
+          "to": "宁波",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G45.json"
+        },
+        {
+          "train": "G46",
+          "from": "温州南",
+          "to": "北京南",
+          "stops": 7,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G46.json"
+        },
+        {
+          "train": "G47",
+          "from": "北京南",
+          "to": "千岛湖",
+          "stops": 10,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G47.json"
+        },
+        {
+          "train": "G48",
+          "from": "宁波",
+          "to": "北京南",
+          "stops": 6,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G48.json"
+        },
+        {
+          "train": "G50",
+          "from": "千岛湖",
+          "to": "北京南",
+          "stops": 7,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G50.json"
+        },
+        {
+          "train": "G51",
+          "from": "北京南",
+          "to": "芜湖",
+          "stops": 6,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G51.json"
+        },
+        {
+          "train": "G52",
+          "from": "合肥南",
+          "to": "北京南",
+          "stops": 3,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G52.json"
+        },
+        {
+          "train": "G53",
+          "from": "北京南",
+          "to": "合肥南",
+          "stops": 3,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G53.json"
+        },
+        {
+          "train": "G55",
+          "from": "北京",
+          "to": "合肥南",
+          "stops": 6,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G55.json"
+        },
+        {
+          "train": "G58",
+          "from": "芜湖",
+          "to": "北京南",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G58.json"
+        },
+        {
+          "train": "G65",
+          "from": "北京南",
+          "to": "南京南",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G65.json"
+        },
+        {
+          "train": "G66",
+          "from": "南京南",
+          "to": "北京南",
+          "stops": 4,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G66.json"
+        },
+        {
+          "train": "G68",
+          "from": "盐城",
+          "to": "北京南",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G68.json"
+        },
+        {
+          "train": "G69",
+          "from": "北京南",
+          "to": "青岛",
+          "stops": 5,
+          "evidencePath": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G69.json"
+        }
+      ],
+      "failures": [],
+      "selectedTrainCount": 24
+    },
+    {
+      "source": "japan-route-samples",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.trip.com/robots.txt",
+          "effectiveUrl": "https://www.trip.com/robots.txt",
+          "retrievedAt": "2026-10-03T16:13:21.171869+00:00",
+          "httpStatus": 200,
+          "contentType": "text/plain; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/robots-0.txt",
+          "role": "robots",
+          "sha256": "8d7336d2b21d2896e3765f463052ccda38d02d2c19d6f8df9d8ef203d492c967",
+          "bytes": 4587,
+          "finding": "parsed directives"
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/tokyo-to-niigata/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/tokyo-to-niigata/",
+          "retrievedAt": "2026-10-03T16:13:23.846878+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-niigata.html",
+          "role": "reseller-route-page",
+          "sha256": "1e94b4b18a9b26d8664fa46239ea50bd77da41b333e2f058be2663e7a36822af",
+          "bytes": 1215021
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-niigata.rows.json",
+          "sha256": "18bf326fc2462a490e6843b39261b94618477442bb9fc4b6fd5942ba7d3e9470",
+          "role": "derived-evidence",
+          "bytes": 20056
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/niigata-to-tokyo/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/niigata-to-tokyo/",
+          "retrievedAt": "2026-10-03T16:13:26.615675+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/niigata-to-tokyo.html",
+          "role": "reseller-route-page",
+          "sha256": "3fea1b774a5f2f4122ecce3c14e43a3e631bf739521dc94ed0733cf584053a7e",
+          "bytes": 1213984
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/niigata-to-tokyo.rows.json",
+          "sha256": "671e604561b4aa0448cb1b587dfae6e6870cc7148bcacd98d19809dc75610bf5",
+          "role": "derived-evidence",
+          "bytes": 20851
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/tokyo-to-sendai-miyagi/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/tokyo-to-sendai-miyagi/",
+          "retrievedAt": "2026-10-03T16:13:29.235333+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-sendai-miyagi.html",
+          "role": "reseller-route-page",
+          "sha256": "a5bec4373652415dd0cba355b985a8bb6142c397139e02f7f440a8d3c829e142",
+          "bytes": 1215775
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-sendai-miyagi.rows.json",
+          "sha256": "c3c52744ad9831e2f966fe4fa89cb49d200e5cb6b66fbec1bf3b0f9301e8f7dd",
+          "role": "derived-evidence",
+          "bytes": 39149
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/sendai-miyagi-to-tokyo/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/sendai-miyagi-to-tokyo/",
+          "retrievedAt": "2026-10-03T16:13:31.955475+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/sendai-miyagi-to-tokyo.html",
+          "role": "reseller-route-page",
+          "sha256": "ca2a03f0bdccf07e1d130b0b04352cda0b144e3774ba389cefeaa425003f2284",
+          "bytes": 1216066
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/sendai-miyagi-to-tokyo.rows.json",
+          "sha256": "0f78df8f9781f68ba0c53f1ba5b7bfaff99ceb179884bc96f09a575beb430e41",
+          "role": "derived-evidence",
+          "bytes": 39156
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/tokyo-to-shin-hakodate-hokuto/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/tokyo-to-shin-hakodate-hokuto/",
+          "retrievedAt": "2026-10-03T16:13:34.764649+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-shin-hakodate-hokuto.html",
+          "role": "reseller-route-page",
+          "sha256": "286a24e13c172720e5434262ebf6d23dfa227f7e32847681929dfa2e843f2d6c",
+          "bytes": 1196398
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-shin-hakodate-hokuto.rows.json",
+          "sha256": "6b10460a06fcef1307e8212784bb08a02074a8ab6a30370998883fd792614bf3",
+          "role": "derived-evidence",
+          "bytes": 16684
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/shin-hakodate-hokuto-to-tokyo/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/shin-hakodate-hokuto-to-tokyo/",
+          "retrievedAt": "2026-10-03T16:13:37.434894+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/shin-hakodate-hokuto-to-tokyo.html",
+          "role": "reseller-route-page",
+          "sha256": "7b92d3eeb9766cf0a08f13a78a6e7cb1743daed3491d543c6eac753ac9a0fefe",
+          "bytes": 1197130
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/shin-hakodate-hokuto-to-tokyo.rows.json",
+          "sha256": "ecd2736c4e0303749b542660b6bac5177efaeac74a90763c3fa2394e06ce83df",
+          "role": "derived-evidence",
+          "bytes": 16692
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/tokyo-to-kanazawa/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/tokyo-to-kanazawa/",
+          "retrievedAt": "2026-10-03T16:13:40.424151+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-kanazawa.html",
+          "role": "reseller-route-page",
+          "sha256": "99938cefc1b9bb1f4c61ca445b63c25f9377009750da8e56e84a4c1ac2441f97",
+          "bytes": 1215318
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-kanazawa.rows.json",
+          "sha256": "59787edede3bc3216ed563dffc785f22f86630cb2f11846404ca056b3403cab3",
+          "role": "derived-evidence",
+          "bytes": 40342
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/kanazawa-to-tokyo/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/kanazawa-to-tokyo/",
+          "retrievedAt": "2026-10-03T16:13:43.174105+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/kanazawa-to-tokyo.html",
+          "role": "reseller-route-page",
+          "sha256": "1f41da9694ff027427a1219746f2905fe84f965984815fa7bd0cb2933e8c5ef0",
+          "bytes": 1215369
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/kanazawa-to-tokyo.rows.json",
+          "sha256": "ca8b42edcaf0d2fdbececf8da79bfc4e325bed4dd7afb7bbea6428945781242f",
+          "role": "derived-evidence",
+          "bytes": 40335
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/tokyo-to-nagano/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/tokyo-to-nagano/",
+          "retrievedAt": "2026-10-03T16:13:46.033920+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-nagano.html",
+          "role": "reseller-route-page",
+          "sha256": "25f2291359466f6492faae074ca30b45e683b5bb33d7ce177735ac56bb2af07b",
+          "bytes": 1214773
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-nagano.rows.json",
+          "sha256": "eb4c773b3c763915b69b75f313b54907ee36b8277a3b5a61168cdeb0bbd90d59",
+          "role": "derived-evidence",
+          "bytes": 25871
+        },
+        {
+          "url": "https://www.trip.com/trains/japan/route/nagano-to-tokyo/",
+          "effectiveUrl": "https://www.trip.com/trains/japan/route/nagano-to-tokyo/",
+          "retrievedAt": "2026-10-03T16:13:48.788724+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/nagano-to-tokyo.html",
+          "role": "reseller-route-page",
+          "sha256": "1d62b1ed3de3d97a4dfb8189ca00e00a0133c363e9883f5449339aa3267d2f67",
+          "bytes": 1215091
+        },
+        {
+          "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/nagano-to-tokyo.rows.json",
+          "sha256": "673c0ede910ef23013c389e3b956d8c3fca2e036f7f822eda9955813b01f3a3a",
+          "role": "derived-evidence",
+          "bytes": 25865
+        }
+      ],
+      "kind": "dated-sample-evidence",
+      "runtimeIntegrated": false,
+      "completeInventory": false,
+      "reuse": "Local review only; no redistribution licence inferred.",
+      "routes": [
+        {
+          "originLabel": "Tokyo",
+          "destinationLabel": "Niigata",
+          "pageRowCount": 50,
+          "matchedRowCount": 25,
+          "dates": [
+            "2026-10-04"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-niigata.html"
+        },
+        {
+          "originLabel": "Niigata",
+          "destinationLabel": "Tokyo",
+          "pageRowCount": 50,
+          "matchedRowCount": 26,
+          "dates": [
+            "2026-10-04"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/niigata-to-tokyo.html"
+        },
+        {
+          "originLabel": "Tokyo",
+          "destinationLabel": "Sendai(Miyagi)",
+          "pageRowCount": 50,
+          "matchedRowCount": 48,
+          "dates": [
+            "2026-10-04"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-sendai-miyagi.html"
+        },
+        {
+          "originLabel": "Sendai(Miyagi)",
+          "destinationLabel": "Tokyo",
+          "pageRowCount": 50,
+          "matchedRowCount": 48,
+          "dates": [
+            "2026-10-04"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/sendai-miyagi-to-tokyo.html"
+        },
+        {
+          "originLabel": "Tokyo",
+          "destinationLabel": "Shin-Hakodate-Hokuto",
+          "pageRowCount": 20,
+          "matchedRowCount": 20,
+          "dates": [
+            "2026-10-04",
+            "2026-10-05"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-shin-hakodate-hokuto.html"
+        },
+        {
+          "originLabel": "Shin-Hakodate-Hokuto",
+          "destinationLabel": "Tokyo",
+          "pageRowCount": 20,
+          "matchedRowCount": 20,
+          "dates": [
+            "2026-10-04",
+            "2026-10-05"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/shin-hakodate-hokuto-to-tokyo.html"
+        },
+        {
+          "originLabel": "Tokyo",
+          "destinationLabel": "Kanazawa",
+          "pageRowCount": 50,
+          "matchedRowCount": 50,
+          "dates": [
+            "2026-10-04",
+            "2026-10-05"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-kanazawa.html"
+        },
+        {
+          "originLabel": "Kanazawa",
+          "destinationLabel": "Tokyo",
+          "pageRowCount": 50,
+          "matchedRowCount": 50,
+          "dates": [
+            "2026-10-04",
+            "2026-10-05"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/kanazawa-to-tokyo.html"
+        },
+        {
+          "originLabel": "Tokyo",
+          "destinationLabel": "Nagano",
+          "pageRowCount": 50,
+          "matchedRowCount": 32,
+          "dates": [
+            "2026-10-04"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-nagano.html"
+        },
+        {
+          "originLabel": "Nagano",
+          "destinationLabel": "Tokyo",
+          "pageRowCount": 50,
+          "matchedRowCount": 32,
+          "dates": [
+            "2026-10-04"
+          ],
+          "normalizedOffers": false,
+          "fareStatus": "unverified; zero placeholders are not prices",
+          "sourcePath": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/nagano-to-tokyo.html"
+        }
+      ],
+      "failures": []
     }
   ]
 }

@@ -7,8 +7,8 @@ How a click on the globe becomes flights, trains, buses and ferries.
 [TODO: collect real transit listings and add a simulated booking path](briefs/demo-listing-cache.md)
 tracks rail across China, Taiwan, Japan, Korea and Southeast Asia, plus buses, ferries and flights.
 
-[Current rail source capture](findings/rail-capture.md) records the October 3 collection of official PDFs,
-spreadsheets, GTFS and HTML timetables. `python3 scripts/capture-rail.py` refreshes local source evidence;
+[Current rail source capture](findings/rail-capture.md) records the October 3–4 collection of published fares, PDFs,
+spreadsheets, GTFS, HTML timetables and dated China/Japan samples. `python3 scripts/capture-rail.py` refreshes local source evidence;
 these captures are not yet integrated into the runtime providers.
 
 ## The pipeline

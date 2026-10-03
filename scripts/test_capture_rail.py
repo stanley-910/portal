@@ -51,6 +51,23 @@ class CaptureTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Hash mismatch"):
                     capture.verify(manifest)
 
+    def test_ktmb_excludes_commented_and_previous_year_downloads(self):
+        html = '''<!-- <a data-dl="/2026/old.pdf">Old</a> -->
+        <a data-dl="/2025/previous.pdf">Previous year</a>
+        <a data-dl="/2026/current.pdf">Effective October</a>'''
+        self.assertEqual(list(capture.discover("ktmb-published", html, "https://operator.test/")),
+                         [("Effective October", "https://operator.test/2026/current.pdf")])
+
+    def test_korail_fares_accept_legacy_workbook_without_selecting_timetable(self):
+        rows = [
+            {"bdTitle": "KTX 운임표", "bdIdx": 2, "fileId": ["jfile/fares.xls"]},
+            {"bdTitle": "일반열차(ITX-마음) 운임표", "bdIdx": 3, "fileId": ["jfile/regular.xlsx"]},
+            {"bdTitle": "KTX 시간표", "bdIdx": 4, "fileId": ["jfile/timetable.xlsx"]},
+        ]
+        found = list(capture.discover("korail-fares", json.dumps({"boardList": rows}), "https://operator.test/"))
+        self.assertEqual(len(found), 2)
+        self.assertTrue(found[0][1].endswith("fares.xls"))
+
 
 if __name__ == "__main__":
     unittest.main()

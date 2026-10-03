@@ -1,6 +1,6 @@
 # Current rail source capture
 
-Captured directly from official sources on **2026-10-03**. This is the source-collection phase requested before
+Captured on **2026-10-03–04 (Hong Kong time)** from operator sources and explicitly labelled reseller pages. This is the source-collection phase requested before
 provider integration or simulated booking. No runtime seeds, reservations, accounts or payments were changed.
 
 ## What is on disk
@@ -9,9 +9,9 @@ provider integration or simulated booking. No runtime seeds, reservations, accou
 local evidence path, download label and capture outcome. Original documents live in `data/rail-capture/runs/`:
 the files are durable local evidence, ignored by Git, and are not included in the deployed application.
 
-The combined capture contains **39 source responses**, including **11 PDFs and 3 XLSX workbooks**, the KTMB
-GTFS ZIP, official HTML timetables, source indexes and robots responses. These are document counts, not a claim
-of that many routes or bookable services. Targeted refreshes retain other sources with their original timestamps.
+The operator document capture contains **34 PDFs, 4 XLSX workbooks and 2 legacy XLS workbooks**, plus the KTMB
+GTFS ZIP, HTML tables, indexes and robots responses. Dated China/Japan evidence is described below. These are
+document counts, not routes or bookable services. Targeted refreshes retain original retrieval timestamps.
 
 | Source | Captured coverage | Published date limits and remaining interpretation |
 | --- | --- | --- |
@@ -25,13 +25,55 @@ of that many routes or bookable services. Targeted refreshes retain other source
 | [Vietnam Railways](https://giotaugiave.dsvn.vn/) | Complete operator timetable HTML, including intermediate station rows | Original grids and explicit next-day offsets retained. Page does not establish a complete dated service calendar. |
 | [State Railway of Thailand](https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1) | Northern, northeastern and southern tables, both directions, plus public train-type/running-day JavaScript | Published classic-view tables; effective dates and known source inconsistencies need validation before rebuilding seeds. No access to the protected modern booking API was attempted. |
 
+## Additional published sources
+
+| Source | Evidence collected | Limits |
+| --- | --- | --- |
+| [KTMB passenger timetables](https://www.ktmb.com.my/TrainTime.html) | Thirteen PDFs covering ETS, Intercity, Shuttle Timur, JB–Woodlands and commuter services | Includes older overlapping revisions and date-specific October exceptions. Index links are evidence, not a declaration that every PDF applies today. GTFS still ends October 17; these PDFs do not extend that feed's service calendar. |
+| [MTR fares](https://www.highspeed.mtr.com.hk/en/ticket/fare.html) | Seven published fare PDFs, including sleeper fares and before/from-April branches | Published tariff is not a dated implemented HKD quote. Requires OCR and effective-date/class interpretation. |
+| [Korail fares](https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable) | KTX XLS and conventional XLSX, labelled September 1, 2026 | Legacy XLS preserved without conversion; XLSX cell evidence extracted. |
+| [SR fares](https://etk.srail.kr/cms/archive.do?pageId=TK0402050000) | Linked fare XLS | Legacy workbook preserved; applicability and service identity need review. |
+| [SmartEX fares](https://smart-ex.jp/en/product/plan/service/) | Ordinary reserved, Green Car and ordinary non-reserved fare PDFs | Published tariff with class/season conditions; no live availability. |
+| [THSR fares](https://en.thsrc.com.tw/ArticleContent/4c3efc1d-e6df-4bfd-97b4-52e89f79ee5c) | Full published fare-grid HTML | Standard/business/unreserved and adult/concession axes need interpretation. |
+
+### Mainland China dated evidence
+
+The [12306 public mobile train form](https://mobile.12306.cn/weixin/wxcore/initCC?type=xxqg) exposes a public
+train-number search followed by a stop-time query. A successful `keyword=G`, `date=20261004`, `type=wx_checi`
+response returned **200 catalogue rows**, apparently capped. The collector imported that response and fetched
+**24 trains**, one per directed endpoint pair in source order, for **October 4, 2026**. This selection is heavily
+Beijing-oriented, not a nationwide inventory. Each original response retains station telecodes, ordered stops,
+arrival/departure times, origin date and day offsets. No price or available-seat claim is made.
+
+The search response's exact retrieval timestamp was not recorded; its manifest says so. Subsequent search-host
+robots discovery returned a connection reset then HTTP 502, so the repeatable collector accepts a previously
+obtained catalogue instead of repeatedly requesting that host. Mobile-host robots returned 404 and is retained.
+The desktop station-query page returned HTTP 404 on its data request. Public mobile queries worked without login
+or CAPTCHA. Do not reuse October 4 train identifiers or timetables for another travel date.
+
+### Japan dated reseller samples
+
+[Trip.com Japan public route pages](https://www.trip.com/trains/japan/route/tokyo-to-niigata/) supplied ten
+pages: Tokyo ↔ Niigata, Sendai (Miyagi), Shin-Hakodate-Hokuto, Kanazawa and Nagano. Exact endpoint filtering
+retained **351 dated rows** for **October 4–5, 2026**. Some pages return 50 rows and mix nearby destinations;
+this is not a complete day's inventory. Original HTML and filtered evidence JSON are both hashed.
+
+These are reseller listings, not official JR timetable exports. Numeric reseller train identifiers are not
+public train numbers, city coordinates are not verified station coordinates, and zero fare placeholders are
+unknown prices, not free tickets. Rows are retained as evidence without creating offers. The separate US-domain
+China route probe returned an access block; no bypass was attempted. Japan pages succeeded through ordinary
+public requests. JR East's official timetable copying restriction remains unresolved.
+
 ## Refresh and verify
 
 ```sh
 python3 scripts/capture-rail.py
 python3 scripts/capture-rail.py --only korail,thsr
 python3 scripts/capture-rail.py --check
-python3 -m unittest discover -s scripts -p 'test_capture_rail.py'
+python3 scripts/capture-rail-samples.py --source japan-route-samples
+# China requires a previously obtained, dated public keyword=G catalogue:
+python3 scripts/capture-rail-samples.py --source china-12306-sample --catalog /path/to/search.json
+python3 -m unittest discover -s scripts -p 'test_capture_rail*.py'
 ```
 
 Uses Python's standard library, system `curl`, and Poppler `pdftotext`. Downloads are discovered from current
@@ -41,7 +83,7 @@ at refresh time. A source-layout change fails visibly instead of writing an empt
 
 Every invocation creates a separate evidence directory. Requests have connection/transfer limits and a one-second
 pause; at most three sources run concurrently. No login, CAPTCHA bypass, booking search, or request-time scraping.
-PDF/XLSX signatures are checked, XLSX archive integrity is checked, and GTFS required tables are checked.
+PDF/XLSX/XLS signatures are checked, XLSX archive integrity is checked, and GTFS required tables are checked.
 `--check` verifies original and derived-file hashes offline. Capture failure exits nonzero and retains prior runs;
 the latest report includes failures rather than silently labelling old data fresh. `captured` means fetched source
 evidence, not parsed/verified train offers.
@@ -56,13 +98,14 @@ evidence, not parsed/verified train offers.
   documentation identifies CC BY 4.0.
 - JR East's timetable page explicitly restricts copying/reprocessing its timetable data. Its Tohoku/Hokkaido,
   Hokuriku and Joetsu listings were not bulk-captured. JR Central/Kyushu downloads do not fill those gaps.
-- Mainland China beyond MTR's HK-linked services remains uncollected. Do not describe this as all China rail.
+- Mainland China now has a bounded dated G-train sample. D/C/conventional trains and nationwide coverage remain uncollected.
 - No live seats, availability or fare quotes were captured. Normalization, station mapping, per-service calendars,
-  PDF OCR verification, fare collection, app integration and the wider bus/ferry/flight brief remain separate work.
+  PDF OCR verification, fare interpretation, app integration and the wider bus/ferry/flight brief remain separate work.
 
 ## Validation
 
-Four offline collector tests pass (historical-link exclusion, newest SR revision, Korail category selection and
-tamper detection). Captured-file hashes verified. Project tests: **806 passed, one skipped**. Lint has no errors;
+Nine offline collector tests pass, covering source selection, tamper detection, date mismatch, overnight offsets,
+Japan endpoint filtering and rejected challenge pages. **165 original/derived file hashes verified** across 17 source groups. Initial-batch project tests:
+**806 passed, one skipped**. Initial-batch lint had no errors;
 two existing warnings remain in `logo-reveal.js` and `globe-screen.tsx`. Raw third-party files are excluded from
 application linting. Rendered first pages of the MTR short-haul and JR Central westbound PDFs were visually checked.
