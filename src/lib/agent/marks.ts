@@ -19,6 +19,12 @@ const R = Math.PI / 180;
  */
 export const SAUCER_FLY_MS = 700;
 
+/** The same, when the saucer first comes out and flies in from off the screen (engine.ts UFO_ENTER, plus a beat). */
+export const SAUCER_ENTER_MS = 1300;
+
+/** How long a new leg takes to draw out behind the saucer, from its start to its end (engine.ts DRAW). */
+export const SAUCER_DRAW_MS = 1200;
+
 /** How long the saucer stays over a change once it lands, beaming it down, before Pip flies on to the next. */
 export const SAUCER_STAY_MS = 500;
 

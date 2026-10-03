@@ -8,7 +8,7 @@ import { z } from "zod";
 import { dateIn } from "@/lib/agent/dates";
 import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { legMarks, midpoint, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { legMarks, midpoint, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
 import { citiesIn, MODEL, REASONING_EFFORT } from "@/lib/agent/run";
 import { showDate } from "@/lib/agent/snapshot";
@@ -120,7 +120,8 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
         ];
         for (const [i, step] of steps.entries()) {
           emit({ t: "activity", label: "planning the trip", at: { lat: step.at.lat, lng: step.at.lng } });
-          await new Promise((done) => setTimeout(done, SAUCER_FLY_MS));
+          // the first flies in from off the screen
+          await new Promise((done) => setTimeout(done, i ? SAUCER_FLY_MS : SAUCER_ENTER_MS));
           emit({ t: "trip", legs: step.trip });
           emit({ t: "marks", marks: legMarks(state.trip, step.trip) });
           state.trip = step.trip;

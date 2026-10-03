@@ -116,9 +116,9 @@ describe("editPlan", () => {
     expect(result.marks.map((m) => m.at)).toEqual([{ lat: 3.12, lng: 113.02 }, { lat: 39.9, lng: 116.4 }]);
   });
 
-  it("knows where an edit lands before making it, so the saucer can get there first", () => {
+  it("knows where an edit starts before making it, so the saucer can get there first: a new leg at its start", () => {
     const h = handlesFor(plan);
-    expect(editTarget(plan, h, [{ op: "add_leg", from: { stop: "S1" }, to: { stop: h.stop.get("bj")! }, date: "2026-10-05", riders: ["M1"] }])).toEqual({ lat: 39.9, lng: 116.4 });
+    expect(editTarget(plan, h, [{ op: "add_leg", from: { stop: "S1" }, to: { stop: h.stop.get("bj")! }, date: "2026-10-05", riders: ["M1"] }])).toEqual({ lat: 22.3, lng: 114.2 });
     expect(editTarget(plan, h, [{ op: "remove_leg", leg: "L3" }])).toEqual({ lat: 3.12, lng: 113.02 });
     expect(editTarget(plan, h, [{ op: "set_leaves", member: "M1", date: null }])).toBeNull();
   });

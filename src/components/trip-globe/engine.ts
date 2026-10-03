@@ -176,9 +176,15 @@ const UFO_HOVER = 1.8;
 const UFO_GLIDE = 3;
 const UFO_CRUISE = 0.08;
 const UFO_THERE = 0.003;
-// Leaving, it climbs away toward the top of the screen, faster and faster, and is gone after UFO_EXIT seconds.
+// It flies in from the top of the screen, coming down over UFO_ENTER seconds, and leaves the same way: climbing
+// away toward the top, faster and faster, gone after UFO_EXIT seconds.
+const UFO_ENTER = 1.1;
 const UFO_EXIT = 1.4;
-const UFO_EXIT_ARC = 0.9; // radians over the globe it heads off
+const UFO_EXIT_ARC = 0.9; // radians over the globe it comes from and heads off
+// A removed leg's route reels in: it pulls off its start toward its end, where Pip's saucer is, over REEL seconds.
+// One Pip adds draws out from its start behind the saucer over DRAW seconds, and the pins at its end drop after.
+const REEL = 0.9;
+const DRAW = 1.2;
 const FOLLOW_EASE = 2.4;
 const FOLLOW_RANGE = 1.2;
 const GROUND_LIFT = 0.35;
@@ -472,6 +478,8 @@ export class GlobeEngine {
     o: Vec3; target: Vec3; track: Track; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
     originHub: Hub | null; destinationHub: Hub | null;
     originName: string | null; destinationName: string | null;
+    /** When Pip's saucer started drawing it out; -Infinity for a route that was simply there. */
+    drawn: number;
   }>();
 
   // planes that just left the room's flights (someone landed, or stopped): each settles and shrinks away from t0
@@ -498,7 +506,9 @@ export class GlobeEngine {
   private cursors = new Map<string, { track: Track; x: number; y: number; visible: boolean; lie: CursorLie; shadow: { x: number; y: number } | null; shape: CursorShape }>();
   // Pip's saucer while Pip works: where it's drawn and headed, how it banks into the way it's going, how far grown
   // in (0 to 1), how far round its rim lights have chased, and, once `on` is off, how long it has been flying away
-  private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number; away: number } | null = null;
+  private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number; away: number; coming: number } | null = null;
+  // removed legs' routes reeling in, from when each started
+  private reels: { o: Vec3; target: Vec3; color: number | null; t0: number }[] = [];
   // the view following the saucer, and where on screen it keeps it: the middle of the open area, asked now and then
   private follow = false;
   private followSpot: { x: number; y: number; t: number } | null = null;
@@ -1581,12 +1591,20 @@ export class GlobeEngine {
     this.hudDirty = true;
   }
 
+  /** Whether a route Pip added is still drawing out. */
+  private drawing(t: number) {
+    for (const r of this.remotes.values()) if (t - r.drawn < DRAW) return true;
+    return false;
+  }
+
   /** When a landing at or near v is over and its plane has gone: now or earlier when there's none. */
   private landingDone(v: Vec3) {
     let at = -Infinity;
     // this viewer's own landing holds every pin it brings, so a trip's stops all drop once the plane has gone
     if (this.mode === "landed") at = this.tLand + TOUCHDOWN + VANISH;
     for (const g of this.ghosts) if (angle(g.pl.n, v) < 0.01) at = Math.max(at, g.t0 + TOUCHDOWN + VANISH);
+    // a route Pip is drawing out to here
+    for (const r of this.remotes.values()) if (angle(r.target, v) < 0.01) at = Math.max(at, r.drawn + DRAW);
     return at;
   }
 
@@ -1654,16 +1672,22 @@ export class GlobeEngine {
       } else {
         const track = new Track();
         track.push(target, now);
+        // a leg Pip adds while its saucer is out is drawn out behind it, and the pins at its end wait for it
+        const drawn = f.landed && this.agent?.on && !this.reduceMotion ? now : -Infinity;
+        if (drawn > -Infinity) {
+          for (const p of this.pins.values()) if (angle(p.g, target) < 0.01 && p.t0 > now - 0.3) p.t0 = Math.max(p.t0, now + DRAW);
+        }
         this.remotes.set(f.id, {
-          o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
+          o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName, drawn,
           pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
         });
       }
     }
     for (const [id, r] of this.remotes) {
       if (seen.has(id)) continue;
-      // a plane still in the air settles and shrinks away rather than vanishing; a landed leg has no plane
+      // a plane still in the air settles and shrinks away rather than vanishing; a landed leg's route reels in
       if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: performance.now() / 1000 });
+      if (r.landed && !this.reduceMotion) this.reels.push({ o: r.o, target: r.target, color: r.color, t0: performance.now() / 1000 });
       this.remotes.delete(id);
     }
   }
@@ -1716,8 +1740,13 @@ export class GlobeEngine {
       return;
     }
     const target = vecOf(at.lat * D2R, at.lng * D2R);
-    if (a) Object.assign(a, { target, on: true, away: 0 });
-    else this.agent = { n: target, target, alt: 0, bank: 0, size: 0, on: true, spin: 0, away: 0 };
+    if (a) return void Object.assign(a, { target, on: true, away: 0 });
+    // it flies in from above the top of the screen; with reduced motion, or before the first frame, it grows in there
+    const up = this.cam && !this.reduceMotion ? tangent(this.cam.U, target) : null;
+    if (up && Number.isFinite(up[0])) {
+      const from = norm(add(mul(target, Math.cos(UFO_EXIT_ARC)), mul(up, Math.sin(UFO_EXIT_ARC))));
+      this.agent = { n: from, target, alt: 0, bank: 0, size: 1, on: true, spin: 0, away: 0, coming: UFO_ENTER };
+    } else this.agent = { n: target, target, alt: 0, bank: 0, size: 0, on: true, spin: 0, away: 0, coming: 0 };
   }
 
   /** Where Pip's saucer is on screen, for its label and what it pops up. Null when it isn't out. */
@@ -1772,11 +1801,20 @@ export class GlobeEngine {
     if (!a) return;
     const still = this.reduceMotion;
     if (!a.on) a.away += dt;
+    a.coming = Math.max(0, a.coming - dt);
     // it grows in where it first comes; it leaves whole, flying off (or at once, with reduced motion)
     if (a.on) a.size += (1 - a.size) * (still ? 1 : k(6));
     if (!a.on && (still || a.away > UFO_EXIT)) {
       this.agent = null;
       return;
+    }
+    // drawing a route out, it rides the route's end as it goes
+    if (a.on) {
+      for (const r of this.remotes.values()) {
+        const k = (t - r.drawn) / DRAW;
+        if (k >= 0 && k < 1) a.target = slerp(r.o, r.target, ease(k));
+        else if (k >= 1 && k < 1.2) a.target = r.target;
+      }
     }
     const gap = angle(a.n, a.target);
     let bank = 0;
@@ -1790,7 +1828,7 @@ export class GlobeEngine {
     a.spin = still ? 0 : (a.spin + dt * 0.6) % 1;
     // it hovers, bobbing, and comes down from higher up as it grows in
     const bob = still ? 0 : Math.sin(t * 2.4) * 0.2;
-    a.alt = ALT * this.planeScale * (UFO_HOVER + bob + (1 - a.size) * 3 + a.away * a.away * 14);
+    a.alt = ALT * this.planeScale * (UFO_HOVER + bob + (1 - a.size) * 3 + a.away * a.away * 14 + a.coming * a.coming * 14);
   }
 
   /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
@@ -1955,7 +1993,8 @@ export class GlobeEngine {
       // keep Pip's saucer in the open part of the screen
       this.zoomAnchor = null;
       this.vlon = this.vlat = 0;
-      const want = this.followView(this.agent.n, t);
+      // flying in, the view waits where it's coming down rather than chase it in from off the screen
+      const want = this.followView(this.agent.coming > 0 ? this.agent.target : this.agent.n, t);
       const e = this.reduceMotion ? 1 : k(FOLLOW_EASE);
       this.lon0 += wrapPi(want.lon - this.lon0) * e;
       this.lat0 += (clamp(want.lat, -LAT_MAX, LAT_MAX) - this.lat0) * e;
@@ -2070,7 +2109,7 @@ export class GlobeEngine {
     const shadowMoved = this.updateRemoteCursors(dt, t) || ownMoved;
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && (this.mode === "landed" || this.pinsMoving ||
+    const animated = !this.reduceMotion && (this.mode === "landed" || this.pinsMoving || this.reels.length > 0 || this.drawing(t) ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
     if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
@@ -2431,7 +2470,8 @@ export class GlobeEngine {
       if (disc > 0 && t > 0) {
         const g = norm(add(ufo.at, mul(ld, t)));
         // the shadow fades as it climbs away
-        pinA.set([...g, 0.55 * agent.size * Math.max(0, 1 - agent.away / (UFO_EXIT * 0.6))], shadows * 4);
+        const high = Math.max(agent.away / (UFO_EXIT * 0.6), agent.coming / (UFO_ENTER * 0.6));
+        pinA.set([...g, 0.55 * agent.size * Math.max(0, 1 - high)], shadows * 4);
         pinB.set([...g, ufo.S * 0.42], shadows * 4);
         shadows++;
       }
@@ -3044,11 +3084,15 @@ export class GlobeEngine {
    * end, the arc rises to its altitude and stops `cut` short of it; a landed leg comes down to its stop.
    */
   private route(
-    ctx: CanvasRenderingContext2D, origin: Vec3, { v: end, alt, cut }: RouteEnd, stroke: string, marching: boolean, t = 0,
+    ctx: CanvasRenderingContext2D, origin: Vec3, { v: end, alt, cut }: RouteEnd, stroke: string, marching: boolean, t = 0, gone = 0, upTo = 1,
   ) {
     const P = this.P;
     const ground = this.arc(origin, end, 0, 0, this.groundArc);
     const air = this.arc(origin, end, 1, alt, this.airArc);
+    // reeling in: the first `gone` of the way is already pulled off
+    if (gone > 0) for (const pts of [ground, air]) pts.fill(null, 0, Math.floor(gone * pts.length));
+    // drawing out: only the first `upTo` of the way is there yet
+    if (upTo < 1) for (const pts of [ground, air]) pts.fill(null, Math.ceil(upTo * pts.length));
     // stop the dashes just short of the vehicle
     const tip = mul(end, 1 + alt);
     for (let i = air.length - 1; i >= 0; i--) {
@@ -3163,6 +3207,12 @@ export class GlobeEngine {
     }
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
+    // removed legs reeling in: the route pulls off its start, faster as it goes, its dashes running to the end
+    this.reels = this.reels.filter((r) => t - r.t0 < REEL);
+    for (const r of this.reels) {
+      const k = (t - r.t0) / REEL;
+      this.route(ctx, r.o, { v: this.groundEnd(r.target), alt: 0, cut: 0 }, this.routeColor(r.color), true, t * 3, k * k);
+    }
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
@@ -3173,7 +3223,10 @@ export class GlobeEngine {
       const end: RouteEnd = r.landed
         ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0 }
         : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
-      this.route(ctx, o, end, stroke, false);
+      // drawn out behind Pip's saucer, its dashes running on ahead
+      const k = (t - r.drawn) / DRAW;
+      if (k < 1) this.route(ctx, o, end, stroke, true, t * 3, 0, ease(Math.max(0, k)));
+      else this.route(ctx, o, end, stroke, false);
       const op = this.proj(o);
       if (op && op.vis) {
         if (!this.pinned(o)) this.startMark(ctx, o, op.x, op.y, stroke);

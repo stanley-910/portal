@@ -12,7 +12,7 @@ import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot"
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
-import { SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -112,6 +112,16 @@ const OUT_OF_TIME = {
 } as const;
 
 export function agentTools(ctx: ToolContext) {
+  // Pip's saucer comes out the first time Pip looks somewhere, flying in from off the screen, which takes longer
+  // than gliding on to the next place. Returns how long to give it to get there.
+  let saucerOut = false;
+  const look = (text: string, at?: Parameters<ToolContext["activity"]>[1]) => {
+    const was = saucerOut;
+    ctx.activity(text, at);
+    if (!at) return 0;
+    saucerOut = true;
+    return was ? SAUCER_FLY_MS : SAUCER_ENTER_MS;
+  };
   return {
     get_trip: tool({
       description: "The trip as it is now: members, stops and legs with handles. Read-only; call it before editing if the plan may have changed.",
@@ -155,7 +165,7 @@ export function agentTools(ctx: ToolContext) {
         const from = selected && plan.stops?.[selected.from], to = selected && plan.stops?.[selected.to];
         if (!selected || !from || !to) return { refused: "UNKNOWN_HANDLE", next: "Call get_trip and use a current leg handle." };
         if (Date.now() >= ctx.until) return OUT_OF_TIME;
-        ctx.activity("checking nearby train stations", from);
+        look("checking nearby train stations", from);
         try {
           return await searchNearbyRail({ from: stopToPlace(from), to: stopToPlace(to), date: selected.date,
             modes: ["train"], passengers: 1, currency: preferences.currency }, preferences,
@@ -251,12 +261,13 @@ export function agentTools(ctx: ToolContext) {
         const refused: Refusal[] = [];
         for (const [i, op] of (ops as EditOp[]).entries()) {
           const target = editTarget(plan, handles, [op]);
-          ctx.activity("editing the trip", target ?? undefined);
-          if (target) await wait(SAUCER_FLY_MS);
+          await wait(look("editing the trip", target ?? undefined));
           const step = await editPlan(ctx.roomId, plan, handles, [op], ctx.agentId, ctx.until, changeset);
           applied.push(...step.applied);
           refused.push(...step.refused.map((r) => ({ ...r, op: i })));
           ctx.marks(step.marks);
+          // a new leg draws out behind the saucer before its mark pops
+          if (op.op === "add_leg" && step.applied.length) await wait(SAUCER_DRAW_MS);
           if (step.marks.length && i < ops.length - 1) await wait(SAUCER_STAY_MS);
         }
         if (applied.length) await ctx.addCard({ type: "changes", changesetId: changeset.id, lines: applied, undone: false });
@@ -310,11 +321,11 @@ export function agentTools(ctx: ToolContext) {
           });
         }
 
-        ctx.activity(`comparing meet-ups for ${groups.length} groups`, groups[0].place);
+        look(`comparing meet-ups for ${groups.length} groups`, groups[0].place);
         const result = await findMeetup(
           { groups, date: input.date, minimize: input.minimize, fairest: input.fairest, candidates: input.candidates },
           async (query) => {
-            ctx.activity(`checking ${query.to.name}`, query.to);
+            look(`checking ${query.to.name}`, query.to);
             return (await searchFromCoordinates(query, AbortSignal.timeout(12_000))).offers;
           },
         );
@@ -324,7 +335,7 @@ export function agentTools(ctx: ToolContext) {
         for (const o of result.options) ctx.meetups.set(o.id, o);
         const title = `Where to meet · ${input.fairest ? "fairest" : input.minimize === "duration" ? "quickest" : "cheapest"}`;
         await ctx.addCard({ type: "meetup", title, options: result.options, applied: null, changesetId: null, undone: false });
-        ctx.activity(`suggesting ${result.options[0].place.name}`, result.options[0].place);
+        look(`suggesting ${result.options[0].place.name}`, result.options[0].place);
         return {
           options: result.options.map(fmt),
           searched: result.searched,

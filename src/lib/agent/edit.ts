@@ -86,7 +86,7 @@ type LegJson = NonNullable<PlanJson["legs"]>[string];
 
 /**
  * Where the first of these ops changes the trip, read before any is applied, so Pip's saucer can get there first: a
- * leg's destination, or a stay's stop. Null when none says (a leave date).
+ * new leg's start, a changed leg's destination, or a stay's stop. Null when none says (a leave date).
  */
 export function editTarget(plan: PlanJson, h: Handles, ops: EditOp[]): { lat: number; lng: number } | null {
   const stop = (id: string | undefined) => (id ? plan.stops?.[id] : undefined);
@@ -94,7 +94,8 @@ export function editTarget(plan: PlanJson, h: Handles, ops: EditOp[]): { lat: nu
   for (const op of ops) {
     let at: { lat: number; lng: number } | null = null;
     if (op.op === "add_leg") {
-      const to = op.to;
+      // a new leg starts where it leaves from: the saucer draws it out from there to its end
+      const to = op.from;
       if ("at" in to) at = point(to.at);
       else if ("stop" in to) at = point(stop(h.id.get(to.stop)));
       else {
