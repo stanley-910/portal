@@ -305,6 +305,6 @@ previous-day date-line arrivals. Estimated or unknown local schedules retain the
 Hotel results belong to their complete query, including dates, occupants and nationality; stale rows disappear
 while a replacement query runs. Saved stays are **planning estimates** because the current room model stores
 only a nightly budget, not a provider quote's date, occupancy and rate restrictions. New hotel picks do not imply
-live rates after a trip is retimed. Duffel test inventory is a live-kind fare flagged `sandbox`, shown with a Sandbox
-badge and bookable like any live Duffel fare against the test airlines; the server still rejects estimated, cached
+live rates after a trip is retimed. Duffel test inventory is a live-kind fare flagged `sandbox`, with no badge, and
+bookable like any live Duffel fare against the test airlines; the server still rejects estimated, cached
 and timetable choices at booking settlement.
