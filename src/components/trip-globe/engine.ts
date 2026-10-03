@@ -166,8 +166,14 @@ const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
 /** At most this many city names on screen at once, biggest first, so the map never fills up. */
 const CITY_MAX = 40;
 const CITY_FADE = 0.05; // zoom over which a rank prints in
-/** City names in px by rank: the `city` token for world cities, a little smaller for towns. */
-const CITY_SIZE = [15, 15, 14, 14, 13, 13, 12, 12];
+/**
+ * City names in px by rank, in four steps so the places people travel between stand out: world cities (Tokyo,
+ * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
+ * and ink carry the difference.
+ */
+const CITY_SIZE = [19, 19, 15, 15, 13, 13, 12, 12];
+/** From this rank down, names print in `ink-muted` rather than `ink`. */
+const CITY_MUTED_FROM = 4;
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
@@ -1946,8 +1952,8 @@ export class GlobeEngine {
   }
 
   /** A city name drawn at `size` and the screen's pixel ratio with a paper halo, its left edge at x = pad. */
-  private citySprite(name: string, size: number, dpr: number) {
-    const key = `${size}|${name}`;
+  private citySprite(name: string, size: number, dpr: number, muted: boolean) {
+    const key = `${size}|${muted ? 1 : 0}|${name}`;
     let c = this.citySprites.get(key);
     if (c) return c;
     const P = this.P;
@@ -1965,7 +1971,7 @@ export class GlobeEngine {
     g.lineWidth = px * 0.24;
     g.strokeText(name, pad, c.height / 2);
     g.globalAlpha = 1;
-    g.fillStyle = P.ink;
+    g.fillStyle = muted ? P.muted : P.ink;
     g.fillText(name, pad, c.height / 2);
     this.citySprites.set(key, c);
     return c;
@@ -2021,9 +2027,10 @@ export class GlobeEngine {
     const boxes = this.cityBoxes;
     boxes.length = 0;
     const countries = this.placedNames;
+    // names on neighbouring lines need less air than names side by side, which would read as one
     const hits = (b: number[], gap: number) =>
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
-      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap < o[3] && b[3] + gap > o[1]) ||
+      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
       keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
     const won = new Uint8Array(cands.length);
     cands.forEach((i, k) => {
@@ -2067,8 +2074,10 @@ export class GlobeEngine {
       const y = this.cityY[i];
       ctx.globalAlpha = alpha;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // world cities get a bigger dot, as they get a bigger name
+      const big = c.rank < 2 ? 0.6 : 0;
       ctx.beginPath();
-      ctx.arc(x, y, c.capital ? 3.4 : 2.4, 0, Math.PI * 2);
+      ctx.arc(x, y, (c.capital ? 3.4 : 2.4) + big, 0, Math.PI * 2);
       ctx.fillStyle = P.paper;
       ctx.fill();
       ctx.lineWidth = 1.2;
@@ -2076,12 +2085,12 @@ export class GlobeEngine {
       ctx.stroke();
       if (c.capital) {
         ctx.beginPath();
-        ctx.arc(x, y, 1.3, 0, Math.PI * 2);
+        ctx.arc(x, y, 1.3 + big / 2, 0, Math.PI * 2);
         ctx.fillStyle = P.ink;
         ctx.fill();
       }
       const size = CITY_SIZE[c.rank];
-      const img = this.citySprite(c.name, size, dpr);
+      const img = this.citySprite(c.name, size, dpr, c.rank >= CITY_MUTED_FROM);
       const pad = Math.ceil(size * dpr * 0.3);
       const left = this.cityLeft[i];
       const tx = left ? x - 7 - (img.width - pad) / dpr : x + 7 - pad / dpr;
