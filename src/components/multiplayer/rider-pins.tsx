@@ -3,7 +3,8 @@
 import { useSelf } from "@liveblocks/react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type RefObject } from "react";
 
-import type { GlobePin, TripGlobeHandle } from "@/components/trip-globe";
+import type { GlobePin, LatLng, TripGlobeHandle } from "@/components/trip-globe";
+import type { Hub } from "@/lib/transport/hubs/types";
 import { usePlanActions, usePlanLegs, usePlanMembers, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import { stopFromPoint } from "@/lib/trip/stops";
 
@@ -50,6 +51,7 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
   const legs = usePlanLegs();
   const members = usePlanMembers();
   const me = useSelf((self) => self.id);
+  const { moveStop } = usePlanActions();
   const list = useMemo(() => (legs ? arrivals(legs) : []), [legs]);
   const pins = useMemo(() => (members ? riderPins(list, members) : []), [list, members]);
 
@@ -64,31 +66,48 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
     <div className="pointer-events-none absolute inset-0 isolate overflow-hidden">
       {list.map(({ stop, riders }) => {
         const said = names.format(riders.map((id) => (id === me ? "you" : members[id]?.name ?? "someone")));
-        return <PinTarget key={stop.id} globe={globe} stop={stop} who={said.charAt(0).toUpperCase() + said.slice(1)} onOpen={onOpen} />;
+        return (
+          <PinTarget
+            key={stop.id}
+            globe={globe}
+            stop={stop}
+            who={said.charAt(0).toUpperCase() + said.slice(1)}
+            onOpen={onOpen}
+            onMove={(place) => {
+              const result = moveStop(stop.id, stopFromPoint(place.at, place.hub));
+              return result === "ok" ? null : REFUSED[result];
+            }}
+          />
+        );
       })}
     </div>
   );
 }
 
+/** Where dropped pins land: the point under them and its nearest hub. */
+export type PinDrop = { at: LatLng; hub: Hub | null };
+
 /**
  * An unseen button over a stop's pins: their riders' names on a label while pointed at, the plan on a click. Dragged,
  * the globe lifts the stop's pins and carries them, routes and all, with the place they'd land at on a tag beside the
- * pointer; dropping them moves the stop there, and Escape puts them back.
+ * pointer; dropping them moves the stop there (`onMove`, which says why not when it can't), and Escape puts them back.
+ * Shared by a trip's rider pins and your own pins on the home globe.
  */
-function PinTarget({
+export function PinTarget({
   globe,
   stop,
   who,
   onOpen,
+  onMove,
 }: {
   globe: RefObject<TripGlobeHandle | null>;
-  stop: Arrival["stop"];
+  stop: { id: string; name: string };
   who: string;
   onOpen: () => void;
+  onMove: (place: PinDrop) => string | null;
 }) {
   const target = useRef<HTMLButtonElement>(null);
   const dragged = useRef(false);
-  const { moveStop } = usePlanActions();
   // while dragging: where the pointer is in the overlay, and the place under it
   const [drag, setDrag] = useState<{ x: number; y: number; name: string | null } | null>(null);
   const [notice, setNotice] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -153,9 +172,9 @@ function PinTarget({
       const place = g.landing(id);
       // off the globe, the pins go back
       if (!place) return g.dropStop(id, null);
-      const result = moveStop(id, stopFromPoint(place.at, place.hub));
-      g.dropStop(id, result === "ok" ? place.at : null);
-      if (result !== "ok") setNotice({ ...p, text: REFUSED[result] });
+      const refused = onMove(place);
+      g.dropStop(id, refused ? null : place.at);
+      if (refused) setNotice({ ...p, text: refused });
     };
     const cancel = () => {
       stopListening();

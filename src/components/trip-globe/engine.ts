@@ -1007,7 +1007,7 @@ export class GlobeEngine {
    * Lands a whole trip at once, as if it had been flown: the stops in order, at least two. Replaces any trip on the
    * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
    */
-  showTrip(points: LatLng[]) {
+  showTrip(points: LatLng[], quiet = false) {
     if (points.length < 2) return;
     const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
     const before = this.ownLegs();
@@ -1017,13 +1017,17 @@ export class GlobeEngine {
     this.magnet = false;
     this.land(vs[vs.length - 1]);
     // While Pip's saucer is out it builds the trip itself: no plane lands and the view stays with the saucer. Legs
-    // that are new draw out behind it, and legs that went reel in.
-    if (!this.agent?.on || this.reduceMotion) return;
+    // that are new draw out behind it, and legs that went reel in. A quiet one (a stop dragged to a new place) only
+    // moves the trip, where it is.
+    const pip = !!this.agent?.on && !this.reduceMotion;
+    if (!pip && !quiet) return;
     const t = this.t;
-    const after = this.ownLegs();
-    const same = (x: [Vec3, Vec3], y: [Vec3, Vec3]) => angle(x[0], y[0]) < 1e-6 && angle(x[1], y[1]) < 1e-6;
-    for (const leg of after) if (!before.some((b) => same(b, leg))) this.ownDraws.push({ a: leg[0], b: leg[1], t0: t });
-    for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
+    if (pip) {
+      const after = this.ownLegs();
+      const same = (x: [Vec3, Vec3], y: [Vec3, Vec3]) => angle(x[0], y[0]) < 1e-6 && angle(x[1], y[1]) < 1e-6;
+      for (const leg of after) if (!before.some((b) => same(b, leg))) this.ownDraws.push({ a: leg[0], b: leg[1], t0: t });
+      for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
+    }
     this.tLand = t - TOUCHDOWN - VANISH;
     this.turn = null;
     this.autoFrame = null;
@@ -2195,7 +2199,11 @@ export class GlobeEngine {
    */
   private ownEnd(pl: Plane): RouteEnd {
     const left = this.mode === "landed" ? this.planeLeft(this.tLand) : 1;
-    if (left <= 0) return { v: this.groundEnd(pl.n), alt: 0, cut: 0 };
+    // landed, it ends at the last stop's pins, carried with them when they're lifted
+    if (left <= 0) {
+      const end = this.lifted(pl.n);
+      return { v: this.groundEnd(end), alt: this.liftAlt(end), cut: 0 };
+    }
     return { v: pl.n, alt: pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT * left };
   }
 
@@ -3313,7 +3321,7 @@ export class GlobeEngine {
       this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching || upTo < 1, t, 0, upTo);
     });
     const upTo = this.dest ? this.ownDrawn(origin, this.dest, t) : 1;
-    this.route(ctx, origin, this.ownEnd(pl), stroke, marching || upTo < 1, t, 0, upTo);
+    this.route(ctx, this.lifted(origin), this.ownEnd(pl), stroke, marching || upTo < 1, t, 0, upTo);
 
     const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;

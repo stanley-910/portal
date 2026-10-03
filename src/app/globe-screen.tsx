@@ -17,6 +17,7 @@ import type { Person } from "@/lib/identity";
 import { isBookable } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
 import { stopFromPoint } from "@/lib/trip/stops";
+import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
 
 import { createTrip } from "./t/actions";
 import { saveSoloTrip } from "./t/save-actions";
@@ -31,6 +32,19 @@ function dayAfter(iso: string) {
   d.setDate(d.getDate() + 1);
   return d;
 }
+
+/** A place to the metre or so, so the same stop reads the same after a trip lands again. */
+const placeKey = (ll: LatLng) => `${ll.lat.toFixed(5)},${ll.lng.toFixed(5)}`;
+
+/**
+ * Your pin at each stop, keyed by the place (or the pin carried there), so a stop that stays when the trip lands
+ * again, rebuilt by Pip or with a stop dragged, keeps its pin standing.
+ */
+const stopPins = (landed: { destination: LatLng }[], color: number | null, keys: Map<string, string>) =>
+  landed.map((leg, i) => {
+    const place = placeKey(leg.destination);
+    return { key: keys.get(place) ?? `you:${place}`, stop: `stop:${i}`, at: leg.destination, color };
+  });
 
 export function GlobeScreen({ person }: { person: Person | null }) {
   const { resolvedTheme } = useTheme();
@@ -56,9 +70,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
     if (legs && picks.length > legs.length) out.push({ from: out.at(-1)!.to, to: out[0].from, date: picks[legs.length].depart });
     return out;
   }, [legs, picks]);
-  // Your pin at each stop, keyed by the place, so a stop that stays when Pip rebuilds the trip keeps its pin standing
-  const stopPins = (landed: { destination: LatLng }[], color: number | null) =>
-    landed.map((leg, i) => ({ key: `you:${leg.destination.lat},${leg.destination.lng}`, stop: `stop:${i}`, at: leg.destination, color }));
+  // a stop dragged somewhere new keeps its pin: the new place → the key of the pin that was carried there
+  const pinKeys = useRef(new Map<string, string>());
   // the way back, once picked, draws home like a saved leg, and your pin drops at home
   const color = cursorPref.color;
   useEffect(() => {
@@ -66,7 +79,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
     if (!g || !legs) return;
     const home = legs[0].origin;
     g.setRemoteFlights(goesHome ? [{ id: "you:back", origin: legs.at(-1)!.destination, at: home, ahead: home, landed: true, color }] : []);
-    const pins = stopPins(legs, color);
+    const pins = stopPins(legs, color, pinKeys.current);
     g.setPins(goesHome ? [...pins, { key: "you:back", stop: "stop:home", at: home, color }] : pins);
     return () => g.setRemoteFlights([]);
   }, [legs, goesHome, color]);
@@ -74,8 +87,20 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
   const [saved, setSaved] = useState<{ id: string; offer: string | null } | null>(null);
-  // dates for the legs Pip just put on the globe, applied when the globe reports them landed
+  // dates for the legs Pip just put on the globe, or for the trip as it was when a stop is dragged, applied when the
+  // globe reports them landed; while set, the trip is being rebuilt and its pins stay
   const pipDates = useRef<string[] | null>(null);
+  /** Moves stop `i` (where leg `i` ends) to where its pin was dropped: the trip lands again there, keeping its dates. */
+  const moveStop = (i: number, place: PinDrop): string | null => {
+    if (!legs) return "The trip has gone.";
+    const points = [legs[0].origin, ...legs.map((l) => l.destination)];
+    const was = points[i + 1];
+    points[i + 1] = place.at;
+    pinKeys.current.set(placeKey(place.at), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
+    pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
+    globe.current?.showTrip(points, true);
+    return null;
+  };
   const pip = useRef<HomePipHandle>(null);
   const currency = useCurrencyPref();
   const [rates, setRates] = useState<ExchangeRates | null>(null);
@@ -145,7 +170,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         pipDates.current = null;
         const landed = dates ? flown.map((l, i) => (dates[i] ? { ...l, departDate: new Date(`${dates[i]}T00:00`) } : l)) : flown;
         // your pin drops at each stop once your plane has landed and gone
-        globe.current?.setPins(stopPins(landed, cursorPref.color));
+        globe.current?.setPins(stopPins(landed, cursorPref.color, pinKeys.current));
         setLegs(landed);
         setSaved(null);
         setActive(0);
@@ -159,6 +184,21 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       }}
       onRouteClick={() => setCollapsed(false)}
     />
+    {legs ? (
+      // your pin at each stop: pointed at, it says so; clicked, it opens the trip; dragged, it moves the stop
+      <div className="pointer-events-none absolute inset-0 isolate overflow-hidden">
+        {legs.map((_, i) => (
+          <PinTarget
+            key={`stop:${i}`}
+            globe={globe}
+            stop={{ id: `stop:${i}`, name: soloTrip[i]?.to.name ?? "this stop" }}
+            who="You"
+            onOpen={() => setCollapsed(false)}
+            onMove={(place) => moveStop(i, place)}
+          />
+        ))}
+      </div>
+    ) : null}
     <NavBar
       globe={globe}
       name={person?.name ?? null}
