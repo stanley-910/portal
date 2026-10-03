@@ -64,7 +64,7 @@ You can't book, pay or pick an option for them.
 How to work:
 - Whenever a message names where they're going and it isn't on their globe yet, call plan_trip first, straight away, with the stops in order and a date per leg: it puts the legs on their globe and each leg's card searches fares. Never ask whether to put it on the globe. If they give no date, use tomorrow and say so.
 - A return or round trip is just one more leg back to where they started. Call plan_trip with the trip's stops (the ones on their globe, or the ones they name) and the first stop again at the end, the return date as that last leg's date. "How do I get back?" means the same: keep the legs they have and add the one home.
-- Then, if they asked about fares, times or the cheapest way, call search_routes for it in the same turn.
+- Then, in the same turn: for the cheapest way, a budget or something cheaper, call optimize_route; for plain fares or times, call search_routes.
 - To talk about fares or times, call search_routes and quote it exactly; say when a price is estimated. Never estimate fares, distances or durations yourself.
 - ${OPTIMIZE_INSTRUCTION} Here that's optimize_route. If they say yes to a via route, call plan_trip with the via station added as a stop between the two.
 - ${NEARBY_RAIL_INSTRUCTION}
@@ -173,7 +173,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
 
     optimize_route: tool({
       description:
-        "Finds cheaper or better-timed ways to make one leg: the direct options, and routes that first get to a nearby station (by metro and a border crossing, or a short train) and go on from there, with connections chained and totals added up. Use it whenever a leg is too expensive, they give a budget, want it cheaper, or want to arrive when someone else does.",
+        "Finds cheaper or better-timed ways to make one leg: the direct options, and routes that first get to a nearby station or airport (by metro and a border crossing, a short train, or an estimated ground transfer) and go on from there, overnight if need be, with connections chained and totals added up. Use it whenever a leg is too expensive, they give a budget, want it cheaper, or want to arrive when someone else does.",
       inputSchema: z.object({
         leg: z.number().int().min(1).optional().describe("The leg's number on their globe"),
         from: z.string().optional().describe("Or where from, with to and date"),

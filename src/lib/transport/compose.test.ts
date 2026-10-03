@@ -36,8 +36,51 @@ describe("composeRoutes", () => {
     const airport = { name: "Hong Kong", lat: 22.31184, lng: 113.914862 };
     const out = await composeRoutes({ ...input, from: airport }, search);
     expect(out.baseline?.parts[0].from.name).toBe("Hong Kong West Kowloon");
-    expect(out.gateways.map((g) => g.name)).toEqual(["Shenzhen North", "Futian"]);
+    // nothing in Hong Kong itself; Shenzhen's stations and the nearby mainland airports
+    expect(out.gateways.map((g) => g.name)).toEqual(expect.arrayContaining(["Shenzhen North", "Futian", "Shenzhen Bao'an International Airport"]));
+    expect(out.gateways.map((g) => g.name)).not.toContain("Hong Kong West Kowloon");
     expect(out.routes[0]).toMatchObject({ type: "via", parts: [{ carrier: "MTR East Rail" }, { number: "G100" }] });
+  });
+
+  it("estimates getting to a nearby airport nothing models, and flies from it", async () => {
+    // Shenzhen airport is cheap; Hong Kong's isn't
+    const SZX = { name: "Shenzhen Bao'an International Airport", lat: 22.639299, lng: 113.810997, country: "CN", iata: "SZX" };
+    const flight = (from: typeof SZX | typeof HONG_KONG, price: number, depart: string): Offer => ({
+      id: `f:${from.name}:${depart}`, provider: "duffel", mode: "flight", kind: "live", price: { amount: price, currency: "CNY" },
+      segments: [{ mode: "flight", from, to: SHANGHAI, depart, arrive: depart.replace(/T(\d\d)/, (_, h) => `T${String(+h + 2).padStart(2, "0")}`), durationMin: 120 }],
+    });
+    const fake = async (q: SearchQuery) => [
+      ...await search(q),
+      ...(q.from.name === SZX.name ? [flight(SZX, 500, `${q.date}T10:00:00+08:00`)] : []),
+      ...(q.from === input.from ? [flight(HONG_KONG, 1200, `${q.date}T10:00:00+08:00`)] : []),
+    ];
+    const out = await composeRoutes({ ...input, from: HONG_KONG }, fake);
+    const best = out.routes[0];
+    expect(best).toMatchObject({ via: { name: SZX.name }, estimated: true });
+    expect(best.parts[0]).toMatchObject({ provider: "ground", kind: "estimated", carrier: "Ground transfer and border", arrive: "2026-10-20T08:30:00+08:00" });
+    expect(best.parts[0].note).toMatch(/straight-line/);
+    expect(best.saves).toBeGreaterThan(300);
+  });
+
+  it("connects overnight: the last train in, the first one out the next morning", async () => {
+    const station = (name: string, lat: number, lng: number) => ({ name, lat, lng, country: "CN" });
+    const A = station("Origin", 22.3, 114.17), B = station("Gateway", 23.2, 114.9), C = station("Far", 31.2, 121.4);
+    const train = (from: typeof A, to: typeof A, depart: string, arrive: string, price: number): Offer => ({
+      id: `t:${from.name}:${depart}`, provider: "china-rail", mode: "train", kind: "timetable", price: { amount: price, currency: "CNY" },
+      segments: [{ mode: "train", from, to, depart, arrive, durationMin: 60 }],
+    });
+    const fake = async (q: SearchQuery): Promise<Offer[]> =>
+      q.from === A && q.to === C ? [train(A, C, "2026-10-20T09:00:00+08:00", "2026-10-20T17:00:00+08:00", 900)]
+      : q.from === A && q.to.name === "Gateway" ? [train(A, B, "2026-10-20T21:00:00+08:00", "2026-10-20T22:30:00+08:00", 50)]
+      : q.from.name === "Gateway" && q.date === "2026-10-21" ? [train(B, C, "2026-10-21T07:00:00+08:00", "2026-10-21T14:00:00+08:00", 400)]
+      : q.from.name === "Gateway" ? [train(B, C, "2026-10-20T10:00:00+08:00", "2026-10-20T17:00:00+08:00", 600)]
+      : [];
+    // the gateway is found through the direct search
+    const direct = async (q: SearchQuery) => q.from === A && q.to === C
+      ? [...await fake(q), train(B, C, "2026-10-20T10:00:00+08:00", "2026-10-20T17:00:00+08:00", 600)] : fake(q);
+    const out = await composeRoutes({ from: A, to: C, date: "2026-10-20", currency: "CNY" }, direct);
+    const overnight = out.routes.find((r) => r.parts[1]?.depart.startsWith("2026-10-21"));
+    expect(overnight).toMatchObject({ total: { amount: 450 }, saves: 450, arrive: "2026-10-21T14:00:00+08:00" });
   });
 
   it("doesn't take an early train only to wait half a day for the next", async () => {

@@ -342,7 +342,7 @@ export function agentTools(ctx: ToolContext) {
 
     optimize_leg: tool({
       description:
-        "Finds cheaper or better-timed ways to make one leg: the direct options, and routes that first get to a nearby station (by metro and a border crossing, or a short train) and go on from there, with connections chained and totals added up. Use it whenever a leg is too expensive, someone gives a budget, wants it cheaper, or wants to arrive with another member. Read-only; apply a route with apply_route.",
+        "Finds cheaper or better-timed ways to make one leg: the direct options, and routes that first get to a nearby station or airport (by metro and a border crossing, a short train, or an estimated ground transfer) and go on from there, overnight if need be, with connections chained and totals added up. Use it whenever a leg is too expensive, someone gives a budget, wants it cheaper, or wants to arrive with another member. Read-only; apply a route with apply_route.",
       inputSchema: z.object({
         leg: z.string().describe("Leg handle from get_trip, e.g. L1"),
         max_fare: z.number().positive().optional().describe("Per-person ceiling in `currency`, only if someone gave a number"),

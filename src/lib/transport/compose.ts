@@ -1,4 +1,5 @@
 import "server-only";
+import { EARLIEST_HOUR, groundEstimate, GROUND_NOTE } from "./access";
 import { approx } from "./fx";
 import { distanceKm } from "./hubs/geo";
 import { HUBS } from "./hubs/catalog";
@@ -13,9 +14,15 @@ import type { Mode, Offer, Place, SearchQuery } from "./types";
 const HERE_KM = 40;
 /** One station: an arrival and a departure this close need no transfer between them. */
 const SAME_STATION_KM = 2;
-const MAX_GATEWAYS = 3;
-/** Nobody takes an early train to sit at a station for half a day. */
+const MAX_GATEWAYS = 5;
+/** Stations and airports this far away are worth getting to for a cheaper or better-timed departure. */
+const GATEWAY_KM = { flight: 150, train: 100 } as const;
+/** Flying from another airport only pays on a trip long enough to fly. */
+const FLY_FROM_KM = 300;
+/** Nobody takes an early train to sit at a station for half a day... */
 const MAX_WAIT_MIN = 180;
+/** ...unless it's overnight: the last train in, the first one out in the morning. */
+const MAX_OVERNIGHT_MIN = 11 * 60;
 
 /** Minimum time between arriving and the next departure. */
 function bufferMin(next: Offer, after: { crossing: boolean }): number {
@@ -33,9 +40,12 @@ export interface RoutePart {
   arrive: string;
   price: { amount: number; currency: string } | null;
   kind: Offer["kind"];
-  provider: Offer["provider"];
+  /** `ground` is the distance estimate in ./access, not a provider. */
+  provider: Offer["provider"] | "ground";
   /** A frequent ground link with no timetable: the times are a plan, not a booking. */
   flexible: boolean;
+  /** Where the times and fare come from, when it isn't a provider's own offer. */
+  note?: string;
   offerId: string;
 }
 
@@ -113,8 +123,12 @@ function here(station: Place, origin: Place, originCountry: string | null): bool
 const serviceKey = (r: Route) =>
   `${r.type}:${r.parts.map((p) => p.flexible ? p.carrier : `${p.carrier}:${p.number}:${p.depart}`).join(">")}`;
 const ms = (iso: string) => Date.parse(iso);
-// Test inventory is never a real flight or price, and an estimate without a schedule can't be chained.
-const known = (o: Offer) => !o.sandbox && (o.kind !== "estimated" || o.provider === "cross-border");
+// Test inventory is never a real flight or price, an estimate without a schedule can't be chained, and a service
+// that lands before it leaves has times nobody can plan around.
+const known = (o: Offer) => !o.sandbox && (o.kind !== "estimated" || o.provider === "cross-border") &&
+  Date.parse(o.segments.at(-1)!.arrive) > Date.parse(o.segments[0].depart);
+/** Ending further than this from where they're going isn't getting there: that's another city. */
+const THERE_KM = 50;
 
 /**
  * Minutes from `target` to `arrive`. A target with no UTC offset ("22:40" as someone said it) is a wall-clock time
@@ -159,9 +173,35 @@ function route(type: Route["type"], parts: RoutePart[], input: ComposeInput, via
   };
 }
 
+/** `iso` moved by `minutes`, written in the same UTC offset. */
+function shift(iso: string, minutes: number): string {
+  const offset = iso.match(/(Z|[+-]\d\d:\d\d)$/)?.[1] ?? "Z";
+  const sign = offset === "Z" ? 0 : (offset[0] === "-" ? -1 : 1) * (Number(offset.slice(1, 3)) * 60 + Number(offset.slice(4, 6)));
+  const wall = new Date(ms(iso) + (minutes + sign) * 60_000).toISOString().slice(0, 19);
+  return `${wall}${offset === "Z" ? "Z" : offset}`;
+}
+
+/** The estimated ground trip that reaches `gateway` in time for `next`, leaving where they are. */
+function groundBefore(from: Place, gateway: Place, next: Offer, crossing: boolean, currency: string): RoutePart {
+  const g = groundEstimate(from, gateway, crossing);
+  // in the currency they asked in, so nobody converts it by hand
+  const local = approx(g.price.amount, g.price.currency, currency);
+  const price = local === null ? g.price : { amount: Math.round(local), currency: currency.toUpperCase() };
+  const depart = next.segments[0].depart;
+  const arrive = shift(depart, -bufferMin(next, { crossing: false }));
+  return {
+    mode: "bus", carrier: crossing ? "Ground transfer and border" : "Ground transfer", number: null,
+    from, to: gateway, depart: shift(arrive, -g.minutes), arrive,
+    price, kind: "estimated", provider: "ground", flexible: true, offerId: `ground:${gateway.name}:${depart}`,
+    note: GROUND_NOTE,
+  };
+}
+
 /** The connector run so it reaches the station `bufferMin` before `next` leaves, inside its service hours. */
-function connectorBefore(c: Connector, next: Offer, date: string): Offer | null {
+function connectorBefore(c: Connector, next: Offer): Offer | null {
   const leaveAt = ms(next.segments[0].depart) - (bufferMin(next, { crossing: true }) + connectorMinutes(c)) * 60_000;
+  // its day is the one the next service leaves on, which may be the day after the leg's
+  const date = next.segments[0].depart.slice(0, 10);
   const midnight = ms(`${date}T00:00:00+08:00`);
   const minutes = Math.floor((leaveAt - midnight) / 60_000);
   const [fh, fm] = c.first.split(":").map(Number), [lh, lm] = c.last.split(":").map(Number);
@@ -176,38 +216,55 @@ function connectorBefore(c: Connector, next: Offer, date: string): Offer | null 
  * how close it arrives to `arriveNear`. Never invents a fare: a route with an unpriced part has no total.
  */
 export async function composeRoutes(input: ComposeInput, search: Search): Promise<Composed> {
-  const q = (from: Place, to: Place, modes: Mode[] = []): SearchQuery =>
-    ({ from, to, date: input.date, modes, passengers: 1, currency: input.currency });
+  const q = (from: Place, to: Place, modes: Mode[] = [], date = input.date): SearchQuery =>
+    ({ from, to, date, modes, passengers: 1, currency: input.currency });
+  const nextDay = new Date(Date.parse(`${input.date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   let searched = 1;
-  const direct = (await search(q(input.from, input.to))).filter((o) => o.segments.length && known(o));
+  const arrives = (o: Offer) => km(o.segments.at(-1)!.to, input.to) <= THERE_KM;
+  const direct = (await search(q(input.from, input.to))).filter((o) => o.segments.length && known(o) && arrives(o));
   const home = countryOf(input.from);
 
-  // Gateways: stations the direct search already leaves from that are elsewhere, and places a connector reaches.
+  // Gateways, best first: where a modelled connector goes, stations the direct search already leaves from that are
+  // elsewhere, then the biggest stations and airports nearby. None may add more than a tenth to the trip's length:
+  // Macau is a little further from Tokyo than Hong Kong is, but on a long flight that's nothing.
   const gateways: Place[] = [];
-  const addGateway = (p: Place) => {
-    if (km(p, input.to) >= km(input.from, input.to)) return;
-    if (!gateways.some((g) => km(g, p) <= SAME_STATION_KM)) gateways.push(p);
+  const kinds = new Map<Place, "flight" | "train">();
+  const addGateway = (p: Place, kind: "flight" | "train") => {
+    const trip = km(input.from, input.to);
+    if (here(p, input.from, home) || km(p, input.to) > trip * 1.1) return;
+    if (gateways.some((g) => km(g, p) <= SAME_STATION_KM)) return;
+    gateways.push(p);
+    kinds.set(p, kind);
   };
   const reachable = CONNECTORS.filter((c) => km(input.from, c.from) <= c.radiusKm);
-  for (const c of reachable) addGateway(c.to);
-  for (const o of direct) {
-    const from = o.segments[0].from;
-    // a station is worth a try once it has trains; an airport elsewhere needs a way there nobody models yet
-    if (!here(from, input.from, home) && o.mode !== "flight") addGateway(from);
-  }
+  for (const c of reachable) addGateway(c.to, "train");
+  for (const o of direct) addGateway(o.segments[0].from, o.mode === "flight" ? "flight" : "train");
+  const flies = km(input.from, input.to) >= FLY_FROM_KM;
+  HUBS
+    .filter((h) => (h.mode === "train" && h.importance >= 2 && km(h, input.from) <= GATEWAY_KM.train) ||
+      (h.mode === "flight" && flies && h.importance >= 3 && km(h, input.from) <= GATEWAY_KM.flight))
+    .sort((a, b) => b.importance - a.importance || km(a, input.from) - km(b, input.from))
+    .forEach((h) => addGateway(h, h.mode === "flight" ? "flight" : "train"));
   gateways.splice(MAX_GATEWAYS);
 
   const routes: Route[] = [];
   for (const o of direct) if (here(o.segments[0].from, input.from, home)) routes.push(route("direct", [part(o)], input, null));
 
   await Promise.all(gateways.map(async (g) => {
-    searched += 2;
-    const [onward, access] = await Promise.all([
+    const flight = kinds.get(g) === "flight";
+    searched += flight ? 2 : 3;
+    // the next morning too, for an overnight connection; nobody takes a train to an airport, so none are searched
+    const [onward, later, access] = await Promise.all([
       search(q(g, input.to)).catch(() => [] as Offer[]),
-      search(q(input.from, g, ["train", "bus", "ferry"])).catch(() => [] as Offer[]),
+      search(q(g, input.to, [], nextDay)).catch(() => [] as Offer[]),
+      flight ? Promise.resolve([] as Offer[]) : search(q(input.from, g, ["train", "bus", "ferry"])).catch(() => [] as Offer[]),
     ]);
+    const crossing = (() => {
+      const a = home, b = countryOf(g);
+      return !!a && !!b && a !== b;
+    })();
     // Onward trips must actually leave from this station; a different station or the airport needs its own transfer.
-    const leaving = [...direct, ...onward].filter((o) => known(o) && km(o.segments[0].from, g) <= SAME_STATION_KM);
+    const leaving = [...direct, ...onward, ...later].filter((o) => known(o) && arrives(o) && km(o.segments[0].from, g) <= SAME_STATION_KM);
     const seen = new Set<string>();
     const getThere = access.filter((o) => known(o) && o.provider !== "cross-border" &&
       km(o.segments.at(-1)!.to, g) <= SAME_STATION_KM && here(o.segments[0].from, input.from, home));
@@ -217,11 +274,15 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
       if (seen.has(next.id)) continue;
       seen.add(next.id);
       const leaves = ms(next.segments[0].depart);
-      const options: Offer[] = connectors.map((c) => connectorBefore(c, next, input.date)).filter((o): o is Offer => !!o);
-      // of the trains that make it, the cheapest and the latest (so nobody waits around for hours)
+      const options: Offer[] = connectors.map((c) => connectorBefore(c, next)).filter((o): o is Offer => !!o)
+        // a flexible link timed back from the next morning's service leaves the next day: that's another day's trip
+        .filter((o) => o.segments[0].depart.slice(0, 10) === input.date);
+      // of the trains that make it, the cheapest and the latest (so nobody waits around for hours, except overnight)
       const making = getThere.filter((o) => {
         const arrives = ms(o.segments.at(-1)!.arrive);
-        return arrives + bufferMin(next, { crossing: false }) * 60_000 <= leaves && leaves - arrives <= MAX_WAIT_MIN * 60_000;
+        const overnight = o.segments.at(-1)!.arrive.slice(0, 10) < next.segments[0].depart.slice(0, 10);
+        return arrives + bufferMin(next, { crossing: false }) * 60_000 <= leaves &&
+          leaves - arrives <= (overnight ? MAX_OVERNIGHT_MIN : MAX_WAIT_MIN) * 60_000;
       });
       const fare = (o: Offer) => (o.price ? approx(o.price.amount, o.price.currency, "USD") ?? Infinity : Infinity);
       const cheapest = [...making].sort((a, b) => fare(a) - fare(b))[0];
@@ -229,6 +290,15 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
       for (const train of new Set([cheapest, latest])) if (train) options.push(train);
       for (const first of options) {
         routes.push(route("via", [part(first, first.provider === "cross-border"), part(next)], input, g));
+      }
+      // nothing modelled gets there: estimate the trip, on the leg's day and after the first trains. Where a modelled
+      // link exists, its own hours rule, so an estimate never stands in for it.
+      if (!options.length && !connectors.length) {
+        const ground = groundBefore(input.from, g, next, crossing, input.currency);
+        const sets = ground.depart.slice(0, 10);
+        if (sets === input.date && Number(ground.depart.slice(11, 13)) >= EARLIEST_HOUR) {
+          routes.push(route("via", [ground, part(next)], input, g));
+        }
       }
     }
   }));

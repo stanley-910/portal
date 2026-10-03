@@ -84,12 +84,29 @@ A script that runs scripted scenarios against solo Pip with the real model and c
 called, its plan, the numbers it quoted against tool output, and latency. The canonical Hong Kong →
 Shanghai case is scenario one. Blocked by: T5, T6.
 
+### T9 · Nearby stations and airports anywhere — `review`
+
+Any big station or airport near where someone leaves from can be a gateway, reached by a modelled connector, a
+short train, or else an estimate from distance (`src/lib/transport/access.ts`), always marked as one.
+Blocked by: T4.
+
+### T10 · Overnight connections — `review`
+
+Onward services the next morning count, so the last train in and the first one out make a route.
+Blocked by: T4.
+
+### T11 · Corridor evals — `review`
+
+`evals/corridors.eval.ts` runs the optimizer and Pip on six corridors and writes
+`docs/pip-smartness/corridor-results.md`. Blocked by: T9, T10.
+
 ## Chunks
 
 1. T1 + T2 (data)
 2. T3 + T4 (cache + composer)
 3. T5 + T6 (tools, prompt, effort)
 4. T7 + T8 (round-trips + evals)
+5. T9 + T10 + T11 (general access, overnight, corridor evals)
 
 ## Decisions so far
 
@@ -122,9 +139,11 @@ Shanghai case is scenario one. Blocked by: T5, T6.
 - Flexible dates (±1 day) in the composer, once the single-date version proves useful.
 - Destination-side gateways (arrive at a cheaper station and connect into the city).
 - Whether the room's leg options UI should sort by price or time (Stanley: maybe later, a filter).
-- Onward services the next day: the composer searches every part on the leg's date, so an overnight connection
-  isn't found.
 - Getting to the first station and from the last: totals and times cover the services listed, and say so.
+- Fares are what limits savings outside China: Taiwan HSR, Thai buses and trains and KTMB come back unpriced, so
+  the optimizer finds alternatives but can't call them cheaper (see corridor-results.md).
+- Gateway choice is rough: small stations a direct search happens to leave from (Seoul→Busan picks Pyeongtaek and
+  Osan) and airports on the wrong side (Hualien for Taipei→Kaohsiung) take slots from better ones.
 - Room-trip evals: the suite drives home-globe Pip only; a room needs Liveblocks.
 - `liveblocks.mutateStorage` isn't a transaction: a long mutation can be sent in more than one batch. True atomicity
   would need a single-op representation of a leg split.
