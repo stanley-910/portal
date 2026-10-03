@@ -261,6 +261,28 @@ function Tags() {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-(--space-6)">
+        <span className="type-meta text-ink-muted">Zoomed out, on a route shorter than the tag:</span>
+        {(
+          [
+            ["flight", "HKG", "PVG", "$165"],
+            ["train", "Hong Kong", "Shanghai", "$92"],
+            ["ferry", "Hong Kong", "Macau", "$24"],
+            ["bus", "Kuala Lumpur", "Singapore", "$18"],
+          ] as const
+        ).map(([mode, from, to, price]) => (
+          <TripTag
+            key={mode}
+            compact
+            mode={mode}
+            from={from}
+            to={to}
+            price={price}
+            className="pa-cast"
+            style={{ position: "relative", "--alt": 0.3 } as React.CSSProperties}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-(--space-6)">
         <Tag>HKG</Tag>
         <Sticker shape="plane" title="Traveller" />
         <Sticker shape="star" title="Origin" />

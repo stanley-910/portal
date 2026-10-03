@@ -108,8 +108,8 @@ export function EntryPanel({ leg, riders, className, style }: EntryPanelProps) {
   const sources = [...new Map(rows.flatMap((r) => r.rule?.links.filter((l) => l.role === "source") ?? []).map((l) => [l.url, l])).values()];
 
   return (
-    <section aria-label={name ? `Entry to ${name}` : "Entry"} className={cn("en", className)} style={style}>
-      <h3 className="ts-step">{name ? `Entry · ${name}` : "Entry"}</h3>
+    <section aria-label={name ? `Entry requirements into ${name}` : "Entry requirements"} className={cn("en", className)} style={style}>
+      <h3 className="ts-step">{name ? `Entry requirements into ${name}` : "Entry requirements"}</h3>
       {rows.length || missing.length ? (
         <ul className="en-list">
           {rows.map((r) => (

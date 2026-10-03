@@ -15,6 +15,8 @@ export interface TripTagProps {
   to: string;
   /** The formatted fare, printed on the tear-off stub. */
   price?: string | null;
+  /** Folded to the mode's glyph and the fare from the start. On the globe, `useTagOnRoute` folds and unfolds it. */
+  compact?: boolean;
   onClick?: () => void;
   "aria-label"?: string;
   "aria-expanded"?: boolean;
@@ -23,18 +25,26 @@ export interface TripTagProps {
   ref?: Ref<HTMLButtonElement>;
 }
 
-/** A minimised trip: a small ticket on the route, styled by the kind of trip. Clicking it opens the trip again. */
-export function TripTag({ mode, from, to, price, onClick, className, style, ref, ...aria }: TripTagProps) {
+/**
+ * A minimised trip: a small ticket on the route, styled by the kind of trip. Clicking it opens the trip again. On a
+ * route too short on screen to hold it (zoomed out), `useTagOnRoute` folds it to its mode's glyph and the fare.
+ */
+export function TripTag({ mode, from, to, price, compact, onClick, className, style, ref, ...aria }: TripTagProps) {
   return (
-    <button ref={ref} type="button" data-globe-follow className={cn("ts-chip", `ts-chip-${mode}`, className)} style={style} onClick={onClick} {...aria}>
+    <button ref={ref} type="button" data-globe-follow className={cn("ts-chip", `ts-chip-${mode}`, className)} data-compact={compact ? "" : undefined} style={style} onClick={onClick} {...aria}>
       <span className="ts-chip-main">
         <Glyph kind={mode} sticker />
-        {from} → {to}
+        <span className="ts-chip-route">
+          {from} → {to}
+        </span>
       </span>
       {price ? <span className="ts-chip-price">{price}</span> : null}
     </button>
   );
 }
+
+/** How much longer than the whole tag a route must be on screen for the tag to show its ends' names. */
+const FOLD_MARGIN = 24;
 
 /**
  * Keeps a tag on a route: centred on the peak of the arc the globe draws from `from` to `to`, tilted like the ticket,
@@ -47,10 +57,23 @@ export function useTagOnRoute(globe: RefObject<TripGlobeHandle | null>, from: La
   useEffect(() => {
     const g = globe.current;
     if (!g) return;
+    // the tag's whole width, read while it's whole: folded, it's measured against that
+    let whole = 0;
     const place = () => {
       const el = tag.current;
       const p = g.routePoint({ lat: fLat, lng: fLng }, { lat: tLat, lng: tLng });
       if (!el) return;
+      // folded to glyph and fare when the route on screen is shorter than the whole tag, so it doesn't cover both
+      // ends; it unfolds with some room to spare, so it doesn't flicker at the edge
+      const a = g.project({ lat: fLat, lng: fLng });
+      const b = g.project({ lat: tLat, lng: tLng });
+      if (a && b) {
+        const folded = el.dataset.compact !== undefined;
+        if (!folded) whole = el.offsetWidth;
+        const span = Math.hypot(b.x - a.x, b.y - a.y);
+        if (!folded && span < whole + FOLD_MARGIN) el.dataset.compact = "";
+        else if (folded && span > whole + FOLD_MARGIN * 2) delete el.dataset.compact;
+      }
       el.style.visibility = p?.visible ? "visible" : "hidden";
       if (p) el.style.transform = `translate(${Math.round(p.x - el.offsetWidth / 2)}px, ${Math.round(p.y - el.offsetHeight / 2)}px) rotate(-1.2deg)`;
     };
