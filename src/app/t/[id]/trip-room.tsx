@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useRoom, useSelf, useStatus, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useRoom, useSelf, useStatus, useStorage, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
@@ -58,6 +58,18 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLegs, setLandedLegs] = useState<string[]>([]);
+  // whether those legs are all still on the trip, with their stops: Pip or a friend may have taken one off
+  const landedOnTrip = useStorage((root) =>
+    landedLegs.every((id) => {
+      const leg = root.legs[id];
+      return !!leg && !!root.stops[leg.from] && !!root.stops[leg.to];
+    }),
+  );
+  useEffect(() => {
+    // your plane would keep its route and lit country for a leg that's gone, so put it away; the legs left on
+    // the trip are drawn like everyone else's again
+    if (landedLegs.length && landedOnTrip === false) globe.current?.cancel();
+  }, [landedLegs, landedOnTrip]);
   // the plan panel; folded away, each leg's ticket stub on its route opens it again
   const [planOpen, setPlanOpen] = useState(true);
   // your own vehicle still stands in for the last of those legs, so it parks as that leg's chosen offer

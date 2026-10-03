@@ -11,6 +11,7 @@ import { chooseVehicle, landMask, type LandAt } from "./vehicle-choice";
 import { buildVehicle, VEHICLE_LENGTH, VEHICLES, type Vehicle } from "./vehicle-models";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
+import { Track } from "./track";
 import {
   add, angle, clamp, cross, D2R, dot, EARTH_RADIUS_KM, ease, len, lerp, llOf, mul, norm, rotAround, slerp, smooth,
   sub, tangent, vecOf, wrapPi, type Vec3,
@@ -205,8 +206,14 @@ const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
 /** At most this many city names on screen at once, biggest first, so the map never fills up. */
 const CITY_MAX = 40;
 const CITY_FADE = 0.05; // zoom over which a rank prints in
-/** City names in px by rank: the `city` token for world cities, a little smaller for towns. */
-const CITY_SIZE = [15, 15, 14, 14, 13, 13, 12, 12];
+/**
+ * City names in px by rank, in four steps so the places people travel between stand out: world cities (Tokyo,
+ * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
+ * and ink carry the difference.
+ */
+const CITY_SIZE = [19, 19, 15, 15, 13, 13, 12, 12];
+/** From this rank down, names print in `ink-muted` rather than `ink`. */
+const CITY_MUTED_FROM = 4;
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
@@ -384,12 +391,15 @@ export class GlobeEngine {
   private pl: Plane | null = null;
   /** This viewer's member colour slot, which tints their own route. Null draws it in ink. */
   private color: number | null = null;
-  // other members' flights: where presence says they are, and where we draw them (eased toward that)
+  // other members' flights: where presence says they are, and where we draw them (a moment behind, track.ts)
   private remotes = new Map<string, {
-    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
+    o: Vec3; target: Vec3; track: Track; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
     originHub: Hub | null; destinationHub: Hub | null;
     originName: string | null; destinationName: string | null;
   }>();
+
+  // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
+  private cursors = new Map<string, { track: Track; x: number; y: number; visible: boolean; lie: CursorLie; shadow: { x: number; y: number } | null }>();
 
   // input and time
   private mx = -9999;
@@ -406,7 +416,7 @@ export class GlobeEngine {
   private shadowAt: { x: number; y: number } | null = null;
   // the viewer's cursor shape, whose outline the shadow is cut from
   private cursorShape: CursorShape = "arrow";
-  private shadowPath: { shape: CursorShape; path: Path2D; rotate: number } | null = null;
+  private shadowPaths = new Map<CursorShape, { path: Path2D; rotate: number }>();
   private down: { x: number; y: number; lx: number; ly: number; lt: number; drag: boolean; grab: Vec3 | null } | null = null;
   // touch pointers, for pinch
   private touches = new Map<number, [number, number]>();
@@ -1201,25 +1211,70 @@ export class GlobeEngine {
     return redraw;
   }
 
-  /** The pointer's shadow, on top of the overlay: the cursor image itself has none. */
+  /**
+   * Moves other members' pointers along their tracks and lays them on the ground the way updateCursor lays ours,
+   * shadow and all (no peel: their pointer leaving the globe just fades). True when a shadow needs redrawing.
+   */
+  private updateRemoteCursors(dt: number, t: number) {
+    let moved = false;
+    const d = this.cursors.size ? this.disc() : null;
+    for (const r of this.cursors.values()) {
+      const n = this.reduceMotion ? r.track.latest() : r.track.at(t);
+      const p = n && this.proj(n);
+      if (!n || !p || !p.vis) {
+        if (r.visible) moved = true;
+        r.visible = false;
+        r.shadow = null;
+        continue;
+      }
+      r.visible = true;
+      r.x = p.x;
+      r.y = p.y;
+      const { rot, minor } = this.groundTilt(n);
+      const squash = this.reduceMotion ? 1 : Math.max(CURSOR_SQUASH, minor);
+      r.lie = squash < 1 ? { angle: ((rot / D2R) % 180 + 180) % 180, squash } : FLAT;
+      const sx = clamp((p.x - d!.x) / d!.r, -1, 1);
+      const sy = clamp((p.y - d!.y) / d!.r, -1, 1);
+      const x = p.x - CURSOR_SHADOW * sx;
+      const y = p.y + CURSOR_DROP - CURSOR_SHADOW * sy;
+      const before = r.shadow;
+      if (!before || this.reduceMotion) r.shadow = { x, y };
+      else {
+        const k = 1 - Math.exp(-dt / CURSOR_CHASE);
+        r.shadow = { x: before.x + (x - before.x) * k, y: before.y + (y - before.y) * k };
+      }
+      if (!before || Math.abs(r.shadow.x - before.x) + Math.abs(r.shadow.y - before.y) > 0.02) moved = true;
+    }
+    return moved;
+  }
+
+  /** Pointer shadows, on top of the overlay: ours and other members'. The cursor images themselves have none. */
   private cursorShadow() {
-    const s = this.shadowAt;
-    if (!s || typeof Path2D === "undefined") return;
+    if (typeof Path2D === "undefined") return;
+    if (this.shadowAt) {
+      this.dropShadow(this.shadowAt.x + this.cursorOffset[0], this.shadowAt.y + this.cursorOffset[1], this.cursorLie, this.shadowAlpha, this.cursorShape);
+    }
+    // other members' stickers are always the arrow: the shape is each viewer's own setting
+    for (const r of this.cursors.values()) if (r.shadow) this.dropShadow(r.shadow.x, r.shadow.y, r.lie, 1, "arrow");
+  }
+
+  /** A cursor's shadow at x, y, in the cursor's shape, lying on the ground as `lie` says. */
+  private dropShadow(x: number, y: number, lie: CursorLie, alpha: number, kind: CursorShape) {
     const ctx = this.hud;
     const dpr = this.hudEl.width / this.W;
-    const [a, b, c, d] = cursorLieMatrix(this.cursorLie);
-    if (this.shadowPath?.shape !== this.cursorShape) {
-      const { d: outline, rotate } = cursorOutline(this.cursorShape);
-      this.shadowPath = { shape: this.cursorShape, path: new Path2D(outline), rotate };
+    const [a, b, c, d] = cursorLieMatrix(lie);
+    let shape = this.shadowPaths.get(kind);
+    if (!shape) {
+      const { d: outline, rotate } = cursorOutline(kind);
+      this.shadowPaths.set(kind, (shape = { path: new Path2D(outline), rotate }));
     }
-    const shape = this.shadowPath;
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.translate(s.x + this.cursorOffset[0], s.y + this.cursorOffset[1]);
+    ctx.translate(x, y);
     ctx.transform(a, b, c, d, 0, 0);
     ctx.rotate(shape.rotate * D2R);
     ctx.filter = "blur(1.2px)";
-    ctx.globalAlpha = this.shadowAlpha;
+    ctx.globalAlpha = alpha;
     ctx.fillStyle = this.P.cursorShadow;
     ctx.fill(shape.path);
     ctx.restore();
@@ -1275,8 +1330,9 @@ export class GlobeEngine {
     return slot === null || !c.length ? this.P.ink : c[((Math.trunc(slot) % c.length) + c.length) % c.length];
   }
 
-  /** Replaces the other members' flights. Planes ease toward each update rather than jumping. */
+  /** Replaces the other members' flights. Planes move steadily between updates rather than jumping. */
   setRemoteFlights(flights: RemoteFlight[]) {
+    const now = performance.now() / 1000;
     const seen = new Set<string>();
     for (const f of flights) {
       const vehicle = f.vehicle ?? "flight";
@@ -1299,13 +1355,42 @@ export class GlobeEngine {
       const color = f.color ?? null;
       if (r) {
         Object.assign(r, { o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName });
+        r.track.push(target, now);
         retarget(r.pl, vehicle);
-      } else this.remotes.set(f.id, {
-        o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
-        pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
-      });
+      } else {
+        const track = new Track();
+        track.push(target, now);
+        this.remotes.set(f.id, {
+          o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
+          pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
+        });
+      }
     }
     for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
+  }
+
+  /** Replaces the other members' pointers; null `at` hides one. They move steadily between updates. */
+  setRemoteCursors(list: { id: string; at: LatLng | null }[]) {
+    const now = performance.now() / 1000;
+    const seen = new Set<string>();
+    for (const c of list) {
+      if (!c.at) continue;
+      seen.add(c.id);
+      let r = this.cursors.get(c.id);
+      if (!r) this.cursors.set(c.id, (r = { track: new Track(), x: 0, y: 0, visible: false, lie: FLAT, shadow: null }));
+      r.track.push(vecOf(c.at.lat * D2R, c.at.lng * D2R), now);
+    }
+    for (const id of this.cursors.keys()) if (!seen.has(id)) this.cursors.delete(id);
+    this.hudDirty = true;
+  }
+
+  /**
+   * Where another member's pointer is on screen and how it lies on the ground there, as the 2D matrix [a, b, c, d]
+   * to squash it by. Null when it's hidden or round the back of the globe. Its shadow is drawn on the overlay.
+   */
+  remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null {
+    const r = this.cursors.get(id);
+    return r?.visible ? { x: r.x, y: r.y, lie: cursorLieMatrix(r.lie) } : null;
   }
 
   /** Where another member's plane is on screen, for their name label. Null if they aren't flying or it's hidden. */
@@ -1435,7 +1520,7 @@ export class GlobeEngine {
     for (const r of this.remotes.values()) {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
-      pl.n = norm(slerp(pl.n, r.target, a));
+      pl.n = this.reduceMotion ? r.target : (r.track.at(t) ?? r.target);
       pl.f = tangent(lerp(pl.f, r.ft, a), pl.n);
       pl.alt += ((r.landed ? 0 : ALT * this.planeScale * lift(pl)) - pl.alt) * k(8);
       this.stepSwap(pl, dt);
@@ -1562,7 +1647,8 @@ export class GlobeEngine {
     // Use the surface raycast after the camera moves, not the elevated plane's
     // normal or a clamped horizon point. Pan/zoom under a still cursor also updates.
     this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
-    const shadowMoved = this.updateCursor(dt, t);
+    const ownMoved = this.updateCursor(dt, t);
+    const shadowMoved = this.updateRemoteCursors(dt, t) || ownMoved;
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
     const animated = !this.reduceMotion && (this.mode === "landed" ||
@@ -2068,8 +2154,8 @@ export class GlobeEngine {
   }
 
   /** A city name drawn at `size` and the screen's pixel ratio with a paper halo, its left edge at x = pad. */
-  private citySprite(name: string, size: number, dpr: number) {
-    const key = `${size}|${name}`;
+  private citySprite(name: string, size: number, dpr: number, muted: boolean) {
+    const key = `${size}|${muted ? 1 : 0}|${name}`;
     let c = this.citySprites.get(key);
     if (c) return c;
     const P = this.P;
@@ -2087,7 +2173,7 @@ export class GlobeEngine {
     g.lineWidth = px * 0.24;
     g.strokeText(name, pad, c.height / 2);
     g.globalAlpha = 1;
-    g.fillStyle = P.ink;
+    g.fillStyle = muted ? P.muted : P.ink;
     g.fillText(name, pad, c.height / 2);
     this.citySprites.set(key, c);
     return c;
@@ -2143,9 +2229,10 @@ export class GlobeEngine {
     const boxes = this.cityBoxes;
     boxes.length = 0;
     const countries = this.placedNames;
+    // names on neighbouring lines need less air than names side by side, which would read as one
     const hits = (b: number[], gap: number) =>
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
-      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap < o[3] && b[3] + gap > o[1]) ||
+      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
       keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
     const won = new Uint8Array(cands.length);
     cands.forEach((i, k) => {
@@ -2189,8 +2276,10 @@ export class GlobeEngine {
       const y = this.cityY[i];
       ctx.globalAlpha = alpha;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // world cities get a bigger dot, as they get a bigger name
+      const big = c.rank < 2 ? 0.6 : 0;
       ctx.beginPath();
-      ctx.arc(x, y, c.capital ? 3.4 : 2.4, 0, Math.PI * 2);
+      ctx.arc(x, y, (c.capital ? 3.4 : 2.4) + big, 0, Math.PI * 2);
       ctx.fillStyle = P.paper;
       ctx.fill();
       ctx.lineWidth = 1.2;
@@ -2198,12 +2287,12 @@ export class GlobeEngine {
       ctx.stroke();
       if (c.capital) {
         ctx.beginPath();
-        ctx.arc(x, y, 1.3, 0, Math.PI * 2);
+        ctx.arc(x, y, 1.3 + big / 2, 0, Math.PI * 2);
         ctx.fillStyle = P.ink;
         ctx.fill();
       }
       const size = CITY_SIZE[c.rank];
-      const img = this.citySprite(c.name, size, dpr);
+      const img = this.citySprite(c.name, size, dpr, c.rank >= CITY_MUTED_FROM);
       const pad = Math.ceil(size * dpr * 0.3);
       const left = this.cityLeft[i];
       const tx = left ? x - 7 - (img.width - pad) / dpr : x + 7 - pad / dpr;

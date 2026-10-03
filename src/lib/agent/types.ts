@@ -55,8 +55,11 @@ export type ThreadMessage = {
   at: number;
   author: ThreadAuthor;
   text: string;
-  /** "streaming" while Pip is writing it; the text arrives by broadcast until then. */
-  state: "streaming" | "done" | "failed";
+  /**
+   * "queued" while Pip finishes an earlier request, then "streaming" while it writes this one; the text arrives by
+   * broadcast until then. Replies take their turn in thread order (run.ts).
+   */
+  state: "queued" | "streaming" | "done" | "failed";
   cards: ThreadCard[];
 };
 

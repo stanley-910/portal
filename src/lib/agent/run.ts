@@ -1,30 +1,38 @@
 import "server-only";
 
-import { deepseek } from "@ai-sdk/deepseek";
+import { deepseek, type DeepSeekLanguageModelChatOptions } from "@ai-sdk/deepseek";
 import { LiveList, LiveObject } from "@liveblocks/node";
 import { isStepCount, streamText } from "ai";
 
 import { dateIn } from "@/lib/agent/dates";
 import { bigCities } from "@/lib/agent/meetup";
-import { describePlan, describeThread, handlesFor, showDate, type PlanJson } from "@/lib/agent/snapshot";
+import { describePlan, describeThread, handlesFor, showDate, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { liveblocks } from "@/lib/liveblocks/server";
 
-// One run of Pip in one trip room (harness G9): every message in the thread is to Pip. Posting it takes the room's
-// lease and puts Pip's empty reply under it in the same write; the run answers, writes the reply and its cards into
+// One run of Pip in one trip room (harness G9): every message in the thread is to Pip. Posting it puts Pip's empty
+// reply under it in the same write; the run waits for that reply's turn, answers, writes the reply and its cards into
 // the thread, and lets go. Text streams by broadcast; Storage is written at tool boundaries only.
 
 // DeepSeek V4.1 Flash: `deepseek-flash` follows the latest Flash release (api-docs.deepseek.com, checked 2026-10-03)
 const MODEL = "deepseek-flash";
 const MAX_STEPS = 10;
 const LEASE_MS = 90_000;
+/** How long a message waits for Pip to finish earlier ones. With a run's lease, it fits the route's 300 s. */
+const QUEUE_WAIT_MS = 180_000;
+const QUEUE_POLL_MS = 1_500;
+/** A reply still owed after this was left by a run that died; it no longer holds up the ones after it. */
+const STALE_MS = QUEUE_WAIT_MS + LEASE_MS;
 // Usage limits while nobody pays for Pip: the DeepSeek balance is the hard ceiling; these keep one trip or one
 // person from spending it. Over a limit, Pip answers from its tools without the model instead of failing.
 /** Model runs per trip per UTC day. */
 export const TRIP_RUNS_PER_DAY = 40;
-/** Output tokens per model call. Replies are one to three sentences; tool calls are small. */
-const MAX_OUTPUT_TOKENS = 1_200;
+/**
+ * Output tokens per model call. Replies are one to three sentences and tool calls are small, but DeepSeek's hidden
+ * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing.
+ */
+const MAX_OUTPUT_TOKENS = 4_000;
 
 /** Logs each tool call and result. Off by default: tool inputs carry what people typed (harness: no content in logs). */
 const DEBUG = process.env.AGENT_DEBUG === "1";
@@ -58,46 +66,75 @@ How to work:
 const today = () => new Date().toISOString().slice(0, 10);
 const newId = () => crypto.randomUUID().slice(0, 8);
 
-/** Pip's turn, claimed when the message that started it was posted. */
-export type Claim = { messageId: string; replyId: string; runId: string; overLimit: boolean };
+/** The reply a posted message is owed. */
+export type Claim = { messageId: string; replyId: string };
+
+/** Replies Pip still owes, in thread order: the first one is the one Pip is on. */
+const owed = (thread: readonly ThreadMessage[], now: number) =>
+  thread.filter((m) => m.author.kind === "agent" && (m.state === "queued" || m.state === "streaming") && now - m.at < STALE_MS);
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Appends a member's message and, in the same write, Pip's empty reply and the room's lease, so people see Pip
- * start as their message lands. `claim` is null when Pip is mid-run; it says so in the thread instead.
+ * Appends a member's message and, in the same write, Pip's empty reply, so people see Pip pick it up as their message
+ * lands. The reply starts now, or waits as "queued" behind replies Pip still owes.
  */
-export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim | null }> {
+export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim }> {
   const messageId = newId();
-  let claim: Claim | null = null;
+  const replyId = newId();
   await liveblocks().mutateStorage(roomId, ({ root }) => {
     const now = Date.now();
     const message: ThreadMessage = { id: messageId, at: now, author: { kind: "member", id: authorId }, text, state: "done", cards: [] };
     let thread = root.get("thread");
     if (thread) thread.push(new LiveObject(message));
     else root.set("thread", (thread = new LiveList([new LiveObject(message)])));
+    const ahead = owed(thread.map((m) => m.toJSON()), now).length > 0;
+    thread.push(new LiveObject<ThreadMessage>({ id: replyId, at: now, author: { kind: "agent" }, text: "", state: ahead ? "queued" : "streaming", cards: [] }));
+  });
+  return { messageId, claim: { messageId, replyId } };
+}
 
-    const replyId = newId();
-    const reply: ThreadMessage = { id: replyId, at: now, author: { kind: "agent" }, text: "", state: "streaming", cards: [] };
-    const run = root.get("agentRun");
-    if (run && run.until > now) {
-      thread.push(new LiveObject({ ...reply, text: "I'm still on the last request. Ask me again in a moment.", state: "done" }));
+/** Answers the message a claim was made for, after any asked before it. Resolves when the reply is written. */
+export async function runAgent(roomId: string, { messageId, replyId }: Claim, askedBy: string) {
+  const lb = liveblocks();
+  const runId = newId();
+
+  const patchReply = (patch: (m: LiveObject<ThreadMessage>) => void) =>
+    lb.mutateStorage(roomId, ({ root }) => {
+      const m = root.get("thread")?.find((x) => x.get("id") === replyId);
+      if (m) patch(m);
+    });
+
+  // Wait for this reply's turn. Turns go by the reply's place in the thread: the thread is a LiveList, so replies
+  // posted at the same moment from different servers still land in one order everyone agrees on. A single "who's
+  // running" value can't do that, since mutateStorage reads and then writes, and two servers could both see it empty.
+  const deadline = Date.now() + QUEUE_WAIT_MS;
+  for (let waited = false; ; waited = true) {
+    const thread = ((await lb.getStorageDocument(roomId, "json")) as PlanJson).thread ?? [];
+    const now = Date.now();
+    const ahead = owed(thread, now);
+    if (ahead[0]?.id === replyId) break;
+    if (now > deadline) {
+      await patchReply((m) => m.update({ text: "I couldn't get to this one in time. Ask me again.", state: "failed" }));
       return;
     }
-    const runId = newId();
-    root.set("agentRun", { id: runId, status: "running", by: authorId, until: now + LEASE_MS });
+    // posted as started by a server that raced another one, and lost: show it waiting
+    if (!waited && ahead.some((m) => m.id === replyId)) await patchReply((m) => m.set("state", "queued"));
+    await sleep(QUEUE_POLL_MS);
+  }
+
+  let overLimit = false;
+  await lb.mutateStorage(roomId, ({ root }) => {
+    const now = Date.now();
+    root.get("thread")?.find((m) => m.get("id") === replyId)?.set("state", "streaming");
+    // tells everyone's chat Pip is busy; turns don't depend on it
+    root.set("agentRun", { id: runId, status: "running", by: askedBy, until: now + LEASE_MS });
     const day = new Date(now).toISOString().slice(0, 10);
     const usage = root.get("agentUsage");
     const runs = usage?.day === day ? usage.runs : 0;
-    const overLimit = runs >= TRIP_RUNS_PER_DAY;
+    overLimit = runs >= TRIP_RUNS_PER_DAY;
     if (!overLimit) root.set("agentUsage", { day, runs: runs + 1 });
-    thread.push(new LiveObject(reply));
-    claim = { messageId, replyId, runId, overLimit };
   });
-  return { messageId, claim };
-}
-
-/** Answers the message a claim was made for. Resolves when the reply is written. */
-export async function runAgent(roomId: string, { messageId, replyId, runId, overLimit }: Claim, askedBy: string) {
-  const lb = liveblocks();
 
   const presence = (activity: string | null, cursor: { lat: number; lng: number } | null = null) =>
     lb
@@ -114,11 +151,6 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
     void presence(text, lastAt);
   };
 
-  const patchReply = (patch: (m: LiveObject<ThreadMessage>) => void) =>
-    lb.mutateStorage(roomId, ({ root }) => {
-      const m = root.get("thread")?.find((x) => x.get("id") === replyId);
-      if (m) patch(m);
-    });
   // Writes to the reply go one at a time, in order, so a step's result can't land before the step does. Stream
   // parts don't wait for them; the final write waits for all of them.
   let writes: Promise<unknown> = Promise.resolve();
@@ -141,9 +173,12 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
 
   try {
     activity("reading the trip");
+    // each read keeps the handles the model already has, so "L3" means the same leg all run
+    let held: Handles | undefined;
     const load = async () => {
       const plan = (await lb.getStorageDocument(roomId, "json")) as PlanJson;
-      return { plan, handles: handlesFor(plan) };
+      held = handlesFor(plan, held);
+      return { plan, handles: held };
     };
     const { plan, handles } = await load();
     const meetups = new Map<string, MeetupOption>();
@@ -174,6 +209,7 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
       // a model that's down or out of credit gets the no-model answer, as long as it hadn't started yet (AGENTS.md:
       // the demo never depends on a flaky API)
       let started = false;
+      const did: RunRecord = { edits: 0, problems: [], aborted: false, finish: undefined };
       try {
         const asked = plan.thread?.find((m) => m.id === messageId);
         const result = streamText({
@@ -183,6 +219,8 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          // the edits and lookups here don't need deep thought, and every reasoning token delays the reply
+          providerOptions: { deepseek: { reasoningEffort: "low" } satisfies DeepSeekLanguageModelChatOptions },
           abortSignal: AbortSignal.timeout(LEASE_MS - 5_000),
         });
         for await (const part of result.stream) {
@@ -197,6 +235,11 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
             }
           } else if (part.type === "tool-result" || part.type === "tool-error") {
             if (DEBUG) console.info("AGENT_TOOL_RESULT", part.toolName, JSON.stringify(part.type === "tool-error" ? String(part.error) : part.output).slice(0, 600));
+            if (part.type === "tool-result") record(did, part.output);
+            else {
+              did.problems.push(`${part.toolName.replace("_", " ")} failed on my side.`);
+              console.error("AGENT_TOOL_ERROR", part.toolName, part.error instanceof Error ? part.error.message : part.error);
+            }
             const label = stepLabel(part.toolName, part.type === "tool-result" ? part.output : null);
             if (label) {
               const id = part.toolCallId;
@@ -204,8 +247,15 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
             }
           } else if (part.type === "start-step" && text && !text.endsWith("\n")) text += "\n\n";
           else if (part.type === "error") throw part.error;
-          else if (DEBUG && part.type === "finish") console.info("AGENT_FINISH", JSON.stringify(part.totalUsage));
+          else if (part.type === "abort") did.aborted = true;
+          else if (part.type === "finish") {
+            did.finish = part.finishReason;
+            if (DEBUG) console.info("AGENT_FINISH", JSON.stringify(part.totalUsage));
+          }
         }
+        if (did.aborted) console.warn("AGENT_RUN_TIMEOUT", roomId);
+        const cut = did.aborted ? "I ran out of time there." : did.finish === "length" ? "I got cut off there; ask me to finish." : null;
+        text = text.trim() ? (cut ? `${text.trim()}\n\n${cut}` : text) : silentReply(did);
       } catch (error) {
         if (started || text) throw error;
         console.error("AGENT_MODEL_UNAVAILABLE", error instanceof Error ? error.message : error);
@@ -215,7 +265,7 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
 
     clearInterval(ticker);
     await writes;
-    const final = text.trim() || "Done.";
+    const final = text.trim() || "Sorry, I lost track of that one. Can you ask again?";
     await patchReply((m) => m.update({ text: final, state: "done" }));
   } catch (error) {
     clearInterval(ticker);
@@ -232,6 +282,27 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
       .catch(() => {});
     void presence(null);
   }
+}
+
+/** What a run's tools did, so a reply with no words still says what happened. */
+type RunRecord = { edits: number; problems: string[]; aborted: boolean; finish: string | undefined };
+
+function record(did: RunRecord, output: unknown) {
+  const out = (output ?? {}) as { applied?: unknown; refused?: unknown; reason?: unknown };
+  if (Array.isArray(out.applied)) did.edits += out.applied.length;
+  if (Array.isArray(out.refused)) did.problems.push(...out.refused.map((r: { reason?: string }) => r.reason ?? "something was refused."));
+  else if (typeof out.refused === "string" && typeof out.reason === "string") did.problems.push(out.reason);
+}
+
+/** The reply when the model wrote nothing: only "Done." when something on the trip changed. */
+export function silentReply(did: RunRecord): string {
+  if (did.aborted) {
+    return did.edits ? "I ran out of time partway. The changes above went through; ask me for the rest." : "I ran out of time before changing anything. Try asking again.";
+  }
+  if (did.edits) return did.problems.length ? `Done, except: ${did.problems[0]}` : "Done.";
+  if (did.problems.length) return `I couldn't do that: ${did.problems[0]}`;
+  if (did.finish === "tool-calls" || did.finish === "length") return "I didn't get to the end of that. Try asking for one change at a time.";
+  return "Sorry, I lost track of that one. Can you ask again?";
 }
 
 /**

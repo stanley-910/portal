@@ -57,7 +57,7 @@ export async function startTripWithPip(text: string) {
     if (!root.get("legs")) root.set("legs", new LiveMap());
   });
   const { claim } = await postToPip(roomId, user.id, message);
-  if (claim) after(() => runAgent(roomId, claim, user.id));
+  after(() => runAgent(roomId, claim, user.id));
   redirect(`/t/${id}?pip=open`);
 }
 
