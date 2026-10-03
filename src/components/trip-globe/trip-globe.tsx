@@ -34,8 +34,11 @@ export interface TripGlobeProps {
   theme?: TripGlobeTheme;
   /** Called at takeoff, including uncovered points (null). Hub is a local preview, not a route result. */
   onTakeoff?: (from: Hub | null) => void;
-  /** Called once the plane touches down. The search for the trip starts here. */
-  onLand?: (trip: LandedTrip) => void;
+  /**
+   * Called once the plane touches down, with the trip's legs in order. Each click while flying ends a leg and flies
+   * on; clicking that stop again (a double click) lands there. The search for the trip starts here.
+   */
+  onLand?: (legs: LandedTrip[]) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
   /**
@@ -56,6 +59,8 @@ export interface TripGlobeProps {
   className?: string;
   ref?: Ref<TripGlobeHandle>;
 }
+
+const place = (hub: Hub | null) => hub?.city || hub?.name || "selected point";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 function subscribeSystemTheme(onChange: () => void) {
@@ -104,7 +109,7 @@ export function TripGlobe({
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [landed, setLanded] = useState<LandedTrip | null>(null);
+  const [landed, setLanded] = useState<LandedTrip[] | null>(null);
   const [unsupported, setUnsupported] = useState(false);
   const [cursor, setCursor] = useState<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   const resolved = useResolvedTheme(theme);
@@ -128,9 +133,9 @@ export function TripGlobe({
       },
       onPreviewChange: (_hub, name) => setPreview(name),
       onCursorChange: setCursor,
-      onLand: (trip) => {
-        setLanded(trip);
-        handlers.current.onLand?.(trip);
+      onLand: (legs) => {
+        setLanded(legs);
+        handlers.current.onLand?.(legs);
       },
       onCancel: () => handlers.current.onCancel?.(),
       onFrame: () => {
@@ -190,9 +195,9 @@ export function TripGlobe({
 
   const label =
     mode === "flying"
-      ? `Flying from ${from?.city || from?.name || "selected point"}`
-      : mode === "landed" && landed
-        ? `Trip ${landed.from?.city || landed.from?.name || "selected point"} to ${landed.to?.city || landed.to?.name || "selected point"}`
+      ? `Flying from ${place(from)}`
+      : mode === "landed" && landed?.length
+        ? `Trip ${place(landed[0].from)} to ${place(landed.at(-1)!.to)}${landed.length > 1 ? `, ${landed.length} legs` : ""}`
         : "Globe";
 
   const stop = (e: PointerEvent) => e.stopPropagation();

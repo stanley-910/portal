@@ -45,7 +45,7 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
-  const [landedLeg, setLandedLeg] = useState<string | null>(null);
+  const [landedLegs, setLandedLegs] = useState<string[]>([]);
   useRecordMember();
 
   useErrorListener((error) => {
@@ -67,11 +67,11 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
-        onLand={(trip) => planReady && setLandedLeg(addLeg(trip))}
-        onTakeoff={() => setLandedLeg(null)}
-        onCancel={() => setLandedLeg(null)}
+        onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
+        onTakeoff={() => setLandedLegs([])}
+        onCancel={() => setLandedLegs([])}
       />
-      <RemotePlanes globe={globe} hideLeg={landedLeg} />
+      <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
       <NavBar globe={globe} name={name} email={email} account={account} reloadOnRename>
