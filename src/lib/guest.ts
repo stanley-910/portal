@@ -35,6 +35,13 @@ export async function ensureGuest(): Promise<Guest> {
   return { id, name: null };
 }
 
+/** Drops the guest identity once an account has taken over its trips. Only in Server Functions and Route Handlers. */
+export async function forgetGuest() {
+  const jar = await cookies();
+  jar.delete(ID_COOKIE);
+  jar.delete(NAME_COOKIE);
+}
+
 /** Saves the guest's display name. Only in Server Functions and Route Handlers. */
 export async function setGuestName(name: string) {
   (await cookies()).set(NAME_COOKIE, name, cookieOptions());
