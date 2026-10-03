@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Offer } from "@/lib/transport/types";
 
-import { buildSoloStorage, soloLegSchema, soloSaveSchema, toStorageLson, toTripSummaries } from "./server";
+import { buildSoloStorage, MAX_SOLO_LEGS, soloLegSchema, soloSaveSchema, toStorageLson, toTripSummaries } from "./server";
+import { computeSplit, type SplitInput } from "./split";
 import { planTitle } from "./title";
 
 const room = (id: string, metadata: Record<string, string | string[]>, createdAt = "2026-10-01T00:00:00.000Z", lastConnectionAt?: string) => ({
@@ -140,6 +141,47 @@ describe("buildSoloStorage", () => {
   it("leaves stays out when no hotel was picked", () => {
     expect(solo().stays).toBeUndefined();
     expect((toStorageLson(solo()).data as Record<string, unknown>).stays).toBeUndefined();
+  });
+});
+
+describe("a round trip saved from /", () => {
+  const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+  const counter = () => {
+    let n = 0;
+    return () => `id${n++}`;
+  };
+  const out = { ...input, date: day(1) };
+  const back = { from: PVG, to: HKG, date: day(5), offers: [offer("duffel:back", { provider: "duffel", kind: "live" }), offer("tp:back")], chosen: "duffel:back" };
+
+  it("stores the way back as a leg home through the same stops, its pick chosen", () => {
+    const doc = buildSoloStorage(save(out, back), user, counter(), 1_000);
+    expect(Object.keys(doc.stops)).toHaveLength(2);
+    const [first, home] = Object.values(doc.legs);
+    expect(home).toMatchObject({ from: first.to, to: first.from, date: day(5), chosen: "duffel:back", riders: ["u1"], createdAt: 1_001 });
+    // a Duffel pick stays a Duffel offer, so the room can settle it
+    expect(home.search.offers.find((o) => o.id === home.chosen)).toMatchObject({ provider: "duffel", kind: "live" });
+    expect(planTitle(doc)).toContain("Shanghai");
+  });
+
+  it("ends the nights at the last stop on the return date, with none at home", () => {
+    const stay = { label: "Hotel", nightly: { amount: 100, currency: "USD" } };
+    const doc = buildSoloStorage(save({ ...out, stay }, back), user, counter(), 1_000);
+    const split = computeSplit(doc as SplitInput);
+    const shanghai = Object.entries(doc.stops).find(([, s]) => s.name === "Shanghai")![0];
+    expect(split.members.u1.nightShares.map((n) => [n.stop, n.date])).toEqual([1, 2, 3, 4].map((n) => [shanghai, day(n)]));
+    expect(split.members.u1.totals).toEqual({ USD: 120 + 120 + 400 });
+  });
+
+  it("refuses a way back before the way out", () => {
+    expect(soloSaveSchema.safeParse({ legs: [out, { ...back, date: day(0) }] }).success).toBe(false);
+  });
+
+  it("takes eight flown legs and the way back, and no more", () => {
+    const loop = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ ...input, date: day(1 + i), ...(i % 2 ? { from: PVG, to: HKG } : {}) }));
+    expect(soloSaveSchema.safeParse({ legs: loop(MAX_SOLO_LEGS) }).success).toBe(true);
+    expect(MAX_SOLO_LEGS).toBe(9);
+    expect(soloSaveSchema.safeParse({ legs: loop(MAX_SOLO_LEGS + 1) }).success).toBe(false);
   });
 });
 

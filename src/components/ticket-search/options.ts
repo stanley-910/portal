@@ -198,28 +198,22 @@ export function rowsFor(offers: Offer[], tab: Tab, rates: ExchangeRates | null):
   }));
 }
 
-/**
- * The price a row shows, in the viewer's currency. With a return search, it's the round trip: this option plus the
- * cheapest return of the same mode. Null when either half has no fare or no exchange rate.
- */
-export function rowPrice(
-  offer: Offer,
-  returns: Offer[] | null,
-  currency: Currency,
-  rates: ExchangeRates | null,
-): number | null {
-  const toCurrency = (o: Offer) => {
-    if (!o.price) return null;
-    if (o.price.currency === currency) return o.price.amount;
-    return rates ? convertCurrency(o.price.amount, o.price.currency, currency, rates) : null;
-  };
-  const out = toCurrency(offer);
-  if (out === null || returns === null) return out;
-  const back = returns
-    .filter((r) => r.mode === offer.mode)
-    .map(toCurrency)
-    .filter((p): p is number => p !== null);
-  return back.length ? out + Math.min(...back) : null;
+/** An option's fare in the viewer's currency. Null when it has no fare or there's no exchange rate for it. */
+export function rowPrice(offer: Offer, currency: Currency, rates: ExchangeRates | null): number | null {
+  if (!offer.price) return null;
+  if (offer.price.currency === currency) return offer.price.amount;
+  return rates ? convertCurrency(offer.price.amount, offer.price.currency, currency, rates) : null;
+}
+
+/** A round trip's fare: the picked way out plus the picked way back. Null when either has no fare. */
+export function tripPrice(offers: Offer[], currency: Currency, rates: ExchangeRates | null): number | null {
+  let total = 0;
+  for (const offer of offers) {
+    const price = rowPrice(offer, currency, rates);
+    if (price === null) return null;
+    total += price;
+  }
+  return offers.length ? total : null;
 }
 
 /** "$905", "HK$7,050", "€84" */

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Mode, Offer, Segment } from "@/lib/transport/types";
 
-import { credits, rowPrice, rowsFor, shortPlace, timeline, visibleTabs } from "./options";
+import { credits, rowPrice, rowsFor, shortPlace, timeline, tripPrice, visibleTabs } from "./options";
 
 const place = (name: string) => ({ name, lat: 0, lng: 0 });
 const seg = (mode: Mode, from: string, to: string, depart: string, arrive: string, durationMin: number): Segment => ({
@@ -79,10 +79,12 @@ describe("ticket search options", () => {
     expect(shortPlace("Shanghai Hongqiao")).toBe("Shanghai Hongqiao");
   });
 
-  it("adds the cheapest same-mode return for a round trip", () => {
+  it("prices one option, and a round trip as both picks together", () => {
     const out = direct("a", "train", 100);
-    expect(rowPrice(out, null, "USD", null)).toBe(100);
-    expect(rowPrice(out, [direct("r1", "train", 90), direct("r2", "train", 70), direct("r3", "flight", 10)], "USD", null)).toBe(170);
-    expect(rowPrice(out, [direct("r3", "flight", 10)], "USD", null)).toBeNull();
+    const back = direct("r1", "flight", 70);
+    expect(rowPrice(out, "USD", null)).toBe(100);
+    expect(tripPrice([out, back], "USD", null)).toBe(170);
+    expect(tripPrice([out, { ...back, price: undefined }], "USD", null)).toBeNull();
+    expect(tripPrice([], "USD", null)).toBeNull();
   });
 });
