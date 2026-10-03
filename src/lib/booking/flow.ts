@@ -196,7 +196,7 @@ export async function submitDetails(roomId: string, legId: string, actor: Actor,
     // a saved passport the airline didn't ask for stays out of the order
     const given = !booking.documents && input && typeof input === "object" ? { ...input, passport: null } : input;
     const parsed = travellerSchema(booking.documents).safeParse(given);
-    if (!parsed.success) return { ok: false, code: "INVALID", message: "Check the highlighted fields.", fields: [...new Set(parsed.error.issues.map((i) => i.path.join(".")))] };
+    if (!parsed.success) return invalidDetails(parsed.error.issues);
     await bookingStore().putTraveller(roomId, legId, actor.id, parsed.data as TravellerDetails);
     const updated = await updateSeat(roomId, legId, actor.id, { details: true });
     if (updated && updated.mode === "group" && allDetailsIn(updated.seats)) await holdSeats(roomId, legId);
@@ -422,6 +422,28 @@ export async function pendingIntent(roomId: string, legId: string, riderId: stri
   return row?.provider === "stripe" && !row.sessionId ? row.paymentIntentId : null;
 }
 
+const FIELD_NAMES: Record<string, string> = {
+  title: "title",
+  gender: "gender",
+  givenName: "given names",
+  familyName: "family name",
+  bornOn: "date of birth",
+  email: "email",
+  phone: "phone number",
+  "passport.number": "passport number",
+  "passport.country": "issuing country",
+  "passport.expiresOn": "passport expiry",
+};
+
+/** Names what's wrong, so a refused field says why rather than only turning red. */
+function invalidDetails(issues: readonly { path: readonly PropertyKey[] }[]): Failure {
+  const fields = [...new Set(issues.map((i) => i.path.join(".")))];
+  const names = fields.map((f) => FIELD_NAMES[f] ?? f);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
+  const phone = fields.includes("phone") ? " For the phone, pick its country or start with + and the country code." : "";
+  return { ok: false, code: "INVALID", message: `Check your ${list}.${phone}`, fields };
+}
+
 /** A person's saved traveller details. */
 export const savedTraveller = (personId: string) => bookingStore().getProfile(personId);
 
@@ -429,7 +451,7 @@ export const savedTraveller = (personId: string) => bookingStore().getProfile(pe
 export async function saveTraveller(personId: string, input: unknown): Promise<{ ok: true; details: TravellerDetails } | Failure> {
   const withPassport = !!(input as { passport?: unknown } | null)?.passport;
   const parsed = travellerSchema(withPassport).safeParse(input);
-  if (!parsed.success) return { ok: false, code: "INVALID", message: "Check the highlighted fields.", fields: [...new Set(parsed.error.issues.map((i) => i.path.join(".")))] };
+  if (!parsed.success) return invalidDetails(parsed.error.issues);
   const details = parsed.data as TravellerDetails;
   await bookingStore().putProfile(personId, details);
   return { ok: true, details };

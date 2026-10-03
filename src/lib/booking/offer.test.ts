@@ -91,6 +91,19 @@ describe("travellerSchema", () => {
     expect(travellerSchema(false).safeParse({ ...ok, bornOn: "2999-01-01" }).success).toBe(false);
   });
 
+  it("reads a phone in the picked country, or the one its + or 00 names", () => {
+    const phone = (p: string, phoneCountry?: string) => travellerSchema(false).safeParse({ ...ok, phone: p, phoneCountry }).data?.phone;
+    expect(phone("9123 4567", "HK")).toBe("+85291234567");
+    expect(phone("+852 9123-4567")).toBe("+85291234567");
+    expect(phone("00852 9123 4567", "US")).toBe("+85291234567");
+    expect(phone("(415) 555-2671", "US")).toBe("+14155552671");
+    expect(phone("010-1234-5678", "KR")).toBe("+821012345678");
+    // without a country, a local number can't be placed; nor can a number the country doesn't hand out
+    expect(phone("9123 4567")).toBeUndefined();
+    expect(phone("+852 1234 5678")).toBeUndefined();
+    expect(travellerSchema(false).parse({ ...ok, phoneCountry: "HK" })).not.toHaveProperty("phoneCountry");
+  });
+
   it("insists on a passport when the airline does", () => {
     expect(travellerSchema(true).safeParse(ok).success).toBe(false);
     const parsed = travellerSchema(true).parse({ ...ok, passport: { number: "K1234567", country: "gb", expiresOn: "2031-01-01" } });

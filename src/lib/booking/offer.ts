@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type { Money } from "@/lib/liveblocks/types";
 
+import { toE164 } from "./phone";
+
 // What the booking flow needs from a Duffel offer, and how it recognises the same flights in a fresh search. Pure
 // and shared with tests; the calls themselves are in duffel.ts.
 
@@ -133,16 +135,24 @@ export type TravellerDetails = {
 const name = z.string().trim().min(1).max(60).regex(/^\p{L}[\p{L} '\-]*$/u, "letters only");
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((d) => Number.isFinite(Date.parse(`${d}T00:00:00Z`)), "not a date");
 
+/** Folds the form's `phoneCountry` into `phone` as E.164, so "9123 4567" with Hong Kong picked is +85291234567. */
+const withPhone = (input: unknown) => {
+  if (!input || typeof input !== "object") return input;
+  const { phoneCountry, ...rest } = input as { phone?: unknown; phoneCountry?: unknown };
+  if (typeof rest.phone !== "string") return rest;
+  return { ...rest, phone: toE164(rest.phone, typeof phoneCountry === "string" ? phoneCountry : null) ?? rest.phone };
+};
+
 /** Validates what a rider typed. Passport fields are checked only when the offer asks for them. */
 export const travellerSchema = (documentsRequired: boolean) =>
-  z.object({
+  z.preprocess(withPhone, z.object({
     title: z.enum(["mr", "ms", "mrs", "miss", "dr"]),
     gender: z.enum(["m", "f"]),
     givenName: name,
     familyName: name,
     bornOn: isoDate.refine((d) => d < new Date().toISOString().slice(0, 10), "must be in the past"),
     email: z.email().max(120),
-    phone: z.string().trim().regex(/^\+[1-9]\d{6,14}$/, "international format, e.g. +85291234567"),
+    phone: z.string().refine((p) => toE164(p) === p, "isn't a number in the country picked"),
     passport: documentsRequired
       ? z.object({
           number: z.string().trim().min(5).max(20).regex(/^[A-Za-z0-9]+$/),
@@ -150,4 +160,4 @@ export const travellerSchema = (documentsRequired: boolean) =>
           expiresOn: isoDate.refine((d) => d > new Date().toISOString().slice(0, 10), "must be in the future"),
         })
       : z.null().optional().default(null),
-  });
+  }));

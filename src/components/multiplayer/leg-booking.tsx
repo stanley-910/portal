@@ -7,6 +7,7 @@ import { cancelSettleAction, dismissBookingNoticeAction, payShareAction, settleL
 import { Button } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import type { TravellerDetails } from "@/lib/booking/offer";
+import { dialCode, formatPhone, phoneCountry } from "@/lib/booking/phone";
 import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
 import { countries } from "@/lib/nationality";
@@ -268,7 +269,9 @@ export function DetailsForm({
       familyName: text("familyName"),
       bornOn: text("bornOn"),
       email: text("email"),
-      phone: text("phone").replace(/[\s()-]/g, ""),
+      // read in the picked country on the server, unless it starts with + or 00
+      phone: text("phone"),
+      phoneCountry: text("phoneCountry"),
       passport: showPassport && (documents || text("passportNumber")) ? { number: text("passportNumber"), country: text("passportCountry"), expiresOn: text("passportExpires") } : null,
     });
   };
@@ -302,13 +305,28 @@ export function DetailsForm({
         Family name
         <input name="familyName" required defaultValue={defaults?.familyName} autoComplete="family-name" aria-invalid={bad("familyName")} />
       </label>
-      <label>
+      <label data-wide>
         Date of birth
         <input name="bornOn" type="date" required defaultValue={defaults?.bornOn} autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={bad("bornOn")} />
       </label>
       <label>
+        Phone country
+        <select name="phoneCountry" defaultValue={phoneCountry(defaults?.phone) ?? passportCountry} aria-invalid={bad("phone")}>
+          <option value="">Pick</option>
+          {countries().map((c) => {
+            const two = iso2(c.code);
+            const dial = two && dialCode(two);
+            return dial ? (
+              <option key={c.code} value={two}>
+                {c.name} {dial}
+              </option>
+            ) : null;
+          })}
+        </select>
+      </label>
+      <label>
         Phone
-        <input name="phone" type="tel" required defaultValue={defaults?.phone} placeholder="+852 9123 4567" autoComplete="tel" aria-invalid={bad("phone")} />
+        <input name="phone" type="tel" required defaultValue={defaults?.phone ? formatPhone(defaults.phone) : undefined} placeholder="9123 4567" autoComplete="tel" aria-invalid={bad("phone")} />
       </label>
       <label data-wide>
         Email for the ticket

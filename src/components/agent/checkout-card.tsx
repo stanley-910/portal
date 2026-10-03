@@ -17,6 +17,7 @@ import { DetailsForm } from "@/components/multiplayer/leg-booking";
 import { Button } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import type { TravellerDetails } from "@/lib/booking/offer";
+import { formatPhone } from "@/lib/booking/phone";
 import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type Money } from "@/lib/liveblocks/types";
 
@@ -256,7 +257,7 @@ function TravellerSummary({ details: d, passport }: { details: TravellerDetails;
       <dd>{d.bornOn}</dd>
       <dt>Contact</dt>
       <dd>
-        {d.email} · {d.phone}
+        {d.email} · {formatPhone(d.phone)}
       </dd>
       {passport && d.passport ? (
         <>

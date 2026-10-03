@@ -79,9 +79,12 @@ export function SoloCheckout({
   const problem = error ? (
     <p className="tp-notice" role="alert">
       <span>{error.message}</span>
-      <button type="button" className="ts-oneway" onClick={onClose}>
-        Back
-      </button>
+      {/* a refused detail is fixed in the form below, which has its own Cancel */}
+      {error.code === "INVALID" ? null : (
+        <button type="button" className="ts-oneway" onClick={onClose}>
+          Back
+        </button>
+      )}
     </p>
   ) : null;
 
