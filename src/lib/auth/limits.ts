@@ -1,2 +1,2 @@
-/** Longest display name a profile can have (matches the CHECK on `public.profiles.display_name`). */
-export const MAX_NAME = 32;
+// One limit for display names: the profiles table checks the same length (supabase/migrations/0001_profiles.sql).
+export { MAX_NAME } from "@/lib/guest-name";

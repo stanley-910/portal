@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import type { ThemeId } from "./palette";
+import { GlobeInfo } from "./globe-info";
 
 export type TripGlobeTheme = ThemeId | "auto";
 
@@ -209,16 +210,7 @@ export function TripGlobe({
       <output aria-label="Nearby place" aria-live="polite" className="sr-only">
         {preview ?? ""}
       </output>
-      <a
-        href="https://www.openstreetmap.org/copyright"
-        target="_blank"
-        rel="noreferrer"
-        className="type-meta absolute bottom-(--space-2) left-(--space-2) rounded-tag bg-paper-raised px-(--space-2) text-ink-muted"
-        onPointerDown={stop}
-        onPointerUp={stop}
-      >
-        Hub data: OurAirports · Wikidata · © OpenStreetMap contributors
-      </a>
+      <GlobeInfo />
       {mode === "flying" ? (
         <div className="absolute top-24 right-6" onPointerDown={stop} onPointerUp={stop}>
           <RoundButton label="Cancel trip" onClick={() => engineRef.current?.cancel()} />

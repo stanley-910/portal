@@ -3,11 +3,10 @@
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { AccountChip } from "@/components/account-chip";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { MyTrips } from "@/components/trip-plan/my-trips";
 import { TicketSearch } from "@/components/ticket-search";
-import { CurrencySelector } from "@/components/transport/currency-selector";
+import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { CurrentUser } from "@/lib/supabase/server";
@@ -63,13 +62,16 @@ export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; tr
       }}
       onCancel={() => setTrip(null)}
     />
-    <NavBar globe={globe}>
+    <NavBar
+      globe={globe}
+      name={user?.displayName ?? null}
+      email={user?.email ?? null}
+      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
+    >
       <PlaceSearch globe={globe} />
-      <CurrencySelector currency={currency} rates={rates} error={rateError} onChange={setCurrency} />
       <form action={createTrip}>
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
-      <AccountChip user={user} />
     </NavBar>
     <div className="absolute top-20 left-(--space-4) z-[5]">
       <MyTrips trips={trips} />
@@ -101,3 +103,4 @@ export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; tr
     ) : null}
   </main>;
 }
+

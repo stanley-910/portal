@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
-import { Button, RoundButton, type ButtonProps } from "@/components/paper-atlas";
+import { Button, type ButtonProps } from "@/components/paper-atlas";
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { cn } from "@/lib/utils";
+
+import { ProfileMenu } from "./profile-menu";
 
 // Defines <portal-logo-reveal>. It has the logo SVGs built in and does nothing on the server.
 import "../../../design-system/paper-atlas/components/LogoReveal/logo-reveal.js";
@@ -18,12 +20,20 @@ const COMPACT_OUT = 0.12;
 export interface NavBarProps {
   /** The globe under the bar. The bar shrinks to the mark and icon-only controls as it zooms in. */
   globe: RefObject<TripGlobeHandle | null>;
-  /** Controls on the right, before the theme toggle. */
+  /** Controls on the right, before the profile menu. */
   children?: ReactNode;
+  /** The signed-in user's display name, or null when signed out. */
+  name: string | null;
+  /** The signed-in user's email, shown in the profile menu. */
+  email?: string | null;
+  /** Reload after a rename, so a trip room reconnects with the new name. */
+  reloadOnRename?: boolean;
+  /** This screen's settings, shown in the profile menu under Theme. */
+  settings?: ReactNode;
 }
 
 /** The top bar: the Portal logo on the left, controls on the right. The logo draws itself on at load. */
-export function NavBar({ globe, children }: NavBarProps) {
+export function NavBar({ globe, children, name, email, reloadOnRename, settings }: NavBarProps) {
   const compact = useCompact(globe);
   const { resolvedTheme } = useTheme();
   const logo = useRef<HTMLElement & { play(): void }>(null);
@@ -75,7 +85,9 @@ export function NavBar({ globe, children }: NavBarProps) {
       </Link>
       <div className="pn-controls">
         {children}
-        <ThemeToggle />
+        <ProfileMenu name={name} email={email ?? null} reloadOnRename={reloadOnRename}>
+          {settings}
+        </ProfileMenu>
       </div>
     </header>
   );
@@ -119,28 +131,6 @@ export function NavButton({ icon, label, className, ...props }: NavButtonProps) 
     >
       <span className="pn-btn-label">{label}</span>
     </Button>
-  );
-}
-
-function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  // The server can't know the theme, so the label stays the same and the glyph switches in CSS.
-  return (
-    <RoundButton
-      label="Change theme"
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      icon={
-        <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-          <g className="dark:hidden">
-            <path d="M13 9.6A5.5 5.5 0 0 1 6.4 3a5.5 5.5 0 1 0 6.6 6.6Z" />
-          </g>
-          <g className="hidden dark:inline">
-            <circle cx="8" cy="8" r="3" />
-            <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" />
-          </g>
-        </svg>
-      }
-    />
   );
 }
 

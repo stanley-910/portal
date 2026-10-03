@@ -69,6 +69,9 @@
 .pa-round:active { transform: scale(0.96); }
 .pa-round svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
 .pa-round:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Small: a 32px disc that keeps a 44px hit area. */
+.pa-round-sm { position: relative; width: 32px; height: 32px; box-shadow: var(--shadow-tag); }
+.pa-round-sm::before { content: ""; position: absolute; inset: -6px; border-radius: var(--radius-round); }
 
 @media (prefers-reduced-motion: reduce) {
   .pa-btn, .pa-round { transition: none; }

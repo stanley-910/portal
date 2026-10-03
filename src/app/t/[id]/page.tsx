@@ -13,5 +13,5 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/t/${id}`);
   if ((await joinTrip(tripRoomId(id), user.id)) === null) notFound();
-  return <TripRoom tripId={id} />;
+  return <TripRoom tripId={id} name={user.displayName} email={user.email} />;
 }

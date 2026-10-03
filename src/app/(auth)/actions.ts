@@ -70,3 +70,15 @@ export async function signOut(): Promise<void> {
   await supabase?.auth.signOut();
   redirect("/");
 }
+
+const renameSchema = z.object({ name: z.string().trim().min(1).max(MAX_NAME) });
+
+/** Changes the signed-in user's display name. RLS lets a user update only their own profile row. */
+export async function renameProfile(formData: FormData): Promise<void> {
+  const parsed = renameSchema.safeParse({ name: field(formData, "name") });
+  if (!parsed.success) return;
+  const supabase = await createSupabaseServer();
+  const { data } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+  if (!supabase || !data.user) return;
+  await supabase.from("profiles").update({ display_name: parsed.data.name }).eq("id", data.user.id);
+}
