@@ -8,8 +8,19 @@ import type { HotelFilter, HotelResult, HotelSearchQuery } from "./types";
  */
 type CatalogStay = Omit<HotelResult, "distanceKm" | "score" | "rooms" | "totalPrice" | "nights">;
 
-const bookingUrl = (hotel: Pick<CatalogStay, "name" | "city">, checkIn: string, checkOut: string) => {
-  const params = new URLSearchParams({ ss: `${hotel.name}, ${hotel.city}`, checkin: checkIn, checkout: checkOut });
+const bookingUrl = (
+  hotel: Pick<CatalogStay, "city">,
+  checkIn: string,
+  checkOut: string,
+  occupants: number,
+) => {
+  const params = new URLSearchParams({
+    ss: hotel.city,
+    checkin: checkIn,
+    checkout: checkOut,
+    group_adults: String(occupants),
+    no_rooms: "1",
+  });
   return `https://www.booking.com/searchresults.html?${params}`;
 };
 
@@ -102,7 +113,7 @@ export function searchHotels(query: HotelSearchQuery): HotelResult[] {
         rooms,
         totalPrice: { amount: hotel.pricePerNight.amount * rooms * nights, currency: "USD" as const },
         nights,
-        bookingUrl: bookingUrl(hotel, query.checkIn, query.checkOut),
+        bookingUrl: bookingUrl(hotel, query.checkIn, query.checkOut, query.occupants),
       };
     })
     .sort((a, b) => a.score - b.score || a.pricePerNight.amount - b.pricePerNight.amount || a.id.localeCompare(b.id));

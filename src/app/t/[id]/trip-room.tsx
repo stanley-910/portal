@@ -22,7 +22,7 @@ const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
 
 type Me = { name: string; email: string | null; account: boolean; nationalities: string[] };
 
-export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
+export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: string | null } & Me) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
@@ -30,13 +30,13 @@ export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen {...me} />
+        <TripScreen {...me} hostId={hostId} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen({ name, email, account, nationalities }: Me) {
+function TripScreen({ name, email, account, nationalities, hostId }: Me & { hostId: string | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
@@ -90,7 +90,7 @@ function TripScreen({ name, email, account, nationalities }: Me) {
       </NavBar>
       {/* below the navbar and the globe's cancel button */}
       <div className="absolute top-40 right-(--space-4)">
-        <TripPlan />
+        <TripPlan hostId={hostId} />
       </div>
       <AgentChat initialOpen={pipOpen} />
       {status === "reconnecting" || status === "connecting" ? (

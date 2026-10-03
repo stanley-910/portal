@@ -18,14 +18,15 @@ const formatPrice = (amount: number, currency: Currency, rates: ExchangeRates | 
 
 /** Estimated stays at the landed city. Picking one saves it as the trip's stay there; picking it again unpicks it. */
 export function HotelSearch({
-  city, lat, lng, checkIn, checkOut, currency, rates, picked, onPick,
+  city, lat, lng, checkIn, checkOut, currency, rates, picked, onPick, defaultOccupants = 1,
 }: {
   city: string; lat: number; lng: number; checkIn: string; checkOut: string;
   currency: Currency; rates: ExchangeRates | null;
   picked: HotelResult | null; onPick: (hotel: HotelResult | null) => void;
+  defaultOccupants?: number;
 }) {
   const [filter, setFilter] = useState<HotelFilter>(4);
-  const [occupants, setOccupants] = useState(1);
+  const [occupants, setOccupants] = useState(() => Math.min(4, Math.max(1, defaultOccupants)));
   const [hotels, setHotels] = useState<HotelResult[]>([]);
   const [status, setStatus] = useState<"idle" | "done" | "failed">("idle");
 
