@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { panelUrl } from "@/lib/auth/panel-url";
 import { safeNext } from "@/lib/auth/next";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { adoptGuest } from "@/lib/trip/adopt";
 
 // Google sign-in and confirmation-email links land here with a one-time code. Swapping it for a session sets the
 // auth cookies, then you're back where you started. A failure reopens the sign-in panel there with a reason.
@@ -14,8 +15,12 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const supabase = await createSupabaseServer();
   if (code && supabase) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) redirect(next);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      // trips joined as a guest before signing in come along
+      await adoptGuest(data.user.id);
+      redirect(next);
+    }
     console.warn("[auth] code exchange failed:", error.status, error.code);
   }
   redirect(panelUrl(next, "signin", via));

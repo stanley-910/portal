@@ -11,6 +11,7 @@ import { chooseVehicle, landMask, type LandAt } from "./vehicle-choice";
 import { buildVehicle, VEHICLE_LENGTH, VEHICLES, type Vehicle } from "./vehicle-models";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
+import { Track } from "./track";
 import {
   add, angle, clamp, cross, D2R, dot, EARTH_RADIUS_KM, ease, len, lerp, llOf, mul, norm, rotAround, slerp, smooth,
   sub, tangent, vecOf, wrapPi, type Vec3,
@@ -108,6 +109,8 @@ const FIT = 0.9; // share of the view a framed route spans
 const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
+/** Two tags with the same name for places closer than this on screen, in px, name one place. */
+const TAG_SAME = 40;
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
 // While you draw a leg, the vehicle follows a guess from its length, water and hubs (vehicle-choice.ts). A new guess
 // has to hold for VEHICLE_HOLD s before the vehicle changes, so sweeping past a coast doesn't flicker; it's checked
@@ -205,8 +208,14 @@ const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
 /** At most this many city names on screen at once, biggest first, so the map never fills up. */
 const CITY_MAX = 40;
 const CITY_FADE = 0.05; // zoom over which a rank prints in
-/** City names in px by rank: the `city` token for world cities, a little smaller for towns. */
-const CITY_SIZE = [15, 15, 14, 14, 13, 13, 12, 12];
+/**
+ * City names in px by rank, in four steps so the places people travel between stand out: world cities (Tokyo,
+ * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
+ * and ink carry the difference.
+ */
+const CITY_SIZE = [19, 19, 15, 15, 13, 13, 12, 12];
+/** From this rank down, names print in `ink-muted` rather than `ink`. */
+const CITY_MUTED_FROM = 4;
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
@@ -384,12 +393,19 @@ export class GlobeEngine {
   private pl: Plane | null = null;
   /** This viewer's member colour slot, which tints their own route. Null draws it in ink. */
   private color: number | null = null;
-  // other members' flights: where presence says they are, and where we draw them (eased toward that)
+  // other members' flights: where presence says they are, and where we draw them (a moment behind, track.ts)
   private remotes = new Map<string, {
-    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
+    o: Vec3; target: Vec3; track: Track; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
     originHub: Hub | null; destinationHub: Hub | null;
     originName: string | null; destinationName: string | null;
   }>();
+
+  // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
+  /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
+  private tagBoxes: { text: string; at: { x: number; y: number }; l: number; t: number; r: number; b: number }[] = [];
+  /** A place searched for: marked on the ground with its name until the next click on the globe. */
+  private placeMark: { v: Vec3; name: string } | null = null;
+  private cursors = new Map<string, { track: Track; x: number; y: number; visible: boolean; lie: CursorLie; shadow: { x: number; y: number } | null }>();
 
   // input and time
   private mx = -9999;
@@ -406,7 +422,7 @@ export class GlobeEngine {
   private shadowAt: { x: number; y: number } | null = null;
   // the viewer's cursor shape, whose outline the shadow is cut from
   private cursorShape: CursorShape = "arrow";
-  private shadowPath: { shape: CursorShape; path: Path2D; rotate: number } | null = null;
+  private shadowPaths = new Map<CursorShape, { path: Path2D; rotate: number }>();
   private down: { x: number; y: number; lx: number; ly: number; lt: number; drag: boolean; grab: Vec3 | null } | null = null;
   // touch pointers, for pinch
   private touches = new Map<number, [number, number]>();
@@ -549,6 +565,10 @@ export class GlobeEngine {
     this.my = y;
     this.hasPointer = true;
     this.lastInteract = this.t;
+    if (this.placeMark) {
+      this.placeMark = null;
+      this.hudDirty = true;
+    }
     if (this.mode === "flying") {
       // clicking the stop the plane just left (a double click, or a second click later) lands the trip there
       if (this.nearOrigin(x, y)) {
@@ -845,6 +865,20 @@ export class GlobeEngine {
     this.tTake = this.t;
     this.magnet = true;
     this.magnetT = this.t;
+  }
+
+  /**
+   * Lands a whole trip at once, as if it had been flown: the stops in order, at least two. Replaces any trip on the
+   * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
+   */
+  showTrip(points: LatLng[]) {
+    if (points.length < 2) return;
+    const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
+    if (this.mode !== "idle") this.cancel();
+    this.takeoff(vs[0]);
+    for (const v of vs.slice(1, -1)) this.addStop(v);
+    this.magnet = false;
+    this.land(vs[vs.length - 1]);
   }
 
   /** Lands the trip at the last stop, which ends the leg flown into it. */
@@ -1201,25 +1235,70 @@ export class GlobeEngine {
     return redraw;
   }
 
-  /** The pointer's shadow, on top of the overlay: the cursor image itself has none. */
+  /**
+   * Moves other members' pointers along their tracks and lays them on the ground the way updateCursor lays ours,
+   * shadow and all (no peel: their pointer leaving the globe just fades). True when a shadow needs redrawing.
+   */
+  private updateRemoteCursors(dt: number, t: number) {
+    let moved = false;
+    const d = this.cursors.size ? this.disc() : null;
+    for (const r of this.cursors.values()) {
+      const n = this.reduceMotion ? r.track.latest() : r.track.at(t);
+      const p = n && this.proj(n);
+      if (!n || !p || !p.vis) {
+        if (r.visible) moved = true;
+        r.visible = false;
+        r.shadow = null;
+        continue;
+      }
+      r.visible = true;
+      r.x = p.x;
+      r.y = p.y;
+      const { rot, minor } = this.groundTilt(n);
+      const squash = this.reduceMotion ? 1 : Math.max(CURSOR_SQUASH, minor);
+      r.lie = squash < 1 ? { angle: ((rot / D2R) % 180 + 180) % 180, squash } : FLAT;
+      const sx = clamp((p.x - d!.x) / d!.r, -1, 1);
+      const sy = clamp((p.y - d!.y) / d!.r, -1, 1);
+      const x = p.x - CURSOR_SHADOW * sx;
+      const y = p.y + CURSOR_DROP - CURSOR_SHADOW * sy;
+      const before = r.shadow;
+      if (!before || this.reduceMotion) r.shadow = { x, y };
+      else {
+        const k = 1 - Math.exp(-dt / CURSOR_CHASE);
+        r.shadow = { x: before.x + (x - before.x) * k, y: before.y + (y - before.y) * k };
+      }
+      if (!before || Math.abs(r.shadow.x - before.x) + Math.abs(r.shadow.y - before.y) > 0.02) moved = true;
+    }
+    return moved;
+  }
+
+  /** Pointer shadows, on top of the overlay: ours and other members'. The cursor images themselves have none. */
   private cursorShadow() {
-    const s = this.shadowAt;
-    if (!s || typeof Path2D === "undefined") return;
+    if (typeof Path2D === "undefined") return;
+    if (this.shadowAt) {
+      this.dropShadow(this.shadowAt.x + this.cursorOffset[0], this.shadowAt.y + this.cursorOffset[1], this.cursorLie, this.shadowAlpha, this.cursorShape);
+    }
+    // other members' stickers are always the arrow: the shape is each viewer's own setting
+    for (const r of this.cursors.values()) if (r.shadow) this.dropShadow(r.shadow.x, r.shadow.y, r.lie, 1, "arrow");
+  }
+
+  /** A cursor's shadow at x, y, in the cursor's shape, lying on the ground as `lie` says. */
+  private dropShadow(x: number, y: number, lie: CursorLie, alpha: number, kind: CursorShape) {
     const ctx = this.hud;
     const dpr = this.hudEl.width / this.W;
-    const [a, b, c, d] = cursorLieMatrix(this.cursorLie);
-    if (this.shadowPath?.shape !== this.cursorShape) {
-      const { d: outline, rotate } = cursorOutline(this.cursorShape);
-      this.shadowPath = { shape: this.cursorShape, path: new Path2D(outline), rotate };
+    const [a, b, c, d] = cursorLieMatrix(lie);
+    let shape = this.shadowPaths.get(kind);
+    if (!shape) {
+      const { d: outline, rotate } = cursorOutline(kind);
+      this.shadowPaths.set(kind, (shape = { path: new Path2D(outline), rotate }));
     }
-    const shape = this.shadowPath;
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.translate(s.x + this.cursorOffset[0], s.y + this.cursorOffset[1]);
+    ctx.translate(x, y);
     ctx.transform(a, b, c, d, 0, 0);
     ctx.rotate(shape.rotate * D2R);
     ctx.filter = "blur(1.2px)";
-    ctx.globalAlpha = this.shadowAlpha;
+    ctx.globalAlpha = alpha;
     ctx.fillStyle = this.P.cursorShadow;
     ctx.fill(shape.path);
     ctx.restore();
@@ -1275,8 +1354,9 @@ export class GlobeEngine {
     return slot === null || !c.length ? this.P.ink : c[((Math.trunc(slot) % c.length) + c.length) % c.length];
   }
 
-  /** Replaces the other members' flights. Planes ease toward each update rather than jumping. */
+  /** Replaces the other members' flights. Planes move steadily between updates rather than jumping. */
   setRemoteFlights(flights: RemoteFlight[]) {
+    const now = performance.now() / 1000;
     const seen = new Set<string>();
     for (const f of flights) {
       const vehicle = f.vehicle ?? "flight";
@@ -1299,13 +1379,42 @@ export class GlobeEngine {
       const color = f.color ?? null;
       if (r) {
         Object.assign(r, { o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName });
+        r.track.push(target, now);
         retarget(r.pl, vehicle);
-      } else this.remotes.set(f.id, {
-        o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
-        pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
-      });
+      } else {
+        const track = new Track();
+        track.push(target, now);
+        this.remotes.set(f.id, {
+          o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
+          pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
+        });
+      }
     }
     for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
+  }
+
+  /** Replaces the other members' pointers; null `at` hides one. They move steadily between updates. */
+  setRemoteCursors(list: { id: string; at: LatLng | null }[]) {
+    const now = performance.now() / 1000;
+    const seen = new Set<string>();
+    for (const c of list) {
+      if (!c.at) continue;
+      seen.add(c.id);
+      let r = this.cursors.get(c.id);
+      if (!r) this.cursors.set(c.id, (r = { track: new Track(), x: 0, y: 0, visible: false, lie: FLAT, shadow: null }));
+      r.track.push(vecOf(c.at.lat * D2R, c.at.lng * D2R), now);
+    }
+    for (const id of this.cursors.keys()) if (!seen.has(id)) this.cursors.delete(id);
+    this.hudDirty = true;
+  }
+
+  /**
+   * Where another member's pointer is on screen and how it lies on the ground there, as the 2D matrix [a, b, c, d]
+   * to squash it by. Null when it's hidden or round the back of the globe. Its shadow is drawn on the overlay.
+   */
+  remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null {
+    const r = this.cursors.get(id);
+    return r?.visible ? { x: r.x, y: r.y, lie: cursorLieMatrix(r.lie) } : null;
   }
 
   /** Where another member's plane is on screen, for their name label. Null if they aren't flying or it's hidden. */
@@ -1336,8 +1445,13 @@ export class GlobeEngine {
     return p ? { x: p.x, y: p.y, visible: p.vis } : null;
   }
 
-  /** Turns the globe to centre a place, framing `spanDeg` of arc around it; small spans zoom right in. */
-  flyTo(ll: LatLng, spanDeg: number) {
+  /**
+   * Turns the globe to centre a place, framing `spanDeg` of arc around it; small spans zoom right in. With a `name`,
+   * the place is marked on the ground and named, whether or not the map prints it, until the next click on the globe.
+   */
+  flyTo(ll: LatLng, spanDeg: number, name?: string) {
+    this.placeMark = name ? { v: vecOf(ll.lat * D2R, ll.lng * D2R), name } : null;
+    this.hudDirty = true;
     const to = { lon: ll.lng * D2R, lat: clamp(ll.lat * D2R, -LAT_MAX, LAT_MAX), range: this.fitRange(spanDeg * D2R) };
     const far = angle(vecOf(this.lat0, this.lon0), vecOf(to.lat, to.lon));
     const dur = this.reduceMotion ? 0.001 : clamp(0.9 + far * 0.5, 0.9, 2);
@@ -1435,11 +1549,12 @@ export class GlobeEngine {
     for (const r of this.remotes.values()) {
       const pl = r.pl;
       const a = this.reduceMotion ? 1 : k(14);
-      pl.n = norm(slerp(pl.n, r.target, a));
+      pl.n = this.reduceMotion ? r.target : (r.track.at(t) ?? r.target);
       pl.f = tangent(lerp(pl.f, r.ft, a), pl.n);
       pl.alt += ((r.landed ? 0 : ALT * this.planeScale * lift(pl)) - pl.alt) * k(8);
       this.stepSwap(pl, dt);
     }
+    this.fanParked();
     if (this.turn) {
       // fly the view to frame a finished route
       const tr = this.turn;
@@ -1562,7 +1677,8 @@ export class GlobeEngine {
     // Use the surface raycast after the camera moves, not the elevated plane's
     // normal or a clamped horizon point. Pan/zoom under a still cursor also updates.
     this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
-    const shadowMoved = this.updateCursor(dt, t);
+    const ownMoved = this.updateCursor(dt, t);
+    const shadowMoved = this.updateRemoteCursors(dt, t) || ownMoved;
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
     const animated = !this.reduceMotion && (this.mode === "landed" ||
@@ -1601,6 +1717,36 @@ export class GlobeEngine {
     this.hoverName = name;
     this.hudDirty = true;
     this.events.onPreviewChange?.(next, name);
+  }
+
+  /**
+   * Vehicles parked at the same stop (two friends landing in one city, legs that end where another starts) would sit
+   * on top of each other. They fan out round the stop instead, a vehicle's length away; this viewer's own stays on it.
+   */
+  private fanParked() {
+    const groups = new Map<string, { n: Vec3; pls: Plane[] }>();
+    const key = (v: Vec3) => v.map((x) => x.toFixed(3)).join(",");
+    for (const [, r] of [...this.remotes].sort(([a], [b]) => (a < b ? -1 : 1))) {
+      if (!r.landed) continue;
+      const g = groups.get(key(r.target)) ?? { n: r.target, pls: [] };
+      g.pls.push(r.pl);
+      groups.set(key(r.target), g);
+    }
+    const own = this.mode === "landed" && this.pl ? groups.get(key(this.pl.n)) : undefined;
+    const spread = S_PLANE * this.planeScale * 0.9;
+    for (const g of groups.values()) {
+      // with no plane of ours there, the first keeps the stop and the rest ring it
+      const ring = g === own ? g.pls.length : g.pls.length - 1;
+      if (ring < 1) continue;
+      const e1 = tangent([0, 1, 0], g.n);
+      const e2 = cross(g.n, e1);
+      g.pls.forEach((pl, i) => {
+        const slot = g === own ? i : i - 1;
+        if (slot < 0) return;
+        const a = (2 * Math.PI * slot) / ring - Math.PI / 2;
+        pl.n = norm(add(g.n, add(mul(e1, Math.cos(a) * spread), mul(e2, Math.sin(a) * spread))));
+      });
+    }
   }
 
   /** Where a label under a plane goes: centred below it, clear of its wings whichever way it points. */
@@ -1833,7 +1979,8 @@ export class GlobeEngine {
     ctx.stroke();
   }
 
-  private tag(ctx: CanvasRenderingContext2D, x: number, y: number, text: string) {
+  /** A name tag centred at x, y, for the place at `at` on screen (default x, y). */
+  private tag(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, at: { x: number; y: number } = { x, y }) {
     const P = this.P;
     ctx.save();
     ctx.font = this.tagFont;
@@ -1845,7 +1992,16 @@ export class GlobeEngine {
     const w = Math.ceil(ctx.measureText(text).width) + 14;
     const h = 21;
     const lx = clamp(x - w / 2, 8, Math.max(8, this.W - w - 8));
-    const ly = clamp(y - h / 2, 8, Math.max(8, this.H - h - 8));
+    const ly0 = clamp(y - h / 2, 8, Math.max(8, this.H - h - 8));
+    // one tag per place: a stop where one leg ends and the next starts, or two friends' legs meet, is named once
+    if (this.tagBoxes.some((o) => o.text === text && Math.hypot(o.at.x - at.x, o.at.y - at.y) < TAG_SAME)) {
+      ctx.restore();
+      return;
+    }
+    // a different name in the way: step below it, then above, a tag at a time
+    const hits = (top: number) => this.tagBoxes.some((o) => lx < o.r + 4 && lx + w > o.l - 4 && top < o.b + 3 && top + h > o.t - 3);
+    const ly = [0, 1, -1, 2, -2].map((k) => clamp(ly0 + k * (h + 4), 8, Math.max(8, this.H - h - 8))).find((top) => !hits(top)) ?? ly0;
+    this.tagBoxes.push({ text, at, l: lx, t: ly, r: lx + w, b: ly + h });
     ctx.beginPath();
     ctx.roundRect(lx + 2, ly + 2, w, h, 4);
     ctx.fillStyle = P.tagShadow;
@@ -2068,8 +2224,8 @@ export class GlobeEngine {
   }
 
   /** A city name drawn at `size` and the screen's pixel ratio with a paper halo, its left edge at x = pad. */
-  private citySprite(name: string, size: number, dpr: number) {
-    const key = `${size}|${name}`;
+  private citySprite(name: string, size: number, dpr: number, muted: boolean) {
+    const key = `${size}|${muted ? 1 : 0}|${name}`;
     let c = this.citySprites.get(key);
     if (c) return c;
     const P = this.P;
@@ -2087,7 +2243,7 @@ export class GlobeEngine {
     g.lineWidth = px * 0.24;
     g.strokeText(name, pad, c.height / 2);
     g.globalAlpha = 1;
-    g.fillStyle = P.ink;
+    g.fillStyle = muted ? P.muted : P.ink;
     g.fillText(name, pad, c.height / 2);
     this.citySprites.set(key, c);
     return c;
@@ -2143,9 +2299,10 @@ export class GlobeEngine {
     const boxes = this.cityBoxes;
     boxes.length = 0;
     const countries = this.placedNames;
+    // names on neighbouring lines need less air than names side by side, which would read as one
     const hits = (b: number[], gap: number) =>
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
-      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap < o[3] && b[3] + gap > o[1]) ||
+      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
       keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
     const won = new Uint8Array(cands.length);
     cands.forEach((i, k) => {
@@ -2189,8 +2346,10 @@ export class GlobeEngine {
       const y = this.cityY[i];
       ctx.globalAlpha = alpha;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // world cities get a bigger dot, as they get a bigger name
+      const big = c.rank < 2 ? 0.6 : 0;
       ctx.beginPath();
-      ctx.arc(x, y, c.capital ? 3.4 : 2.4, 0, Math.PI * 2);
+      ctx.arc(x, y, (c.capital ? 3.4 : 2.4) + big, 0, Math.PI * 2);
       ctx.fillStyle = P.paper;
       ctx.fill();
       ctx.lineWidth = 1.2;
@@ -2198,12 +2357,12 @@ export class GlobeEngine {
       ctx.stroke();
       if (c.capital) {
         ctx.beginPath();
-        ctx.arc(x, y, 1.3, 0, Math.PI * 2);
+        ctx.arc(x, y, 1.3 + big / 2, 0, Math.PI * 2);
         ctx.fillStyle = P.ink;
         ctx.fill();
       }
       const size = CITY_SIZE[c.rank];
-      const img = this.citySprite(c.name, size, dpr);
+      const img = this.citySprite(c.name, size, dpr, c.rank >= CITY_MUTED_FROM);
       const pad = Math.ceil(size * dpr * 0.3);
       const left = this.cityLeft[i];
       const tx = left ? x - 7 - (img.width - pad) / dpr : x + 7 - pad / dpr;
@@ -2332,6 +2491,7 @@ export class GlobeEngine {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.hudEl.width, this.hudEl.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.tagBoxes.length = 0;
 
     // names go under everything else on the overlay, and keep clear of planes and airport tags
     const clear: { x: number; y: number }[] = [];
@@ -2343,6 +2503,7 @@ export class GlobeEngine {
       mark(r.o);
       mark(mul(r.pl.n, 1 + r.pl.alt));
     }
+    mark(this.placeMark?.v);
     if (this.mode !== "idle" && this.pl) {
       for (const s of this.via) mark(s.v);
       mark(this.origin);
@@ -2352,6 +2513,12 @@ export class GlobeEngine {
     this.cityNames(ctx, clear, t);
 
 
+    // the searched place first, so it keeps its spot and the hover tag gives way to it
+    const pm = this.placeMark && this.proj(this.placeMark.v);
+    if (this.placeMark && pm && pm.vis) {
+      this.startMark(ctx, this.placeMark.v, pm.x, pm.y, P.ink);
+      this.tag(ctx, pm.x, pm.y - 30, this.placeMark.name, pm);
+    }
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
@@ -2361,12 +2528,13 @@ export class GlobeEngine {
       const op = this.proj(r.o);
       if (op && op.vis) {
         this.startMark(ctx, r.o, op.x, op.y, stroke);
-        if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName);
+        if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName, op);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
       if (rp && rp.vis && r.destinationName) {
         const at = this.underPlane(r.pl, rp);
-        this.tag(ctx, at.x, at.y, r.destinationName);
+        // named for the stop, not the vehicle, which may be fanned out beside it
+        this.tag(ctx, at.x, at.y, r.destinationName, this.proj(r.target) ?? rp);
       }
     }
 
@@ -2394,7 +2562,7 @@ export class GlobeEngine {
       const sp = this.proj(s.v);
       if (!sp || !sp.vis) continue;
       this.startMark(ctx, s.v, sp.x, sp.y, stroke);
-      if (s.name) this.tag(ctx, sp.x, sp.y - 30, s.name);
+      if (s.name) this.tag(ctx, sp.x, sp.y - 30, s.name, sp);
     }
     const op = this.proj(origin);
     ripple(origin, op, this.tTake);
@@ -2402,7 +2570,7 @@ export class GlobeEngine {
       this.startMark(ctx, origin, op.x, op.y, stroke);
       // Keep the origin label above its pin; the moving/landing preview is below
       // the plane, so short hops do not immediately stack the longer hub names.
-      if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName);
+      if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName, op);
     }
 
     const pp = this.proj(mul(pl.n, 1 + pl.alt));
@@ -2415,7 +2583,7 @@ export class GlobeEngine {
       ripple(pl.n, pp, this.tLand);
       if (pp && pp.vis && this.destinationName) {
         const at = this.underPlane(pl, pp);
-        this.tag(ctx, at.x, at.y, this.destinationName);
+        this.tag(ctx, at.x, at.y, this.destinationName, pp);
       }
     }
   }

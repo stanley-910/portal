@@ -73,8 +73,6 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     const id = h.id.get(handle);
     return id && plan.legs?.[id] ? id : undefined;
   };
-  const stopName = (id: string, created: Record<string, Stop>) => created[id]?.name ?? plan.stops?.[id]?.name ?? "?";
-
   // Resolve everything before writing, so a refusal never leaves half an op behind.
   type Planned =
     | { kind: "add"; from: string | Stop; to: string | Stop; date: string; riders: string[] }
@@ -176,8 +174,17 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   await liveblocks().mutateStorage(roomId, ({ root }) => {
     const stops = root.get("stops");
     const legs = root.get("legs");
+    const stopName = (id: string) => created[id]?.name ?? stops.get(id)?.get("name") ?? plan.stops?.[id]?.name ?? "?";
     const stopFor = (s: string | Stop) => {
-      if (typeof s === "string") return s;
+      if (typeof s === "string") {
+        // someone removed it since the snapshot: put it back rather than point a leg at nothing
+        const was = plan.stops?.[s];
+        if (!stops.get(s) && was) {
+          stops.set(s, new LiveObject(was));
+          before.stops[s] ??= null;
+        }
+        return s;
+      }
       // snap onto a stop already at this hub or point, else make one
       for (const [id, existing] of stops) {
         const e = existing.toJSON();
@@ -193,6 +200,9 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     const remember = (id: string) => {
       if (!(id in before.legs)) before.legs[id] = plan.legs?.[id] ?? null;
     };
+    // stops a removed leg used; they go at the end, once no leg in the trip uses them, so a later op in the same
+    // changeset can still add a leg to them
+    const freed = new Set<string>();
 
     for (const p of planned) {
       if (p.kind === "stay") {
@@ -202,7 +212,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         if (!(p.stop in before.stays)) before.stays[p.stop] = plan.stays?.[p.stop] ?? null;
         if (p.stay) stays.set(p.stop, new LiveObject(p.stay));
         else stays.delete(p.stop);
-        const where = stopName(p.stop, created);
+        const where = stopName(p.stop);
         applied.push(
           p.stay?.nightly
             ? `Set ${where}${p.stay.label ? ` (${p.stay.label})` : ""} to ${p.stay.nightly.currency} ${p.stay.nightly.amount} a night`
@@ -240,13 +250,13 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
           }),
         );
         searches.push({ legId: id, searchId: search.id });
-        applied.push(`Added ${stopName(from, created)} → ${stopName(to, created)} on ${showDate(p.date)}`);
+        applied.push(`Added ${stopName(from)} → ${stopName(to)} on ${showDate(p.date)}`);
         continue;
       }
       const leg = legs.get(p.leg);
       if (!leg) continue;
       remember(p.leg);
-      const label = `${stopName(leg.get("from"), created)} → ${stopName(leg.get("to"), created)}`;
+      const label = `${stopName(leg.get("from"))} → ${stopName(leg.get("to"))}`;
       if (p.kind === "date") {
         // a new date resets the leg's options, votes and pick
         const search = pending();
@@ -267,15 +277,17 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         );
       } else {
         legs.delete(p.leg);
-        const used = new Set<string>();
-        for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));
-        for (const stop of [leg.get("from"), leg.get("to")]) {
-          if (used.has(stop)) continue;
-          if (!(stop in before.stops)) before.stops[stop] = plan.stops?.[stop] ?? null;
-          stops.delete(stop);
-        }
+        freed.add(leg.get("from")).add(leg.get("to"));
         applied.push(`Removed ${label}`);
       }
+    }
+
+    const used = new Set<string>();
+    for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));
+    for (const stop of freed) {
+      if (used.has(stop)) continue;
+      if (!(stop in before.stops)) before.stops[stop] = stops.get(stop)?.toJSON() ?? null;
+      stops.delete(stop);
     }
 
     const changesets = root.get("changesets");

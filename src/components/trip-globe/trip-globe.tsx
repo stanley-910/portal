@@ -21,18 +21,24 @@ export interface TripGlobeHandle {
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
   /** Where a route's drawn arc is on screen, `t` of the way along (0.5, its peak, by default). */
   routePoint(from: LatLng, to: LatLng, t?: number): { x: number; y: number; visible: boolean } | null;
+  /** Lands a whole trip at once, stops in order, as if it had been flown; onLand reports it. */
+  showTrip(points: LatLng[]): void;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
-  /** Draws other members' planes and routes. Replaces the previous list; planes ease toward new positions. */
+  /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
   setRemoteFlights(flights: RemoteFlight[]): void;
+  /** Other members' pointers, by id; null `at` hides one. Replaces the previous list. Their shadows are drawn here. */
+  setRemoteCursors(cursors: { id: string; at: LatLng | null }[]): void;
+  /** Where another member's pointer is on screen and the matrix [a, b, c, d] that lays it on the ground there. */
+  remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null;
   /** What your landed trip parks as: the mode of the offer you picked. Ignored while flying. */
   setVehicle(v: Vehicle): void;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
   zoom(): number;
-  /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. */
-  flyTo(ll: LatLng, spanDeg: number): void;
+  /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. A `name` marks and names it there. */
+  flyTo(ll: LatLng, spanDeg: number, name?: string): void;
 }
 
 export interface TripGlobeProps {
@@ -240,6 +246,8 @@ export function TripGlobe({
       project: (ll) => engineRef.current?.project(ll) ?? null,
       routePoint: (from, to, t) => engineRef.current?.routePoint(from, to, t) ?? null,
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      setRemoteCursors: (cursors) => engineRef.current?.setRemoteCursors(cursors),
+      remoteCursor: (id) => engineRef.current?.remoteCursor(id) ?? null,
       setVehicle: (v) => engineRef.current?.setVehicle(v),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
@@ -248,7 +256,8 @@ export function TripGlobe({
         return () => listeners.delete(cb);
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
-      flyTo: (ll, spanDeg) => engineRef.current?.flyTo(ll, spanDeg),
+      flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
+      showTrip: (points) => engineRef.current?.showTrip(points),
     }),
     [],
   );

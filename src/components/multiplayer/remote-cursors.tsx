@@ -9,8 +9,8 @@ import { AGENT_ID } from "@/lib/agent/types";
 
 /**
  * Everyone else's cursor, pinned to the place they point at. React renders one element per person and only
- * re-renders when someone joins or leaves; positions are written straight to the DOM after every globe frame, from
- * the room's latest presence, so moving cursors never re-render React.
+ * re-renders when someone joins or leaves. The globe moves each cursor steadily between presence updates, lays it on
+ * the ground and draws its shadow, as it does the viewer's own; positions go straight to the DOM after every frame.
  */
 export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | null> }) {
   const room = useRoom();
@@ -21,21 +21,32 @@ export function RemoteCursors({ globe }: { globe: RefObject<TripGlobeHandle | nu
   useEffect(() => {
     const handle = globe.current;
     if (!handle) return;
-    return handle.onFrame(() => {
-      const shown = new Set<number>();
-      for (const other of room.getOthers()) {
-        const el = els.current.get(other.connectionId);
-        // while their plane is in the air it is their pointer, so the plane's label stands in for the cursor
-        const flying = other.presence.flight && !other.presence.flight.landed;
-        const cursor = flying ? null : other.presence.cursor;
-        const p = el && cursor ? handle.project(cursor) : null;
-        if (!el || !p || !p.visible) continue;
-        el.style.transform = `translate(${p.x}px, ${p.y}px)`;
-        el.style.opacity = "1";
-        shown.add(other.connectionId);
+    const push = () =>
+      handle.setRemoteCursors(
+        room.getOthers().filter((o) => o.id !== AGENT_ID).map((o) => {
+          // while their plane is in the air it is their pointer, so the plane's label stands in for the cursor
+          const flying = o.presence.flight && !o.presence.flight.landed;
+          return { id: String(o.connectionId), at: flying ? null : o.presence.cursor };
+        }),
+      );
+    push();
+    const unsubscribe = room.subscribe("others", push);
+    const stopFrames = handle.onFrame(() => {
+      for (const [id, el] of els.current) {
+        const c = handle.remoteCursor(String(id));
+        el.style.opacity = c ? "1" : "0";
+        if (!c) continue;
+        el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+        // flat on the ground under it, like the viewer's own pointer; the name label stays upright
+        const sticker = el.querySelector<SVGElement>(".pa-cursor-sticker");
+        if (sticker) sticker.style.transform = `matrix(${c.lie.join(",")},0,0)`;
       }
-      for (const [id, el] of els.current) if (!shown.has(id)) el.style.opacity = "0";
     });
+    return () => {
+      unsubscribe();
+      stopFrames();
+      handle.setRemoteCursors([]);
+    };
   }, [globe, room]);
 
   return (
@@ -59,7 +70,8 @@ function Cursor({ connectionId, ref }: { connectionId: number; ref: (el: HTMLEle
   // the room numbers colours from 1; the design system's slots count from 0
   return (
     <div ref={ref} className="absolute top-0 left-0 opacity-0 transition-opacity duration-150 will-change-transform">
-      <StickerCursor color={paperMemberColor(info.color - 1)} name={info.name} />
+      {/* the globe draws its shadow */}
+      <StickerCursor color={paperMemberColor(info.color - 1)} name={info.name} cast={false} />
     </div>
   );
 }
