@@ -8,7 +8,7 @@ import type { BookingSeat, LegBooking, Money } from "@/lib/liveblocks/types";
 import { anyOfferFor, cancelOrder, createOrder, findOfferFor, getOffer, getOrder, payOrder } from "./duffel";
 import { BookingError, isBookingError, type BookingErrorCode } from "./errors";
 import { offerExpired, perSeat, travellerSchema, type BookableOffer, type TravellerDetails } from "./offer";
-import { airportFor, refusedPassenger, settleReady, storedFlights } from "./ready";
+import { refusedPassenger, settleReady, storedFlights } from "./ready";
 import { allDetailsIn, allPaid, anyonePaid, bookingDeadline, openSeats, priceRose, splitShares } from "./shares";
 import { bookingStore, type PaymentRow } from "./store";
 import { cancelPayment, capturePayment, captureBefore, createHoldCheckout, getCheckoutSession, getPaymentIntent, stripeConfigured, testCheckoutAllowed } from "./stripe";
@@ -83,7 +83,7 @@ function messageFor(e: BookingError): string {
     case "PRICE_CHANGED":
       return "The price changed.";
     case "ORDER_FAILED":
-      return typeof e.detail?.field === "string" && e.detail.field.startsWith("/passengers/") ? "The airline refused a traveller detail." : "The airline refused the booking.";
+      return typeof e.detail?.field === "string" ? "The airline refused a traveller detail." : "The airline refused the booking.";
     case "PAYMENT_FAILED":
       return "The payment didn't go through.";
     case "UPSTREAM_ERROR":
@@ -117,9 +117,9 @@ export async function settleLeg(roomId: string, legId: string, actor: Actor, acc
     if (offerId === null) {
       // demo: a pick from another provider; the cheapest holdable sandbox flight on the route stands in for it
       const { plan } = await readLeg(roomId, legId);
-      const origin = airportFor(plan.stops?.[leg.from]);
-      const destination = airportFor(plan.stops?.[leg.to]);
-      if (!origin || !destination) throw new BookingError("OFFER_GONE", "No airport near one of these stops.");
+      const origin = plan.stops?.[leg.from]?.code;
+      const destination = plan.stops?.[leg.to]?.code;
+      if (!origin || !destination) throw new BookingError("OFFER_GONE", "No flight codes for this route.");
       fresh = await anyOfferFor({ origin, destination, date: leg.date }, leg.riders.length);
     } else {
       // an offer Duffel has dropped is searched for again by the flights the leg kept
@@ -273,7 +273,7 @@ async function holdSeats(roomId: string, legId: string) {
       });
       return;
     }
-    await back(f.field?.startsWith("/passengers/") ? `The airline refused a traveller detail (${f.field.split("/").pop()}). Check it and settle again.` : `${f.message} Settle again when you're ready.`);
+    await back(f.field ? `The airline refused a traveller detail (${f.field.split("/").pop()}). Check it and settle again.` : `${f.message} Settle again when you're ready.`);
   }
 }
 

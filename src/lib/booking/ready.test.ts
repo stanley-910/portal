@@ -106,13 +106,3 @@ describe("refusedPassenger", () => {
     expect(refusedPassenger(undefined, riders)).toBeNull();
   });
 });
-
-describe("airportFor", () => {
-  it("keeps an airport stop's code and maps a station to the nearest airport", async () => {
-    const { airportFor } = await import("./ready");
-    expect(airportFor({ lat: 36.17, lng: 137.92, hub: "airport:MMJ", code: "MMJ" })).toBe("MMJ");
-    expect(airportFor({ lat: 22.3036, lng: 114.165, hub: "train:HK-WEST-KOWLOON", code: "HK-WEST-KOWLOON" })).toBe("HKG");
-    expect(airportFor({ lat: 0, lng: -140, hub: null })).toBeNull();
-    expect(airportFor(undefined)).toBeNull();
-  });
-});
