@@ -107,6 +107,19 @@ describe("buildSoloStorage", () => {
     const doc = buildSoloStorage(soloSaveSchema.parse({ ...input, from: noCode }), user, ids, 1);
     expect(doc.stops.s1.code).toBeNull();
   });
+
+  it("saves a picked hotel as the destination's stay, marked estimated", () => {
+    const stay = { label: "4★ hotel, Nanjing Road", nightly: { amount: 112, currency: "USD" } };
+    const doc = buildSoloStorage(soloSaveSchema.parse({ ...input, stay }), user, ids, 1);
+    expect(doc.stays).toEqual({ s2: { ...stay, estimated: true } });
+    const lson = toStorageLson(doc).data as Record<string, { liveblocksType: string }>;
+    expect(lson.stays.liveblocksType).toBe("LiveMap");
+  });
+
+  it("leaves stays out when no hotel was picked", () => {
+    expect(solo().stays).toBeUndefined();
+    expect((toStorageLson(solo()).data as Record<string, unknown>).stays).toBeUndefined();
+  });
 });
 
 describe("toStorageLson", () => {

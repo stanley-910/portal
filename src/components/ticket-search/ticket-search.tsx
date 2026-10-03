@@ -3,8 +3,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 import { Button } from "@/components/paper-atlas";
+import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
+import type { HotelResult } from "@/lib/hotels/types";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { Offer } from "@/lib/transport/types";
 
@@ -125,6 +127,8 @@ function endpoints(trip: LandedTrip, result: HubSearchResult | null) {
   const end = (preview: Hub | null, resolved: Hub | undefined, point: LatLng) => ({
     name: preview?.city || resolved?.city || preview?.name || resolved?.name || coordinates(point),
     code: airportCode(preview) ?? airportCode(resolved),
+    // a hub or city near the point, rather than open sea or countryside named by its coordinates
+    known: Boolean(preview || resolved),
   });
   return {
     from: end(trip.from, pair?.from.hub, trip.origin),
@@ -132,13 +136,22 @@ function endpoints(trip: LandedTrip, result: HubSearchResult | null) {
   };
 }
 
+export type PickedStay = { label: string; nightly: { amount: number; currency: string } };
+
+/** A picked hotel as the trip's stay: every room it takes, for one night. */
+const stayFrom = (hotel: HotelResult): PickedStay => ({
+  label: hotel.rooms > 1 ? `${hotel.name}, ${hotel.rooms} rooms` : hotel.name,
+  nightly: { amount: hotel.pricePerNight.amount * hotel.rooms, currency: hotel.pricePerNight.currency },
+});
+
 export interface TicketSearchProps {
   trip: LandedTrip;
   globe: RefObject<TripGlobeHandle | null>;
   currency: Currency;
   rates: ExchangeRates | null;
   /** Called with the selected option, every outbound option shown, and the dates when someone presses Save trip. */
-  onAdd: (choice: { offer: Offer; offers: Offer[]; depart: string; return: string | null }) => void;
+  /** `stay` is the hotel picked in the Hotels tab, as the group's nightly cost there. */
+  onAdd: (choice: { offer: Offer; offers: Offer[]; depart: string; return: string | null; stay: PickedStay | null }) => void;
   /** The offer already added, which turns the button into a done state. */
   addedId?: string | null;
   /** A save is in flight: the button waits and says so. */
@@ -157,6 +170,9 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
   const [returnDate, setReturnDate] = useState<string | null>(null);
   const [openField, setOpenField] = useState<"depart" | "return" | null>(null);
   const [tab, setTab] = useState<Tab>("best");
+  // the Hotels tab sits beside the route tabs; the route pick stays what Save trip saves
+  const [hotelsOpen, setHotelsOpen] = useState(false);
+  const [hotel, setHotel] = useState<HotelResult | null>(null);
   const [selected, setSelected] = useState(0);
 
   const outbound = useOffers(trip.origin, trip.destination, depart);
@@ -185,6 +201,7 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
   const rows = rowsFor(offers, activeTab, rates);
   const choice = rows[Math.min(selected, rows.length - 1)];
   const returns = returnDate === null ? null : back.status === "done" ? back.offers : back.status === "failed" ? [] : undefined;
+  const hotelCheckOut = returnDate ?? addDays(depart, 1);
 
   const pickDay = (iso: string) => {
     if (openField === "return") setReturnDate(iso);
@@ -193,6 +210,7 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
       if (returnDate && returnDate <= iso) setReturnDate(null);
       setSelected(0);
     }
+    setHotel(null);
     setOpenField(null);
   };
 
@@ -251,8 +269,9 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
                 type="button"
                 role="tab"
                 className="ts-tab"
-                aria-selected={t.id === activeTab}
+                aria-selected={!hotelsOpen && t.id === activeTab}
                 onClick={() => {
+                  setHotelsOpen(false);
                   setTab(t.id);
                   setSelected(0);
                 }}
@@ -260,61 +279,86 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
                 {t.label}
               </button>
             ))}
+            {ends.to.known ? (
+              <button
+                type="button"
+                role="tab"
+                className="ts-tab"
+                aria-selected={hotelsOpen}
+                onClick={() => setHotelsOpen(true)}
+              >
+                Hotels
+              </button>
+            ) : null}
           </div>
 
-          <div className="ts-rows" role="tabpanel">
-            {outbound.status === "searching" || outbound.status === "idle"
-              ? [0, 1, 2].map((i) => (
-                  <div key={i} className="ts-row ts-row-ghost" aria-hidden>
-                    <span className="ts-ghost ts-ghost-head" />
-                    <span className="ts-ghost ts-ghost-price" />
-                    <span className="ts-ghost ts-ghost-desc" />
-                    <span className="ts-ghost ts-ghost-line" />
-                  </div>
-                ))
-              : null}
-            {outbound.status === "failed" ? (
-              <p className="ts-empty">
-                Search failed.{" "}
-                <button type="button" className="ts-oneway" onClick={outbound.retry}>
-                  Try again
-                </button>
-              </p>
-            ) : null}
-            {outbound.status === "done" && rows.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
-            {rows.map((row, i) => {
-              const price = returns === undefined ? undefined : rowPrice(row.offer, returns, currency, rates);
-              return (
-                <button
-                  key={row.offer.id}
-                  type="button"
-                  className="ts-row"
-                  aria-pressed={row === choice}
-                  title={row.source}
-                  onClick={() => setSelected(i)}
-                >
-                  <span className="ts-head">
-                    {row.headline}
-                    {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
-                    {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
-                  </span>
-                  <span className="ts-price" data-none={price === null || undefined}>
-                    {price === undefined ? <span className="ts-ghost ts-ghost-price" /> : price === null ? "No fare" : formatPrice(price, currency)}
-                  </span>
-                  <span className="ts-desc">{row.description}</span>
-                  <Timeline legs={row.legs} />
-                </button>
-              );
-            })}
-          </div>
+          {hotelsOpen && ends.to.known ? (
+            <HotelSearch
+              city={ends.to.name}
+              lat={trip.destination.lat}
+              lng={trip.destination.lng}
+              checkIn={depart}
+              checkOut={hotelCheckOut}
+              currency={currency}
+              rates={rates}
+              picked={hotel}
+              onPick={setHotel}
+            />
+          ) : (
+            <div className="ts-rows" role="tabpanel">
+              {outbound.status === "searching" || outbound.status === "idle"
+                ? [0, 1, 2].map((i) => (
+                    <div key={i} className="ts-row ts-row-ghost" aria-hidden>
+                      <span className="ts-ghost ts-ghost-head" />
+                      <span className="ts-ghost ts-ghost-price" />
+                      <span className="ts-ghost ts-ghost-desc" />
+                      <span className="ts-ghost ts-ghost-line" />
+                    </div>
+                  ))
+                : null}
+              {outbound.status === "failed" ? (
+                <p className="ts-empty">
+                  Search failed.{" "}
+                  <button type="button" className="ts-oneway" onClick={outbound.retry}>
+                    Try again
+                  </button>
+                </p>
+              ) : null}
+              {outbound.status === "done" && rows.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
+              {rows.map((row, i) => {
+                const price = returns === undefined ? undefined : rowPrice(row.offer, returns, currency, rates);
+                return (
+                  <button
+                    key={row.offer.id}
+                    type="button"
+                    className="ts-row"
+                    aria-pressed={row === choice}
+                    title={row.source}
+                    onClick={() => setSelected(i)}
+                  >
+                    <span className="ts-head">
+                      {row.headline}
+                      {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
+                      {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                    </span>
+                    <span className="ts-price" data-none={price === null || undefined}>
+                      {price === undefined ? <span className="ts-ghost ts-ghost-price" /> : price === null ? "No fare" : formatPrice(price, currency)}
+                    </span>
+                    <span className="ts-desc">{row.description}</span>
+                    <Timeline legs={row.legs} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <Button
             block
             disabled={!choice || choice.offer.id === addedId || saving}
             aria-busy={saving || undefined}
-            onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate })}
+            onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null })}
           >
-            {saving ? "Saving trip…" : choice && choice.offer.id === addedId ? "Saved" : "Save trip"}
+            {saving ? "Saving trip…" : choice && choice.offer.id === addedId ? "Saved" : hotel ? "Save trip with stay" : "Save trip"}
           </Button>
           {error && !saving ? (
             <p className="ts-empty" role="alert">

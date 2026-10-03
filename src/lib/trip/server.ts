@@ -5,7 +5,7 @@ import type { PlainLsonObject, RoomData } from "@liveblocks/node";
 import { z } from "zod";
 
 import { liveblocks } from "@/lib/liveblocks/server";
-import { tripRoomId, type Leg, type MemberInfo, type Stop, type TripStorage } from "@/lib/liveblocks/types";
+import { tripRoomId, type Leg, type MemberInfo, type Stay, type Stop, type TripStorage } from "@/lib/liveblocks/types";
 import type { Offer, ProviderId } from "@/lib/transport/types";
 
 import { MAX_OFFERS, toStoredOffer, webUrlOrNull } from "./offers";
@@ -115,6 +115,10 @@ export const soloSaveSchema = z
     date: z.iso.date().refine((d) => d >= isoDay(Date.now() - DAY) && d <= isoDay(Date.now() + 400 * DAY), "date out of range"),
     offers: z.array(offerSchema).min(1).max(MAX_OFFERS),
     chosen: text(200),
+    // the hotel picked in the popover's Hotels tab: an estimate for the whole group, per night
+    stay: z
+      .object({ label: text(120), nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }) })
+      .optional(),
   })
   .refine((v) => !sameStop(v.from, v.to), "from and to are the same place")
   .refine((v) => v.offers.some((o) => o.id === v.chosen), "chosen offer is not among the options")
@@ -128,6 +132,7 @@ export type SoloStorageJson = {
   members: Record<string, MemberInfo>;
   stops: Record<string, Stop>;
   legs: Record<string, Omit<Leg, "votes"> & { votes: Record<string, string> }>;
+  stays?: Record<string, Stay>;
 };
 
 /**
@@ -157,6 +162,7 @@ export function buildSoloStorage(
         createdAt: now,
       },
     },
+    ...(input.stay ? { stays: { [ids.to]: { ...input.stay, estimated: true } } } : {}),
   };
 }
 
@@ -168,6 +174,7 @@ export function toStorageLson(json: SoloStorageJson): PlainLsonObject {
     legs: new LiveMap(
       Object.entries(json.legs).map(([id, l]) => [id, new LiveObject<Leg>({ ...l, votes: new LiveMap(Object.entries(l.votes)) })]),
     ),
+    ...(json.stays ? { stays: new LiveMap(Object.entries(json.stays).map(([id, s]) => [id, new LiveObject(s)])) } : {}),
   });
   return toPlainLson(root) as PlainLsonObject;
 }
