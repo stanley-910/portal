@@ -58,8 +58,10 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   const [hover, setHover] = useState(false);
   // the first launcher of a page load arrives, by saucer or by portal; the nudge waits for it
   const [arriving, setArriving] = useState(() => !arrival.played);
-  // the arrival is this launcher's entrance, so its own zoom-in doesn't play after it
-  const [entrance] = useState(arriving);
+  // a launcher after the first is Pip coming back from the chat: it rises out of a portal
+  const [returning] = useState(() => arrival.played);
+  // the arrival or the portal is this launcher's entrance, so its own zoom-in doesn't play
+  const [entrance] = useState(arriving || returning);
   // picked in the browser only: the server renders no entrance, so a random pick can't mismatch it
   const kind = useSyncExternalStore(noSubscribe, pickArrival, () => null);
   useEffect(() => {
@@ -72,7 +74,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   // trip cards and panels over Pip's corner send it through a portal to the other one
   const root = useRef<HTMLDivElement>(null);
   const porthole = useRef<HTMLButtonElement>(null);
-  const { side, hop } = usePipCorner(root, porthole, arriving);
+  const { side, hop } = usePipCorner(root, porthole, arriving, returning ? "arrive" : null);
   const hidden = arriving || !!hop;
   const [done, setDone] = useState(() => nudged.has(nudge));
   // the bubble's tail points right, at Pip in the right-hand corner
