@@ -1,19 +1,38 @@
 /* Trip plan: the shared legs, built from the ticket search popover's pieces (ticket-search.css). */
 
-.tp { max-height: calc(100dvh - 12rem); overflow-y: auto; }
+/* as tall as the room between the nav bar and Pip (`useAnchor`), then it scrolls */
+.tp { max-height: var(--anchor-max-h, calc(100dvh - 12rem)); overflow-y: auto; }
+/* the card scrolls rather than squeeze its header and legs when one opens */
+.tp > * { flex-shrink: 0; }
+/* the card, and the panels that open beside it (BesidePanel): the bill, a leg's hotel search */
+.tp-wrap { position: relative; }
+.tp-beside { position: absolute; overflow-y: auto; }
+.tp-beside[data-side="right"] { left: calc(100% + var(--space-3)); }
+.tp-beside[data-side="left"] { right: calc(100% + var(--space-3)); }
+.tp-beside > .hs { padding: 10px; border-top: 0; }
+/* a thin scrollbar in the card's own ink, only as wide as it needs */
+.tp, .tp-beside { scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+.tp::-webkit-scrollbar, .tp-beside::-webkit-scrollbar { width: 6px; }
+.tp::-webkit-scrollbar-thumb, .tp-beside::-webkit-scrollbar-thumb { background: var(--control-border); border-radius: var(--radius-round); }
+.tp::-webkit-scrollbar-track, .tp-beside::-webkit-scrollbar-track { background: transparent; }
+/* A leg folds to its route and one line of what's settled; the whole head opens it */
+.ts .tp-leg-head { display: grid; gap: 4px; width: calc(100% + 8px); margin: -4px; padding: 4px; text-align: left; background: none; border: 0; border-radius: var(--radius-control); }
+.ts .tp-leg-head:hover { background: var(--control-hover); }
+.tp-leg-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; }
+.tp-leg-summary svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.tp-leg-head[aria-expanded="true"] .tp-leg-summary > span { visibility: hidden; }
 .tp-bar { padding: 8px 12px 0; }
+/* "Your trip" heads the card like "Your share" heads the bill, with Minimise beside it */
+.tp-head { margin-bottom: 0; padding: 0 12px 0 0; border-bottom: var(--line-control) solid var(--line); }
+.tp-head .tp-total { border-bottom: 0; }
+/* the header moves the card (FloatingTripPlan) */
+.tp-head[data-draggable] { cursor: grab; touch-action: none; user-select: none; }
+.tp-head[data-dragging] { cursor: grabbing; }
 .tp-leg { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .tp-total { padding: 10px 12px; border-bottom: var(--line-control) solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600; }
-/* The trip's two dates: when it ends for everyone, and when you leave it early. Each has its line of explanation. */
-.tp-trip-dates { display: grid; gap: 2px; padding: 8px 12px; }
-.tp-end { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-muted); font-size: 11px; }
-.tp-end input { min-height: 28px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; }
 .tp-hint { margin: 0; }
-.tp-trip-dates .tp-hint:not(:last-child) { margin-bottom: 6px; }
 .tp-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tp-edit-row > .ts-oneway { flex: none; margin-left: auto; white-space: nowrap; }
-.tp-editor { display: grid; gap: 8px; }
-.tp-editor > button:disabled { opacity: .45; cursor: not-allowed; }
 .tp-stay { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; }
 .tp-refused { margin: 0; padding: 6px 8px; border-radius: var(--radius-tag); background: var(--control-hover); font-size: 11.5px; line-height: 15px; }
 
@@ -22,11 +41,30 @@
 .tp-rider-list { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .ts .tp-rider { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 2px solid; border-radius: var(--radius-round); background: var(--paper-raised); font-size: 11px; line-height: 1; font-weight: 600; }
 .tp-rider[aria-pressed="false"] { opacity: 0.4; }
+/* the field grows to fit its discs; more riders than fit scroll sideways rather than squeeze */
+.ts .tp-riders { height: auto; min-height: 40px; min-width: 0; }
+/* the date takes only its width so the riders get the rest */
+.tp-leg .ts-dates { grid-template-columns: max-content minmax(0, 1fr); }
+.ts .tp-rider { box-sizing: border-box; }
+.tp-rider-list { overflow-x: auto; scrollbar-width: none; padding: 1px; }
+.tp-rider-list > * { flex: none; }
 
 /* An option: the row picks it for everyone, the button beside it votes */
 .tp-offer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px; }
-.ts .tp-vote { display: inline-flex; align-items: center; gap: 3px; height: 26px; margin-top: 6px; padding: 0 7px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-tag); background: transparent; font-size: 12px; line-height: 16px; font-weight: 600; }
-.tp-vote:hover { background: var(--control-hover); }
+/* A vote: a slim pill with a chevron that lifts on hover, the count, and a dot in each voter's colour */
+.ts .tp-vote { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; min-width: 32px; margin-top: 4px; padding: 5px 4px 6px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: transparent; color: var(--ink); font-size: 12px; line-height: 14px; font-weight: 600; transition: background-color 150ms ease, border-color 150ms ease; }
+.tp-vote-n { font-variant-numeric: tabular-nums; }
+.tp-voters { display: flex; margin-top: 2px; }
+.tp-voters i { width: 7px; height: 7px; border-radius: var(--radius-round); box-shadow: 0 0 0 1.5px var(--paper-raised); }
+.tp-voters i + i { margin-left: -2px; }
+.ts .tp-vote[aria-pressed="true"] .tp-voters i { box-shadow: 0 0 0 1.5px var(--ink); }
+.tp-vote svg { transition: transform 150ms ease; }
+.tp-vote:hover svg { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .ts .tp-vote, .tp-vote svg { transition: none; }
+  .tp-vote:hover svg { transform: none; }
+}
+.tp-vote:hover { background: var(--control-hover); border-color: var(--ink); }
 .tp-vote svg { fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
 .ts .tp-vote[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 
@@ -63,3 +101,37 @@
 @media (prefers-reduced-motion: reduce) {
   .rp-name { transition: none; }
 }
+
+/* A stay (StayCard): its own nights and guests under the leg that gets there, apart from the leg's riders */
+.tp-stay-card { display: grid; gap: 6px; padding: 8px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); }
+.tp-stay-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; }
+.tp-stay-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ts .tp-stay-dates input { width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--font-sans); }
+
+/* The header's bill and minimise buttons, side by side at its right end, flat in the header like the dock's */
+.tp-head .sb-button { margin-left: auto; }
+.ts .tp-head .ts-min { margin-left: 4px; }
+
+/* The plan minimised (TripDock): the trip as a tag, like the globe's place tags, with the bill and expand buttons in
+   it; the bill opens below */
+.tp-dock { position: absolute; z-index: 6; display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+.tp-dock[data-side="left"] { align-items: flex-start; }
+.tp-dock-bar { display: flex; align-items: center; gap: 7px; height: 30px; box-sizing: border-box; padding: 0 3px 0 9px; font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; color: var(--ink); background: var(--paper-raised); border: var(--line-hair) solid var(--ink); border-radius: var(--radius-tag); box-shadow: var(--shadow-tag); cursor: grab; touch-action: none; user-select: none; transition: transform 140ms ease-out; }
+.tp-dock-bar:hover { transform: translateY(-1px); }
+.tp-dock-bar[data-dragging] { cursor: grabbing; transform: rotate(-1.2deg); }
+/* a dot in your colour, breathing: the trip is live, and you're in it */
+.tp-dock-live { flex: none; width: 8px; height: 8px; border-radius: var(--radius-round); box-shadow: 0 0 0 var(--line-hair) var(--sticker-ink); animation: tp-live 2.4s ease-in-out infinite; }
+@keyframes tp-live { 50% { box-shadow: 0 0 0 var(--line-hair) var(--sticker-ink), 0 0 0 4px color-mix(in srgb, var(--ink) 14%, transparent); } }
+.tp-dock-meta { color: var(--ink-muted); font-weight: 400; }
+.tp-dock-rule { align-self: stretch; width: var(--line-hair); margin: 5px 0 5px 2px; background: var(--control-border); }
+.tp-dock-btn { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 6px; color: var(--ink); background: transparent; border: 0; border-radius: var(--radius-tag); font: inherit; cursor: pointer; }
+.tp-dock-btn:hover { background: var(--control-hover); }
+.tp-dock-btn[aria-expanded="true"] { background: var(--ink); color: var(--on-ink); }
+.tp-dock-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.tp-dock-btn svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5px; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-reduced-motion: reduce) {
+  .tp-dock-live { animation: none; }
+  .tp-dock-bar, .tp-dock-bar:hover, .tp-dock-bar[data-dragging] { transition: none; transform: none; }
+}
+.tp-dock-bill { max-height: calc(100dvh - var(--dock-top) - 80px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+.tp-dock-bill .tsp { border-bottom: 0; }

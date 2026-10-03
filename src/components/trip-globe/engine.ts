@@ -144,6 +144,8 @@ const VEHICLE_HOLD = 0.3;
 const TOUCHDOWN = 0.45;
 const VANISH = 0.25;
 const PIN_SCALE = 1.1;
+/** The paper kept clear round a pin where a route passes under it, in px either side of its head and needle. */
+const PIN_CUT = 1.5;
 const PIN_LEAN = 0.62;
 const PIN_FALL = 4;
 const PIN_DROP = 0.42;
@@ -318,6 +320,10 @@ export class GlobeEngine {
   private vaoQuad: WebGLVertexArrayObject | null = null;
   private vaoVehicle = new Map<Vehicle, { vao: WebGLVertexArrayObject; count: number }>();
   private vaoPin: { vao: WebGLVertexArrayObject; count: number } | null = null;
+  /** Standing pins on screen: head centre and radius, and where the needle meets the ground, in CSS px. */
+  private pinCuts: { x: number; y: number; r: number; bx: number; by: number }[] = [];
+  /** Where a route is drawn when pins stand, so they can be cut out of it. */
+  private routeLayer: HTMLCanvasElement | null = null;
   private texEarth: WebGLTexture | null = null;
   private texBorders: WebGLTexture | null = null;
   private texProvinces: WebGLTexture | null = null;
@@ -2753,6 +2759,21 @@ export class GlobeEngine {
       if (!w || Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]) >= cut) break;
       air[i] = null;
     }
+    // drawn on a layer of its own when pins stand, so the pins can be cut out of it: the route then reads as passing
+    // under them, though they're drawn on the globe's canvas below this one
+    const cuts = this.pinCuts;
+    const out = ctx;
+    if (cuts.length) {
+      const layer = (this.routeLayer ??= document.createElement("canvas"));
+      if (layer.width !== this.hudEl.width || layer.height !== this.hudEl.height) {
+        layer.width = this.hudEl.width;
+        layer.height = this.hudEl.height;
+      }
+      ctx = layer.getContext("2d")!;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, layer.width, layer.height);
+      ctx.setTransform(out.getTransform());
+    }
     ctx.save();
     ctx.lineCap = "round";
     ctx.setLineDash([0.1, 6]); // dash-ground
@@ -2771,6 +2792,40 @@ export class GlobeEngine {
     ctx.strokeStyle = stroke;
     this.strokePts(ctx, air);
     ctx.restore();
+    if (ctx === out) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.lineCap = "round";
+    for (const c of cuts) {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r + PIN_CUT, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y);
+      ctx.lineTo(c.bx, c.by);
+      ctx.lineWidth = PIN_CUT * 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+    out.save();
+    out.setTransform(1, 0, 0, 1, 0, 0);
+    out.drawImage(ctx.canvas, 0, 0);
+    out.restore();
+  }
+
+  /** Where each standing pin is on screen, head and needle, for routes to pass under (`route`). */
+  private measurePins() {
+    this.pinCuts.length = 0;
+    const c = this.cam;
+    if (!c) return;
+    for (const p of this.pins.values()) {
+      if (!p.head) continue;
+      const q = this.proj(p.head);
+      const base = this.proj(p.g);
+      if (!q || !q.vis || !base) continue;
+      const rim = this.proj(add(p.head, mul(c.U, PIN_HEAD_R * S_PLANE * this.planeScale * PIN_SCALE)));
+      this.pinCuts.push({ x: q.x, y: q.y, r: rim?.vis ? Math.hypot(rim.x - q.x, rim.y - q.y) : 4, bx: base.x, by: base.y });
+    }
   }
 
   private drawHud(t: number) {
@@ -2781,6 +2836,7 @@ export class GlobeEngine {
     ctx.clearRect(0, 0, this.hudEl.width, this.hudEl.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.tagBoxes.length = 0;
+    this.measurePins();
 
     // names go under everything else on the overlay, and keep clear of planes and airport tags
     const clear: { x: number; y: number }[] = [];

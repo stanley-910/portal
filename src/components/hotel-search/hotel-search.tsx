@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-import type { Currency, ExchangeRates } from "@/lib/currency";
+import { dateLabel } from "@/components/ticket-search/parts";
+import { convertCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { HotelFilter, HotelResult } from "@/lib/hotels/types";
 import { countries } from "@/lib/nationality";
 import { iso2 } from "@/lib/entry/iso";
-import { convertCurrency } from "@/lib/currency";
 
 import { hotelQueryKey, resultForHotelQuery, type HotelSearchResult } from "./query";
+
+// Built from the ticket card's parts (ticket-search.css) so it reads as one more section of the same card: a caption
+// line, two small fields, the underline tabs, and option rows.
 
 const nationalityOptions = countries().flatMap((country) => {
   const code = iso2(country.code);
@@ -25,14 +28,20 @@ const formatPrice = (price: { amount: number; currency: string }, currency: Curr
   return converted === null ? "—" : new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(converted);
 };
 
-/** Stays at the landed city: live rates when Duffel has them, else estimates. Picking one saves it as the trip's stay there; picking it again unpicks it. */
+const nightCount = (checkIn: string, checkOut: string) => Math.round((Date.parse(checkOut) - Date.parse(checkIn)) / 86_400_000);
+
+/**
+ * Stays at the landed city: live rates when Duffel has them, else estimates. Picking one hands it to `onPick`; picking
+ * it again unpicks it. `tabPanel` when it is the content of a tab, as in the ticket search.
+ */
 export function HotelSearch({
-  city, lat, lng, checkIn, checkOut, currency, rates, picked, onPick, defaultOccupants = 1,
+  city, lat, lng, checkIn, checkOut, currency, rates, picked, onPick, defaultOccupants = 1, tabPanel = false,
 }: {
   city: string; lat: number; lng: number; checkIn: string; checkOut: string;
   currency: Currency; rates: ExchangeRates | null;
   picked: HotelResult | null; onPick: (hotel: HotelResult | null) => void;
   defaultOccupants?: number;
+  tabPanel?: boolean;
 }) {
   const [filter, setFilter] = useState<HotelFilter>(4);
   const [occupants, setOccupants] = useState(() => Math.min(4, Math.max(1, defaultOccupants)));
@@ -60,46 +69,72 @@ export function HotelSearch({
     set(value);
     onPick(null);
   };
+  const nights = nightCount(checkIn, checkOut);
 
   return (
-    <section className="hotel-search" role="tabpanel" aria-label={`Hotels in ${city}`}>
-      <div className="hotel-heading">
-        <div><h2>Stay in {city}</h2><span>{hotels.some((hotel) => hotel.freshness === "live") ? "Nightly rates" : "Estimated nightly rates"}</span></div>
-        <label className="hotel-occupants">Occupants
-          <select value={occupants} onChange={(event) => refine(setOccupants)(Number(event.target.value))}>
+    <section className="hs" role={tabPanel ? "tabpanel" : undefined} aria-label={`Stays in ${city}`}>
+      <p className="ts-step hs-caption">
+        Stays in {city} · {dateLabel(checkIn)} to {dateLabel(checkOut)}, {nights} night{nights === 1 ? "" : "s"}
+      </p>
+      <div className="hs-fields">
+        <label className="ts-field hs-field">
+          <span className="ts-field-label">Guests</span>
+          <select className="ts-field-value" value={occupants} onChange={(event) => refine(setOccupants)(Number(event.target.value))}>
             {[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count}</option>)}
           </select>
         </label>
+        <label className="ts-field hs-field">
+          <span className="ts-field-label">Nationality</span>
+          <select className="ts-field-value" data-empty={!guestNationality || undefined} value={guestNationality} onChange={(event) => refine(setGuestNationality)(event.target.value)}>
+            <option value="">Any</option>
+            {nationalityOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
+          </select>
+        </label>
       </div>
-      <label className="hotel-occupants">Nationality
-        <select aria-label="Guest nationality (optional)" value={guestNationality} onChange={(event) => refine(setGuestNationality)(event.target.value)}>
-          <option value="">Optional</option>
-          {nationalityOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
-        </select>
-      </label>
-      <div className="hotel-filters" role="group" aria-label="Hotel type">
-        {filters.map((option) => <button key={String(option.value)} type="button" aria-pressed={filter === option.value} onClick={() => refine(setFilter)(option.value)}>{option.label}</button>)}
-      </div>
-      <div className="hotel-rows">
-        {status === "failed" ? <p className="ts-empty" role="alert">Hotel search failed. Try again.</p> : null}
-        {status === "done" && hotels.length === 0 ? <p className="ts-empty">No stays match that filter.</p> : null}
-        {hotels.map((hotel) => (
-          <button
-            type="button"
-            className="hotel-row"
-            key={hotel.id}
-            aria-pressed={picked?.id === hotel.id}
-            onClick={() => onPick(picked?.id === hotel.id ? null : hotel)}
-          >
-            <div>
-              <strong>{hotel.name}</strong>
-              <span>{hotel.distanceKm.toFixed(1)} km from centre {hotel.freshness !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}</span>
-              <span>{hotel.source ?? "Planning estimate"}{hotel.quote ? ` · ${hotel.quote.checkIn} – ${hotel.quote.checkOut} · ${hotel.quote.occupants} adults` : ""}</span>
-              {hotel.bookingUrl ? <a className="hotel-book" href={hotel.bookingUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>Search Booking.com</a> : <span>Rate subject to confirmation</span>}
-            </div>
-            <div className="hotel-price"><strong>{formatPrice(hotel.pricePerNight, currency, rates)}</strong><span>per night · {hotel.rooms} {hotel.rooms === 1 ? "room" : "rooms"}</span><small>{formatPrice(hotel.totalPrice, currency, rates)} total · {hotel.freshness === "live" ? "quoted room allocation" : `${hotel.bedsPerRoom} beds/room`}</small></div>
+      <div className="ts-tabs" role="tablist" aria-label="Hotel type">
+        {filters.map((option) => (
+          <button key={String(option.value)} type="button" role="tab" className="ts-tab" aria-selected={filter === option.value} onClick={() => refine(setFilter)(option.value)}>
+            {option.label}
           </button>
         ))}
+      </div>
+      <div className="ts-rows hs-rows">
+        {queryKey && !result ? [0, 1].map((i) => (
+          <div key={i} className="ts-row ts-row-ghost" aria-hidden>
+            <span className="ts-ghost ts-ghost-head" />
+            <span className="ts-ghost ts-ghost-price" />
+            <span className="ts-ghost ts-ghost-desc" />
+          </div>
+        )) : null}
+        {status === "failed" ? <p className="ts-empty" role="alert">Hotel search failed. Try again.</p> : null}
+        {status === "done" && hotels.length === 0 ? <p className="ts-empty">No stays match that filter.</p> : null}
+        {hotels.map((hotel) => {
+          const isPicked = picked?.id === hotel.id;
+          return (
+            <div key={hotel.id} className="hs-option">
+              <button type="button" className="ts-row hs-row" aria-pressed={isPicked} onClick={() => onPick(isPicked ? null : hotel)}>
+                {hotel.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- provider photos, not ours to optimise
+                  <img className="hs-photo" src={hotel.photoUrl} alt="" loading="lazy" />
+                ) : null}
+                <span className="ts-head">
+                  <span className="hs-name">{hotel.name}</span>
+                  {isPicked ? <span className="ts-badge">Picked</span> : null}
+                  {hotel.freshness !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                </span>
+                <span className="ts-price">{formatPrice(hotel.pricePerNight, currency, rates)}</span>
+                <span className="ts-desc">
+                  {hotel.distanceKm.toFixed(1)} km from centre · {hotel.rooms} room{hotel.rooms === 1 ? "" : "s"} · {formatPrice(hotel.totalPrice, currency, rates)} total · {hotel.source ?? "Planning estimate"}
+                </span>
+              </button>
+              {hotel.bookingUrl ? (
+                <a className="ts-oneway hs-book" href={hotel.bookingUrl} target="_blank" rel="noreferrer">
+                  Booking.com
+                </a>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

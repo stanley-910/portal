@@ -8,9 +8,9 @@ import { searchLeg } from "@/app/t/actions";
 import { refreshTripTitle } from "@/app/t/title-actions";
 import { localIso } from "@/components/ticket-search/parts";
 import type { LandedTrip } from "@/components/trip-globe";
-import type { LegBooking, LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
+import type { LegBooking, LegSearch, Stay, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
 import * as dates from "./dates";
-import { computeSplit, type MemberSplit, type Split, type SplitInput } from "./split";
+import { computeSplit, staysOf, type MemberSplit, type PlanStay, type Split, type SplitInput } from "./split";
 import { sharesStop, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared trip plan: stops, the legs between them, and each leg's options, votes and pick. Presentation
@@ -81,8 +81,18 @@ export function usePlanMembers() {
   return useStorage((root) => root.members);
 }
 
-export function usePlanStays() {
-  return useStorage((root) => root.stays ?? {});
+/** Every stay, whole: where some of the group sleep, when, who and for what (`staysOf`). */
+export function usePlanStays(): PlanStay[] | null {
+  return useStorage(
+    (root) =>
+      staysOf({
+        members: root.members,
+        legs: root.legs as SplitInput["legs"],
+        stays: root.stays as SplitInput["stays"],
+        ends: root.ends,
+      }),
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
 }
 
 /** Who pays what, for the whole group: every night with who was there, and each member's fares, night shares and totals. */
@@ -96,7 +106,7 @@ export function useSplit(): Split | null {
           { from: leg.from, to: leg.to, date: leg.date, riders: leg.riders, search: leg.search, chosen: leg.chosen, createdAt: leg.createdAt, booking: leg.booking },
         ]),
       ),
-      stays: root.stays,
+      stays: root.stays as SplitInput["stays"],
       ends: root.ends,
     };
     return computeSplit(input);
@@ -296,14 +306,25 @@ export function usePlanActions() {
     leg.set("chosen", offerId);
     return "ok";
   }, []);
-  /** Sets what lodging at a stop costs the group a night. Rooms made before stays, or saved from `/` without a hotel, have no map yet. */
-  const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string }; estimated?: boolean } | null): EditResult => {
-    if (!storage.get("stops").get(stopId)) return "gone";
-    let stays = storage.get("stays");
-    if (!stays) storage.set("stays", (stays = new LiveMap()));
-    if (stay) stays.set(stopId, new LiveObject({ ...stay, estimated: stay.estimated ?? true }));
-    else stays.delete(stopId);
+  /** Adds a stay at a stop. Its guests and dates are its own; riding a leg there doesn't change them. */
+  const addStayMutation = useMutation(({ storage }, stay: NewStay): EditResult => {
+    if (!storage.get("stops").get(stay.stop)) return "gone";
+    const stays = staysIn(storage);
+    stays.set(newId(), new LiveObject<Stay>({ ...stay, estimated: stay.estimated ?? true, createdAt: Date.now() }));
     return "ok";
+  }, []);
+  /** Changes a stay: its dates, guests, hotel or price. A stay left with nobody in it is removed. */
+  const updateStayMutation = useMutation(({ storage }, id: string, patch: Partial<NewStay>): EditResult => {
+    const stay = staysIn(storage).get(id);
+    if (!stay) return "gone";
+    const next = { ...stay.toJSON(), ...patch };
+    if (!next.checkIn || !next.checkOut || next.checkOut <= next.checkIn) return "ok";
+    if (!next.guests?.length) staysIn(storage).delete(id);
+    else stay.update(patch);
+    return "ok";
+  }, []);
+  const removeStayMutation = useMutation(({ storage }, id: string) => {
+    staysIn(storage).delete(id);
   }, []);
 
   const toggleRiderMutation = useMutation(({ storage }, legId: string, guestId: string) => {
@@ -328,7 +349,7 @@ export function usePlanActions() {
     writeDates(storage, dates.setEnds(datesIn(storage), date));
   }, []);
 
-  /** Removes a leg, and any stop no other leg uses. */
+  /** Removes a leg, and any stop no other leg or stay uses. Its riders' stays stay. */
   const removeLegMutation = useMutation(({ storage }, legId: string) => {
     const legs = storage.get("legs");
     const leg = legs.get(legId);
@@ -336,6 +357,8 @@ export function usePlanActions() {
     legs.delete(legId);
     const used = new Set<string>();
     for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));
+    // a stay keeps its stop: people can still be sleeping there without the leg
+    for (const stay of staysIn(storage).values()) used.add(stay.get("stop")!);
     for (const stop of [leg.get("from"), leg.get("to")]) if (!used.has(stop)) storage.get("stops").delete(stop);
     writeDates(storage, dates.settle(datesIn(storage)));
   }, []);
@@ -361,7 +384,9 @@ export function usePlanActions() {
     },
     vote: voteMutation,
     choose: chooseMutation,
-    setStay: setStayMutation,
+    addStay: addStayMutation,
+    updateStay: updateStayMutation,
+    removeStay: removeStayMutation,
     toggleRider: toggleRiderMutation,
     setLeave: (date: string | null) => setLeaveMutation(date),
     setColor: (color: number) => setColorMutation(color),
@@ -371,6 +396,28 @@ export function usePlanActions() {
       retitle();
     },
   };
+}
+
+/** A stay as an edit gives it: everything but its id and when it was made. */
+export type NewStay = Required<Pick<Stay, "stop" | "checkIn" | "checkOut" | "guests">> & Pick<Stay, "nightly" | "label" | "estimated">;
+
+/**
+ * The stays map, made if the room has none, with any stays from before stays had their own guests and dates written
+ * out whole first (`staysOf`), so every edit after works on whole stays.
+ */
+function staysIn(storage: Root): LiveMap<string, LiveObject<Stay>> {
+  let stays = storage.get("stays");
+  if (!stays) storage.set("stays", (stays = new LiveMap()));
+  if ([...stays.values()].some((s) => !s.get("stop"))) {
+    const plan = storage.toJSON() as unknown as SplitInput;
+    for (const id of [...stays.keys()]) if (!stays.get(id)!.get("stop")) stays.delete(id);
+    for (const s of staysOf(plan)) {
+      if (stays.has(s.id)) continue;
+      const { id, ...stay } = s;
+      stays.set(id, new LiveObject<Stay>(stay));
+    }
+  }
+  return stays;
 }
 
 /** Starts a fresh search for a leg, dropping its old options, votes and pick. Null for a leg being booked. */

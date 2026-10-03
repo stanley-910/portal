@@ -1,7 +1,8 @@
 import type { ThreadMessage } from "@/lib/agent/types";
 import type { LegBooking, Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
+import { staysOf, type SplitInput } from "@/lib/trip/split";
 
-// The plan as the model sees it: short handles (M1, S1, L1) instead of Liveblocks ids, rebuilt from Storage every
+// The plan as the model sees it: short handles (M1, S1, L1, H1) instead of Liveblocks ids, rebuilt from Storage every
 // turn so the agent never trusts what it said earlier (harness: "Context: rebuilt every turn").
 
 /** Storage as `getStorageDocument(room, "json")` returns it. */
@@ -25,9 +26,9 @@ export type PlanJson = {
     }
   >;
   thread?: ThreadMessage[];
-  /** Stop id → what staying there costs the group a night. */
+  /** Stay id → where some of the group sleep. Read through `staysOf`, which also reads older rooms' stop-keyed ones. */
   stays?: Record<string, Stay>;
-  /** The morning after the trip's last night. */
+  /** Only older rooms' stop-keyed stays read it. */
   ends?: string | null;
 };
 
@@ -35,7 +36,8 @@ export type Handles = {
   member: Map<string, string>;
   stop: Map<string, string>;
   leg: Map<string, string>;
-  /** Handle → id, for all three kinds. */
+  stay: Map<string, string>;
+  /** Handle → id, for every kind. */
   id: Map<string, string>;
 };
 
@@ -48,6 +50,7 @@ export function handlesFor(plan: PlanJson, prev?: Handles): Handles {
     member: new Map(prev?.member),
     stop: new Map(prev?.stop),
     leg: new Map(prev?.leg),
+    stay: new Map(prev?.stay),
     id: new Map(prev?.id),
   };
   const add = (map: Map<string, string>, prefix: string, ids: string[]) => {
@@ -68,6 +71,7 @@ export function handlesFor(plan: PlanJson, prev?: Handles): Handles {
       .sort(([, a], [, b]) => a.createdAt - b.createdAt)
       .map(([id]) => id),
   );
+  add(h.stay, "H", staysOf(plan as SplitInput).map((s) => s.id));
   return h;
 }
 
@@ -86,11 +90,7 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
   const stops = Object.entries(plan.stops ?? {});
   if (stops.length) {
     lines.push("Stops:");
-    for (const [id, s] of stops) {
-      const stay = plan.stays?.[id];
-      const cost = stay?.nightly ? ` · stay ${stay.nightly.currency} ${stay.nightly.amount} a night${stay.estimated ? " estimated" : ""}${stay.label ? ` (${stay.label})` : ""}` : "";
-      lines.push(`  ${h.stop.get(id)} ${s.name}${s.code ? ` (${s.code})` : ""}${cost}`);
-    }
+    for (const [id, s] of stops) lines.push(`  ${h.stop.get(id)} ${s.name}${s.code ? ` (${s.code})` : ""}`);
   }
 
   const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.createdAt - b.createdAt);
@@ -108,7 +108,17 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
       `  ${h.leg.get(id)} ${h.stop.get(leg.from)}→${h.stop.get(leg.to)} ${leg.date} (${showDate(leg.date)}) · riders ${riders} · ${search}${describeBooking(leg.booking, h)}`,
     );
   }
-  if (plan.ends) lines.push(`Trip ends the morning of ${showDate(plan.ends)}.`);
+
+  // apart from the legs: riding somewhere never puts anyone in a stay
+  const stays = staysOf(plan as SplitInput);
+  lines.push(stays.length ? "Stays:" : "Stays: none yet.");
+  for (const s of stays) {
+    const guests = s.guests.map((g) => h.member.get(g) ?? "?").join(" ") || "nobody";
+    const cost = s.nightly ? `${s.nightly.currency} ${s.nightly.amount} a night${s.estimated ? " estimated" : ""}` : "no price";
+    lines.push(
+      `  ${h.stay.get(s.id)} ${h.stop.get(s.stop) ?? "?"}${s.label ? ` ${s.label}` : ""} · ${showDate(s.checkIn)} to ${showDate(s.checkOut)} · guests ${guests} · ${cost}`,
+    );
+  }
   return lines.join("\n");
 }
 

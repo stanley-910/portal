@@ -17,6 +17,8 @@ export interface Hotel {
   distanceKm: number;
   score: number;
   bookingUrl?: string;
+  /** The provider's photo of the place, when it has one. */
+  photoUrl?: string;
   source?: string;
   sourceUrl?: string;
   quote?: { checkIn: string; checkOut: string; occupants: number; quotedAt: string; guestNationality?: string };

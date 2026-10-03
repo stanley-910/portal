@@ -56,6 +56,7 @@ export function mapFlights(rows: readonly unknown[], query: SearchQuery, marker?
       segments: [{
         mode: "flight",
         carrier: row.airline,
+        ...(/^[A-Z0-9]{2}$/.test(row.airline) ? { carrierCode: row.airline } : {}),
         number: `${row.airline}${row.flight_number}`,
         from: airportPlace(fromCode, query.from),
         to: airportPlace(toCode, query.to),

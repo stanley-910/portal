@@ -117,6 +117,13 @@
 .pn-swatch:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-swatch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: inherit; }
 .pn-swatch .pn-swatch-cursor { left: calc(50% - 5px); top: 10px; pointer-events: none; }
+/* Profile | About, the same segmented tabs as the sign-in panel */
+.pn-tabs { display: flex; padding: 2px; gap: 2px; margin-bottom: var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
+.pn-tab { flex: 1; min-height: 32px; border: 0; border-radius: calc(var(--radius-control) - 2px); background: transparent; color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease; }
+.pn-tab:hover:not([aria-selected="true"]) { background: var(--control-hover); }
+.pn-tab[aria-selected="true"] { background: var(--ink); color: var(--on-ink); }
+.pn-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pn-profile-about { padding-block: var(--space-1); }
 .pn-profile-section { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); margin-top: var(--space-2); border-top: var(--line-hair) solid var(--line); }
 .pn-profile-trips { display: block; padding: var(--space-2); color: var(--ink); border-top: var(--line-hair) solid var(--line); font-size: 14px; font-weight: 600; text-decoration: none; }
 .pn-profile-trips:hover { color: var(--ink-hover); }
@@ -135,7 +142,6 @@
 /* Place search: a round button that opens a field over the controls row, with matching places below. */
 .pn-search-panel { position: absolute; top: 0; right: 0; z-index: 1; width: min(22rem, calc(100vw - 2 * var(--space-4))); }
 .pn-search-field { display: flex; align-items: center; gap: var(--space-gap); box-sizing: border-box; height: max(var(--ctrl-h), 36px); padding-inline: var(--space-3); background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); box-shadow: var(--shadow-float); }
-.pn-search-field:focus-within { outline: 2px solid var(--focus); outline-offset: 3px; }
 .pn-search-field svg, .pn-search .pn-menu-symbol svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
 .pn-search-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: inherit; font-family: var(--font-sans); font-size: 15px; }
 .pn-search-field input::-webkit-search-cancel-button { display: none; }

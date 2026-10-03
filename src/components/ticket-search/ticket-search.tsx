@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import { Button, RoundButton } from "@/components/paper-atlas";
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
@@ -15,18 +15,15 @@ import type { PickedStay, ReturnPick } from "@/lib/trip/solo-input";
 import { isBookable } from "@/lib/trip/offers";
 
 import { credits, formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
+import { AirlineLogo } from "./airline-logo";
 import { Glyph } from "./glyphs";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "./parts";
 import { TripTag, useTagOnRoute } from "./trip-tag";
 import { useOffers } from "./use-offers";
+import { reveal, useAnchor } from "./anchor";
 
 // The ticket search popover (design handoff "Ticket search popover", turn 3): the route, depart and return dates,
 // and the three best options per tab. It anchors beside the landed route on the globe.
-
-/** Keep at least this far from the viewport's edges. */
-const EDGE = 24;
-/** Clearance between the popover and the route's ends, wide enough to clear the hub tags. */
-const GAP = 56;
 
 const SAVE_LABEL: Record<Mode, string> = {
   flight: "Save flight",
@@ -34,96 +31,6 @@ const SAVE_LABEL: Record<Mode, string> = {
   bus: "Save bus",
   ferry: "Save ferry",
 };
-
-type Side = "right" | "left" | "under" | "pinned";
-
-/**
- * Keeps the popover beside the route as the globe turns: on the side with the most free space (right, left or
- * under), sticking with a side while it still fits, and pinned to the left edge when nothing fits.
- */
-function useAnchor(globe: RefObject<TripGlobeHandle | null>, trip: LandedTrip, onPlaced: () => void) {
-  const root = useRef<HTMLDivElement>(null);
-  const placed = useRef(false);
-  const placedCb = useRef(onPlaced);
-  useEffect(() => {
-    placedCb.current = onPlaced;
-  });
-
-  useEffect(() => {
-    const g = globe.current;
-    if (!g) return;
-    let side: Side | null = null;
-    const place = () => {
-      const el = root.current;
-      const box = el?.offsetParent as HTMLElement | null;
-      const a = g.project(trip.origin);
-      const b = g.project(trip.destination);
-      if (!el || !box || !a || !b) return;
-      const W = box.clientWidth;
-      const H = box.clientHeight;
-      const w = el.offsetWidth;
-      const h = el.offsetHeight;
-      const nav = document.querySelector(".pn-bar")?.getBoundingClientRect().bottom ?? 0;
-      const top = Math.max(EDGE, nav + 8);
-      const minX = Math.min(a.x, b.x) - GAP;
-      const maxX = Math.max(a.x, b.x) + GAP;
-      const minY = Math.min(a.y, b.y) - GAP;
-      const maxY = Math.max(a.y, b.y) + GAP;
-      const room = { right: W - maxX - EDGE, left: minX - EDGE, under: H - maxY - EDGE };
-      const fits = { right: room.right >= w, left: room.left >= w, under: room.under >= h, pinned: true };
-      if (!side || !fits[side]) {
-        side =
-          fits.right || fits.left
-            ? room.right >= room.left && fits.right
-              ? "right"
-              : fits.left
-                ? "left"
-                : "right"
-            : fits.under
-              ? "under"
-              : "pinned";
-      }
-      const clampY = (y: number) => Math.min(Math.max(y, top), Math.max(top, H - h - EDGE));
-      const clampX = (x: number) => Math.min(Math.max(x, EDGE), Math.max(EDGE, W - w - EDGE));
-      const centreY = (minY + maxY) / 2 - h / 2;
-      const [x, y] =
-        side === "right"
-          ? [maxX, clampY(centreY)]
-          : side === "left"
-            ? [minX - w, clampY(centreY)]
-            : side === "under"
-              ? [clampX((minX + maxX) / 2 - w / 2), maxY]
-              : [EDGE, top];
-      el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-      if (!placed.current) {
-        placed.current = true;
-        el.style.visibility = "visible";
-        placedCb.current();
-      }
-    };
-    place();
-    const off = g.onFrame(place);
-    const resize = new ResizeObserver(place);
-    if (root.current) resize.observe(root.current);
-    return () => {
-      off();
-      resize.disconnect();
-    };
-  }, [globe, trip]);
-  return root;
-}
-
-/** Clip-reveal from the top plus an 8 px drop. Skipped under reduced motion. */
-function reveal(card: HTMLElement | null) {
-  if (!card || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  card.animate(
-    [
-      { clipPath: "inset(-30px -30px 100% -30px)", transform: "translateY(-8px)" },
-      { clipPath: "inset(-30px -30px -30px -30px)", transform: "none" },
-    ],
-    { duration: 540, easing: "cubic-bezier(.2,.75,.25,1)" },
-  );
-}
 
 /** "22.30, 114.17", for a point outside every bundled hub's radius. */
 const coordinates = (p: LatLng) => `${p.lat.toFixed(2)}, ${p.lng.toFixed(2)}`;
@@ -229,6 +136,7 @@ function OptionList({
             onClick={() => onPick(i)}
           >
             <span className="ts-head">
+              <AirlineLogo code={row.offer.segments[0].carrierCode} />
               {row.headline}
               {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
               {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
@@ -332,7 +240,8 @@ export function TicketSearch({
   const ends = endpoints(trip, outbound.result);
   const homeEnd = home && !samePoint(home.origin, trip.origin) ? placeEnd(home.from, home.origin) : ends.from;
 
-  const root = useAnchor(globe, trip, () => reveal(card.current));
+  const anchorPoints = useMemo(() => [trip.origin, trip.destination], [trip.origin, trip.destination]);
+  const { root } = useAnchor(globe, anchorPoints, () => reveal(card.current));
   const chip = useTagOnRoute(globe, trip.origin, trip.destination);
   // opening it again replays the reveal
   const wasCollapsed = useRef(collapsed);
@@ -449,9 +358,9 @@ export function TicketSearch({
             ) : null}
           </div>
           {showBack ? (
-            <RouteHeader from={ends.to} to={homeEnd} distanceKm={Math.round(distanceKm(trip.destination, homePoint))} />
+            <RouteHeader from={ends.to} to={homeEnd} distanceKm={Math.round(distanceKm(trip.destination, homePoint))} mode={backChoice?.offer.mode} />
           ) : (
-            <RouteHeader from={ends.from} to={ends.to} distanceKm={trip.distanceKm} />
+            <RouteHeader from={ends.from} to={ends.to} distanceKm={trip.distanceKm} mode={choice?.offer.mode} />
           )}
 
           <div className="ts-dates">
@@ -555,6 +464,7 @@ export function TicketSearch({
               rates={rates}
               picked={hotel}
               onPick={setHotel}
+              tabPanel
             />
           ) : showBack ? (
             <OptionList

@@ -14,9 +14,13 @@ import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
 import { RemotePlanes } from "@/components/multiplayer/remote-planes";
 import { useCursorPref } from "@/lib/cursor-pref";
+import { CurrencySetting } from "@/components/transport/currency-selector";
+import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
+import { useExchangeRates } from "@/lib/exchange-rates";
 import { LegTags } from "@/components/multiplayer/leg-tags";
 import { RiderPins } from "@/components/multiplayer/rider-pins";
-import { TripPlan } from "@/components/multiplayer/trip-plan";
+import { FloatingTripPlan } from "@/components/multiplayer/trip-plan";
+import { TripDock, type DockSpot } from "@/components/multiplayer/trip-dock";
 import { Button } from "@/components/paper-atlas";
 import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
@@ -85,6 +89,11 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   }, [landedLegs, landedOnTrip]);
   // the plan panel; folded away, each leg's ticket stub on its route opens it again
   const [planOpen, setPlanOpen] = useState(true);
+  // the bill stays open or shut as the plan folds to its dock and back; the dock stays where it was dragged
+  const [billOpen, setBillOpen] = useState(false);
+  const [dockSpot, setDockSpot] = useState<DockSpot>(null);
+  const currency = useCurrencyPref();
+  const rates = useExchangeRates();
   useRecordMember(nationalities);
 
   useErrorListener((error) => {
@@ -147,16 +156,19 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
         reloadOnRename
         tripColor={planReady ? { slot: color, onChange: (slot) => setColor(slot + 1) } : undefined}
         settings={
-          <MenuSection title="This trip">
-            <Button variant="quiet" onClick={() => setLeaving(true)}>
-              Leave trip
-            </Button>
-            {myId && myId === owner ? (
-              <Button variant="quiet" onClick={() => setEnding(true)}>
-                End trip
+          <>
+            <CurrencySetting currency={currency} rates={rates} error={false} onChange={setCurrencyPref} />
+            <MenuSection title="This trip">
+              <Button variant="quiet" onClick={() => setLeaving(true)}>
+                Leave trip
               </Button>
-            ) : null}
-          </MenuSection>
+              {myId && myId === owner ? (
+                <Button variant="quiet" onClick={() => setEnding(true)}>
+                  End trip
+                </Button>
+              ) : null}
+            </MenuSection>
+          </>
         }
       >
         <PlaceSearch globe={globe} />
@@ -165,11 +177,17 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       </NavBar>
       <RiderPins globe={globe} onOpen={() => setPlanOpen(true)} />
       <LegTags globe={globe} onOpen={() => setPlanOpen(true)} />
-      {/* below the navbar */}
       {planOpen ? (
-        <div className="absolute top-40 right-(--space-4)">
-          <TripPlan email={email} nationalities={nationalities} bookLeg={bookLeg} onMinimise={() => setPlanOpen(false)} />
-        </div>
+        <FloatingTripPlan
+          globe={globe}
+          email={email}
+          nationalities={nationalities}
+          bookLeg={bookLeg}
+          bill={{ open: billOpen, set: setBillOpen }}
+          onMinimise={() => setPlanOpen(false)}
+        />
+      ) : planReady ? (
+        <TripDock spot={dockSpot} onMove={setDockSpot} bill={{ open: billOpen, set: setBillOpen }} onExpand={() => setPlanOpen(true)} />
       ) : null}
       <AgentChat initialOpen={pipOpen} />
       {leaving ? (

@@ -65,6 +65,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     kind: offer.kind,
     price: offer.price ? { amount: offer.price.amount, currency: offer.price.currency } : null,
     carrier: first.carrier ?? null,
+    ...(first.carrierCode ? { carrierCode: first.carrierCode } : {}),
     depart: first.depart,
     arrive: last.arrive,
     durationMin: Number.isFinite(span) && span > 0 ? Math.round(span) : offer.segments.reduce((sum, s) => sum + s.durationMin, 0),

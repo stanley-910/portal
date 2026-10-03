@@ -55,6 +55,14 @@ describe("toStoredOffer", () => {
   });
 });
 
+describe("toStoredOffer carrierCode", () => {
+  it("keeps the first segment's airline code for its logo", () => {
+    const o = offer();
+    o.segments[0] = { ...o.segments[0], carrierCode: "CX" };
+    expect(toStoredOffer(o).carrierCode).toBe("CX");
+  });
+});
+
 describe("webUrlOrNull", () => {
   it("accepts only http and https", () => {
     expect(webUrlOrNull("https://a.b")).toBe("https://a.b");

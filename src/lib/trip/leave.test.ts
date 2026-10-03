@@ -40,18 +40,24 @@ describe("leaveChanges", () => {
   const leg = (from: string, to: string, createdBy: string, riders: string[], votes: Record<string, string> = {}) => ({
     from,
     to,
+    date: "2026-10-17",
     createdBy,
     riders,
     votes,
+    search: { offers: [] },
+    chosen: null,
+    createdAt: 1,
   });
+  const stay = (stop: string, guests: string[]) => ({ stop, checkIn: "2026-10-17", checkOut: "2026-10-19", guests, nightly: null, label: null });
 
-  it("removes the legs they drew and stops nobody else uses", () => {
+  it("keeps a leg they drew for the others still riding it", () => {
     const out = leaveChanges({ legs: { l1: leg("hk", "sh", "u1", ["u1", "u2"]), l2: leg("sh", "tk", "u2", ["u2"]) } }, "u1");
-    expect(out.legs).toEqual(["l1"]);
-    expect(out.stops).toEqual(["hk"]);
+    expect(out.legs).toEqual([]);
+    expect(out.riders).toEqual({ l1: ["u2"] });
+    expect(out.stops).toEqual([]);
   });
 
-  it("takes them off other legs, and drops a leg nobody rides then", () => {
+  it("drops a leg nobody rides then, and stops nothing else uses", () => {
     const out = leaveChanges(
       { legs: { l1: leg("hk", "sh", "u2", ["u1", "u2"]), l2: leg("se", "sh", "u2", ["u1"]) } },
       "u1",
@@ -59,6 +65,24 @@ describe("leaveChanges", () => {
     expect(out.riders).toEqual({ l1: ["u2"] });
     expect(out.legs).toEqual(["l2"]);
     expect(out.stops).toEqual(["se"]);
+  });
+
+  it("takes them out of stays, keeping a stay for the others and its stop", () => {
+    const out = leaveChanges(
+      { legs: { l1: leg("se", "sh", "u1", ["u1"]) }, stays: { s1: stay("sh", ["u1", "u2"]), s2: stay("tk", ["u1"]) } },
+      "u1",
+    );
+    expect(out.legs).toEqual(["l1"]);
+    expect(out.stays).toEqual({ s1: { ...stay("sh", ["u2"]), estimated: false, createdAt: 0 }, s2: null });
+    expect(out.stops.sort()).toEqual(["se", "tk"]);
+  });
+
+  it("writes a room's older stop-keyed stays out whole", () => {
+    const out = leaveChanges(
+      { members: { u1: {}, u2: {} }, legs: { l1: leg("hk", "sh", "u2", ["u1", "u2"]) }, stays: { sh: { nightly: null, label: "Flat" } }, ends: "2026-10-19" },
+      "u1",
+    );
+    expect(out.stays).toEqual({ sh: { stop: "sh", checkIn: "2026-10-17", checkOut: "2026-10-19", guests: ["u2"], nightly: null, label: "Flat", estimated: false, createdAt: 0 } });
   });
 
   it("drops their votes and messages, not Pip's or anyone else's", () => {
@@ -80,15 +104,20 @@ describe("leaveChanges", () => {
 });
 
 // The owner leaving a party of three, as the room stores it: Mei drew HK → SH (Ada rides it too), Pip drew SH → TK
-// for everyone, Mei and Ada voted, and Mei talked to Pip.
+// for everyone, Mei and Ada voted, Mei has a flat in HK to herself and shares the Jing'an one with Ada, and Mei talked
+// to Pip.
 const MEI = "acct-mei";
 const ADA = "g_ada";
 const JOON = "g_joon";
-type Json = { from: string; to: string; createdBy: string; riders: string[]; votes: Record<string, string> };
-const legs: Record<string, Json> = {
-  hk_sh: { from: "hk", to: "sh", createdBy: MEI, riders: [MEI, ADA], votes: { [MEI]: "g1", [ADA]: "g1" } },
-  se_sh: { from: "se", to: "sh", createdBy: JOON, riders: [JOON], votes: {} },
-  sh_tk: { from: "sh", to: "tk", createdBy: "pip", riders: [MEI, ADA, JOON], votes: { [MEI]: "f1" } },
+const DAY = { date: "2026-10-17", search: { offers: [] }, chosen: null, createdAt: 1 };
+const legs = {
+  hk_sh: { from: "hk", to: "sh", createdBy: MEI, riders: [MEI, ADA], votes: { [MEI]: "g1", [ADA]: "g1" }, ...DAY },
+  se_sh: { from: "se", to: "sh", createdBy: JOON, riders: [JOON], votes: {}, ...DAY },
+  sh_tk: { from: "sh", to: "tk", createdBy: "pip", riders: [MEI, ADA, JOON], votes: { [MEI]: "f1" }, ...DAY },
+};
+const stays = {
+  flat: { stop: "hk", checkIn: "2026-10-15", checkOut: "2026-10-17", guests: [MEI], nightly: null, label: "Flat" },
+  jingan: { stop: "sh", checkIn: "2026-10-17", checkOut: "2026-10-19", guests: [MEI, ADA], nightly: null, label: "Jing'an" },
 };
 const thread = [
   { id: "m1", author: { kind: "member", id: MEI } },
@@ -104,10 +133,10 @@ function room(keys: { stays?: boolean; thread?: boolean } = { stays: true, threa
     legs: new LiveMap(
       Object.entries(legs).map(([id, l]) => [
         id,
-        new LiveObject({ ...l, date: "2026-10-17", search: { id: "s", status: "done" as const, offers: [] }, votes: new LiveMap(Object.entries(l.votes)), chosen: null, createdAt: 1 }),
+        new LiveObject({ ...l, search: { id: "s", status: "done" as const, offers: [] }, votes: new LiveMap(Object.entries(l.votes)) }),
       ]),
     ),
-    ...(keys.stays ? { stays: new LiveMap([["hk", new LiveObject({ nightly: null, label: "Flat" })], ["sh", new LiveObject({ nightly: null, label: "Jing'an" })]]) } : {}),
+    ...(keys.stays ? { stays: new LiveMap(Object.entries(stays).map(([id, s]) => [id, new LiveObject(s)])) } : {}),
     ...(keys.thread
       ? { thread: new LiveList(thread.map((m, i) => new LiveObject({ ...m, at: i, text: "", state: "done" as const, cards: [] } as never))) }
       : {}),
@@ -116,15 +145,22 @@ function room(keys: { stays?: boolean; thread?: boolean } = { stays: true, threa
 
 describe("the owner leaving while others stay", () => {
   const metadata = { members: [MEI, ADA, JOON], title: "HK to Tokyo" };
-  const changes = leaveChanges({ legs, thread } as LeaveInput, MEI);
+  const changes = leaveChanges({ legs, stays, thread } as LeaveInput, MEI);
 
   it("passes the trip to Ada, who joined next", () => {
     expect(tripOwner(metadata)).toBe(MEI);
     expect(afterLeave(metadata, MEI)).toEqual({ members: [ADA, JOON], owner: ADA });
   });
 
-  it("takes Mei's leg, seat, votes and messages, and leaves Pip's leg and the others' things", () => {
-    expect(changes).toEqual({ legs: ["hk_sh"], riders: { sh_tk: [ADA, JOON] }, votes: ["sh_tk"], stops: ["hk"], messages: ["m1"] });
+  it("takes Mei off legs and stays, and keeps everything the others are on", () => {
+    expect(changes).toEqual({
+      legs: [],
+      riders: { hk_sh: [ADA], sh_tk: [ADA, JOON] },
+      votes: ["hk_sh", "sh_tk"],
+      stays: { flat: null, jingan: { ...stays.jingan, guests: [ADA], estimated: false, createdAt: 0 } },
+      stops: [],
+      messages: ["m1"],
+    });
   });
 
   it("applies to the stored plan, recording the new owner", () => {
@@ -132,10 +168,12 @@ describe("the owner leaving while others stay", () => {
     applyLeave(root, changes, MEI, ADA);
     const after = root.toJSON();
     expect(Object.keys(after.members)).toEqual([ADA, JOON]);
-    expect(Object.keys(after.legs)).toEqual(["se_sh", "sh_tk"]);
+    expect(Object.keys(after.legs)).toEqual(["hk_sh", "se_sh", "sh_tk"]);
+    expect(after.legs.hk_sh).toMatchObject({ riders: [ADA], votes: { [ADA]: "g1" } });
     expect(after.legs.sh_tk).toMatchObject({ riders: [ADA, JOON], votes: {} });
-    expect(Object.keys(after.stops)).toEqual(["se", "sh", "tk"]);
-    expect(Object.keys(after.stays ?? {})).toEqual(["sh"]);
+    expect(Object.keys(after.stops)).toEqual(["hk", "se", "sh", "tk"]);
+    expect(Object.keys(after.stays ?? {})).toEqual(["jingan"]);
+    expect(after.stays?.jingan?.guests).toEqual([ADA]);
     expect(after.thread?.map((m) => m.id)).toEqual(["m2", "m3"]);
     expect(after.owner).toBe(ADA);
   });

@@ -33,7 +33,7 @@ describe("mapOffers", () => {
     expect(out.map((o) => o.id)).toEqual(["duffel:off_0000AoqGfP1mD0Kp3cHk2", "duffel:off_0000AoqGfP1mD0Kp3cHk1"]);
     const [eastern, cathay] = out;
     expect(eastern).toMatchObject({ provider: "duffel", kind: "live", price: { amount: 268, currency: "USD" } });
-    expect(eastern.segments[0]).toMatchObject({ carrier: "Shanghai Airlines", number: "MU5062", durationMin: 140 });
+    expect(eastern.segments[0]).toMatchObject({ carrier: "Shanghai Airlines", carrierCode: "FM", number: "MU5062", durationMin: 140 });
     expect(eastern.attribution).toBe("Duffel — live fare from China Eastern; operated by Shanghai Airlines");
     expect(cathay.segments[0]).toMatchObject({
       depart: "2026-11-15T08:00:00+08:00",
@@ -41,6 +41,14 @@ describe("mapOffers", () => {
       durationMin: 155,
       from: { name: "Hong Kong", iata: "HKG", country: "HK", lat: 22.308 },
     });
+  });
+  it("takes the logo's airline code from the airline it names, and none when that airline has no code", () => {
+    expect(mapOffers(offers, query, "HKG", "PVG")[1].segments[0].carrierCode).toBe("CX");
+    const input = validFixture();
+    input.slices[0].segments[0] = { ...input.slices[0].segments[0], operating_carrier: { name: "Cathay Pacific", iata_code: null } } as never;
+    const [offer] = mapOffers([input], query, "HKG", "PVG");
+    expect(offer.segments[0].carrier).toBe("Cathay Pacific");
+    expect(offer.segments[0]).not.toHaveProperty("carrierCode");
   });
   it("prices per passenger and drops offers on another day", () => {
     expect(mapOffers(offers, { ...query, passengers: 2 }, "HKG", "PVG")[0].price?.amount).toBe(134);

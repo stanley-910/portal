@@ -1,18 +1,16 @@
-.hotel-search { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: var(--line-control) solid var(--line); }
-.hotel-heading { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
-.hotel-heading h2 { margin: 0; font-family: var(--font-fell-sc); font-size: 17px; line-height: 19px; font-weight: 400; }
-.hotel-heading span, .hotel-row > div > span, .hotel-row small { display: block; color: var(--ink-muted); font-size: 11px; line-height: 15px; }
-.hotel-occupants { display: flex; align-items: center; gap: 5px; color: var(--ink-muted); font-size: 11px; }
-.hotel-occupants select { min-height: 32px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); }
-.hotel-filters { display: flex; gap: 4px; }
-.hotel-filters button { min-height: 32px; flex: 1; padding: 3px 4px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-tag); background: transparent; font-size: 11px; }
-.hotel-filters button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
-.hotel-rows { display: flex; flex-direction: column; gap: 2px; max-height: 190px; overflow-y: auto; }
-.hotel-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; width: 100%; padding: 7px 6px; border: var(--line-control) solid transparent; border-radius: var(--radius-tag); background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
-.hotel-row:hover { background: var(--control-hover); }
-.hotel-row[aria-pressed="true"] { border-color: var(--ink); background: var(--control-hover); }
-.hotel-row .ts-badge { display: inline-block; margin-left: 4px; }
-.hotel-row strong { display: block; font-size: 13px; line-height: 16px; }
-.hotel-price { text-align: right; white-space: nowrap; }
-.hotel-price small { font-size: 10px; }
-.hotel-book { display: inline-block; margin-top: 2px; color: var(--ink); font-size: 11px; text-decoration: underline; }
+/* The stays section of a ticket card: built from the card's own parts (ticket-search.css), with only what's new here. */
+.hs { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: var(--line-control) solid var(--line); }
+.hs-caption { margin: 0; }
+.hs-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px; }
+.ts .hs-field { cursor: pointer; }
+.ts .hs-field select { width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--font-sans); appearance: none; cursor: inherit; text-overflow: ellipsis; }
+.ts .hs-field select[data-empty] { font-weight: 400; color: var(--ink-muted); }
+.ts .hs-field:focus-within { border-color: var(--ink); }
+.hs-rows { max-height: 220px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+.hs-option { display: grid; }
+/* a photo, when the provider has one, sits at the row's left across its lines */
+.hs-row:has(.hs-photo) { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.hs-row:has(.hs-photo) .ts-desc { grid-column: 2 / -1; }
+.hs-photo { grid-row: span 2; width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius-tag); }
+.hs-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs-book { justify-self: end; margin: -2px 6px 4px 0; font-size: 11px; }
