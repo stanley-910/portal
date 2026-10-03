@@ -8,6 +8,7 @@ import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { pipPlace } from "@/components/agent/pip-arrival";
 import { PipSprite } from "@/components/agent/pip-sprite";
 import { AGENT_NAME } from "@/lib/agent/types";
+import { CURRENCIES, type Currency } from "@/lib/currency";
 
 // Pip on the home globe, before there's a trip: the first message starts a solo trip with it, and Pip answers
 // there. Friends join from the trip's URL afterwards.
@@ -30,7 +31,9 @@ export function HomePip({ account }: { account: boolean }) {
   const [open, setOpen] = useState(false);
   const openAuth = useOpenAuth();
   const send = async (text: string) => {
-    if (account) return startTrip(text);
+    const selected = window.localStorage.getItem("portal-currency");
+    const currency: Currency = CURRENCIES.includes(selected as Currency) ? selected as Currency : "USD";
+    if (account) return startTrip(text, currency);
     setPendingAction({ type: "pip", text });
     openAuth("signup");
   };
@@ -59,9 +62,11 @@ export function HomePip({ account }: { account: boolean }) {
 }
 
 /** Starts the trip; the action redirects into it, which is not a failure. */
-export async function startTrip(text: string) {
+export async function startTrip(text: string, selectedCurrency?: Currency) {
   try {
-    await startTripWithPip(text);
+    const stored = window.localStorage.getItem("portal-currency");
+    const currency = selectedCurrency ?? (CURRENCIES.includes(stored as Currency) ? stored as Currency : "USD");
+    await startTripWithPip(text, currency);
   } catch (error) {
     if (isRedirect(error)) return;
     throw error;

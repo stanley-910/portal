@@ -54,7 +54,7 @@ function TripScreen({ name, email, account, nationalities, hostId }: Me & { host
   const planLegs = usePlanLegs();
   const landedMode = planLegs?.find((leg) => leg.id === landedLegs.at(-1))?.chosen?.mode ?? "flight";
   useEffect(() => globe.current?.setVehicle(landedMode), [landedMode]);
-  useRecordMember();
+  useRecordMember(nationalities);
 
   useErrorListener((error) => {
     if (error.context.type === "ROOM_CONNECTION_ERROR" && error.context.code === 4005) setFull(true);

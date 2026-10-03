@@ -10,6 +10,7 @@ import { describePlan, describeThread, handlesFor, showDate, type PlanJson } fro
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { liveblocks } from "@/lib/liveblocks/server";
+import type { Currency } from "@/lib/currency";
 
 // One run of Pip in one trip room (harness G9): every message in the thread is to Pip. Posting it takes the room's
 // lease and puts Pip's empty reply under it in the same write; the run answers, writes the reply and its cards into
@@ -30,6 +31,7 @@ const MAX_OUTPUT_TOKENS = 1_200;
 const DEBUG = process.env.AGENT_DEBUG === "1";
 /** How often streamed text is broadcast. */
 const STREAM_MS = 120;
+const OFFICIAL_ENTRY_REMINDER = "Check official government sources before travelling.";
 
 const SYSTEM = `You are ${AGENT_NAME}, the travel agent inside Portal, a shared globe where friends plan how to get between places in Asia.
 Several people share this trip and see everything you write and change, live on their globes.
@@ -46,6 +48,7 @@ How to work:
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
+- For visa, passport or entry questions, call check_entry for the relevant leg. Compare every party member with a passport recorded in the trip, say who has no passport recorded, and end with the official-source reminder.
 - For who pays what, call get_split and quote it. Never add up costs yourself.
 - Stays: you never estimate or look up what a stay costs. When someone says one ("our Shanghai flat is HKD 900 a night"), record it with set_stay_cost.
 - Someone leaving early ("Mei leaves after Shanghai"): set_leaves to the day they go, and take them off the legs after it with set_riders. If they say how they get home, add that leg too.
@@ -59,13 +62,19 @@ const today = () => new Date().toISOString().slice(0, 10);
 const newId = () => crypto.randomUUID().slice(0, 8);
 
 /** Pip's turn, claimed when the message that started it was posted. */
-export type Claim = { messageId: string; replyId: string; runId: string; overLimit: boolean };
+export type AgentRequester = { nationalities: string[]; currency: Currency };
+export type Claim = { messageId: string; replyId: string; runId: string; overLimit: boolean; requester: AgentRequester };
 
 /**
  * Appends a member's message and, in the same write, Pip's empty reply and the room's lease, so people see Pip
  * start as their message lands. `claim` is null when Pip is mid-run; it says so in the thread instead.
  */
-export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim | null }> {
+export async function postToPip(
+  roomId: string,
+  authorId: string,
+  text: string,
+  requester: AgentRequester,
+): Promise<{ messageId: string; claim: Claim | null }> {
   const messageId = newId();
   let claim: Claim | null = null;
   await liveblocks().mutateStorage(roomId, ({ root }) => {
@@ -90,13 +99,13 @@ export async function postToPip(roomId: string, authorId: string, text: string):
     const overLimit = runs >= TRIP_RUNS_PER_DAY;
     if (!overLimit) root.set("agentUsage", { day, runs: runs + 1 });
     thread.push(new LiveObject(reply));
-    claim = { messageId, replyId, runId, overLimit };
+    claim = { messageId, replyId, runId, overLimit, requester };
   });
   return { messageId, claim };
 }
 
 /** Answers the message a claim was made for. Resolves when the reply is written. */
-export async function runAgent(roomId: string, { messageId, replyId, runId, overLimit }: Claim, askedBy: string) {
+export async function runAgent(roomId: string, { messageId, replyId, runId, overLimit, requester }: Claim, askedBy: string) {
   const lb = liveblocks();
 
   const presence = (activity: string | null, cursor: { lat: number; lng: number } | null = null) =>
@@ -178,7 +187,7 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
         const asked = plan.thread?.find((m) => m.id === messageId);
         const result = streamText({
           model: deepseek(MODEL),
-          system: `${SYSTEM}\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
+          system: `${SYSTEM}\n\nThe member asking this question holds these passport(s): ${requester.nationalities.length ? requester.nationalities.join(", ") : "none recorded"}.\nTheir selected display currency is ${requester.currency}.\nUse this information only for this member's question and do not assume it applies to other members.\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
           prompt: `Recent thread:\n${describeThread(plan, handles)}\n\nAnswer this message from ${plan.members?.[askedBy]?.name ?? "a member"} (${handles.member.get(askedBy) ?? "?"}):\n${asked?.text ?? ""}`,
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
@@ -215,7 +224,7 @@ export async function runAgent(roomId: string, { messageId, replyId, runId, over
 
     clearInterval(ticker);
     await writes;
-    const final = text.trim() || "Done.";
+    const final = `${text.trim() || "Done."}\n\n${OFFICIAL_ENTRY_REMINDER}`;
     await patchReply((m) => m.update({ text: final, state: "done" }));
   } catch (error) {
     clearInterval(ticker);
@@ -324,4 +333,3 @@ function citiesIn(text: string): string[] {
 
 /** A week from today, YYYY-MM-DD: a date to compare fares on when nobody gave one. */
 const nextWeek = () => new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
-

@@ -4,6 +4,7 @@ import { shallow, useEventListener, useOthers, useRoom, useStorage } from "@live
 import { useCallback, useMemo, useState } from "react";
 
 import { AGENT_ID, type ThreadMessage } from "@/lib/agent/types";
+import { CURRENCIES, type Currency } from "@/lib/currency";
 
 // The trip's thread as the chat panel reads it. Messages live in Storage; Pip's text streams by broadcast
 // until its reply is written, so this merges the two. Only the streaming message is a new object per token; the
@@ -49,10 +50,12 @@ export function useSendMessage() {
   const tripId = room.id.slice("trip:".length);
   return useCallback(
     async (text: string) => {
+      const selected = window.localStorage.getItem("portal-currency");
+      const currency: Currency = CURRENCIES.includes(selected as Currency) ? selected as Currency : "USD";
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tripId, text }),
+        body: JSON.stringify({ tripId, text, currency }),
       });
       // asking Pip needs an account; guests get this instead of a reply
       if (res.status === 401) throw new Error(SIGN_IN_TO_ASK);
