@@ -17,7 +17,8 @@ const FH = 10;
 /** The canvas in cells: the flag, its outline, and a cell below for the flutter. */
 const W = FW + 2;
 const H = FH + 3;
-const SCALE = 2;
+/** CSS px per cell: small enough to sit on a city name's line. */
+const SCALE = 1;
 const TICK_MS = 40;
 /** Ticks to dither in, and to flutter after. */
 const REVEAL = 8;

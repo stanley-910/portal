@@ -2,6 +2,9 @@
 
 /* as tall as the room between the nav bar and Pip (`useAnchor`), then it scrolls */
 .tp { max-height: var(--anchor-max-h, calc(100dvh - 12rem)); overflow-y: auto; }
+/* wider than the solo ticket, so a leg's two cities print as tall as their flags and still share one line */
+.ts.tp { width: 316px; }
+.tp .ts-city { font-size: 16px; }
 /* the card scrolls rather than squeeze its header and legs when one opens */
 .tp > * { flex-shrink: 0; }
 /* the card, and the panels that open beside it (BesidePanel): the bill, a leg's hotel search */
