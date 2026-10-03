@@ -222,12 +222,7 @@
       ],
       "durationMin": 59,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
     },
     {
       "from": "shanghai-hongqiao",
@@ -238,12 +233,7 @@
       ],
       "durationMin": 69,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
     },
     {
       "from": "shanghai-hongqiao",
@@ -254,12 +244,7 @@
       ],
       "durationMin": 66,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
     },
     {
       "from": "shanghai-hongqiao",
@@ -270,12 +255,7 @@
       ],
       "durationMin": 49,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
     },
     {
       "from": "shanghai-hongqiao",
@@ -286,12 +266,7 @@
       ],
       "durationMin": 69,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
     },
     {
       "from": "shanghai-hongqiao",
@@ -302,12 +277,7 @@
       ],
       "durationMin": 59,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
     },
     {
       "from": "shanghai-hongqiao",
@@ -318,12 +288,7 @@
       ],
       "durationMin": 45,
       "tz": "Asia/Shanghai",
-      "source": "https://www.trip.com/trains/china/route/shanghai-to-hangzhou/",
-      "fare": {
-        "amount": 73,
-        "currency": "CNY",
-        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
-      }
+      "source": "https://www.trip.com/trains/china/route/shanghai-to-hangzhou/"
     },
     {
       "from": "hangzhou-east",

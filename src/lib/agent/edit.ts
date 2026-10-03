@@ -20,7 +20,8 @@ import { runLegSearch } from "@/lib/trip/search-leg";
 export type PlaceRef = { stop: string } | { place: string } | { at: Stop };
 
 export type EditOp =
-  | { op: "add_leg"; from: PlaceRef; to: PlaceRef; date: string; riders: string[] }
+  /** `createdAt` orders it among legs on the same day; only code sets it, to keep a split leg's place in the trip. */
+  | { op: "add_leg"; from: PlaceRef; to: PlaceRef; date: string; riders: string[]; createdAt?: number }
   | { op: "set_date"; leg: string; date: string }
   | { op: "set_riders"; leg: string; riders: string[] }
   | { op: "remove_leg"; leg: string }
@@ -128,6 +129,8 @@ export async function editPlan(
   agentId: string,
   until?: number,
   into?: Changeset,
+  /** All the ops or none: one refused, as planned or as written, and nothing changes. */
+  atomic = false,
 ): Promise<EditResult> {
   const changeset = into ?? newChangeset();
   const refused: Refusal[] = [];
@@ -146,7 +149,7 @@ export async function editPlan(
   };
   // Resolve everything before writing, so a refusal never leaves half an op behind.
   type Planned =
-    | { kind: "add"; op: number; from: string | Stop; to: string | Stop; date: string; riders: string[] }
+    | { kind: "add"; op: number; from: string | Stop; to: string | Stop; date: string; riders: string[]; createdAt?: number }
     | { kind: "date"; op: number; leg: string; date: string }
     | { kind: "riders"; op: number; leg: string; riders: string[] }
     | { kind: "remove"; op: number; leg: string }
@@ -194,7 +197,7 @@ export async function editPlan(
         const from = ref(op.from);
         const to = ref(op.to);
         const who = riders(op.riders);
-        if (from && to && who) planned.push({ kind: "add", op: i, from, to, date: op.date, riders: who });
+        if (from && to && who) planned.push({ kind: "add", op: i, from, to, date: op.date, riders: who, createdAt: op.createdAt });
         return;
       }
       case "set_date": {
@@ -258,7 +261,7 @@ export async function editPlan(
     }
   });
 
-  if (!planned.length) return { applied, refused, changesetId: null, marks };
+  if (!planned.length || (atomic && refused.length)) return { applied, refused, changesetId: null, marks };
   const changesetId = changeset.id;
   const created: Record<string, Stop> = {};
   let late = false;
@@ -268,6 +271,18 @@ export async function editPlan(
     if (until !== undefined && Date.now() > until) return void (late = true);
     const members = root.get("members");
     const gone = (riders: string[]) => riders.filter((r) => !members.get(r)).map((r) => h.member.get(r) ?? r);
+    // all or none: check what the writes below would refuse before writing any of them
+    if (atomic) {
+      for (const p of planned) {
+        const leg = "leg" in p ? root.get("legs").get(p.leg) : undefined;
+        if ("leg" in p && (!leg || leg.get("booking"))) {
+          refused.push({ op: p.op, code: leg ? "LOCKED" : "UNKNOWN_HANDLE", reason: `${h.leg.get(p.leg) ?? "That leg"} ${leg ? "is being booked" : "is gone"}, so nothing changed.`, next: "Call get_trip and try again." });
+        } else if ((p.kind === "add" || p.kind === "riders") && gone(p.riders).length) {
+          refused.push({ op: p.op, code: "UNKNOWN_HANDLE", reason: `${gone(p.riders).join(", ")} isn't in the trip any more, so nothing changed.`, next: "Call get_trip and use its handles." });
+        }
+      }
+      if (refused.length) return;
+    }
     const stops = root.get("stops");
     const legs = root.get("legs");
     const stopName = (id: string) => created[id]?.name ?? stops.get(id)?.get("name") ?? plan.stops?.[id]?.name ?? "?";
@@ -415,7 +430,7 @@ export async function editPlan(
           id,
           new LiveObject({
             from, to, date: p.date, createdBy: agentId, riders: p.riders, search,
-            votes: new LiveMap<string, string>(), chosen: null, createdAt: Date.now(),
+            votes: new LiveMap<string, string>(), chosen: null, createdAt: p.createdAt ?? Date.now(),
           }),
         );
         searches.push({ legId: id, searchId: search.id });

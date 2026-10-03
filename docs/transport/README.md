@@ -138,7 +138,7 @@ curl --get 'http://localhost:3000/api/transport/search' \
   are unknown rather than inventing airports.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical
   departure times with a cited source. A row without a cited time or fare isn't seeded.
-- China rail seed trains can carry a cited typical second-class fare (`fare` in the seed). Priced rows show the
+- China rail seed trains can carry a published second-class fare (`fare` in the seed; the low end where the source gives a range). Priced rows show the
   fare with the Estimated badge, because real fares vary by train and date; rows without a source stay unpriced.
   A Hong Kong search also returns trains from Shenzhen North and Futian, a border crossing away.
 - `cross-border` models frequent ground links no timetable covers: Hong Kong (Admiralty) ↔ Shenzhen North by MTR

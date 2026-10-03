@@ -18,7 +18,7 @@ export interface SeedTrain {
   durationMin: number;
   tz: "Asia/Shanghai" | "Asia/Hong_Kong";
   source: string;
-  /** Typical second-class adult fare; real fares vary by train and date. */
+  /** A published second-class adult fare (the low end where the source gives a range); real fares vary by train and date. */
   fare?: { amount: number; currency: "CNY" | "HKD"; source: string };
 }
 

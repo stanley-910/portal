@@ -54,6 +54,22 @@ describe("search cache", () => {
     expect(run).toHaveBeenCalledTimes(4);
   });
 
+  it("keys on country and hands each caller its own copy", async () => {
+    expect(searchKey({ ...q, from: { ...q.from, country: "CN" } })).not.toBe(searchKey(q));
+    const run = vi.fn(async () => ({ offers: [{ price: 1 }], errors: [] }));
+    const cache = createSearchCache(run, { ttlMs: 1000, errorTtlMs: 100, max: 2 });
+    (await cache(q, signal())).offers[0].price = 999;
+    expect((await cache(q, signal())).offers[0].price).toBe(1);
+  });
+
+  it("starts nothing for a caller that already gave up", async () => {
+    const { run, cache } = setup();
+    const stop = new AbortController();
+    stop.abort(new Error("gone"));
+    await expect(cache(q, stop.signal)).rejects.toThrow("gone");
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("lets one caller stop waiting without cancelling the shared search", async () => {
     const { run, cache } = setup();
     const stop = new AbortController();

@@ -49,7 +49,7 @@ describe("china-rail provider", () => {
     const shenzhen = out.filter((o) => o.segments[0].from.name === "Shenzhen North");
     expect(shenzhen.map((o) => o.segments[0].number)).toEqual(["G700", "G270", "G902", "G100", "G386"]);
     expect(shenzhen[0].price).toMatchObject({ amount: 878.5, currency: "CNY" });
-    expect(shenzhen[0].attribution).toMatch(/second-class fare/);
+    expect(shenzhen[0].attribution).toMatch(/Second-class fare as published/);
   });
 
   it("leaves a train without a sourced fare unpriced", async () => {

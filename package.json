@@ -21,7 +21,8 @@
     "srt:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-srt.mts",
     "airlines:snapshot": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-airline-logos.mts",
     "db:migrate": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
-    "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts"
+    "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
+    "eval:pip": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^3.0.58",

@@ -15,7 +15,7 @@ type Entry<R> = { at: number; ttl: number; value: Promise<R> };
 /** One search's identity: places by position and ids, never by display name. */
 export function searchKey(q: SearchQuery): string {
   const place = (p: SearchQuery["from"]) => [
-    p.lat.toFixed(4), p.lng.toFixed(4), p.iata ?? "",
+    p.lat.toFixed(4), p.lng.toFixed(4), p.iata ?? "", p.country ?? "",
     Object.entries(p.providerIds ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join(","),
   ].join("|");
   return [place(q.from), place(q.to), q.date, [...q.modes].sort().join(","), q.passengers, q.currency.toUpperCase()].join("~");
@@ -33,6 +33,7 @@ export function createSearchCache<R extends { errors: readonly unknown[] }>(
   const now = opts.now ?? Date.now;
   const entries = new Map<string, Entry<R>>();
   const cached = (query: SearchQuery, signal: AbortSignal): Promise<R> => {
+    if (signal.aborted) return Promise.reject(signal.reason);
     const key = searchKey(query);
     const hit = entries.get(key);
     if (hit && now() - hit.at < hit.ttl) return untilAborted(hit.value, signal);
@@ -50,11 +51,12 @@ export function createSearchCache<R extends { errors: readonly unknown[] }>(
   return cached;
 }
 
+/** Each caller gets its own copy, so one changing an offer can't change what the next one is given. */
 function untilAborted<R>(value: Promise<R>, signal: AbortSignal): Promise<R> {
   if (signal.aborted) return Promise.reject(signal.reason);
   return new Promise<R>((resolve, reject) => {
     const onAbort = () => reject(signal.reason);
     signal.addEventListener("abort", onAbort, { once: true });
-    value.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+    value.then((result) => resolve(structuredClone(result)), reject).finally(() => signal.removeEventListener("abort", onAbort));
   });
 }

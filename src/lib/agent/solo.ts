@@ -3,7 +3,7 @@ import { describeRoutes, optimize, OPTIMIZE_INSTRUCTION } from "./optimize";
 import "server-only";
 
 import { deepseek } from "@ai-sdk/deepseek";
-import { isStepCount, streamText, tool } from "ai";
+import { isStepCount, streamText, tool, type TextStreamPart, type ToolSet } from "ai";
 import { z } from "zod";
 
 import { dateIn } from "@/lib/agent/dates";
@@ -181,7 +181,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
         date: date.optional(),
         max_fare: z.number().positive().optional().describe("Per-person ceiling in `currency`, only if they gave a number"),
         currency: z.string().regex(/^[A-Z]{3}$/).default("USD").describe("The currency they talk in, e.g. CNY or HKD"),
-        arrive_near: z.string().optional().describe("An ISO time to arrive close to, e.g. when a friend gets in"),
+        arrive_near: z.string().optional().describe("A time to arrive close to, e.g. when a friend gets in: 2026-10-20T19:30 local where they arrive"),
       }),
       execute: async (input) => {
         const onGlobe = input.leg ? state.trip[input.leg - 1] : undefined;
@@ -301,8 +301,13 @@ export type SoloInput = {
   nationalities: string[];
 };
 
-/** Runs one reply, calling `emit` for each event as it happens. Never throws: a failure ends in a "failed" event. */
-export async function runSolo({ messages, trip, name, nationalities }: SoloInput, emit: Emit, signal: AbortSignal) {
+/**
+ * Runs one reply, calling `emit` for each event as it happens. Never throws: a failure ends in a "failed" event.
+ * `observe` sees every raw model stream part, for evals.
+ */
+export async function runSolo(
+  { messages, trip, name, nationalities }: SoloInput, emit: Emit, signal: AbortSignal, observe?: (part: TextStreamPart<ToolSet>) => void,
+) {
   const today = new Date().toISOString().slice(0, 10);
   let text = "";
   const state: SoloState = { trip, nationalities, meetups: new Map() };
@@ -331,6 +336,7 @@ export async function runSolo({ messages, trip, name, nationalities }: SoloInput
         abortSignal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
       });
       for await (const part of result.stream) {
+        observe?.(part);
         if (part.type === "text-delta") {
           started = true;
           write(part.text);

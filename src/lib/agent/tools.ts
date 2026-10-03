@@ -31,8 +31,8 @@ export type ToolContext = {
   agentId: string;
   today: string;
   askedBy: string;
-  /** Re-reads Storage; tools call it so they never act on a stale plan. */
-  load: () => Promise<{ plan: PlanJson; handles: Handles }>;
+  /** Reads Storage. Reads a moment apart may share one; a tool that changes the trip passes `fresh`. */
+  load: (opts?: { fresh?: boolean }) => Promise<{ plan: PlanJson; handles: Handles }>;
   addCard: (card: ThreadCard) => Promise<void>;
   /** What Pip is doing, beside its cursor, and where on the globe it's looking. */
   activity: (text: string, at?: { lat: number; lng: number }) => void;
@@ -169,7 +169,7 @@ export function agentTools(ctx: ToolContext) {
         for (const offer of Object.values(l.votes ?? {})) votes.set(offer, (votes.get(offer) ?? 0) + 1);
         const options = ranked(l.search.offers).map((o, i) => {
           const price = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
-          const time = o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`;
+          const time = `${o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`}${o.departs ? ` ${o.departs}→${o.arrives}` : ""}`;
           const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
@@ -277,7 +277,7 @@ export function agentTools(ctx: ToolContext) {
       }),
       execute: async ({ leg, option, accept_price }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
-        const { plan, handles } = await ctx.load();
+        const { plan, handles } = await ctx.load({ fresh: true });
         const legId = handles.id.get(leg);
         const l = legId ? plan.legs?.[legId] : undefined;
         if (!legId || !l) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
@@ -307,7 +307,7 @@ export function agentTools(ctx: ToolContext) {
           return { refused: result.code, reason: result.message, next: result.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option from get_leg_options." : "Tell them plainly." };
         }
         await ctx.addCard({ type: "checkout", legId });
-        const after = (await ctx.load()).plan.legs?.[legId]?.booking;
+        const after = (await ctx.load({ fresh: true })).plan.legs?.[legId]?.booking;
         return {
           status: "settled",
           booking: after ? bookingLine(after, plan, handles) : result.mode,
@@ -332,7 +332,7 @@ export function agentTools(ctx: ToolContext) {
       inputSchema: z.object({ leg: z.string().describe("Leg handle from get_trip, e.g. L2") }),
       execute: async ({ leg }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
-        const { plan, handles } = await ctx.load();
+        const { plan, handles } = await ctx.load({ fresh: true });
         const legId = handles.id.get(leg);
         if (!legId || !plan.legs?.[legId]) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
         const result = await cancelSettle(ctx.roomId, legId, { id: ctx.askedBy, name: plan.members?.[ctx.askedBy]?.name ?? null, email: null });
@@ -348,7 +348,7 @@ export function agentTools(ctx: ToolContext) {
         max_fare: z.number().positive().optional().describe("Per-person ceiling in `currency`, only if someone gave a number"),
         currency: z.string().regex(/^[A-Z]{3}$/).optional().describe("Currency to total in; defaults to the asker's display currency"),
         arrive_with: z.string().optional().describe("Another leg handle whose chosen option's arrival to line up with"),
-        arrive_near: z.string().optional().describe("Or an ISO time to arrive close to, e.g. 2026-10-20T19:30:00+08:00"),
+        arrive_near: z.string().optional().describe("Or a time to arrive close to: 2026-10-20T19:30 local where they arrive, or with an offset"),
       }),
       execute: async (input) => {
         const { plan, handles } = await ctx.load();
@@ -390,7 +390,7 @@ export function agentTools(ctx: ToolContext) {
       }),
       execute: async (input) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
-        const { plan, handles } = await ctx.load();
+        const { plan, handles } = await ctx.load({ fresh: true });
         const id = handles.id.get(input.leg);
         const leg = id ? plan.legs?.[id] : undefined;
         if (!leg) return { refused: "UNKNOWN_HANDLE", reason: `${input.leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
@@ -398,11 +398,12 @@ export function agentTools(ctx: ToolContext) {
         if (leg.booking) return { refused: "LOCKED", reason: `${input.leg} is being booked, so it can't change.`, next: "Ask a rider to cancel the settle first." };
         const via = resolvePlace(input.via);
         if ("refusal" in via) return { refused: via.refusal.code, reason: via.refusal.reason, next: via.refusal.next };
-        const ops = routeOps(input.leg, leg.riders.map((r) => handles.member.get(r)!).filter(Boolean), leg.date,
-          handles.stop.get(leg.from)!, handles.stop.get(leg.to)!, { at: via.stop }, input.riders);
+        const ops = routeOps({ leg: input.leg, riders: leg.riders.map((r) => handles.member.get(r)!).filter(Boolean), date: leg.date,
+          from: handles.stop.get(leg.from)!, to: handles.stop.get(leg.to)!, createdAt: leg.createdAt }, { at: via.stop }, input.riders);
         if ("refused" in ops) return ops;
         look("rerouting", plan.stops?.[leg.from]);
-        const result = await editPlan(ctx.roomId, plan, handles, ops, ctx.agentId, ctx.until);
+        // all or nothing, so the trip never ends up with the old leg and the new ones, or with neither
+        const result = await editPlan(ctx.roomId, plan, handles, ops, ctx.agentId, ctx.until, undefined, true);
         ctx.marks(result.marks);
         if (result.applied.length && result.changesetId) {
           await ctx.addCard({ type: "changes", changesetId: result.changesetId, lines: result.applied, undone: false });
@@ -417,7 +418,7 @@ export function agentTools(ctx: ToolContext) {
       inputSchema: z.object({ ops: z.array(editOp).min(1) }),
       execute: async ({ ops }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
-        const { plan, handles } = await ctx.load();
+        const { plan, handles } = await ctx.load({ fresh: true });
         const wait = (ms: number) => new Promise((done) => setTimeout(done, Math.min(ms, Math.max(0, ctx.until - Date.now() - 1000))));
         // One op at a time, in order, so everyone watches the trip built piece by piece: the saucer flies to where it
         // goes, the change lands under it, and it stays a beat before the next. Every op reads the same snapshot, as
@@ -517,7 +518,7 @@ export function agentTools(ctx: ToolContext) {
       inputSchema: z.object({ option: z.string().describe("P1, P2 or P3 from the latest meet-up card in the thread") }),
       execute: async ({ option }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
-        const { plan, handles } = await ctx.load();
+        const { plan, handles } = await ctx.load({ fresh: true });
         // the latest meet-up card with this option, from this run or an earlier one: no need to search again
         const message = [...(plan.thread ?? [])].reverse().find((m) => m.cards.some((c) => c.type === "meetup" && c.options.some((o) => o.id === option)));
         const card = message?.cards.find((c): c is Extract<ThreadCard, { type: "meetup" }> => c.type === "meetup");
@@ -556,9 +557,14 @@ export function meetupOps(o: MeetupOption, handles: Handles): EditOp[] {
   }));
 }
 
-/** The edits that split a leg at `via`: the riders taking the route get two new legs; anyone else keeps the old one. */
+/**
+ * The edits that split a leg at `via`: the riders taking the route get two new legs; anyone else keeps the old one.
+ * The new legs take the old one's place among the day's legs, so whatever comes after it still does.
+ */
 export function routeOps(
-  leg: string, onLeg: string[], date: string, from: string, to: string, via: PlaceRef, riders?: string[],
+  { leg, riders: onLeg, date, from, to, createdAt }: { leg: string; riders: string[]; date: string; from: string; to: string; createdAt: number },
+  via: PlaceRef,
+  riders?: string[],
 ): EditOp[] | { refused: string; reason: string; next: string } {
   const moving = riders?.length ? riders : onLeg;
   const strangers = moving.filter((m) => !onLeg.includes(m));
@@ -566,7 +572,7 @@ export function routeOps(
   const staying = onLeg.filter((m) => !moving.includes(m));
   return [
     staying.length ? { op: "set_riders", leg, riders: staying } : { op: "remove_leg", leg },
-    { op: "add_leg", from: { stop: from }, to: via, date, riders: moving },
-    { op: "add_leg", from: via, to: { stop: to }, date, riders: moving },
+    { op: "add_leg", from: { stop: from }, to: via, date, riders: moving, createdAt: createdAt + 0.1 },
+    { op: "add_leg", from: via, to: { stop: to }, date, riders: moving, createdAt: createdAt + 0.2 },
   ];
 }

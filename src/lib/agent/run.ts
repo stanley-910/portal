@@ -49,6 +49,8 @@ const MAX_OUTPUT_TOKENS = 8_000;
 
 /** Logs each tool call and result. Off by default: tool inputs carry what people typed (harness: no content in logs). */
 const DEBUG = process.env.AGENT_DEBUG === "1";
+/** How long tools reading the trip together share one read of it. */
+const SHARED_READ_MS = 2_000;
 /** How often streamed text is broadcast. */
 const STREAM_MS = 120;
 
@@ -251,10 +253,25 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
     activity("reading the trip");
     // each read keeps the handles the model already has, so "L3" means the same leg all run
     let held: Handles | undefined;
-    const load = async () => {
+    const read = async () => {
       const plan = (await lb.getStorageDocument(roomId, "json")) as PlanJson;
       held = handlesFor(plan, held);
       return { plan, handles: held };
+    };
+    // Reads in the same moment (tools called together in one step) share one fetch. A tool about to change the trip
+    // reads fresh and drops the shared copy, so nothing after a change sees the trip from before it.
+    let shared: { at: number; value: ReturnType<typeof read> } | null = null;
+    const load: ToolContext["load"] = (opts) => {
+      if (opts?.fresh) {
+        shared = null;
+        return read();
+      }
+      if (shared && Date.now() - shared.at < SHARED_READ_MS) return shared.value;
+      const value = read();
+      const entry = { at: Date.now(), value };
+      shared = entry;
+      value.catch(() => { if (shared === entry) shared = null; });
+      return value;
     };
     const { plan, handles } = await load();
     const meetups = new Map<string, MeetupOption>();

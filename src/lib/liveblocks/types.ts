@@ -95,6 +95,12 @@ export type StoredOffer = {
   durationMin: number;
   /** Segments after the first, e.g. a connecting flight. */
   stops: number;
+  /**
+   * The station a train, bus or ferry leaves from and gets to. Searches look at nearby cities too, so a Hong Kong
+   * leg can list a train from Shenzhen North; the station says so. Absent for flights and older rooms.
+   */
+  departs?: string;
+  arrives?: string;
   bookingUrl: string | null;
   attribution: string | null;
   /** Each flight's number, airports and local departure, when the provider gave them all. Settling matches on these. */

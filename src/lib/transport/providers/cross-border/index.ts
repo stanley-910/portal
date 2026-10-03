@@ -15,7 +15,7 @@ export interface ConnectorPart { carrier: string; from: Place; to: Place; durati
  */
 export interface Connector {
   id: string;
-  /** Searches starting and ending within `radiusKm` of these points use it. */
+  /** Searches starting and ending within `radiusKm` of these points use it: all of Hong Kong, airport included. */
   from: Place;
   to: Place;
   radiusKm: number;
@@ -47,7 +47,7 @@ const FARE = { amount: 58, currency: "HKD", note: "MTR HK$52 + Shenzhen Metro ab
 export const CONNECTORS: readonly Connector[] = [
   {
     id: "hk-shenzhen-north",
-    from: ADMIRALTY, to: SHENZHEN_NORTH, radiusKm: 20,
+    from: ADMIRALTY, to: SHENZHEN_NORTH, radiusKm: 30,
     parts: [
       { carrier: "MTR East Rail", from: ADMIRALTY, to: LO_WU, durationMin: 45 },
       { carrier: "Shenzhen Metro", from: LUOHU, to: SHENZHEN_NORTH, durationMin: 30 },
@@ -56,7 +56,7 @@ export const CONNECTORS: readonly Connector[] = [
   },
   {
     id: "shenzhen-north-hk",
-    from: SHENZHEN_NORTH, to: ADMIRALTY, radiusKm: 20,
+    from: SHENZHEN_NORTH, to: ADMIRALTY, radiusKm: 30,
     parts: [
       { carrier: "Shenzhen Metro", from: SHENZHEN_NORTH, to: LUOHU, durationMin: 30 },
       { carrier: "MTR East Rail", from: LO_WU, to: ADMIRALTY, durationMin: 45 },
@@ -91,6 +91,8 @@ export function connectorOffer(c: Connector, date: string, leave: number): Offer
     mode: "train",
     kind: "estimated",
     segments,
+    // the Shenzhen Metro part changes lines once (Line 1 to Line 4), on top of the change at the border
+    transfers: 2,
     price: { amount: c.fare.amount, currency: c.fare.currency, asOf: CHECKED },
     attribution: `Typical metro and border crossing, checked ${CHECKED}: ${c.fare.note}; about ${c.crossingMin} min at the checkpoint, longer at peaks. Trains run every few minutes. ${c.sources.join("; ")}`,
   };

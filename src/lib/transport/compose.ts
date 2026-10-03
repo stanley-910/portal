@@ -1,14 +1,21 @@
 import "server-only";
 import { approx } from "./fx";
 import { distanceKm } from "./hubs/geo";
-import { connectorMinutes, connectorOffer, connectorsFor, CONNECTORS, type Connector } from "./providers/cross-border";
+import { HUBS } from "./hubs/catalog";
+import { connectorMinutes, connectorOffer, CONNECTORS, type Connector } from "./providers/cross-border";
 import type { Mode, Offer, Place, SearchQuery } from "./types";
 
-/** Departing further than this from where someone asked to leave means getting to another city first. */
-const ELSEWHERE_KM = 15;
+/**
+ * Leaving from further than this, or from across a border, means getting to another city first. A city name puts a
+ * leg at its airport, which can be 30 km from the stations people mean by the same city (Hong Kong airport to West
+ * Kowloon), so distance alone can't tell; Shenzhen North is closer than that to Hong Kong airport, but in China.
+ */
+const HERE_KM = 40;
 /** One station: an arrival and a departure this close need no transfer between them. */
 const SAME_STATION_KM = 2;
 const MAX_GATEWAYS = 3;
+/** Nobody takes an early train to sit at a station for half a day. */
+const MAX_WAIT_MIN = 180;
 
 /** Minimum time between arriving and the next departure. */
 function bufferMin(next: Offer, after: { crossing: boolean }): number {
@@ -57,7 +64,7 @@ export interface ComposeInput {
   currency: string;
   /** Per person, in `currency`. */
   maxFare?: number;
-  /** Arrive close to this instant (ISO), e.g. when a friend's train gets in. */
+  /** Arrive close to this time (ISO; without an offset, local time where they arrive), e.g. when a friend gets in. */
   arriveNear?: string;
   /** How far from `arriveNear` still counts as together. */
   windowMin?: number;
@@ -74,8 +81,43 @@ export interface Composed {
 type Search = (q: SearchQuery) => Promise<Offer[]>;
 
 const km = (a: Place, b: Place) => distanceKm(a, b);
+
+/** A place's country: its own, else the nearest hub's within 60 km. */
+function countryOf(p: Place): string | null {
+  if (p.country) return p.country.toUpperCase();
+  let best: string | null = null, bestKm = 60;
+  for (const h of HUBS) {
+    if (Math.abs(h.lat - p.lat) > 1 || Math.abs(h.lng - p.lng) > 1) continue;
+    const d = km(p, h);
+    if (d < bestKm && h.country) { best = h.country.toUpperCase(); bestKm = d; }
+  }
+  return best;
+}
+
+/** Is `station` somewhere you'd leave from when you asked to leave from `origin`? */
+function here(station: Place, origin: Place, originCountry: string | null): boolean {
+  if (km(station, origin) > HERE_KM) return false;
+  const c = countryOf(station);
+  return !c || !originCountry || c === originCountry;
+}
+
+/** The departure a route's service leaves from, as a key: same service, same departure, one route. */
+const serviceKey = (r: Route) =>
+  `${r.type}:${r.parts.map((p) => p.flexible ? p.carrier : `${p.carrier}:${p.number}:${p.depart}`).join(">")}`;
 const ms = (iso: string) => Date.parse(iso);
-const known = (o: Offer) => o.kind !== "estimated" || o.provider === "cross-border";
+// Test inventory is never a real flight or price, and an estimate without a schedule can't be chained.
+const known = (o: Offer) => !o.sandbox && (o.kind !== "estimated" || o.provider === "cross-border");
+
+/**
+ * Minutes from `target` to `arrive`. A target with no UTC offset ("22:40" as someone said it) is a wall-clock time
+ * where they arrive, so it's compared with the arrival's own local time.
+ */
+export function minutesFrom(target: string, arrive: string): number {
+  const zoned = /(?:Z|[+-]\d\d:\d\d)$/.test(target);
+  return zoned
+    ? Math.round((ms(arrive) - ms(target)) / 60_000)
+    : Math.round((Date.parse(`${arrive.slice(0, 16)}Z`) - Date.parse(`${target.slice(0, 16)}Z`)) / 60_000);
+}
 
 function part(o: Offer, flexible = false): RoutePart {
   const first = o.segments[0], last = o.segments.at(-1)!;
@@ -104,7 +146,7 @@ function route(type: Route["type"], parts: RoutePart[], input: ComposeInput, via
     id: "", type, via, parts, depart, arrive,
     durationMin: Math.round((ms(arrive) - ms(depart)) / 60_000),
     total, saves: null,
-    gapMin: input.arriveNear ? Math.round((ms(arrive) - ms(input.arriveNear)) / 60_000) : null,
+    gapMin: input.arriveNear ? minutesFrom(/^\d\d:\d\d$/.test(input.arriveNear) ? `${input.date}T${input.arriveNear}` : input.arriveNear, arrive) : null,
     estimated: parts.some((p) => p.kind !== "live"),
   };
 }
@@ -130,6 +172,7 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
     ({ from, to, date: input.date, modes, passengers: 1, currency: input.currency });
   let searched = 1;
   const direct = (await search(q(input.from, input.to))).filter((o) => o.segments.length && known(o));
+  const home = countryOf(input.from);
 
   // Gateways: stations the direct search already leaves from that are elsewhere, and places a connector reaches.
   const gateways: Place[] = [];
@@ -137,14 +180,17 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
     if (km(p, input.to) >= km(input.from, input.to)) return;
     if (!gateways.some((g) => km(g, p) <= SAME_STATION_KM)) gateways.push(p);
   };
-  for (const o of direct) if (km(o.segments[0].from, input.from) > ELSEWHERE_KM) addGateway(o.segments[0].from);
-  for (const c of CONNECTORS) if (km(input.from, c.from) <= c.radiusKm) addGateway(c.to);
+  const reachable = CONNECTORS.filter((c) => km(input.from, c.from) <= c.radiusKm);
+  for (const c of reachable) addGateway(c.to);
+  for (const o of direct) {
+    const from = o.segments[0].from;
+    // a station is worth a try once it has trains; an airport elsewhere needs a way there nobody models yet
+    if (!here(from, input.from, home) && o.mode !== "flight") addGateway(from);
+  }
   gateways.splice(MAX_GATEWAYS);
 
   const routes: Route[] = [];
-  for (const o of direct) {
-    if (km(o.segments[0].from, input.from) <= ELSEWHERE_KM) routes.push(route("direct", [part(o)], input, null));
-  }
+  for (const o of direct) if (here(o.segments[0].from, input.from, home)) routes.push(route("direct", [part(o)], input, null));
 
   await Promise.all(gateways.map(async (g) => {
     searched += 2;
@@ -156,18 +202,23 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
     const leaving = [...direct, ...onward].filter((o) => known(o) && km(o.segments[0].from, g) <= SAME_STATION_KM);
     const seen = new Set<string>();
     const getThere = access.filter((o) => known(o) && o.provider !== "cross-border" &&
-      km(o.segments.at(-1)!.to, g) <= SAME_STATION_KM && km(o.segments[0].from, input.from) <= ELSEWHERE_KM);
-    const connectors = connectorsFor(input.from, g);
+      km(o.segments.at(-1)!.to, g) <= SAME_STATION_KM && here(o.segments[0].from, input.from, home));
+    // only a connector that ends at this very station: another one nearby would need a transfer nobody priced
+    const connectors = reachable.filter((c) => km(c.to, g) <= SAME_STATION_KM);
     for (const next of leaving) {
       if (seen.has(next.id)) continue;
       seen.add(next.id);
       const leaves = ms(next.segments[0].depart);
       const options: Offer[] = connectors.map((c) => connectorBefore(c, next, input.date)).filter((o): o is Offer => !!o);
-      // the latest train that still makes it, so nobody waits around for hours
-      const train = getThere
-        .filter((o) => ms(o.segments.at(-1)!.arrive) + bufferMin(next, { crossing: false }) * 60_000 <= leaves)
-        .sort((a, b) => ms(b.segments.at(-1)!.arrive) - ms(a.segments.at(-1)!.arrive))[0];
-      if (train) options.push(train);
+      // of the trains that make it, the cheapest and the latest (so nobody waits around for hours)
+      const making = getThere.filter((o) => {
+        const arrives = ms(o.segments.at(-1)!.arrive);
+        return arrives + bufferMin(next, { crossing: false }) * 60_000 <= leaves && leaves - arrives <= MAX_WAIT_MIN * 60_000;
+      });
+      const fare = (o: Offer) => (o.price ? approx(o.price.amount, o.price.currency, "USD") ?? Infinity : Infinity);
+      const cheapest = [...making].sort((a, b) => fare(a) - fare(b))[0];
+      const latest = [...making].sort((a, b) => ms(b.segments.at(-1)!.arrive) - ms(a.segments.at(-1)!.arrive))[0];
+      for (const train of new Set([cheapest, latest])) if (train) options.push(train);
       for (const first of options) {
         routes.push(route("via", [part(first, first.provider === "cross-border"), part(next)], input, g));
       }
@@ -182,7 +233,7 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
   const fits = (r: Route) => r.gapMin === null || Math.abs(r.gapMin) <= window;
   const affordable = (r: Route) => input.maxFare === undefined || (r.total !== null && r.total.amount <= input.maxFare);
   const ranked = routes
-    .filter((r) => r !== baseline)
+    .filter((r) => !baseline || serviceKey(r) !== serviceKey(baseline))
     .sort((a, b) =>
       Number(fits(b)) - Number(fits(a)) ||
       Number(affordable(b)) - Number(affordable(a)) ||
@@ -191,8 +242,7 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
       a.durationMin - b.durationMin);
   // One route per way of going (same gateway and onward service), so three answers are three different ideas.
   const distinct: Route[] = [];
-  const key = (r: Route) => `${r.type}:${r.parts.map((p) => p.flexible ? p.carrier : `${p.carrier}:${p.number}:${p.depart}`).join(">")}`;
-  for (const r of ranked) if (!distinct.some((d) => key(d) === key(r))) distinct.push(r);
+  for (const r of ranked) if (!distinct.some((d) => serviceKey(d) === serviceKey(r))) distinct.push(r);
   const picked = distinct.slice(0, 3);
   picked.forEach((r, i) => { r.id = `R${i + 1}` });
   if (baseline) baseline.id = "R0";
