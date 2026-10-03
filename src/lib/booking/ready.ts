@@ -1,3 +1,4 @@
+import { DEMO_BOOKING } from "@/lib/demo";
 import type { LegBooking, StoredOffer } from "@/lib/liveblocks/types";
 import { isBookable } from "@/lib/trip/offers";
 
@@ -13,14 +14,17 @@ type LegLike = {
   booking?: LegBooking | null;
 };
 
-/** The chosen Duffel offer and its id at Duffel when `actorId` may settle `leg`; otherwise why not. */
-export function settleReady<L extends LegLike>(leg: L | null | undefined, actorId: string): { ok: true; leg: L; chosen: StoredOffer; offerId: string } | { ok: false; error: BookingError } {
+/**
+ * The chosen Duffel offer and its id at Duffel when `actorId` may settle `leg`; otherwise why not. In demo mode any
+ * priced pick settles, and `offerId` is null when it isn't a Duffel offer: a sandbox flight stands in for it.
+ */
+export function settleReady<L extends LegLike>(leg: L | null | undefined, actorId: string): { ok: true; leg: L; chosen: StoredOffer; offerId: string | null } | { ok: false; error: BookingError } {
   if (!leg) return { ok: false, error: new BookingError("NOT_FOUND", "That leg is gone.") };
   if (leg.booking) return { ok: false, error: new BookingError("WRONG_STATE", "This leg is already settled.") };
   if (!leg.riders.includes(actorId)) return { ok: false, error: new BookingError("NOT_ALLOWED", "Only a rider can settle a leg.") };
   const chosen = leg.search.offers.find((o) => o.id === leg.chosen);
-  if (!chosen || !isBookable(chosen) || !chosen.id.startsWith("duffel:")) return { ok: false, error: new BookingError("WRONG_STATE", "Pick a live flight first.") };
-  return { ok: true, leg, chosen, offerId: chosen.id.slice("duffel:".length) };
+  if (!chosen || !isBookable(chosen) || (!DEMO_BOOKING && !chosen.id.startsWith("duffel:"))) return { ok: false, error: new BookingError("WRONG_STATE", "Pick a live flight first.") };
+  return { ok: true, leg, chosen, offerId: chosen.id.startsWith("duffel:") ? chosen.id.slice("duffel:".length) : null };
 }
 
 /** The flights a stored option was for, to search them again when Duffel no longer has the offer itself. */
