@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { runSolo, type SoloEvent } from "@/lib/agent/solo";
 import { getAccountClaims } from "@/lib/supabase/server";
+import { MAX_SOLO_LEGS } from "@/lib/trip/server";
 
 // Pip on the home globe: one reply, streamed back as lines of JSON (lib/agent/solo.ts). No trip room and no session:
 // the browser holds the conversation and the legs on its globe. Asking Pip needs an account.
@@ -38,7 +39,7 @@ const Body = z.object({
     .min(1)
     .max(MAX_HISTORY)
     .refine((m) => m.at(-1)?.role === "user", "the last message is the person's"),
-  trip: z.array(z.object({ from: stop, to: stop, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).max(8).default([]),
+  trip: z.array(z.object({ from: stop, to: stop, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })).max(MAX_SOLO_LEGS).default([]),
 });
 
 export async function POST(request: Request) {

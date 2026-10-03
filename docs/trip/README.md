@@ -22,6 +22,8 @@ Presence is worked out from legs, never stored, so moving a leg moves its nights
 
 Leaving early is setting `leaves`, or adding a leg home.
 
+A round trip is no special case. A return date on the globe's last leg saves as one more leg, from the last stop back to where the first leg left, with the picked return option chosen, so nights at the last stop end on the return date.
+
 ## The split
 
 `computeSplit` in `src/lib/trip/split.ts` takes the Storage as JSON and returns every night with who was there, and for each member their fares by leg, their night shares and their totals. The UI and Pip both read it, and Pip never adds money up itself.
