@@ -4,6 +4,7 @@ import { useSelf } from "@liveblocks/react";
 import { Fragment, useState } from "react";
 
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
+import { RoundButton } from "@/components/paper-atlas";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
@@ -35,7 +36,8 @@ const describe = (o: StoredOffer) =>
     .filter(Boolean)
     .join(", ");
 
-export function TripPlan({ hostId }: { hostId: string | null }) {
+/** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
+export function TripPlan({ hostId, onMinimise }: { hostId: string | null; onMinimise?: () => void }) {
   const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useMySplit();
@@ -46,6 +48,22 @@ export function TripPlan({ hostId }: { hostId: string | null }) {
   if (!legs?.length) return null;
   return (
     <section aria-label="Trip plan" className="ts tp">
+      {onMinimise ? (
+        <div className="ts-topbar tp-bar">
+          <span className="ts-step">Trip plan</span>
+          <RoundButton
+            label="Minimise"
+            variant="quiet"
+            className="ts-min"
+            onClick={onMinimise}
+            icon={
+              <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
+                <path d="M2 6 H10" />
+              </svg>
+            }
+          />
+        </div>
+      ) : null}
       {split?.totals && Object.keys(split.totals).length ? (
         <div className="tp-total">
           Your share: {Object.entries(split.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
@@ -82,6 +100,7 @@ function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { lab
       setStay(leg.to.id, {
         label: pendingHotel.name,
         nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
+        estimated: pendingHotel.freshness !== "live",
       });
     }
     setPendingHotel(null);

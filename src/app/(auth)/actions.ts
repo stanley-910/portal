@@ -6,6 +6,7 @@ import { z } from "zod";
 import { MAX_NAME } from "@/lib/auth/limits";
 import { safeNext } from "@/lib/auth/next";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { adoptGuest } from "@/lib/trip/adopt";
 
 /** `ok`: signed in, so the panel reloads the page as the new account. */
 export type AuthState = { error?: string; notice?: string; ok?: boolean };
@@ -59,6 +60,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   // With "Confirm email" on, an already-registered address returns an obfuscated user with no identities.
   if (data.user && data.user.identities?.length === 0) return { error: MSG.taken };
   if (!data.session) return { notice: MSG.confirm };
+  await adoptGuest(data.session.user.id);
   return { ok: true };
 }
 
@@ -67,8 +69,9 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   if (!parsed.success) return { error: MSG.wrong };
   const supabase = await createSupabaseServer();
   if (!supabase) return { error: MSG.off };
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: error.status && error.status >= 500 ? MSG.generic : MSG.wrong };
+  await adoptGuest(data.user.id);
   return { ok: true };
 }
 

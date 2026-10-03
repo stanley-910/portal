@@ -2,7 +2,7 @@
 
 import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type Ref } from "react";
 
-import { cursorUrl, memberColor } from "@/components/paper-atlas";
+import { cursorUrl, memberColor, type CursorShape } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
@@ -19,18 +19,24 @@ export interface TripGlobeHandle {
   cancel(): void;
   /** Where a place is on screen, in CSS px relative to the globe, and whether the globe hides it. */
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
+  /** Where a route's drawn arc is on screen, `t` of the way along (0.5, its peak, by default). */
+  routePoint(from: LatLng, to: LatLng, t?: number): { x: number; y: number; visible: boolean } | null;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
-  /** Draws other members' planes and routes. Replaces the previous list; planes ease toward new positions. */
+  /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
   setRemoteFlights(flights: RemoteFlight[]): void;
+  /** Other members' pointers, by id; null `at` hides one. Replaces the previous list. Their shadows are drawn here. */
+  setRemoteCursors(cursors: { id: string; at: LatLng | null }[]): void;
+  /** Where another member's pointer is on screen and the matrix [a, b, c, d] that lays it on the ground there. */
+  remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null;
   /** What your landed trip parks as: the mode of the offer you picked. Ignored while flying. */
   setVehicle(v: Vehicle): void;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
   zoom(): number;
-  /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. */
-  flyTo(ll: LatLng, spanDeg: number): void;
+  /** Turns the globe to centre a place, framing `spanDeg` degrees of arc around it. A `name` marks and names it there. */
+  flyTo(ll: LatLng, spanDeg: number, name?: string): void;
 }
 
 export interface TripGlobeProps {
@@ -56,6 +62,8 @@ export interface TripGlobeProps {
   onFlightChange?: (flight: FlightState | null) => void;
   /** This viewer's member colour slot (0 for `member-1`): their cursor and route. Default 0. */
   color?: number;
+  /** The shape of this viewer's own cursor. Default "arrow". */
+  cursorShape?: CursorShape;
   /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
   skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
@@ -109,6 +117,7 @@ export function TripGlobe({
   provincesUrl = "/textures/provinces.png",
   skySeed,
   color = 0,
+  cursorShape = "arrow",
   className,
   ref,
 }: TripGlobeProps) {
@@ -175,13 +184,15 @@ export function TripGlobe({
       onRouteClick: () => handlers.current.onRouteClick?.(),
       // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
       // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that
-      // ride on the route itself (data-globe-follow), which would otherwise push the route away from its own card.
+      // ride on the route itself (data-globe-follow), which would otherwise push the route away from its own card,
+      // nor small floaters that move about on their own, like Pip's launcher (data-globe-float): framing around
+      // them made the globe chase Pip as it hopped out of the card's way.
       freeArea: () => {
         const root = rootRef.current!;
         const box = root.getBoundingClientRect();
         return openArea(box.width, box.height, (x, y) => {
           const el = document.elementFromPoint(box.left + x, box.top + y);
-          return !!el && !root.contains(el) && !el.closest("[data-globe-follow]");
+          return !!el && !root.contains(el) && !el.closest("[data-globe-follow], [data-globe-float]");
         });
       },
       onFrame: () => {
@@ -222,15 +233,19 @@ export function TripGlobe({
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
     if (rootRef.current)
-      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(color), resolved, { ...cursor, noShadow: true });
-  }, [mode, resolved, cursor, color]);
+      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl(cursorShape, memberColor(color), resolved, { ...cursor, noShadow: true });
+    engineRef.current?.setCursorShape(cursorShape);
+  }, [mode, resolved, cursor, color, cursorShape]);
 
   useImperativeHandle(
     ref,
     () => ({
       cancel: () => engineRef.current?.cancel(),
       project: (ll) => engineRef.current?.project(ll) ?? null,
+      routePoint: (from, to, t) => engineRef.current?.routePoint(from, to, t) ?? null,
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      setRemoteCursors: (cursors) => engineRef.current?.setRemoteCursors(cursors),
+      remoteCursor: (id) => engineRef.current?.remoteCursor(id) ?? null,
       setVehicle: (v) => engineRef.current?.setVehicle(v),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
@@ -239,7 +254,7 @@ export function TripGlobe({
         return () => listeners.delete(cb);
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
-      flyTo: (ll, spanDeg) => engineRef.current?.flyTo(ll, spanDeg),
+      flyTo: (ll, spanDeg, name) => engineRef.current?.flyTo(ll, spanDeg, name),
     }),
     [],
   );

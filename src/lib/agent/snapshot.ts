@@ -37,13 +37,26 @@ export type Handles = {
   id: Map<string, string>;
 };
 
-export function handlesFor(plan: PlanJson): Handles {
-  const h: Handles = { member: new Map(), stop: new Map(), leg: new Map(), id: new Map() };
-  const add = (map: Map<string, string>, prefix: string, ids: string[]) =>
-    ids.forEach((id, i) => {
-      map.set(id, `${prefix}${i + 1}`);
-      h.id.set(`${prefix}${i + 1}`, id);
-    });
+/**
+ * Short handles for the plan. Pass the handles from earlier in the same run so ones the model already holds keep
+ * meaning the same thing: new entries get the next number, and a removed entry's handle is never reused.
+ */
+export function handlesFor(plan: PlanJson, prev?: Handles): Handles {
+  const h: Handles = {
+    member: new Map(prev?.member),
+    stop: new Map(prev?.stop),
+    leg: new Map(prev?.leg),
+    id: new Map(prev?.id),
+  };
+  const add = (map: Map<string, string>, prefix: string, ids: string[]) => {
+    let n = map.size;
+    for (const id of ids) {
+      if (map.has(id)) continue;
+      n++;
+      map.set(id, `${prefix}${n}`);
+      h.id.set(`${prefix}${n}`, id);
+    }
+  };
   add(h.member, "M", Object.keys(plan.members ?? {}));
   add(h.stop, "S", Object.keys(plan.stops ?? {}));
   add(
@@ -99,11 +112,17 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
 
 /** The last few messages as plain text. Tool output from earlier turns isn't replayed (harness). */
 export function describeThread(plan: PlanJson, h: Handles, limit = 12): string {
-  const thread = (plan.thread ?? []).filter((m) => m.state !== "streaming").slice(-limit);
+  const thread = (plan.thread ?? []).filter((m) => m.state !== "streaming" && m.state !== "queued").slice(-limit);
   return thread
     .map((m) => {
       const who = m.author.kind === "agent" ? "Pip" : `${plan.members?.[m.author.id]?.name ?? "Someone"} (${h.member.get(m.author.id) ?? "?"})`;
-      const cards = m.cards.map((c) => (c.type === "meetup" ? ` [meet-up card: ${c.options.map((o) => `${o.id} ${o.place.name}`).join(", ")}]` : "")).join("");
+      const cards = m.cards.map((c) =>
+        c.type === "meetup"
+          ? ` [meet-up card: ${c.options.map((o) => `${o.id} ${o.place.name}`).join(", ")}]`
+          : c.type === "changes"
+            ? ` [changed the trip${c.undone ? ", since undone" : ""}: ${c.lines.join("; ")}]`
+            : "",
+      ).join("");
       return `${who}: ${m.text}${cards}`;
     })
     .join("\n");

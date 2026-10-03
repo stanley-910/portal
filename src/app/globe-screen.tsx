@@ -9,7 +9,9 @@ import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar"
 import { TicketSearch, type PickedStay } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
-import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
+import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
+import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
+import { useCursorPref } from "@/lib/cursor-pref";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
 import { MAX_OFFERS } from "@/lib/trip/offers";
@@ -37,6 +39,7 @@ function dayAfter(iso: string) {
 export function GlobeScreen({ person }: { person: Person | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
+  const cursorPref = useCursorPref();
   // the landed trip's legs, the one the popover shows, and what was picked on the legs before it
   const [legs, setLegs] = useState<LandedTrip[] | null>(null);
   const [active, setActive] = useState(0);
@@ -47,19 +50,11 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   // Save trip makes a new trip room and opens it. Guests sign in first, and the save carries on after.
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
-  const [currency, setCurrency] = useState<Currency>(() => {
-    if (typeof window === "undefined") return "USD";
-    const stored = window.localStorage.getItem("portal-currency");
-    return CURRENCIES.includes(stored as Currency) ? stored as Currency : "USD";
-  });
+  const currency = useCurrencyPref();
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [rateError, setRateError] = useState(false);
 
   const account = person?.account ?? false;
-  const changeCurrency = (next: Currency) => {
-    setCurrency(next);
-    window.localStorage.setItem("portal-currency", next);
-  };
   const openAuth = useOpenAuth();
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
@@ -99,6 +94,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   return <main className="relative h-dvh w-full overflow-hidden">
     <TripGlobe
       ref={globe}
+      color={cursorPref.color}
+      cursorShape={cursorPref.shape}
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
       onTakeoff={() => setLegs(null)}
       onLand={(landed) => {
@@ -117,7 +114,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       email={person?.email ?? null}
       account={person?.account ?? false}
       nationalities={person?.nationalities}
-      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={changeCurrency} />}
+      settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrencyPref} />}
     >
       <PlaceSearch globe={globe} />
       <form

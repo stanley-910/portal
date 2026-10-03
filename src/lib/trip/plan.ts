@@ -113,7 +113,7 @@ export function useRecordMember(nationalities: string[] = []) {
     else if (
       current.get("name") !== who.name ||
       current.get("color") !== who.color ||
-      JSON.stringify(current.get("nationalities") ?? []) !== JSON.stringify(who.nationalities)
+      (current.get("nationalities") ?? []).join(",") !== who.nationalities.join(",")
     ) {
       current.update({ name: who.name, color: who.color, nationalities: who.nationalities });
     }
@@ -121,9 +121,13 @@ export function useRecordMember(nationalities: string[] = []) {
   const id = me?.id;
   const name = me?.name;
   const color = me?.color;
+  // by value: a new array each render would otherwise rerun this every render
+  const passports = nationalities.join(",");
   useEffect(() => {
-    if (ready && id && name !== undefined && color !== undefined) record({ id, name, color, nationalities });
-  }, [record, ready, id, name, color, nationalities]);
+    if (ready && id && name !== undefined && color !== undefined) {
+      record({ id, name, color, nationalities: passports ? passports.split(",") : [] });
+    }
+  }, [record, ready, id, name, color, passports]);
 }
 
 /** False until the plan has loaded. Edits before then throw, so gate them on this. */
@@ -203,10 +207,10 @@ export function usePlanActions() {
   const chooseMutation = useMutation(({ storage }, legId: string, offerId: string | null) => {
     storage.get("legs").get(legId)?.set("chosen", offerId);
   }, []);
-  const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string } } | null) => {
+  const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string }; estimated?: boolean } | null) => {
     let stays = storage.get("stays");
     if (!stays) storage.set("stays", (stays = new LiveMap()));
-    if (stay) stays.set(stopId, new LiveObject({ ...stay, estimated: true }));
+    if (stay) stays.set(stopId, new LiveObject({ ...stay, estimated: stay.estimated ?? true }));
     else stays.delete(stopId);
   }, []);
 

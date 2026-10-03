@@ -17,7 +17,7 @@ import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
 import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
 import { runLegSearch } from "@/lib/trip/search-leg";
-import { CURRENCIES, type Currency } from "@/lib/currency";
+import { isCurrency, type Currency } from "@/lib/currency";
 
 /** Creates a trip room owned by the signed-in user and opens it. Its URL is the invite. Saving a trip needs an
  * account; friends who open the link can join as guests. */
@@ -53,17 +53,13 @@ export async function startTripWithPip(text: string, currency: Currency = "USD")
   });
   await liveblocks().mutateStorage(roomId, ({ root }) => {
     // a new room's Storage is empty until a client loads it; lay out the trip so the server can write to it
-    if (!root.get("members")) root.set("members", new LiveMap([[user.id, new LiveObject({ name: user.displayName, color: 1 })]]));
+    if (!root.get("members")) root.set("members", new LiveMap([[user.id, new LiveObject({ name: user.displayName, color: 1, nationalities: user.nationalities })]]));
     if (!root.get("stops")) root.set("stops", new LiveMap());
     if (!root.get("legs")) root.set("legs", new LiveMap());
   });
-  const person = await currentPerson();
-  const selectedCurrency = CURRENCIES.includes(currency) ? currency : "USD";
-  const { claim } = await postToPip(roomId, user.id, message, {
-    nationalities: person?.nationalities ?? [],
-    currency: selectedCurrency,
-  });
-  if (claim) after(() => runAgent(roomId, claim, user.id));
+  const requester = { nationalities: user.nationalities, currency: isCurrency(currency) ? currency : "USD" };
+  const { claim } = await postToPip(roomId, user.id, message, requester);
+  after(() => runAgent(roomId, claim, user.id));
   redirect(`/t/${id}?pip=open`);
 }
 

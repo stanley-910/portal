@@ -262,6 +262,23 @@ describe("canvas invalidation", () => {
     expect(engine["mode"]).toBe("flying");
   });
 
+  it("treats a click on a saved leg's route as a route click, not a takeoff", () => {
+    const onRouteClick = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onRouteClick });
+    frames(5);
+    const ll = (v: Vec3) => ({ lat: Math.asin(v[1]) / D2R, lng: Math.atan2(v[0], v[2]) / D2R });
+    const from = ll(state.pick(1180, 650)!);
+    const to = ll(state.pick(1480, 650)!);
+    engine.setRemoteFlights([{ id: "leg:1", origin: from, at: to, ahead: to, landed: true }]);
+    frames(30);
+    const mid = engine.routePoint(from, to)!;
+    expect(mid.visible).toBe(true);
+    engine.pointerDown({ clientX: mid.x, clientY: mid.y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    engine.pointerUp({ clientX: mid.x, clientY: mid.y, button: 0, pointerId: 1, pointerType: "mouse", type: "pointerup" } as PointerEvent);
+    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(engine["mode"]).toBe("idle");
+  });
+
   it("opens the landed trip from a click on its route instead of cancelling or taking off", () => {
     const onRouteClick = vi.fn();
     const onCancel = vi.fn();

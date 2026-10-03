@@ -8,6 +8,7 @@ import { liveblocks } from "@/lib/liveblocks/server";
 import { tripRoomId, type Leg, type MemberInfo, type Stay, type Stop, type TripStorage } from "@/lib/liveblocks/types";
 import type { Offer, ProviderId } from "@/lib/transport/types";
 
+import { tripOwner } from "./leave";
 import { MAX_OFFERS, toStoredOffer, webUrlOrNull } from "./offers";
 import { sameStop } from "./stops";
 import { computeSplit, type SplitInput } from "./split";
@@ -16,7 +17,15 @@ export type TripCostBreakdown = {
   fares: { label: string; price: { amount: number; currency: string } | null; kind: string | null }[];
   nights: { stop: string; date: string; share: { amount: number; currency: string } }[];
 };
-export type TripSummary = { id: string; title: string; members: number; updatedAt: string; costs?: Record<string, number>; breakdown?: TripCostBreakdown };
+export type TripSummary = {
+  id: string;
+  title: string;
+  members: number;
+  updatedAt: string;
+  /** Whether the user the list is for owns the trip. Set only when the list is for someone. */
+  owner?: boolean;
+  costs?: Record<string, number>; breakdown?: TripCostBreakdown;
+};
 
 /** The saved plan of a trip room as plain JSON. Unreadable Storage reads as an empty plan. */
 export async function readPlan(tripId: string): Promise<unknown> {
@@ -30,14 +39,15 @@ export async function readPlan(tripId: string): Promise<unknown> {
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v : typeof v === "string" && v ? [v] : []);
 const asString = (v: unknown) => (typeof v === "string" && v ? v : undefined);
 
-/** Room list rows, newest activity first. `members` metadata may be a string or an array. */
-export function toTripSummaries(rooms: Pick<RoomData, "id" | "metadata" | "createdAt" | "lastConnectionAt">[]): TripSummary[] {
+/** Room list rows, newest activity first, for `userId` if given. `members` metadata may be a string or an array. */
+export function toTripSummaries(rooms: Pick<RoomData, "id" | "metadata" | "createdAt" | "lastConnectionAt">[], userId?: string): TripSummary[] {
   return rooms
     .map((room) => ({
       id: room.id.replace(/^trip:/, ""),
       title: asString(room.metadata.title) ?? "New trip",
       members: asList(room.metadata.members).length,
       updatedAt: asString(room.metadata.updatedAt) ?? (room.lastConnectionAt ?? room.createdAt).toISOString(),
+      ...(userId ? { owner: tripOwner(room.metadata) === userId } : {}),
     }))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
@@ -46,7 +56,7 @@ export function toTripSummaries(rooms: Pick<RoomData, "id" | "metadata" | "creat
 export async function listMyTrips(userId: string): Promise<TripSummary[]> {
   try {
     const { data } = await liveblocks().getRooms({ userId });
-    const summaries = toTripSummaries(data.filter((room) => room.id.startsWith("trip:")));
+    const summaries = toTripSummaries(data.filter((room) => room.id.startsWith("trip:")), userId);
     return await Promise.all(
       summaries.map(async (summary) => {
         try {
@@ -84,7 +94,7 @@ export async function listMyTrips(userId: string): Promise<TripSummary[]> {
 
 // ---- Solo save from `/` ----
 
-const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt"] as const satisfies readonly ProviderId[];
+const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel"] as const satisfies readonly ProviderId[];
 const MODES = ["flight", "train", "bus", "ferry"] as const;
 const MAX_SEGMENTS = 8;
 /** All options together, after unknown fields are stripped. Twenty real offers are a few KB. */
@@ -151,9 +161,14 @@ export const soloLegSchema = z
     date: z.iso.date().refine((d) => d >= isoDay(Date.now() - DAY) && d <= isoDay(Date.now() + 400 * DAY), "date out of range"),
     offers: z.array(offerSchema).min(0).max(MAX_OFFERS),
     chosen: text(200).nullable(),
-    // the hotel picked in the popover's Hotels tab: an estimate for the whole group, per night
+    // the hotel picked in the popover's Hotels tab: the whole group's cost per night, live or estimated
     stay: z
-      .object({ label: text(120), nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }) })
+      .object({
+        label: text(120),
+        nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }),
+        // a live hotel rate; anything unmarked is an estimate
+        estimated: z.boolean().default(true),
+      })
       .optional(),
   })
   .refine((v) => !sameStop(v.from, v.to), "from and to are the same place")
@@ -216,7 +231,7 @@ export function buildSoloStorage(
       // in order, so legs on the same day keep the order they were flown in
       createdAt: now + i,
     };
-    if (leg.stay) stays[to] = { ...leg.stay, estimated: true };
+    if (leg.stay) stays[to] = leg.stay;
   });
   return {
     members: { [user.id]: { name: user.displayName, color: 1 } },
