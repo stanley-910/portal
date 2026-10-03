@@ -38,13 +38,17 @@ export type MeetupOption = {
   estimated: number;
 };
 
-export type ThreadCard =
-  /** Pip working: "Comparing 42 routes", then "Compared 42 routes · 3 meet-ups". */
-  | { type: "status"; label: string; done: boolean; count?: number; total?: number }
+export type ThreadCard = (
+  /** One tool call, "Checking fares" then "Checked 14 fares"; `id` is the call's, so its result updates it. */
+  | { type: "status"; id?: string; label: string; done: boolean }
   /** Ranked meet-up places; `applied` is the option someone added to the trip. */
   | { type: "meetup"; title: string; options: MeetupOption[]; applied: string | null; changesetId: string | null; undone: boolean }
   /** What one run changed on the trip, with Undo. */
-  | { type: "changes"; changesetId: string; lines: string[]; undone: boolean };
+  | { type: "changes"; changesetId: string; lines: string[]; undone: boolean }
+) & {
+  /** Where in the reply's text it goes: the text's length when it was added. Missing: after the text. */
+  at?: number;
+};
 
 export type ThreadMessage = {
   id: string;
@@ -62,7 +66,7 @@ export type AgentRun = {
   status: "running" | "cancelling";
   /** Guest id of whoever asked. */
   by: string;
-  /** A run that died leaves its lease; after this, the next mention takes over. */
+  /** A run that died leaves its lease; after this, the next message takes over. */
   until: number;
 };
 
@@ -75,12 +79,12 @@ export type AgentUsage = { day: string; runs: number };
  */
 export type Changeset = string;
 
-/** Broadcast while Pip writes, so text streams without a Storage write per token. */
-export type AgentEvent = { type: "agent-text"; messageId: string; text: string };
+/**
+ * Broadcast while Pip writes, so text streams without a Storage write per token. Each carries the whole text so
+ * far; `seq` counts up, so a late one can't roll the text back.
+ */
+export type AgentEvent = { type: "agent-text"; messageId: string; text: string; seq: number };
 
 /** Presence Pip sets from the server: where it's looking and what it's doing. */
 export type AgentActivity = string;
 
-/** Whether a message should wake the agent: an @mention, or anything in a trip you're alone in. */
-export const wakesAgent = (text: string, memberCount: number) =>
-  memberCount <= 1 || new RegExp(`@${AGENT_NAME}\\b`, "i").test(text);
