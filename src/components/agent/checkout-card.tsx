@@ -14,13 +14,13 @@ import {
   type Wallet,
 } from "@/app/t/booking-actions";
 import { DetailsForm } from "@/components/multiplayer/leg-booking";
-import { Button } from "@/components/paper-atlas";
+import { Button, PixelClose } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import type { TravellerDetails } from "@/lib/booking/offer";
 import { formatPhone } from "@/lib/booking/phone";
 import { recordTiming } from "@/lib/performance";
 import { iso2 } from "@/lib/entry/iso";
-import { memberColor, type Money } from "@/lib/liveblocks/types";
+import { memberColor, type LegBooking, type Money } from "@/lib/liveblocks/types";
 
 // A leg's checkout in Pip's thread (docs/booking/README.md). Everyone sees the bill: each rider's share and where
 // they are. Each viewer gets buttons for their own seat only: their saved details with Looks good or Edit, then their
@@ -45,6 +45,27 @@ function appearance() {
   };
 }
 
+/** What the card calls on the server. Swappable so the playground can walk its states without a booking. */
+export type CheckoutCardActions = {
+  wallet: typeof myWalletAction;
+  submitSaved: typeof submitSavedDetailsAction;
+  saveAndSubmit: typeof saveAndSubmitDetailsAction;
+  startHold: typeof startCardHoldAction;
+  confirmHold: typeof confirmCardHoldAction;
+  payShare: typeof payShareAction;
+};
+const SERVER: CheckoutCardActions = {
+  wallet: myWalletAction,
+  submitSaved: submitSavedDetailsAction,
+  saveAndSubmit: saveAndSubmitDetailsAction,
+  startHold: startCardHoldAction,
+  confirmHold: confirmCardHoldAction,
+  payShare: payShareAction,
+};
+
+/** The leg as the card reads it from the room. Null when the leg is gone. */
+export type CheckoutLeg = { from: string; to: string; booking: LegBooking | null; bookingNotice: string | null };
+
 export function CheckoutCard({ legId }: { legId: string }) {
   const tripId = useRoom().id.slice("trip:".length);
   const me = useSelf((s) => s.id);
@@ -52,6 +73,36 @@ export function CheckoutCard({ legId }: { legId: string }) {
   const from = useStorage((root) => { const l = root.legs[legId]; return (l && root.stops[l.from]?.name) ?? ""; });
   const to = useStorage((root) => { const l = root.legs[legId]; return (l && root.stops[l.to]?.name) ?? ""; });
   const members = useStorage((root) => root.members);
+  return (
+    <CheckoutBody
+      tripId={tripId}
+      legId={legId}
+      me={me}
+      // the booking is plain JSON in Storage, so its read-only snapshot is the same shape
+      leg={leg ? { from: from ?? "", to: to ?? "", booking: (leg.booking ?? null) as LegBooking | null, bookingNotice: leg.bookingNotice ?? null } : null}
+      members={members}
+    />
+  );
+}
+
+/** The card itself, from the leg and its riders. `actions` defaults to the server's. */
+export function CheckoutBody({
+  tripId,
+  legId,
+  me,
+  leg,
+  members,
+  actions = SERVER,
+}: {
+  tripId: string;
+  legId: string;
+  me: string | null;
+  leg: CheckoutLeg | null;
+  members: Record<string, { name?: string; color?: number }> | null;
+  actions?: CheckoutCardActions;
+}) {
+  const from = leg?.from ?? "";
+  const to = leg?.to ?? "";
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [busy, start] = useTransition();
   const [uncertain, setUncertain] = useState(false);
@@ -66,8 +117,8 @@ export function CheckoutCard({ legId }: { legId: string }) {
   const canPay = !!seat && seat.details && !seat.paid && booking!.status === "paying";
 
   const refresh = useCallback(() => {
-    void myWalletAction().then((value) => { setWallet(value); setError(null); }).catch(() => setError("Couldn't load your saved details. Try again."));
-  }, []);
+    void actions.wallet().then((value) => { setWallet(value); setError(null); }).catch(() => setError("Couldn't load your saved details. Try again."));
+  }, [actions]);
   useEffect(() => {
     if (needsDetails || canPay) refresh();
   }, [needsDetails, canPay, refresh]);
@@ -90,7 +141,7 @@ export function CheckoutCard({ legId }: { legId: string }) {
   // a saved card: hold the share on it, with 3-D Secure in place if the bank asks
   const confirmSaved = (card: string, accept?: Money) =>
     run(async () => {
-      const started = await startCardHoldAction(tripId, legId, card, accept);
+      const started = await actions.startHold(tripId, legId, card, accept);
       if (!started.ok) return fail(started);
       if (started.clientSecret) {
         const stripe = wallet?.publishableKey ? await stripeFor(wallet.publishableKey) : null;
@@ -98,14 +149,14 @@ export function CheckoutCard({ legId }: { legId: string }) {
         const res = await stripe.confirmCardPayment(started.clientSecret, { payment_method: card });
         if (res.error) return setError(res.error.message ?? "The card was declined.");
       }
-      const done = await confirmCardHoldAction(tripId, legId);
+      const done = await actions.confirmHold(tripId, legId);
       if (!done.ok) fail(done);
     });
 
   // no in-app card field on this server: Stripe's own page, and back here after
   const checkoutPage = (accept?: Money) =>
     run(async () => {
-      const r = await payShareAction(tripId, legId, accept);
+      const r = await actions.payShare(tripId, legId, accept);
       if (!r.ok) return fail(r);
       if (r.url) window.location.assign(r.url);
     });
@@ -156,8 +207,8 @@ export function CheckoutCard({ legId }: { legId: string }) {
       {booking.status === "booked" && booking.reference ? <p className="pip-changes-note">Reference {booking.reference}</p> : null}
       {left ? <p className="pip-changes-note">Everyone has until {left.toLocaleString("en", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.</p> : null}
       {leg.bookingNotice ? <p className="pip-changes-note" role="status">{leg.bookingNotice}</p> : null}
-      {error ? <p className="pip-checkout-error" role="alert">{error}{!wallet ? <> <button type="button" className="pip-undo" onClick={refresh}>Try again</button></> : null}</p> : null}
-      {uncertain ? <a className="pip-undo" href={`/t/${tripId}?book=${encodeURIComponent(legId)}&pip=open`}>Check booking</a> : null}
+      {error ? <p className="pip-checkout-error" role="alert">{error}{!wallet ? <> <button type="button" className="pip-action" onClick={refresh}>Try again</button></> : null}</p> : null}
+      {uncertain ? <a className="pip-action" href={`/t/${tripId}?book=${encodeURIComponent(legId)}&pip=open`}>Check booking</a> : null}
       {price ? (
         <div className="pip-checkout-actions" role="alert">
           <span className="pip-changes-note">Now {fmt(price.now)} for your seat{price.was ? `, was ${fmt(price.was)}` : ""}.</span>
@@ -173,10 +224,10 @@ export function CheckoutCard({ legId }: { legId: string }) {
             <p className="pip-caption">Your details</p>
             <TravellerSummary details={wallet.traveller} passport={booking.documents} />
             <div className="pip-checkout-actions">
-              <Button disabled={busy || uncertain} onClick={() => run(async () => { const r = await submitSavedDetailsAction(tripId, legId); if (!r.ok) fail(r); })}>
+              <Button disabled={busy || uncertain} onClick={() => run(async () => { const r = await actions.submitSaved(tripId, legId); if (!r.ok) fail(r); })}>
                 Looks good
               </Button>
-              <button type="button" className="pip-undo" disabled={busy || uncertain} onClick={() => setModal("details")}>
+              <button type="button" className="pip-action" disabled={busy || uncertain} onClick={() => setModal("details")}>
                 Edit
               </button>
             </div>
@@ -194,7 +245,7 @@ export function CheckoutCard({ legId }: { legId: string }) {
             <Button disabled={busy || uncertain} onClick={() => confirmSaved(card.id)}>
               {busy ? "Holding…" : `Confirm · ${fmt(seat!.share)} on ${brandName(card.brand)} ·${card.last4}`}
             </Button>
-            <button type="button" className="pip-undo" disabled={busy || uncertain} onClick={() => setModal("card")}>
+            <button type="button" className="pip-action" disabled={busy || uncertain} onClick={() => setModal("card")}>
               Another card
             </button>
           </div>
@@ -220,14 +271,14 @@ export function CheckoutCard({ legId }: { legId: string }) {
             onCancel={() => setModal(null)}
             onSubmit={(details) =>
               run(async () => {
-                const r = await saveAndSubmitDetailsAction(tripId, legId, details);
+                const r = await actions.saveAndSubmit(tripId, legId, details);
                 if (!r.ok) return fail(r);
                 setModal(null);
                 refresh();
               })
             }
           />
-          {error ? <p className="pip-checkout-error" role="alert">{error}{uncertain ? <> <a className="pip-undo" href={`/t/${tripId}?book=${encodeURIComponent(legId)}&pip=open`}>Check booking</a></> : null}</p> : null}
+          {error ? <p className="pip-checkout-error" role="alert">{error}{uncertain ? <> <a className="pip-action" href={`/t/${tripId}?book=${encodeURIComponent(legId)}&pip=open`}>Check booking</a></> : null}</p> : null}
         </Modal>
       ) : null}
 
@@ -235,10 +286,10 @@ export function CheckoutCard({ legId }: { legId: string }) {
         <Modal title={`Hold ${fmt(price?.now ?? seat.share)}`} onClose={() => setModal(null)}>
           <NewCard
             publishableKey={wallet.publishableKey}
-            start={() => startCardHoldAction(tripId, legId, null, price?.now)}
+            start={() => actions.startHold(tripId, legId, null, price?.now)}
             onHeld={() =>
               run(async () => {
-                const done = await confirmCardHoldAction(tripId, legId);
+                const done = await actions.confirmHold(tripId, legId);
                 if (!done.ok) return fail(done);
                 setModal(null);
                 refresh();
@@ -290,9 +341,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
     <dialog ref={ref} data-globe-obstacle className="pip-dialog" aria-label={title} onClose={onClose} onCancel={onClose} onKeyDown={(e) => e.stopPropagation()}>
       <div className="pip-dialog-head">
         <p className="pip-caption">{title}</p>
-        <button type="button" className="pip-undo" onClick={onClose}>
-          Close
-        </button>
+        <PixelClose onClick={onClose} />
       </div>
       {children}
     </dialog>
@@ -355,7 +404,7 @@ function NewCard({
     <div className="pip-newcard">
       <div ref={mount} />
       {state === "loading" ? <p className="pip-changes-note">Loading the card form…</p> : null}
-      {error ? <p className="pip-checkout-error" role="alert">{error} <button type="button" className="pip-undo" onClick={() => window.location.reload()}>Check booking</button></p> : null}
+      {error ? <p className="pip-checkout-error" role="alert">{error} <button type="button" className="pip-action" onClick={() => window.location.reload()}>Check booking</button></p> : null}
       <Button block disabled={state !== "ready"} onClick={pay}>
         {state === "paying" ? "Holding…" : "Hold and save card"}
       </Button>

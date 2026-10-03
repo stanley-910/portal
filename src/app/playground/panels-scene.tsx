@@ -24,6 +24,7 @@ import { useExchangeRates } from "@/lib/exchange-rates";
 import type { PlanStay } from "@/lib/trip/split";
 
 import { MEMBERS, SPLIT, SPLIT_LEGS, STAYS, THREAD } from "./fixtures";
+import { CHECKOUT_SCENARIOS, StandInCheckoutCard, type CheckoutScenario } from "./checkout-card-stand-in";
 import { NoParty, PartyRoom, WhenReady } from "./party-room";
 
 // Every component that lives off the home globe, or inside a trip room, at the size it renders there. The room's own
@@ -57,6 +58,7 @@ export function PanelsScene({ party }: { party: boolean }) {
           <p className="type-meta text-ink-muted">What’s built but not wired yet: docs/ui/to-wire.md.</p>
         </header>
 
+        <FromMain />
         <Buttons />
         <PlanCard party={party} />
         <Tags />
@@ -196,6 +198,42 @@ function Buttons() {
   );
 }
 
+/** UI that came in with main's booking and performance work, before it has had a style pass here. */
+function FromMain() {
+  return (
+    <Section
+      title="New from main"
+      note="Came in with main's booking and performance work; not yet through the style pass. Also new: the checkout card and Reply interrupted in Pip's thread (Pip, below), Phone country in Booking details, and the sign-in panel, now a native dialog (Sign in)."
+    >
+      <div className="flex flex-wrap items-start gap-(--space-6)">
+        <div className="grid gap-(--space-2)">
+          <span className="type-meta text-ink-muted">Fare row badges</span>
+          <div className="flex flex-wrap items-center gap-(--space-2)">
+            <span className="ts-badge">Cheapest</span>
+            <span className="ts-badge ts-badge-quiet">Estimated</span>
+            <span className="ts-badge ts-badge-quiet">Bookable</span>
+            <span className="ts-badge ts-badge-quiet" title="Free refund before departure">
+              Refundable
+            </span>
+          </div>
+        </div>
+        <div className="grid w-72 gap-(--space-2)">
+          <span className="type-meta text-ink-muted">A restored trip&apos;s stay, in the fare card</span>
+          <p className="ts-empty">Stay kept: Bund hotel, 2 rooms</p>
+        </div>
+        <div className="grid gap-(--space-2)">
+          <span className="type-meta text-ink-muted">A saved trip that couldn&apos;t be restored, over the globe</span>
+          <div className="relative h-24 w-[420px] rounded-ticket border border-dashed border-rule">
+            <p role="alert" className="type-body absolute bottom-(--space-3) left-1/2 w-max -translate-x-1/2 bg-paper-raised p-(--space-3)">
+              Couldn&apos;t restore the trip. Please select the route again.
+            </p>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function Tags() {
   const [folded, setFolded] = useState<string | null>(null);
   return (
@@ -255,8 +293,13 @@ function Tags() {
 function PipPanels() {
   const [thread, setThread] = useState<ThreadMessage[]>(THREAD);
   const [unread, setUnread] = useState(false);
+  const [checkout, setCheckout] = useState<CheckoutScenario>("details");
+  const [replying, setReplying] = useState(false);
   const actions = useMemo<CardActions>(
     () => ({
+      // keyed by state, so picking one starts the card over at that point
+      checkout: () => <StandInCheckoutCard key={checkout} scenario={checkout} />,
+      retry: () => {},
       apply: async (messageId, option) => {
         await wait(400);
         setThread((t) => t.map((m) => (m.id === messageId ? { ...m, cards: m.cards.map((c) => (c.type === "meetup" ? { ...c, applied: option, changesetId: "c0" } : c)) } : m)));
@@ -266,14 +309,14 @@ function PipPanels() {
         setThread((t) => t.map((m) => (m.id === messageId ? { ...m, cards: m.cards.map((c) => ("changesetId" in c && c.changesetId === changesetId ? { ...c, undone: true } : c)) } : m)));
       },
     }),
-    [],
+    [checkout],
   );
   const composer = useComposer(async (text) => {
     await wait(300);
     setThread((t) => [...t, { id: crypto.randomUUID(), at: Date.now(), author: { kind: "member", id: "g_mei" }, text, state: "done", cards: [] }]);
   });
   return (
-    <Section title="Pip" note="The trip room's thread with every card kind. Apply and Undo flip their states; sending appends your message.">
+    <Section title="Pip" note="The trip room's thread with every card kind, including checkout. Apply and Undo flip their states; sending appends your message. Checkout walks its states with nothing booked.">
       <div className="flex flex-wrap items-end gap-(--space-6)">
         <div className="relative h-[640px] w-[428px]">
           <section className="pip-panel" aria-label={`Plan with ${AGENT_NAME}`}>
@@ -288,6 +331,11 @@ function PipPanels() {
             <CardActionsContext value={actions}>
               <ThreadLog thread={thread} me="g_mei" members={MEMBERS} activity="checking fares" footer={<Suggestions composer={composer} chips={CHIPS} />} />
             </CardActionsContext>
+            {replying ? (
+              <button type="button" className="pip-action pip-stop" onClick={() => setReplying(false)}>
+                Stop reply
+              </button>
+            ) : null}
             <Composer composer={composer} />
           </section>
         </div>
@@ -299,6 +347,20 @@ function PipPanels() {
             <input type="checkbox" checked={unread} onChange={(e) => setUnread(e.target.checked)} />
             New reply badge
           </label>
+          <label className="type-meta flex items-center gap-(--space-2)">
+            <input type="checkbox" checked={replying} onChange={(e) => setReplying(e.target.checked)} />
+            Replying (Stop reply, home Pip)
+          </label>
+          <div className="grid gap-(--space-1)">
+            <span className="type-meta text-ink-muted">Checkout card in the thread</span>
+            <div className="flex flex-wrap gap-(--space-1)">
+              {CHECKOUT_SCENARIOS.map((c) => (
+                <Button key={c.id} variant={c.id === checkout ? "primary" : "secondary"} onClick={() => setCheckout(c.id)}>
+                  {c.label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </Section>

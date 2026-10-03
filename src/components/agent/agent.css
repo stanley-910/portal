@@ -125,6 +125,14 @@
 .pip-undo:hover:not(:disabled) { background: var(--ink-hover); }
 .pip-undo:disabled { opacity: 0.45; cursor: default; }
 .pip-undo:focus-visible { outline: none; background: var(--focus); }
+/* A small text action in the thread (Try again, Edit, Stop reply): a quiet compact button, never an underlined link */
+.pip-action { position: relative; display: inline-flex; align-items: center; justify-content: center; height: 26px; padding: 0 8px; border: none; border-radius: var(--radius-tag); background: none; color: var(--ink); font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: normal; text-transform: none; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.pip-action::before { content: ""; position: absolute; inset: -9px 0; }
+.pip-action:hover:not(:disabled) { background: var(--control-hover); }
+.pip-action:disabled { opacity: 0.45; cursor: default; }
+.pip-action:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Stop reply sits over the composer, on its right */
+.pip-stop { align-self: flex-end; margin: 0 var(--space-3) -4px; }
 .pip-changes-undone ul { text-decoration: line-through; color: var(--ink-muted); }
 
 /* Composer */

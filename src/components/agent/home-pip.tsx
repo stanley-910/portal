@@ -105,7 +105,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
             </div>
           </ThreadLog>
         </CardActionsContext>
-        {busy ? <button type="button" className="pip-undo" onClick={stop}>Stop reply</button> : null}
+        {busy ? <button type="button" className="pip-action pip-stop" onClick={stop}>Stop reply</button> : null}
         <Composer composer={composer} placeholder={`Tell ${AGENT_NAME} where you're going`} />
       </section>
       </Activity>

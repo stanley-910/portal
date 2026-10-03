@@ -344,7 +344,7 @@ const Message = memo(function Message({ message: m, me, members, activity }: { m
 function FailedReply({ messageId }: { messageId: string }) {
   const actions = use(CardActionsContext);
   if (actions.appliedReplies?.has(messageId)) return <p className="pip-caption" role="status">Trip updated. Send a follow-up to continue the interrupted reply.</p>;
-  return <p className="pip-caption" role="status">Reply interrupted.{actions.retry ? <> <button type="button" className="pip-undo" onClick={() => actions.retry?.(messageId)}>Try again</button></> : " Send a follow-up to continue."}</p>;
+  return <p className="pip-caption" role="status">Reply interrupted.{actions.retry ? <> <button type="button" className="pip-action" onClick={() => actions.retry?.(messageId)}>Try again</button></> : " Send a follow-up to continue."}</p>;
 }
 
 /** One thing Pip did with a tool. While it runs, what it's doing right now follows the label. */
@@ -411,8 +411,8 @@ function MeetupCard({ card, messageId, members }: { card: Extract<ThreadCard, { 
         </div>
       ))}
       {applied && card.changesetId && actions.undo ? (
-        <button type="button" className="pip-undo" disabled={pending} onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId!)))}>
-          Undo
+        <button type="button" className="pip-undo" aria-label="Undo this meet-up" title="Undo" disabled={pending} onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId!)))}>
+          <PixelIcon rows={REWIND} scale={2} />
         </button>
       ) : null}
     </div>

@@ -87,6 +87,8 @@ export const THREAD: ThreadMessage[] = [
     state: "done",
     cards: [{ type: "changes", changesetId: "c1", lines: ["Added Shanghai → Tokyo for everyone", "Moved Joon's flight to the 9th"], undone: false }],
   }),
+  msg("m4b", 3, { author: { kind: "member", id: "g_mei" }, text: "Book Shanghai to Tokyo for the three of us.", state: "done" }),
+  msg("m4c", 4, { author: { kind: "agent" }, text: "Here's the checkout. Each of you adds your details and holds your share.", state: "done", cards: [{ type: "checkout", legId: "l3" }] }),
   msg("m5", 4, { author: { kind: "member", id: "g_joon" }, text: "Can you check the ferry instead?", state: "done" }),
   msg("m6", 5, { author: { kind: "agent" }, text: "I couldn't reach the ferry timetables just now.", state: "failed" }),
   msg("m7", 6, { author: { kind: "member", id: "g_sam" }, text: "What's the cheapest way home from Tokyo?", state: "done" }),
