@@ -19,6 +19,20 @@ export const stripeConfigured = () => !!env.STRIPE_SECRET_KEY;
  * Whether the no-charge test checkout may stand in for Stripe: only while Duffel itself is in test mode, so a deploy
  * with a live airline token and no Stripe key can't buy real tickets for free.
  */
+/**
+ * Whether booking may run with these keys: Duffel and Stripe both in test mode or both live. A live airline with test
+ * cards would buy real tickets with our balance and collect nothing; test fares on live cards would charge for
+ * nothing. Without Stripe only the no-charge test checkout runs, which needs a Duffel test token.
+ */
+export function bookingModes(duffelToken: string | undefined, stripeKey: string | undefined): { ok: true; mode: "test" | "live" } | { ok: false; reason: string } {
+  const duffel = duffelToken?.startsWith("duffel_live_") ? "live" : duffelToken?.startsWith("duffel_test_") ? "test" : null;
+  const stripeMode = !stripeKey ? null : /^(sk|rk)_live_/.test(stripeKey) ? "live" : /^(sk|rk)_test_/.test(stripeKey) ? "test" : null;
+  if (!duffel) return { ok: false, reason: "Duffel isn't set up on this server." };
+  if (!stripeKey) return duffel === "test" ? { ok: true, mode: "test" } : { ok: false, reason: "Payments aren't set up on this server." };
+  if (stripeMode !== duffel) return { ok: false, reason: `Booking is off: the airline is in ${duffel} mode and payments in ${stripeMode ?? "an unknown"} mode.` };
+  return { ok: true, mode: duffel };
+}
+
 export const testCheckoutAllowed = () => !env.STRIPE_SECRET_KEY && !!env.DUFFEL_ACCESS_TOKEN?.startsWith("duffel_test_");
 
 /** Nested params the way Stripe's form encoding wants them: `a[b][c]=v`. */

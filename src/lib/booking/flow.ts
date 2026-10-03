@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PlanJson } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
+import { env } from "@/lib/env.server";
 import type { BookingSeat, LegBooking, Money } from "@/lib/liveblocks/types";
 
 import { cancelOrder, createOrder, findOfferFor, getOffer, getOrder, payOrder } from "./duffel";
@@ -10,7 +11,7 @@ import { offerExpired, perSeat, travellerSchema, type BookableOffer, type Travel
 import { refusedPassenger, settleReady, storedFlights } from "./ready";
 import { allDetailsIn, allPaid, anyonePaid, bookingDeadline, openSeats, priceRose, splitShares } from "./shares";
 import { bookingStore, type PaymentRow } from "./store";
-import { cancelPayment, capturePayment, captureBefore, createCustomer, createHoldCheckout, createHoldIntent, getCheckoutSession, getPaymentIntent, listCards, stripeConfigured, testCheckoutAllowed, type SavedCard } from "./stripe";
+import { bookingModes, cancelPayment, capturePayment, captureBefore, createCustomer, createHoldCheckout, createHoldIntent, getCheckoutSession, getPaymentIntent, listCards, stripeConfigured, testCheckoutAllowed, type SavedCard } from "./stripe";
 
 // The booking flow from docs/booking/README.md. Every step reads the leg from the room, decides, calls Duffel or
 // Stripe, then writes status back. Only this module writes `booking`; clients and Pip only read it.
@@ -25,6 +26,13 @@ type LegJson = NonNullable<PlanJson["legs"]>[string];
 /** Riders have this long to enter details before a group settle lapses on its own. */
 const DETAILS_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LEASE_MS = 2 * 60 * 1000;
+
+/** Refuses to book when Duffel and Stripe are in different modes (see bookingModes). */
+function modes(): "test" | "live" {
+  const m = bookingModes(env.DUFFEL_ACCESS_TOKEN, env.STRIPE_SECRET_KEY);
+  if (!m.ok) throw new BookingError("NOT_CONFIGURED", m.reason);
+  return m.mode;
+}
 
 const tripIdOf = (roomId: string) => roomId.replace(/^trip:/, "");
 const over = (now: Money, agreed: Money) => priceRose(agreed, now);
@@ -110,6 +118,7 @@ export async function settleLeg(roomId: string, legId: string, actor: Actor, acc
   try {
     const ready = settleReady((await readLeg(roomId, legId)).leg, actor.id);
     if (!ready.ok) throw ready.error;
+    modes();
     const { leg, chosen, offerId } = ready;
     // an offer Duffel has dropped is searched for again by the flights the leg kept
     const like = storedFlights(chosen);
@@ -309,6 +318,7 @@ type Charge =
  * rise shows before paying; a hold already recorded comes back as held.
  */
 async function seatCharge(roomId: string, legId: string, actor: Actor, accept?: Money): Promise<Charge> {
+  modes();
   const store = bookingStore();
   const { plan, leg } = await readLeg(roomId, legId);
   const booking = leg?.booking;
@@ -350,20 +360,24 @@ async function seatCharge(roomId: string, legId: string, actor: Actor, accept?: 
   };
 }
 
+/** Test and live Stripe customers are different accounts' records, so each mode keeps its own. */
+const customerKey = (personId: string) => `${/^(sk|rk)_live_/.test(env.STRIPE_SECRET_KEY ?? "") ? "live" : "test"}:${personId}`;
+
 /** The Stripe customer a person's cards are saved to, made on first use. */
 async function customerFor(actor: Actor): Promise<string> {
   const store = bookingStore();
-  const known = await store.getCustomer(actor.id);
+  const key = customerKey(actor.id);
+  const known = await store.getCustomer(key);
   if (known) return known;
   const customer = await createCustomer(actor.id, actor.email, actor.name);
-  await store.putCustomer(actor.id, customer.id);
+  await store.putCustomer(key, customer.id);
   return customer.id;
 }
 
 /** A person's saved cards; none without Stripe or before their first in-app payment. */
 export async function savedCards(personId: string): Promise<SavedCard[]> {
   if (!stripeConfigured()) return [];
-  const customer = await bookingStore().getCustomer(personId);
+  const customer = await bookingStore().getCustomer(customerKey(personId));
   return customer ? listCards(customer).catch(() => []) : [];
 }
 
@@ -493,6 +507,8 @@ async function recordHold(roomId: string, legId: string, riderId: string) {
  */
 async function purchase(roomId: string, legId: string) {
   const store = bookingStore();
+  const ok = bookingModes(env.DUFFEL_ACCESS_TOKEN, env.STRIPE_SECRET_KEY);
+  if (!ok.ok) return console.warn("[booking] purchase skipped:", ok.reason);
   const key = `purchase:${roomId}/${legId}`;
   if (!(await store.acquire(key, LEASE_MS))) return;
   try {
