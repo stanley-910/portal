@@ -36,7 +36,7 @@ The plane stays as it is. Its fin is painted fully in `roundel`, which `tokens.j
 ### Engine (`engine.ts`)
 
 - `Plane` gains `vehicle: Mode` (what is drawn), `next: Mode` (what it is changing to) and `swap: number` (0 to 1 progress through the pop).
-- One VAO and vertex count per vehicle, built in `start()` and freed in `destroy()`.
+- One VAO and vertex count per vehicle, built in `start()`. Like the plane's VAO today, they are not freed in `destroy()`.
 - New public `setVehicle(mode: Mode)` for this viewer's own vehicle. It is ignored while flying. Takeoff and `cancel()` reset to `"flight"`.
 - `RemoteFlight` gains an optional `vehicle?: Mode`, defaulting to `"flight"`. `setRemoteFlights` starts a swap when it changes.
 - Per frame, swap progress advances. The draw scale is `S * (1 - sin(π * swap))`, and `vehicle` takes the value of `next` once `swap` passes 0.5. With reduced motion, `vehicle = next` straight away.
@@ -54,8 +54,8 @@ The plane stays as it is. Its fin is painted fully in `roundel`, which `tokens.j
 
 ### Home globe (`globe-screen.tsx`, `ticket-search.tsx`)
 
-- `TicketSearch` gains an optional `onChoiceChange?: (offer: Offer | null) => void`. It fires from an effect when the selected offer (`choice`) changes, including to null.
-- `GlobeScreen` passes `offer => globe.current?.setVehicle(offer?.mode ?? "flight")`.
+- `TicketSearch` gains an optional `onChoiceMode?: (mode: Mode | null) => void`. It fires from an effect when the selected row's mode changes, including to null.
+- `GlobeScreen` passes `mode => globe.current?.setVehicle(mode ?? "flight")`.
 
 ### Trip room (`remote-planes.tsx`, `trip-room.tsx`)
 
