@@ -30,6 +30,7 @@ export async function saveColor(value: number) {
     const supabase = await createSupabaseServer();
     const { error } = (await supabase?.auth.updateUser({ data: { color } })) ?? {};
     if (error) console.warn("[profile] saving the colour failed:", error.message);
+    else await supabase?.auth.refreshSession().catch(() => {});
     return;
   }
   await ensureGuest();

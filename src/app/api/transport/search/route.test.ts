@@ -90,3 +90,52 @@ describe("transport search route, when the live flight APIs never answer", () =>
     expect(result.estimates.filter((id) => result.hubs.pairs.find((p) => p.id === id)?.mode === "flight")).toEqual([]);
   });
 });
+
+describe("progressive transport stream", () => {
+  it("streams a partial snapshot before the final result without changing the JSON endpoint", async () => {
+    const result = { offers: [], errors: [], tookMs: 0, estimates: [], offerPairs: {}, hubs: {} } as unknown as HubSearchResult;
+    let finish!: (value: HubSearchResult) => void;
+    vi.mocked(searchFromCoordinates).mockImplementation(async (_q, _signal, progress) => {
+      progress?.(result);
+      return new Promise((resolve) => { finish = resolve; });
+    });
+    const response = await GET(request({ resolve: "hubs", stream: "1" }));
+    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+    const reader = response.body!.getReader();
+    expect(JSON.parse(new TextDecoder().decode((await reader.read()).value))).toMatchObject({ t: "result", done: false });
+    finish(result);
+    expect(JSON.parse(new TextDecoder().decode((await reader.read()).value))).toMatchObject({ t: "result", done: true });
+    expect((await reader.read()).done).toBe(true);
+  });
+  it("cancels work when a stream reader leaves", async () => {
+    let signal!: AbortSignal;
+    vi.mocked(searchFromCoordinates).mockImplementation((_q, s) => { signal = s; return new Promise(() => {}); });
+    const response = await GET(request({ resolve: "hubs", stream: "1" }));
+    await response.body!.cancel();
+    expect(signal.aborted).toBe(true);
+  });
+});
+
+describe("progressive snapshot pressure", () => {
+  afterEach(() => vi.useRealTimers());
+  it("sends the first useful snapshot immediately, coalesces bursts and always flushes final state", async () => {
+    vi.useFakeTimers();
+    const result = { offers: [{ id: "first" }], errors: [], tookMs: 0, estimates: [], offerPairs: {}, hubs: {} } as unknown as HubSearchResult;
+    let finish!: (value: HubSearchResult) => void;
+    vi.mocked(searchFromCoordinates).mockImplementation(async (_q, _signal, progress) => {
+      for (let i = 0; i < 20; i++) progress?.({ ...result, tookMs: i });
+      return new Promise((resolve) => { finish = resolve; });
+    });
+    const response = await GET(request({ resolve: "hubs", stream: "1" }));
+    const reader = response.body!.getReader();
+    const first = JSON.parse(new TextDecoder().decode((await reader.read()).value));
+    expect(first).toMatchObject({ done: false, result: { tookMs: 0 } });
+    await vi.advanceTimersByTimeAsync(50);
+    const batch = JSON.parse(new TextDecoder().decode((await reader.read()).value));
+    expect(batch).toMatchObject({ done: false, result: { tookMs: 19 } });
+    finish({ ...result, tookMs: 1000 });
+    expect(JSON.parse(new TextDecoder().decode((await reader.read()).value))).toMatchObject({ done: true });
+    expect((await reader.read()).done).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});

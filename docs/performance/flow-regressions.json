@@ -1,0 +1,16 @@
+{
+  "environment": "Local production browser, synthetic read-only transport/hotel responses; no auth or payment submitted",
+  "passed": [
+    "Back retains the selected fare without another identical nonlive search",
+    "Hotel filters survive leaving and reopening the tab",
+    "Refined hotel queries show loading and recover through Retry",
+    "Auth excludes background focus/shortcuts and Escape preserves the landed ticket",
+    "Pip minimization retains the unsent draft",
+    "Synthetic solo Pip stream serializes prompts, Stop cancels late plan events, and the next prompt completes",
+    "A disconnected reply that already edited the trip cannot repeat the original edit through Retry"
+  ],
+  "searches": 2,
+  "errors": [],
+  "syntheticErrors": [],
+  "syntheticFixtureNote": "A synthetic client account replaces guest RSC data only in the test browser, retaining the same null display name to keep SSR markup consistent. No server auth or payment is called."
+}

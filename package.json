@@ -11,7 +11,7 @@
     "provinces": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-provinces.mts",
     "dev": "node scripts/tokens.mts && next dev",
     "dev:party": "pnpm dlx liveblocks@1.9.0 dev --no-check --cmd 'node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-party.mts && node scripts/tokens.mts && next dev'",
-    "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && next build",
+    "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts --check && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -22,7 +22,8 @@
     "airlines:snapshot": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-airline-logos.mts",
     "db:migrate": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
     "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
-    "eval:pip": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts"
+    "eval:pip": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts",
+    "browser-hubs": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^3.0.58",

@@ -6,6 +6,7 @@ import { finishSoloBookingAction, startSoloBookingAction, type SoloStep } from "
 import { DetailsForm } from "@/components/multiplayer/leg-booking";
 import { Button } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
+import { recordTiming } from "@/lib/performance";
 import { iso2 } from "@/lib/entry/iso";
 import type { Money } from "@/lib/liveblocks/types";
 
@@ -28,6 +29,7 @@ export function SoloCheckout({
   onClose: () => void;
 }) {
   const [busy, start] = useTransition();
+  const [uncertain, setUncertain] = useState(false);
   const [at, setAt] = useState<SoloStep | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [price, setPrice] = useState<{ change: PriceChange; then: "settle" | "pay" } | null>(null);
@@ -38,7 +40,7 @@ export function SoloCheckout({
     start(async () => {
       setError(null);
       setPrice(null);
-      const result = await startSoloBookingAction(tripId, legId, accept);
+      const result = await startSoloBookingAction(tripId, legId, accept).catch((): Failure => ({ ok: false, code: "UPSTREAM_ERROR", message: "Connection lost while checking the fare. Open the trip to check its status." }));
       if (result.ok) return setAt(result);
       if ("now" in result) setPrice({ change: result, then: "settle" });
       else setError(result);
@@ -49,12 +51,14 @@ export function SoloCheckout({
       setError(null);
       setPrice(null);
       setDetails(input);
-      const result = await finishSoloBookingAction(tripId, legId, input, accept);
+      const started = performance.now();
+      const result = await finishSoloBookingAction(tripId, legId, input, accept).catch((): Failure => { setUncertain(true); return { ok: false, code: "UPSTREAM_ERROR", message: "Connection lost. Check your booking before trying payment again." }; });
       if (!result.ok) {
         if ("now" in result) setPrice({ change: result, then: "pay" });
         else setError(result);
         return;
       }
+      recordTiming("checkout", started);
       if (result.url) return window.location.assign(result.url);
       setAt((a) => (a ? { ...a, step: "done" } : a));
     });
@@ -66,7 +70,7 @@ export function SoloCheckout({
     <div className="tp-notice" role="alert">
       <span>{price.change.was ? `Now ${fmt(price.change.now)}, was ${fmt(price.change.was)}.` : `${fmt(price.change.now)}.`}</span>
       <span className="tp-notice-actions">
-        <button type="button" className="ts-oneway" disabled={busy} onClick={() => (price.then === "settle" ? settle(price.change.now) : pay(details, price.change.now))}>
+        <button type="button" className="ts-oneway" disabled={busy || uncertain} onClick={() => (price.then === "settle" ? settle(price.change.now) : pay(details, price.change.now))}>
           Continue
         </button>
         <button type="button" className="ts-oneway" onClick={onClose}>
@@ -101,7 +105,7 @@ export function SoloCheckout({
           documents={at.documents}
           email={email}
           passportCountry={nationalities[0] ? (iso2(nationalities[0]) ?? "") : ""}
-          busy={busy}
+          busy={busy || uncertain}
           invalid={error?.fields ?? []}
           submitLabel={busy ? "Opening checkout…" : `Pay · ${fmt(at.share)}`}
           onCancel={onClose}
@@ -109,7 +113,7 @@ export function SoloCheckout({
         />
       ) : null}
       {at?.step === "pay" && !price ? (
-        <Button block disabled={busy} onClick={() => pay(null)}>
+        <Button block disabled={busy || uncertain} onClick={() => pay(null)}>
           {busy ? "Opening checkout…" : `Pay · ${fmt(at.share)}`}
         </Button>
       ) : null}

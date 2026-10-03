@@ -47,7 +47,7 @@ const PENDING_KEY = "portal:after-sign-in";
 
 export function setPendingAction(action: PendingAction) {
   try {
-    sessionStorage.setItem(PENDING_KEY, JSON.stringify(action));
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ version: 1, action }));
   } catch {
     // storage blocked: they redo the action after signing in
   }
@@ -58,7 +58,7 @@ export function takePendingAction(): PendingAction | null {
   try {
     const raw = sessionStorage.getItem(PENDING_KEY);
     sessionStorage.removeItem(PENDING_KEY);
-    return raw ? (JSON.parse(raw) as PendingAction) : null;
+    return readPendingAction(raw);
   } catch {
     return null;
   }
@@ -68,8 +68,22 @@ export function takePendingAction(): PendingAction | null {
 export function peekPendingAction(): PendingAction | null {
   try {
     const raw = sessionStorage.getItem(PENDING_KEY);
-    return raw ? (JSON.parse(raw) as PendingAction) : null;
+    return readPendingAction(raw);
   } catch {
     return null;
   }
+}
+
+/** Version the envelope, and refuse unknown/malformed intents before dispatching them. Save input is validated separately. */
+export function readPendingAction(raw: string | null): PendingAction | null {
+  if (!raw || raw.length > 1_200_000) return null;
+  try {
+    const envelope = JSON.parse(raw);
+    if (envelope?.version !== 1) return null;
+    const action = envelope.action;
+    if (action?.type === "create") return { type: "create" };
+    if (action?.type === "pip" && typeof action.text === "string" && action.text.length <= 2000) return { type: "pip", text: action.text };
+    if (action?.type === "save" && action.input && typeof action.input === "object") return { type: "save", input: action.input, book: action.book === true };
+  } catch {}
+  return null;
 }

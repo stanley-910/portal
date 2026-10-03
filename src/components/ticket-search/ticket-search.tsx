@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import dynamic from "next/dynamic";
+import { Activity, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import { Button, RoundButton } from "@/components/paper-atlas";
-import { HotelSearch } from "@/components/hotel-search/hotel-search";
+
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelResult } from "@/lib/hotels/types";
@@ -11,8 +12,8 @@ import { arrivalDate } from "@/lib/transport/arrival";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { Mode, Offer } from "@/lib/transport/types";
-import type { PickedStay, ReturnPick } from "@/lib/trip/solo-input";
-import { isBookable } from "@/lib/trip/offers";
+import type { LegPick, PickedStay, ReturnPick } from "@/lib/trip/solo-input";
+import { isBookable, refundNote } from "@/lib/trip/offers";
 
 import { credits, formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
 import { AirlineLogo } from "./airline-logo";
@@ -24,6 +25,14 @@ import { reveal, useAnchor } from "./anchor";
 
 // The ticket search popover (design handoff "Ticket search popover", turn 3): the route, depart and return dates,
 // and the three best options per tab. It anchors beside the landed route on the globe.
+
+const HotelSearch = dynamic(() => import("@/components/hotel-search/hotel-search").then((m) => m.HotelSearch));
+
+export type TicketDraft = {
+  depart: string; returnDate: string | null; tab: Tab; selected: string | null;
+  hotelSelection: { hotel: HotelResult; scope: string } | null;
+  leg: "out" | "back"; backTab: Tab; backSelected: string | null;
+};
 
 const SAVE_LABEL: Record<Mode, string> = {
   flight: "Save flight",
@@ -101,7 +110,7 @@ function OptionList({
   const credited = credits(rows, choice);
   return (
     <div className="ts-rows" role="tabpanel">
-      {status === "searching" || status === "idle"
+      {(status === "searching" || status === "idle") && !rows.length
         ? [0, 1, 2].map((i) => (
             <div key={i} className="ts-row ts-row-ghost" aria-hidden>
               <span className="ts-ghost ts-ghost-head" />
@@ -143,6 +152,7 @@ function OptionList({
               {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
               {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
             {isBookable(row.offer) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
+            {row.offer.refund ? <span className="ts-badge ts-badge-quiet" title={refundNote(row.offer)}>Refundable</span> : null}
             </span>
             <span className="ts-price" data-none={price === null || undefined}>
               {priceText(price, currency)}
@@ -174,6 +184,10 @@ function OptionList({
 }
 
 export interface TicketSearchProps {
+  initialDraft?: TicketDraft;
+  initialPick?: LegPick;
+  onDraft?: (draft: TicketDraft) => void;
+  onSearchingChange?: (searching: boolean) => void;
   trip: LandedTrip;
   globe: RefObject<TripGlobeHandle | null>;
   currency: Currency;
@@ -217,7 +231,7 @@ export interface TicketSearchProps {
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand,
+  trip, globe, currency, rates, onAdd, initialDraft, initialPick, onDraft, onSearchingChange, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -226,21 +240,28 @@ export function TicketSearch({
   const canReturn = !next && !samePoint(homePoint, trip.destination);
   const card = useRef<HTMLElement>(null);
   const [firstDay] = useState(() => localIso(trip.departDate));
-  const [depart, setDepart] = useState(firstDay);
-  const [returnDate, setReturnDate] = useState<string | null>(null);
+  const [depart, setDepart] = useState(initialDraft?.depart ?? initialPick?.depart ?? firstDay);
+  const [returnDate, setReturnDate] = useState<string | null>(initialDraft?.returnDate ?? null);
   const [openField, setOpenField] = useState<"depart" | "return" | null>(null);
-  const [tab, setTab] = useState<Tab>("best");
+  const [tab, setTab] = useState<Tab>(initialDraft?.tab ?? "best");
   // the Hotels tab sits beside the route tabs; the route pick stays what Save trip saves
   const [hotelsOpen, setHotelsOpen] = useState(false);
-  const [hotelSelection, setHotelSelection] = useState<{ hotel: HotelResult; scope: string } | null>(null);
-  const [selected, setSelected] = useState(0);
+  const [hotelsVisited, setHotelsVisited] = useState(false);
+  const [keepSavedStay, setKeepSavedStay] = useState(true);
+  const [hotelSelection, setHotelSelection] = useState<{ hotel: HotelResult; scope: string } | null>(initialDraft?.hotelSelection ?? null);
+  const [selected, setSelected] = useState<string | null>(initialDraft?.selected ?? initialPick?.offer?.id ?? null);
   // a round trip picks the way out, then the way back from its own list
-  const [leg, setLeg] = useState<"out" | "back">("out");
-  const [backTab, setBackTab] = useState<Tab>("best");
-  const [backSelected, setBackSelected] = useState(0);
+  const [leg, setLeg] = useState<"out" | "back">(initialDraft?.leg ?? "out");
+  const [backTab, setBackTab] = useState<Tab>(initialDraft?.backTab ?? "best");
+  const [backSelected, setBackSelected] = useState<string | null>(initialDraft?.backSelected ?? null);
 
   const outbound = useOffers(trip.origin, trip.destination, depart);
   const back = useOffers(trip.destination, homePoint, returnDate);
+  useEffect(() => {
+    onDraft?.({ depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected });
+  }, [depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected, onDraft]);
+  const searching = outbound.status === "searching" || back.status === "searching";
+  useEffect(() => { onSearchingChange?.(searching); return () => onSearchingChange?.(false); }, [searching, onSearchingChange]);
   const ends = endpoints(trip, outbound.result);
   const homeEnd = home && !samePoint(home.origin, trip.origin) ? placeEnd(home.from, home.origin) : ends.from;
 
@@ -268,36 +289,38 @@ export function TicketSearch({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const offers = outbound.status === "done" ? outbound.offers : [];
+  const offers = outbound.offers;
   const tabs = visibleTabs(offers);
   const activeTab = tabs.includes(tab) ? tab : "best";
-  const rows = rowsFor(offers, activeTab, rates);
-  const choice = rows[Math.min(selected, rows.length - 1)];
+  const rows = rowsFor(offers, activeTab, rates, selected);
+  const choice = rows.find((row) => row.offer.id === selected) ?? rows[0];
   const roundTrip = returnDate !== null;
-  const backOffers = roundTrip && back.status === "done" ? back.offers : [];
+  const backOffers = roundTrip ? back.offers : [];
   const backTabs = visibleTabs(backOffers);
   const activeBackTab = backTabs.includes(backTab) ? backTab : "best";
-  const backRows = rowsFor(backOffers, activeBackTab, rates);
-  const backChoice = roundTrip ? backRows[Math.min(backSelected, backRows.length - 1)] : undefined;
+  const backRows = rowsFor(backOffers, activeBackTab, rates, backSelected);
+  const backChoice = roundTrip ? (backRows.find((row) => row.offer.id === backSelected) ?? backRows[0]) : undefined;
   const showBack = roundTrip && leg === "back";
   const hotelCheckIn = arrivalDate(depart, choice ? { kind: choice.offer.kind,
     depart: choice.offer.segments[0]?.depart, arrive: choice.offer.segments.at(-1)?.arrive } : null);
   const hotelCheckOut = returnDate ?? addDays(hotelCheckIn, 1);
   const hotelScope = `${hotelCheckIn}/${hotelCheckOut}`;
   const hotel = hotelCheckOut > hotelCheckIn && hotelSelection?.scope === hotelScope ? hotelSelection.hotel : null;
-  const setHotel = (value: HotelResult | null) => setHotelSelection(value ? { hotel: value, scope: hotelScope } : null);
+  const setHotel = (value: HotelResult | null) => { setKeepSavedStay(false); setHotelSelection(value ? { hotel: value, scope: hotelScope } : null); };
+  const restoredStay = keepSavedStay && depart === initialPick?.depart && choice?.offer.id === initialPick?.offer?.id ? initialPick?.stay : null;
+  const pickedStay = hotel ? stayFrom(hotel) : restoredStay ?? null;
 
   const pickDay = (iso: string) => {
     if (openField === "return") {
       setReturnDate(iso);
-      setBackSelected(0);
+      setBackSelected(null);
     } else {
       setDepart(iso);
       if (returnDate && returnDate <= iso) {
         setReturnDate(null);
         setLeg("out");
       }
-      setSelected(0);
+      setSelected(null);
     }
     setHotel(null);
     setOpenField(null);
@@ -431,10 +454,10 @@ export function TicketSearch({
                     setHotelsOpen(false);
                     if (showBack) {
                       setBackTab(t.id);
-                      setBackSelected(0);
+                      setBackSelected(null);
                     } else {
                       setTab(t.id);
-                      setSelected(0);
+                      setSelected(null);
                     }
                   }}
                 >
@@ -448,7 +471,7 @@ export function TicketSearch({
                     aria-selected={hotelsOpen}
                     aria-label="Hotels"
                     title="Hotels"
-                    onClick={() => setHotelsOpen(true)}
+                    onClick={() => { setHotelsVisited(true); setHotelsOpen(true); }}
                   >
                     <Glyph kind="hotel" size={15} />
                   </button>
@@ -457,8 +480,8 @@ export function TicketSearch({
             ))}
           </div>
 
-          {hotelsOpen && ends.to.known && !showBack ? (
-            hotelCheckOut <= hotelCheckIn ? <p className="ts-empty">No overnight stay before the return departure.</p> : <HotelSearch
+          {hotelsVisited && ends.to.known ? <Activity mode={hotelsOpen && !showBack ? "visible" : "hidden"}>
+            {hotelCheckOut <= hotelCheckIn ? <p className="ts-empty">No overnight stay before the return departure.</p> : <HotelSearch
               city={ends.to.name}
               lat={trip.destination.lat}
               lng={trip.destination.lng}
@@ -469,8 +492,9 @@ export function TicketSearch({
               picked={hotel}
               onPick={setHotel}
               tabPanel
-            />
-          ) : showBack ? (
+            />}
+          </Activity> : null}
+          {hotelsOpen && !showBack ? null : showBack ? (
             <OptionList
               status={back.status}
               slow={back.slow}
@@ -478,7 +502,7 @@ export function TicketSearch({
               choice={backChoice}
               currency={currency}
               rates={rates}
-              onPick={setBackSelected}
+              onPick={(index) => setBackSelected(backRows[index]?.offer.id ?? null)}
               onRetry={back.retry}
               empty={
                 <>
@@ -497,7 +521,7 @@ export function TicketSearch({
               choice={choice}
               currency={currency}
               rates={rates}
-              onPick={setSelected}
+              onPick={(index) => setSelected(rows[index]?.offer.id ?? null)}
               onRetry={outbound.retry}
               empty="No routes found."
             />
@@ -510,12 +534,13 @@ export function TicketSearch({
             </p>
           ) : null}
 
+          {restoredStay && !hotel ? <p className="ts-empty">Stay kept: {restoredStay.label}</p> : null}
           {checkout ?? (
             <>
             <Button
               block
               className="ts-save"
-              disabled={saving || added || (roundTrip ? !choice || (showBack && !backChoice) : !choice && !hotel)}
+              disabled={saving || added || (roundTrip ? !choice || (showBack && !backChoice) : !choice && !pickedStay)}
               aria-busy={saving || undefined}
               onClick={() => {
                 if (roundTrip && !showBack) {
@@ -527,7 +552,7 @@ export function TicketSearch({
                   offers,
                   depart,
                   return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
-                  stay: hotel ? stayFrom(hotel) : null,
+                  stay: pickedStay,
                 });
               }}
             >
@@ -536,14 +561,14 @@ export function TicketSearch({
                 : added
                   ? "Saved"
                   : next
-                    ? hotel ? "Next leg with stay" : "Next leg"
+                    ? pickedStay ? "Next leg with stay" : "Next leg"
                     : roundTrip
                       ? showBack
-                        ? hotel ? "Save round trip with stay" : "Save round trip"
+                        ? pickedStay ? "Save round trip with stay" : "Save round trip"
                         : "Choose return"
-                      : hotel && choice
+                      : pickedStay && choice
                         ? "Save trip with stay"
-                        : hotel
+                        : pickedStay
                           ? "Save hotel"
                           : choice
                             ? SAVE_LABEL[choice.offer.mode]
@@ -554,7 +579,7 @@ export function TicketSearch({
                 variant="secondary"
                 block
                 className="ts-save"
-                disabled={saving || (!choice && !hotel)}
+                disabled={saving || (!choice && !pickedStay)}
                 onClick={() => {
                   const saved = !!choice && choice.offer.id === addedId;
                   if (!saved) {
@@ -563,7 +588,7 @@ export function TicketSearch({
                       offers,
                       depart,
                       return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
-                      stay: hotel ? stayFrom(hotel) : null,
+                      stay: pickedStay,
                     });
                   }
                   onBook(saved);

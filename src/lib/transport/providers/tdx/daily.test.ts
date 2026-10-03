@@ -21,8 +21,8 @@ describe("TDX official dated timetable contract", () => {
     expect(await client(q.date, abort)).toBe(rows);
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(fetcher.mock.calls[0][0]).toBe(TOKEN_URL);
-    expect(fetcher.mock.calls[0][1]?.signal).toBe(abort);
-    expect(fetcher.mock.calls[1][1]?.signal).toBe(abort);
+    expect(fetcher.mock.calls[0][1]?.signal?.aborted).toBe(false);
+    expect(fetcher.mock.calls[1][1]?.signal?.aborted).toBe(false);
     const offer = mapDaily(rows, q, "1000", "1070", q.from, q.to)[0];
     expect(offer.kind).toBe("timetable"); expect(offer.price).toBeUndefined();
     expect(offer.segments[0].arrive).toBe("2026-10-14T09:30:00+08:00");
@@ -62,5 +62,35 @@ describe("TDX official dated timetable contract", () => {
     expect(offer.segments[0].arrive).toBe("2026-10-14T02:10:00+08:00");
     const noArrival = structuredClone(overnight); noArrival[0].StopTimes[2].ArrivalTime = null;
     expect(mapDaily(noArrival, q, "1000", "1070", q.from, q.to)).toEqual([]);
+  });
+});
+
+describe("TDX concurrent readers", () => {
+  it("shares date/token requests and keeps another reader alive when one aborts", async () => {
+    let finish!: (response: Response) => void;
+    let upstream!: AbortSignal;
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
+      if (url === TOKEN_URL) return Response.json({ access_token: "fixture", expires_in: 3600 });
+      upstream = init!.signal!;
+      return new Promise<Response>((resolve) => { finish = resolve; });
+    });
+    const client = createDailyClient(creds, fetcher);
+    const a = new AbortController(), b = new AbortController();
+    const first = client(q.date, a.signal), second = client(q.date, b.signal);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    const rejected = expect(first).rejects.toMatchObject({ name: "AbortError" });
+    a.abort(); await rejected;
+    expect(upstream.aborted).toBe(false);
+    finish(Response.json(fixture));
+    expect(await second).toEqual(fixture);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it("requests both independent service dates before either finishes", async () => {
+    const resolvers = new Map<string, (rows: Daily) => void>();
+    const daily = vi.fn((date: string) => new Promise<Daily>((resolve) => resolvers.set(date, resolve)));
+    const work = createTdxProvider(seed, undefined, daily).search(q, signal());
+    expect(daily).toHaveBeenCalledTimes(2);
+    for (const finish of resolvers.values()) finish([]);
+    expect(await work).toEqual([]);
   });
 });

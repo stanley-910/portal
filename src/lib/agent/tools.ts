@@ -6,7 +6,7 @@ import { stopToPlace } from "@/lib/trip/stops";
 import { z } from "zod";
 
 import { editPlan, editTarget, newChangeset, resolvePlace, type EditOp, type PlaceRef, type Refusal } from "@/lib/agent/edit";
-import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
+import { findMeetup, MAX_MEETUP_GROUPS, type MeetupGroup } from "@/lib/agent/meetup";
 import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
@@ -18,7 +18,7 @@ import { isBookable } from "@/lib/trip/offers";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 import { KIND } from "@/lib/agent/kind";
 import { describeRoutes, optimize } from "@/lib/agent/optimize";
-import { SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -135,16 +135,7 @@ const OUT_OF_TIME = {
 } as const;
 
 export function agentTools(ctx: ToolContext) {
-  // Pip's saucer comes out the first time Pip looks somewhere, flying in from off the screen, which takes longer
-  // than gliding on to the next place. Returns how long to give it to get there.
-  let saucerOut = false;
-  const look = (text: string, at?: Parameters<ToolContext["activity"]>[1]) => {
-    const was = saucerOut;
-    ctx.activity(text, at);
-    if (!at) return 0;
-    saucerOut = true;
-    return was ? SAUCER_FLY_MS : SAUCER_ENTER_MS;
-  };
+  const look = (text: string, at?: Parameters<ToolContext["activity"]>[1]) => ctx.activity(text, at);
   return {
     get_trip: tool({
       description: "The trip as it is now: members, stops and legs with handles. Read-only; call it before editing if the plan may have changed.",
@@ -170,7 +161,7 @@ export function agentTools(ctx: ToolContext) {
         const options = ranked(l.search.offers).map((o, i) => {
           const price = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
           const time = `${o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`}${o.departs ? ` ${o.departs}→${o.arrives}` : ""}`;
-          const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
+          const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", o.refund ? (o.refund.fee ? `refundable for a ${o.refund.fee.currency} ${o.refund.fee.amount} fee` : "refundable free") : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
         return { leg, total: l.search.offers.length, options, note: "Quote these exactly. Prices in different currencies are ordered by a rough conversion." };
@@ -419,26 +410,20 @@ export function agentTools(ctx: ToolContext) {
       execute: async ({ ops }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
         const { plan, handles } = await ctx.load({ fresh: true });
-        const wait = (ms: number) => new Promise((done) => setTimeout(done, Math.min(ms, Math.max(0, ctx.until - Date.now() - 1000))));
-        // One op at a time, in order, so everyone watches the trip built piece by piece: the saucer flies to where it
-        // goes, the change lands under it, and it stays a beat before the next. Every op reads the same snapshot, as
-        // one call did, and they share a changeset, so one Undo still puts back all of them.
+        // Ordered changes share one Undo; clients animate the marks without delaying server work.
         const changeset = newChangeset();
         const applied: string[] = [];
         const refused: Refusal[] = [];
         for (const [i, op] of (ops as EditOp[]).entries()) {
           const target = editTarget(plan, handles, [op]);
-          await wait(look("editing the trip", target ?? undefined));
+          look("editing the trip", target ?? undefined);
           const step = await editPlan(ctx.roomId, plan, handles, [op], ctx.agentId, ctx.until, changeset);
           applied.push(...step.applied);
           refused.push(...step.refused.map((r) => ({ ...r, op: i })));
           ctx.marks(step.marks);
-          // a new leg draws out behind the saucer before its mark pops
-          if (op.op === "add_leg" && step.applied.length) await wait(SAUCER_DRAW_MS);
-          if (step.marks.length && i < ops.length - 1) await wait(SAUCER_STAY_MS);
         }
         if (applied.length) await ctx.addCard({ type: "changes", changesetId: changeset.id, lines: applied, undone: false });
-        // searches for new or moved legs go on while the saucer works, and finish before Pip says what it did
+        // Finish searches before Pip quotes what it changed.
         await Promise.all(changeset.searches);
         return { applied, refused };
       },
@@ -456,7 +441,7 @@ export function agentTools(ctx: ToolContext) {
               from: placeRef,
             }),
           )
-          .min(2),
+          .min(2).max(MAX_MEETUP_GROUPS),
         date: date.describe("The day they arrive, YYYY-MM-DD"),
         minimize: z.enum(["price", "duration"]).default("price"),
         fairest: z.boolean().default(false).describe("Minimise the worst-off person instead of the group total"),
@@ -493,8 +478,8 @@ export function agentTools(ctx: ToolContext) {
           { groups, date: input.date, minimize: input.minimize, fairest: input.fairest, candidates: input.candidates },
           async (query) => {
             look(`checking ${query.to.name}`, query.to);
-            return (await searchFromCoordinates(query, AbortSignal.timeout(12_000))).offers;
-          },
+            return (await searchFromCoordinates(query, AbortSignal.timeout(Math.max(1, Math.min(12_000, ctx.until - Date.now()))))).offers;
+          }, undefined, AbortSignal.timeout(Math.max(1, ctx.until - Date.now())),
         );
         if (!result.options.length) {
           return { options: [], note: "No candidate city had routes for every group. Suggest other dates or name candidates." };

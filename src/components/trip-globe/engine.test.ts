@@ -704,3 +704,183 @@ describe("landed routes and stop tags", () => {
     expect(offsets[1]).toBeLessThanOrEqual(offsets[0]);
   });
 });
+
+describe("settled rendering", () => {
+  it.each([false, true])("parks landed GL and HUD, including normal motion=%s", (reduceMotion) => {
+    const { engine, state, frames, drawGL, drawHud } = setup();
+    state.reduceMotion = reduceMotion;
+    engine["takeoff"](point(22.3, 114.17));
+    engine["pl"]!.alt = 0.03;
+    engine["pl"]!.bank = 0.2;
+    engine["land"](point(31.23, 121.47));
+    frames(360);
+    expect(engine["pl"]!.alt).toBe(0);
+    expect(engine["pl"]!.bank).toBe(0);
+    drawGL.mockClear();
+    drawHud.mockClear();
+    vi.mocked(requestAnimationFrame).mockClear();
+    frames(600);
+    expect(drawGL).not.toHaveBeenCalled();
+    expect(drawHud).not.toHaveBeenCalled();
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    engine.pointerMove({ clientX: 1280, clientY: 650 } as PointerEvent);
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+  });
+
+  it("animates only searching routes and retains label geometry during dash motion", () => {
+    const { engine, state, frames, drawGL, drawHud } = setup();
+    state.reduceMotion = false;
+    engine.showTrip([{ lat: 22.3, lng: 114.17 }, { lat: 31.23, lng: 121.47 }], true);
+    frames(360);
+    const names = vi.spyOn(engine, "countryNames" as never);
+    const cities = vi.spyOn(engine, "cityNames" as never);
+    drawGL.mockClear();
+    drawHud.mockClear();
+    engine.setSearching(true);
+    frames(60);
+    expect(drawGL).not.toHaveBeenCalled();
+    expect(drawHud).toHaveBeenCalledTimes(60);
+    expect(names).not.toHaveBeenCalled();
+    expect(cities).not.toHaveBeenCalled();
+    engine.setSearching(false);
+    frames(2);
+    drawHud.mockClear();
+    frames(120);
+    expect(drawHud).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 6, 20])("masks and composites %i pinned legs once and reuses projected geometry", (count) => {
+    const { engine, state } = setup();
+    const layer = context();
+    const canvas = { width: 1, height: 1, getContext: () => layer } as unknown as HTMLCanvasElement;
+    engine["routeLayer"] = canvas;
+    engine["pinCuts"] = [{ x: 100, y: 100, r: 5, bx: 100, by: 110 }];
+    const flights = Array.from({ length: count }, (_, i) => ({
+      id: String(i), origin: { lat: 22 + i, lng: 110 }, at: { lat: 30 + i, lng: 120 }, ahead: { lat: 31 + i, lng: 121 }, landed: true,
+    }));
+    engine.setRemoteFlights(flights);
+    const out = context();
+    const arc = vi.spyOn(state, "arc");
+    engine["drawRoutes"](out, 10);
+    expect(layer.clearRect).toHaveBeenCalledTimes(1);
+    expect(out.drawImage).toHaveBeenCalledTimes(1);
+    expect(arc).toHaveBeenCalledTimes(count * 2);
+    engine["drawRoutes"](out, 11);
+    expect(layer.clearRect).toHaveBeenCalledTimes(2);
+    expect(out.drawImage).toHaveBeenCalledTimes(2);
+    expect(arc).toHaveBeenCalledTimes(count * 2);
+    state.range = 1.2;
+    state.cam = state.camera();
+    engine["drawRoutes"](out, 12);
+    expect(arc).toHaveBeenCalledTimes(count * 4);
+  });
+
+  it("invalidates both country and city sprites when DPR changes", () => {
+    const { engine, frames } = setup();
+    frames(2);
+    engine["nameSprites"].set("country", {} as HTMLCanvasElement);
+    engine["citySprites"].set("city", {} as HTMLCanvasElement);
+    window.devicePixelRatio = 1;
+    frames(1);
+    expect(engine["nameSprites"].has("country")).toBe(false);
+    expect(engine["citySprites"].has("city")).toBe(false);
+  });
+
+  it("keeps frames alive through delayed remote cursor samples, then sleeps", () => {
+    const { engine, state, frames } = setup();
+    state.reduceMotion = false;
+    const now = vi.spyOn(performance, "now").mockReturnValue(1000);
+    engine.setRemoteFlights([{ id: "stored", origin: { lat: 22, lng: 114 }, at: { lat: 30, lng: 121 }, ahead: { lat: 31, lng: 122 }, landed: true }]);
+    engine.setRemoteCursors([{ id: "friend", at: { lat: 22, lng: 114 } }]);
+    frames(180);
+    now.mockReturnValue(4000);
+    engine.setRemoteCursors([{ id: "friend", at: { lat: 25, lng: 118 } }]);
+    vi.mocked(requestAnimationFrame).mockClear();
+    frames(2);
+    expect(requestAnimationFrame).toHaveBeenCalled();
+    frames(180);
+    vi.mocked(requestAnimationFrame).mockClear();
+    frames(30);
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    now.mockRestore();
+  });
+});
+
+function gpuSetup() {
+  const { engine } = setup(1440, 900);
+  let id = 0;
+  const calls: Record<string, unknown> = {};
+  const gl = new Proxy(calls, { get(object, key: string) {
+    if (key in object) return object[key];
+    if (/^[A-Z_0-9]+$/.test(key)) return object[key] = ++id;
+    if (key.startsWith("create")) return object[key] = vi.fn(() => ({ id: ++id }));
+    if (key === "getShaderParameter") return object[key] = vi.fn(() => true);
+    if (key === "getProgramParameter") return object[key] = vi.fn((_, parameter) => parameter === gl.ACTIVE_UNIFORMS ? 0 : true);
+    return object[key] = vi.fn();
+  } }) as unknown as WebGL2RenderingContext;
+  Object.assign(engine["root"], { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  Object.assign(engine["glEl"], { getContext: () => gl, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  Object.assign(window, { addEventListener: vi.fn(), removeEventListener: vi.fn(), matchMedia: () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }) });
+  Object.assign(document, { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("createImageBitmap", vi.fn());
+  vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+  return { engine, gl };
+}
+
+describe("GPU lifecycle", () => {
+  it("balances all resource allocations and closes shaders without losing the shared canvas context", () => {
+    vi.useFakeTimers();
+    const { engine, gl } = gpuSetup();
+    engine.start();
+    engine["tick"](1000);
+    vi.runOnlyPendingTimers(); // staged sky
+    const signal = engine["assetAbort"]!.signal;
+    engine.destroy();
+    expect(signal.aborted).toBe(true);
+    for (const [create, dispose] of [
+      ["createBuffer", "deleteBuffer"], ["createTexture", "deleteTexture"], ["createProgram", "deleteProgram"],
+      ["createShader", "deleteShader"], ["createVertexArray", "deleteVertexArray"], ["createFramebuffer", "deleteFramebuffer"],
+    ] as const) {
+      expect(vi.mocked(gl[dispose]).mock.calls.length, create).toBe(vi.mocked(gl[create]).mock.calls.length);
+    }
+    expect(gl.getExtension).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("restores rendering resources without losing a landed trip", () => {
+    const { engine } = gpuSetup();
+    engine.start();
+    engine.showTrip([{ lat: 22.3, lng: 114.17 }, { lat: 31.23, lng: 121.47 }], true);
+    const destination = engine["dest"];
+    const preventDefault = vi.fn();
+    engine["onContextLost"]({ preventDefault } as unknown as Event);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(engine["gl"]).toBeNull();
+    engine["onContextRestored"]();
+    expect(engine["gl"]).not.toBeNull();
+    expect(engine.getMode()).toBe("landed");
+    expect(engine["dest"]).toEqual(destination);
+    engine.destroy();
+  });
+
+  it("shares the earth fetch/bitmap with CPU mask generation and always releases decoded bitmaps", async () => {
+    const { engine, gl } = gpuSetup();
+    const sources: { close: ReturnType<typeof vi.fn> }[] = [];
+    vi.mocked(fetch).mockImplementation(async () => ({ ok: true, blob: async () => new Blob() }) as Response);
+    vi.mocked(createImageBitmap).mockImplementation(async () => {
+      const bitmap = { close: vi.fn() };
+      sources.push(bitmap);
+      return bitmap as unknown as ImageBitmap;
+    });
+    const land = vi.spyOn(engine as unknown as { loadLand(source: CanvasImageSource): void }, "loadLand").mockImplementation(() => {});
+    engine.start();
+    await vi.waitFor(() => expect(sources).toHaveLength(3));
+    await vi.waitFor(() => expect(land).toHaveBeenCalledTimes(1));
+    expect(fetch).toHaveBeenCalledTimes(3); // earth, borders, provinces; no second earth decode
+    expect(land).toHaveBeenCalledWith(sources[0]);
+    expect(sources.every((s) => s.close.mock.calls.length === 1)).toBe(true);
+    expect(gl.texImage2D).toHaveBeenCalled();
+    engine.destroy();
+  });
+});

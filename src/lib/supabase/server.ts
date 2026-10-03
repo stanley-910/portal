@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -36,18 +37,26 @@ export async function createSupabaseServer(): Promise<SupabaseClient | null> {
 }
 
 /** The signed-in user, verified with Supabase (getUser, never getSession). */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createSupabaseServer();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) return null;
     const { id, email = "" } = data.user;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", id)
-      .maybeSingle<{ display_name: string }>();
+    // Display enrichment must never discard an identity already verified by getUser.
+    let profile: { display_name: string } | null = null;
+    try {
+      const result = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", id)
+        .abortSignal(AbortSignal.timeout(1_500))
+        .maybeSingle<{ display_name: string }>();
+      profile = result.data;
+    } catch {
+      // A missing, timed-out or unreachable profile uses the account metadata below.
+    }
     const metaName = data.user.user_metadata?.display_name;
     const displayName =
       profile?.display_name || (typeof metaName === "string" && metaName.trim()) || email.split("@")[0] || "Traveller";
@@ -59,7 +68,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     console.warn("[supabase] getUser failed:", err instanceof Error ? err.message : err);
     return null;
   }
-}
+});
 
 /** The name on a user's profile, or null when they have none or Supabase can't say. Never throws. */
 export async function profileName(id: string): Promise<string | null> {
@@ -70,6 +79,7 @@ export async function profileName(id: string): Promise<string | null> {
       .from("profiles")
       .select("display_name")
       .eq("id", id)
+      .abortSignal(AbortSignal.timeout(1_500))
       .maybeSingle<{ display_name: string }>();
     return data?.display_name?.trim() || null;
   } catch {
@@ -82,20 +92,20 @@ export async function profileName(id: string): Promise<string | null> {
  * network call at all. For hot paths that only need to know it's an account and what to call them, like each message
  * to Pip; the name is the account's own, not the profile's, and the passports are the ones saved on the account.
  */
-export async function getAccountClaims(): Promise<{ id: string; name: string; nationalities: string[] } | null> {
+export const getAccountClaims = cache(async (): Promise<{ id: string; name: string; email: string; color: number | null; nationalities: string[] } | null> => {
   const supabase = await createSupabaseServer();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase.auth.getClaims();
     const claims = data?.claims;
     if (error || !claims?.sub) return null;
-    const meta = claims.user_metadata as { display_name?: unknown; nationalities?: unknown } | undefined;
+    const meta = claims.user_metadata as { display_name?: unknown; nationalities?: unknown; color?: unknown } | undefined;
     const email = typeof claims.email === "string" ? claims.email : "";
     const name = (typeof meta?.display_name === "string" && meta.display_name.trim()) || email.split("@")[0] || "Traveller";
     // saveNationalities refreshes the session, so the token's copy of the passports is current
-    return { id: claims.sub, name, nationalities: parseNationalities(meta?.nationalities) };
+    return { id: claims.sub, name, email, color: asMemberColor(meta?.color), nationalities: parseNationalities(meta?.nationalities) };
   } catch (err) {
     console.warn("[supabase] getClaims failed:", err instanceof Error ? err.message : err);
     return null;
   }
-}
+});

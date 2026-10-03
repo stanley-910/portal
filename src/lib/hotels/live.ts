@@ -9,9 +9,14 @@ import type { HotelSearchQuery } from "./types";
 export async function searchAvailableHotels(query: HotelSearchQuery, signal?: AbortSignal) {
   const deadline = AbortSignal.timeout(8_000);
   const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
-  const results = await Promise.allSettled([searchDuffelStays(query, combined), searchLiteStays(query, combined)]);
-  for (const result of results) {
-    if (result.status === "fulfilled" && result.value?.length) return rankStays(result.value, query);
+  const spare = new AbortController();
+  // Attach a rejection handler immediately; the preferred source may finish first.
+  const alternative = searchLiteStays(query, AbortSignal.any([combined, spare.signal])).catch(() => null);
+  const preferred = await searchDuffelStays(query, combined).catch(() => null);
+  if (preferred?.length) {
+    spare.abort();
+    return rankStays(preferred, query);
   }
-  return searchHotels(query);
+  const other = await alternative;
+  return other?.length ? rankStays(other, query) : searchHotels(query);
 }

@@ -1,3 +1,4 @@
+import { queuePollMs, readQueue, waitForQueue, wakeQueue } from "./queue-wakeup";
 import { NEARBY_RAIL_INSTRUCTION } from "./nearby-rail";
 import { OPTIMIZE_INSTRUCTION } from "./optimize";
 import "server-only";
@@ -30,7 +31,6 @@ const MAX_STEPS = 10;
  * LEASE_MS, which fits the route's 300 s with room to write the reply.
  */
 const QUEUE_WAIT_MS = 180_000;
-const QUEUE_POLL_MS = 1_500;
 /** How long a post waits for a room made before the thread to get one from the first browser that opens it. */
 const THREAD_WAIT_MS = 5_000;
 // Usage limits while nobody pays for Pip: the DeepSeek balance is the hard ceiling; these keep one trip or one
@@ -147,8 +147,9 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
   let overLimit = false;
   try {
     let beat = 0;
+    let polls = 0;
     for (let waited = false; ; waited = true) {
-      const thread = ((await lb.getStorageDocument(roomId, "json")) as PlanJson).thread ?? [];
+      const thread = ((await readQueue(roomId, (signal) => lb.getStorageDocument(roomId, "json", { signal }))) as PlanJson).thread ?? [];
       const now = Date.now();
       const dead = thread.some((m) => waiting(m) && abandoned(m, now));
       const ahead = owed(thread, now);
@@ -159,7 +160,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
       const lost = !waited && !first && ahead.some((m) => m.id === replyId && m.state === "streaming");
       const beating = !first && now - beat > QUEUE_BEAT_MS && now <= deadline;
       if (!dead && !first && !lost && !beating && now <= deadline) {
-        await sleep(QUEUE_POLL_MS);
+        await waitForQueue(roomId, queuePollMs(polls++));
         continue;
       }
       let started = false;
@@ -193,7 +194,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
       });
       if (started || gone) break;
       beat = now;
-      await sleep(QUEUE_POLL_MS);
+      await waitForQueue(roomId, queuePollMs(polls++));
     }
     if (!startedAt) return;
   } catch (error) {
@@ -377,6 +378,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
         if (root.get("agentRun")?.id === runId) root.set("agentRun", null);
       })
       .catch(() => {});
+    wakeQueue(roomId);
     void presence(null);
   }
 }

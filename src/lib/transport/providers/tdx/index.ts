@@ -122,8 +122,7 @@ export function createTdxProvider(seed: Seed, bus?: BusSearch, daily?: DailyClie
         const abort = AbortSignal.any([signal, AbortSignal.timeout(8_000)]);
         // Query previous start day too: q.date is the date at the passenger's origin stop.
         const previousDate = new Date(Date.parse(`${q.date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-        const today = await daily(q.date, abort);
-        const previous = await daily(previousDate, abort);
+        const [today, previous] = await Promise.all([daily(q.date, abort), daily(previousDate, abort)]);
         const dated = mapDaily([...today, ...previous], q, from.id, to.id,
           { name: from.name, lat: from.lat, lng: from.lng, country: "TW" },
           { name: to.name, lat: to.lat, lng: to.lng, country: "TW" });

@@ -40,6 +40,7 @@ export interface Offer {
   price?: Price;              // absent = timetable only
   kind: "live" | "cached" | "timetable" | "estimated"; // honesty about freshness; "estimated" = modelled, not quoted
   sandbox?: boolean;          // a provider's test inventory: bookable there, never a real flight or price
+  refund?: { fee: Price | null }; // the fare can be refunded before departure, for this fee per passenger (null: free)
   bookingUrl?: string;        // deep link incl. affiliate marker where ToS requires
   attribution?: string;       // text the provider ToS requires near the result
 }

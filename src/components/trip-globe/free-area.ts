@@ -1,6 +1,6 @@
 // The largest open rectangle of the globe's box that the page leaves uncovered, so a landed route can be framed
-// where people can see it. Coverage is sampled on a grid, so nothing has to register as a panel: whatever is on
-// top at a point and isn't the globe covers it. Covered cells grow by one cell, to keep a gap from panels.
+// where people can see it. Registered panel rectangles cover a geometry-only grid. Covered cells grow by one
+// cell to keep a gap from panels; no per-cell DOM hit testing is needed.
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -40,4 +40,78 @@ export function openArea(w: number, h: number, covered: (x: number, y: number) =
   }
   if (best.cw * step < MIN || best.ch * step < MIN) return null;
   return { x: best.c * step, y: best.r * step, w: best.cw * step, h: best.ch * step };
+}
+
+/** Geometry-only counterpart: one rectangle read per registered panel, no point hit testing. */
+export function openAreaAround(w: number, h: number, obstacles: readonly Rect[]): Rect | null {
+  return openArea(w, h, (x, y) => obstacles.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h));
+}
+
+/** Panels opt in with data-globe-obstacle; route-following cards intentionally never obstruct their own route. */
+export class GlobeObstacles {
+  private elements: Element[] = [];
+  private dirty = true;
+  private area: Rect | null = null;
+  private resize: ResizeObserver;
+  private structure: MutationObserver;
+  private attributes: MutationObserver;
+  private stopped = false;
+
+  constructor(private root: HTMLElement, private onChange: () => void) {
+    this.resize = new ResizeObserver(this.invalidate);
+    this.attributes = new MutationObserver(this.invalidate);
+    this.structure = new MutationObserver((records) => {
+      // Text streaming and unrelated subtree changes never invalidate panel geometry.
+      const relevant = records.some((r) => [...r.addedNodes, ...r.removedNodes].some((n) =>
+        n instanceof Element && (n.matches("[data-globe-obstacle]") || !!n.querySelector("[data-globe-obstacle]"))));
+      if (relevant) this.register();
+    });
+    this.structure.observe(document.body, { childList: true, subtree: true });
+    this.register();
+    window.addEventListener("resize", this.invalidate);
+  }
+
+  private register() {
+    this.resize.disconnect();
+    this.attributes.disconnect();
+    this.resize.observe(this.root);
+    this.elements = [...document.querySelectorAll("[data-globe-obstacle]")].filter((el) =>
+      !this.root.contains(el) && !el.closest("[data-globe-follow], [data-globe-float]"));
+    for (const el of this.elements) {
+      this.resize.observe(el);
+      // Position and hidden-state changes may not resize a panel. Observe its ancestors as well.
+      for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
+        this.attributes.observe(node, { attributes: true, attributeFilter: ["style", "class", "hidden", "open", "inert"] });
+      }
+    }
+    this.invalidate();
+  }
+
+  private invalidate = () => {
+    if (this.stopped) return;
+    this.dirty = true;
+    this.onChange();
+  };
+
+  read = (): Rect | null => {
+    if (!this.dirty) return this.area;
+    this.dirty = false;
+    const root = this.root.getBoundingClientRect();
+    const obstacles: Rect[] = [];
+    for (const el of this.elements) {
+      if (el.closest("[hidden], [inert]") || !el.getClientRects().length || getComputedStyle(el).visibility === "hidden") continue;
+      const box = el.getBoundingClientRect();
+      obstacles.push({ x: box.left - root.left, y: box.top - root.top, w: box.width, h: box.height });
+    }
+    this.area = openAreaAround(root.width, root.height, obstacles);
+    return this.area;
+  };
+
+  destroy() {
+    this.stopped = true;
+    this.structure.disconnect();
+    this.attributes.disconnect();
+    this.resize.disconnect();
+    window.removeEventListener("resize", this.invalidate);
+  }
 }

@@ -1,5 +1,7 @@
 import "server-only";
 import { z } from "zod";
+import { createInFlight } from "@/lib/in-flight";
+import { createLimiter } from "@/lib/concurrency";
 
 import { providers } from "./registry";
 import { createSearchCache } from "./search-cache";
@@ -24,6 +26,8 @@ export interface FanOutOptions {
   timeoutMs?: number;
   /** Caller cancellation, e.g. `request.signal`; aborts every provider. */
   signal?: AbortSignal;
+  /** Validated cumulative snapshots, as individual providers finish. */
+  onProgress?: (result: SearchResult) => void;
 }
 
 /** Each provider's deadline unless it sets its own (`TransportProvider.timeoutMs`). */
@@ -130,6 +134,19 @@ export function rankOffers(offers: readonly Offer[], currency: string): Offer[] 
   return rankFareOffers(offers, currency).sort((a, b) => convenienceScore(a) - convenienceScore(b));
 }
 
+export const PROVIDER_CONCURRENCY = 6;
+const providerLimits = new WeakMap<TransportProvider, ReturnType<typeof createLimiter>>();
+const pendingProviders = new WeakMap<TransportProvider, ReturnType<typeof createInFlight<Offer[]>>>();
+
+function sharedProvider(provider: TransportProvider, query: SearchQuery, signal: AbortSignal | undefined, timeoutMs: number) {
+  let share = pendingProviders.get(provider);
+  if (!share) { share = createInFlight<Offer[]>(); pendingProviders.set(provider, share); }
+  // Preserve every provider-visible query field, including endpoint identity, party and currency.
+  const place = (p: SearchQuery["from"]) => [p.name, p.lat, p.lng, p.country, p.iata, Object.entries(p.providerIds ?? {}).sort()];
+  const key = JSON.stringify([place(query.from), place(query.to), query.date, [...query.modes].sort(), query.passengers, query.currency, timeoutMs]);
+  return share(key, signal ?? new AbortController().signal, (sharedSignal) => searchProvider(provider, query, sharedSignal, timeoutMs));
+}
+
 async function searchProvider(
   provider: TransportProvider,
   query: SearchQuery,
@@ -150,7 +167,9 @@ async function searchProvider(
     });
     const work = Promise.resolve().then(() => {
       if (signal.aborted) throw new ProviderFailure("TIMEOUT", true);
-      return provider.search(query, signal);
+      let run = providerLimits.get(provider);
+      if (!run) { run = createLimiter(PROVIDER_CONCURRENCY); providerLimits.set(provider, run); }
+      return run(() => provider.search(query, signal), signal);
     });
     return await Promise.race([work, aborted]);
   } finally {
@@ -172,8 +191,6 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
       return false;
     }
   });
-  const settled = await Promise.allSettled(applicable.map((provider) =>
-    searchProvider(provider, query, opts.signal, provider.timeoutMs ?? opts.timeoutMs ?? PROVIDER_TIMEOUT_MS)));
   const offers: Offer[] = [];
   const accept = (provider: TransportProvider, batch: unknown[]) => {
     let malformed = false;
@@ -187,10 +204,15 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
     }
     if (malformed) errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
   };
-  settled.forEach((result, index) => {
-    const provider = applicable[index];
-    if (result.status === "rejected") {
-      errors.push(errorFor(provider.id, result.reason, !best));
+  const snapshot = (): SearchResult => ({ offers: rankOffers(offers, query.currency),
+    errors: [...errors].sort((a, b) => compareText(a.provider, b.provider)), tookMs: Date.now() - started });
+  await Promise.all(applicable.map(async (provider) => {
+    try {
+      const batch = await sharedProvider(provider, query, opts.signal, provider.timeoutMs ?? opts.timeoutMs ?? PROVIDER_TIMEOUT_MS);
+      if (!Array.isArray(batch)) errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
+      else accept(provider, batch);
+    } catch (error) {
+      errors.push(errorFor(provider.id, opts.signal?.aborted ? new ProviderFailure("TIMEOUT", true) : error, !best));
       // A timed-out or failed provider still gives its modelled estimates, so a slow API never empties the route.
       // The failure stays in `errors` and every estimate is marked as one.
       if (provider.fallback) {
@@ -202,14 +224,10 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
         }
         if (Array.isArray(estimates)) accept(provider, estimates.filter((o: Offer) => o?.kind === "estimated"));
       }
-      return;
+    } finally {
+      if (!opts.signal?.aborted) opts.onProgress?.(snapshot());
     }
-    if (!Array.isArray(result.value)) {
-      errors.push(errorFor(provider.id, new ProviderFailure("BAD_RESPONSE"), false));
-      return;
-    }
-    accept(provider, result.value);
-  });
+  }));
   errors.sort((a, b) => compareText(a.provider, b.provider));
   const tookMs = Date.now() - started;
   if (best) {
@@ -227,10 +245,13 @@ const cachedSearch = createSearchCache(
   { ttlMs: 5 * 60_000, errorTtlMs: 30_000, max: 500 },
 );
 
-/** Coordinate/hub searches use best-option ranking and retain their error contract. Cached briefly; see search-cache. */
-export function searchTransport(query: SearchQuery, signal: AbortSignal): Promise<SearchResult> {
+/**
+ * Coordinate/hub searches use best-option ranking and retain their error contract. A plain search is cached briefly
+ * (see search-cache); one that reports progress or names its providers always runs.
+ */
+export function searchTransport(query: SearchQuery, signal: AbortSignal, onProgress?: (result: SearchResult) => void, only?: readonly TransportProvider[]): Promise<SearchResult> {
   // Tests swap providers between cases, so a shared cache would leak results across them.
-  if (process.env.VITEST) return runSearch(query, { signal }, false);
+  if (onProgress || only || process.env.VITEST) return runSearch(query, { signal, onProgress, providers: only }, false);
   return cachedSearch(query, signal);
 }
 

@@ -4,7 +4,7 @@ import { LiveblocksProvider, RoomProvider, useErrorListener, useEventListener, u
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { Activity, useEffect, useRef, useState } from "react";
 
 import { AgentChat } from "@/components/agent/agent-chat";
 import { PipCursor } from "@/components/agent/pip-cursor";
@@ -181,7 +181,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       </NavBar>
       <RiderPins globe={globe} onOpen={() => setPlanOpen(true)} />
       <LegTags globe={globe} onOpen={() => setPlanOpen(true)} />
-      {planOpen ? (
+      <Activity mode={planOpen ? "visible" : "hidden"}>
         <FloatingTripPlan
           globe={globe}
           email={email}
@@ -190,7 +190,8 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
           bill={{ open: billOpen, set: setBillOpen }}
           onMinimise={() => setPlanOpen(false)}
         />
-      ) : planReady ? (
+      </Activity>
+      {!planOpen && planReady ? (
         <TripDock spot={dockSpot} onMove={setDockSpot} bill={{ open: billOpen, set: setBillOpen }} onExpand={() => setPlanOpen(true)} />
       ) : null}
       <AgentChat initialOpen={pipOpen} />

@@ -47,7 +47,8 @@ export class Track {
     const target = this.sample(t - TRACK_DELAY);
     if (!target) return null;
     const d = this.drawn;
-    const v = d && t > d.t ? slerp(d.v, target, 1 - Math.exp(-(t - d.t) * TRACK_EASE)) : d && t === d.t ? d.v : target;
+    const settled = d && target.every((x, i) => Math.abs(x - d.v[i]) < 1e-7);
+    const v = settled ? target : d && t > d.t ? slerp(d.v, target, 1 - Math.exp(-(t - d.t) * TRACK_EASE)) : d && t === d.t ? d.v : target;
     this.drawn = { t, v };
     return v;
   }
@@ -61,6 +62,13 @@ export class Track {
     if (i === s.length - 1 || s[i].t > r) return s[i].v;
     const a = s[i], b = s[i + 1];
     return slerp(a.v, b.v, (r - a.t) / (b.t - a.t));
+  }
+
+  /** Keep rendering across the interpolation delay and stop once the final sample is reached. */
+  active(t: number): boolean {
+    const last = this.s.at(-1);
+    if (!last) return false;
+    return t < last.t + TRACK_DELAY || !this.drawn || last.v.some((x, i) => Math.abs(x - this.drawn!.v[i]) >= 1e-7);
   }
 
   /** Where they are now, ignoring the delay: for reduced motion. */

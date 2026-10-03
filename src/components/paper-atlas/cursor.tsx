@@ -158,7 +158,10 @@ export function cursorUrl(
   const ring = marker ? `${marker.angle} ${marker.squash}` : "-";
   const key = `${shape} ${color} ${theme} ${lie.angle} ${lie.squash} ${offset} ${ring} ${noShadow}`;
   let url = urls.get(key);
-  if (!url) urls.set(key, (url = buildCursorUrl(shape, color, theme, lie, offset, marker, noShadow)));
+  if (!url) {
+    if (urls.size >= 1024) urls.delete(urls.keys().next().value!);
+    urls.set(key, (url = buildCursorUrl(shape, color, theme, lie, offset, marker, noShadow)));
+  }
   return url;
 }
 

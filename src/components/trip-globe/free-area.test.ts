@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { openArea, type Rect } from "./free-area";
+import { openArea, openAreaAround, type Rect } from "./free-area";
 
 const under = (...rects: Rect[]) => (x: number, y: number) => rects.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
 
@@ -22,5 +22,14 @@ describe("openArea", () => {
 
   it("gives up when the page covers nearly everything", () => {
     expect(openArea(960, 720, under({ x: 0, y: 0, w: 900, h: 720 }))).toBeNull();
+  });
+});
+
+
+describe("registered obstruction geometry", () => {
+  it("matches sampled panel coverage without DOM hit testing", () => {
+    const panels = [{ x: 24, y: 96, w: 432, h: 600 }, { x: 0, y: 0, w: 960, h: 72 }];
+    expect(openAreaAround(960, 720, panels)).toEqual(openArea(960, 720, under(...panels)));
+    expect(openAreaAround(960, 720, [])).toEqual({ x: 0, y: 0, w: 960, h: 720 });
   });
 });
