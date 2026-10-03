@@ -87,9 +87,10 @@ function messageFor(e: BookingError): string {
 async function currentOffer(booking: LegBooking, seats: number): Promise<BookableOffer | null> {
   const settled = await getOffer(booking.offerId).catch(() => null);
   if (settled && !offerExpired(settled) && settled.passengerIds.length === seats) return settled;
-  const like = settled ?? { origin: booking.route.origin, destination: booking.route.destination, date: booking.route.date };
-  if (!settled) return null;
-  return findOfferFor({ ...settled, ...like }, seats);
+  // an expired offer is refused outright, so the flights kept at settle are searched for instead
+  const flights = settled?.flights ?? booking.flights;
+  if (!flights?.length) return null;
+  return findOfferFor({ ...booking.route, flights }, seats);
 }
 
 /**
@@ -120,6 +121,7 @@ export async function settleLeg(roomId: string, legId: string, actor: Actor, acc
       status: mode === "group" ? "details" : "paying",
       offerId: fresh.id,
       route: { origin: fresh.origin, destination: fresh.destination, date: fresh.date },
+      flights: fresh.flights.map(({ number, from, to, departingAt }) => ({ number, from, to, departingAt })),
       total: fresh.total,
       documents: fresh.documentsRequired,
       seats: openSeats(splitShares(fresh.total, leg.riders, actor.id)),

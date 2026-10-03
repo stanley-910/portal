@@ -137,8 +137,9 @@ Only the server writes `booking`: clients can't mark themselves paid.
 - Duffel balance: we pay Duffel from a prepaid balance and collect from riders through Stripe. Keep enough in it for
   the largest group order we expect, and set Duffel's low-balance alert.
 
-Offers expire about half an hour after a search, so the settled offer is searched for again (same flights, one seat
-per rider) whenever it's needed later: when the hold is placed, and when a separate seat is bought. A higher price at
+Offers expire about half an hour after a search, and Duffel then refuses them by id (`offer_no_longer_available`). So
+the booking keeps the settled flights (numbers, airports, departure), and they're searched for again (one seat per
+rider) whenever the offer is needed later: when the hold is placed, and when a separate seat is bought. A higher price at
 that point stops the step and says so; a lower one is used.
 
 ## Failure handling

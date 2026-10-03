@@ -61,7 +61,7 @@ function codeFor(status: number, error: DuffelError | undefined): BookingError["
   return "ORDER_FAILED";
 }
 
-/** An offer by id. Duffel keeps expired ones, so this also recovers the flight numbers of a stale search result. */
+/** An offer by id. Once it expires Duffel refuses it (`offer_no_longer_available`, read as OFFER_GONE). */
 export async function getOffer(offerId: string): Promise<BookableOffer> {
   const raw = await duffel<unknown>("GET", `/air/offers/${encodeURIComponent(offerId)}`);
   const parsed = offerSchema.safeParse(raw);
