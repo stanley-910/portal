@@ -1,0 +1,3 @@
+# Raw operator documents remain local; the collector and report are reviewable.
+runs/
+latest.json

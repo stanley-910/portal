@@ -1,0 +1,844 @@
+{
+  "capturedAt": "2026-10-03T14:27:12.888003+00:00",
+  "collectorVersion": "rail-source-capture/1",
+  "sources": [
+    {
+      "source": "mtr",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.highspeed.mtr.com.hk/robots.txt",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/robots.txt",
+          "retrievedAt": "2026-10-03T14:23:47.200446+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/robots-0.txt",
+          "role": "robots",
+          "sha256": "274a53197b8f8e3d1f9342ff7982adf05e3bd4040309aa1a9be4e8436aab2b68",
+          "bytes": 5426,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "retrievedAt": "2026-10-03T14:23:48.742792+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/index.html",
+          "role": "index",
+          "sha256": "08e3e1ee928f93660b240930f65380671aa0488175f9797401f55af1e970df52",
+          "bytes": 4198
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+          "retrievedAt": "2026-10-03T14:23:51.056268+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-1.pdf",
+          "role": "timetable",
+          "sha256": "046a4dc403e810956ef9d43675e5d8c937b54c3b1d5172674b890c69fdf02232",
+          "bytes": 1346163,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-1.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "label": "Download",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "parsingStatus": "requires-ocr"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable-new.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable-new.pdf",
+          "retrievedAt": "2026-10-03T14:23:53.540050+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-2.pdf",
+          "role": "timetable",
+          "sha256": "a260454c121646477169fb624b8b3234b0a2722af686d1e5c8cdd38d5b756e35",
+          "bytes": 1348565,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-2.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "label": "Download",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "parsingStatus": "requires-ocr"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf",
+          "retrievedAt": "2026-10-03T14:23:57.454229+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-3.pdf",
+          "role": "timetable",
+          "sha256": "f0badd817e932d971e076d517ccd4eedd6291fc4c82b10c54fc60f632dbc7b93",
+          "bytes": 12579414,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-3.txt",
+          "textSha256": "7b2aa16484b6ad79ef5bec51da3501f5079367b625da44bf97468422d27e8e95",
+          "textCharacters": 6,
+          "label": "Download",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "parsingStatus": "requires-ocr"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable-new.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable-new.pdf",
+          "retrievedAt": "2026-10-03T14:24:00.504467+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-4.pdf",
+          "role": "timetable",
+          "sha256": "c2886d499b82397d7201cd13428c35db9023d4356d18bf3fe8a6ca7ddfe7fd65",
+          "bytes": 5776990,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-4.txt",
+          "textSha256": "7b2aa16484b6ad79ef5bec51da3501f5079367b625da44bf97468422d27e8e95",
+          "textCharacters": 6,
+          "label": "Download",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "parsingStatus": "requires-ocr"
+        },
+        {
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/sleeper-train-rmb-published-fare-chart.pdf",
+          "effectiveUrl": "https://www.highspeed.mtr.com.hk/res/pdf/sleeper-train-rmb-published-fare-chart.pdf",
+          "retrievedAt": "2026-10-03T14:24:03.019676+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-5.pdf",
+          "role": "timetable",
+          "sha256": "a5b7dd7cf4743ed2054aca6ca1d7b2fcf46bf7b9b81625c20b72688154f04084",
+          "bytes": 2743155,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-5.txt",
+          "textSha256": "9478ac3ef61ae9df286d951edbfce4c24049f65e860f053ed9eb2c3fbd78d051",
+          "textCharacters": 3,
+          "label": "Sleeper Train timetable",
+          "discoveredOn": "https://www.highspeed.mtr.com.hk/en/common/timetable.inc.html",
+          "parsingStatus": "requires-ocr"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "Download",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+        },
+        {
+          "label": "Download",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable-new.pdf"
+        },
+        {
+          "label": "Download",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+        },
+        {
+          "label": "Download",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable-new.pdf"
+        },
+        {
+          "label": "Sleeper Train timetable",
+          "url": "https://www.highspeed.mtr.com.hk/res/pdf/sleeper-train-rmb-published-fare-chart.pdf"
+        }
+      ]
+    },
+    {
+      "source": "thsr",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://en.thsrc.com.tw/robots.txt",
+          "effectiveUrl": "https://en.thsrc.com.tw/robots.txt",
+          "retrievedAt": "2026-10-03T14:23:47.200273+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/robots-0.txt",
+          "role": "robots",
+          "sha256": "a74e3ff7d5ac40d7106c48adb644c1b00dc3dc1380987d8d68cfaf5c0e1b0f1c",
+          "bytes": 22954,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://en.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c",
+          "effectiveUrl": "https://en.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c",
+          "retrievedAt": "2026-10-03T14:23:48.863071+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/index.html",
+          "role": "index",
+          "sha256": "80d162c23cd381252507eaf94cb4ada2d3de2a24307d4d6ce164191d9f986a23",
+          "bytes": 155318
+        },
+        {
+          "url": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=a10651be-b61b-4efc-921a-57d25ec64e55",
+          "effectiveUrl": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=a10651be-b61b-4efc-921a-57d25ec64e55",
+          "retrievedAt": "2026-10-03T14:23:51.056025+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-1.pdf",
+          "role": "timetable",
+          "sha256": "fd42fa83f003b282f1dc35e35a40bc2aebb7b1a1daf8f2e2c6ad7e45f8d4336a",
+          "bytes": 93100,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-1.txt",
+          "textSha256": "5c1aad181362c25c05856a7eeb0c9b5ffea2522f3ce6d82312bbc47bf8533f3d",
+          "textCharacters": 35727,
+          "label": "Timetable for Taiwan Retrocession Day ",
+          "discoveredOn": "https://en.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c",
+          "parsingStatus": "text-extracted-not-normalized"
+        },
+        {
+          "url": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=c64c13ef-39d1-4009-a45a-d4f946e0cd82",
+          "effectiveUrl": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=c64c13ef-39d1-4009-a45a-d4f946e0cd82",
+          "retrievedAt": "2026-10-03T14:23:52.726010+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-2.pdf",
+          "role": "timetable",
+          "sha256": "5616910ad629fd39cca6ee6b0611b1ca81a6e80e7ece70b300b72ef25d09d5a3",
+          "bytes": 173749,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-2.txt",
+          "textSha256": "fdf9c3b37360ecc99c3ff061ec2254d159b13292dde9b66fc4cdd16cf740a7a8",
+          "textCharacters": 40284,
+          "label": "TimeTable Effective From 2026/2/2",
+          "discoveredOn": "https://en.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c",
+          "parsingStatus": "text-extracted-not-normalized"
+        },
+        {
+          "url": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=3b9f1be2-1000-451d-a988-3c914ec42663",
+          "effectiveUrl": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=3b9f1be2-1000-451d-a988-3c914ec42663",
+          "retrievedAt": "2026-10-03T14:23:54.355489+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-3.pdf",
+          "role": "timetable",
+          "sha256": "7e25168afc97cc64c0f71e5eee66d26c7e56ae655e5a923a3cdb5bb3ec128c89",
+          "bytes": 93463,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-3.txt",
+          "textSha256": "5182dc07e4e9b61bce5f42d42adbb5bcf95b2e41631150d10f2ecc253a6ac274",
+          "textCharacters": 35669,
+          "label": "Timetable for National Day",
+          "discoveredOn": "https://en.thsrc.com.tw/ArticleContent/a3b630bb-1066-4352-a1ef-58c7b4e8ef7c",
+          "parsingStatus": "text-extracted-not-normalized"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "Timetable for Taiwan Retrocession Day ",
+          "url": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=a10651be-b61b-4efc-921a-57d25ec64e55"
+        },
+        {
+          "label": "TimeTable Effective From 2026/2/2",
+          "url": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=c64c13ef-39d1-4009-a45a-d4f946e0cd82"
+        },
+        {
+          "label": "Timetable for National Day",
+          "url": "https://en.thsrc.com.tw/Attachment/Download?pageID=a3b630bb-1066-4352-a1ef-58c7b4e8ef7c&id=3b9f1be2-1000-451d-a988-3c914ec42663"
+        }
+      ]
+    },
+    {
+      "source": "jr-central",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://global.jr-central.co.jp/robots.txt",
+          "effectiveUrl": "https://global.jr-central.co.jp/robots.txt",
+          "retrievedAt": "2026-10-03T14:23:47.026688+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/jr-central/robots-0.txt",
+          "role": "robots",
+          "sha256": "683ad3f19b6eea4aecd8024a1facf9b36366518e87b5b419d47ac08b399dfc92",
+          "bytes": 4054,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://global.jr-central.co.jp/en/info/timetable/",
+          "effectiveUrl": "https://global.jr-central.co.jp/en/info/timetable/",
+          "retrievedAt": "2026-10-03T14:23:48.391311+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/jr-central/index.html",
+          "role": "index",
+          "sha256": "0a522cb32383295f03ec58dbd757edee3222a621874d262854e6b092f7827a69",
+          "bytes": 6058
+        },
+        {
+          "url": "https://global.jr-central.co.jp/en/info/timetable/_pdf/shinkansen_west_bound2603.pdf",
+          "effectiveUrl": "https://global.jr-central.co.jp/en/info/timetable/_pdf/shinkansen_west_bound2603.pdf",
+          "retrievedAt": "2026-10-03T14:23:50.617381+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/jr-central/document-1.pdf",
+          "role": "timetable",
+          "sha256": "381636ad36d767b474a764a55b5e6e9c5debcd608a4c2d1eea6463602d6186c9",
+          "bytes": 4968635,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/jr-central/document-1.txt",
+          "textSha256": "a61f149fa51d21a7666743f05977a61c858db20e63ecc70834dd3885b3062550",
+          "textCharacters": 8,
+          "label": "Shinkansen Timetable 2026.3.14-(west bound)",
+          "discoveredOn": "https://global.jr-central.co.jp/en/info/timetable/",
+          "parsingStatus": "requires-ocr"
+        },
+        {
+          "url": "https://global.jr-central.co.jp/en/info/timetable/_pdf/shinkansen_east_bound2603.pdf",
+          "effectiveUrl": "https://global.jr-central.co.jp/en/info/timetable/_pdf/shinkansen_east_bound2603.pdf",
+          "retrievedAt": "2026-10-03T14:23:53.882349+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/jr-central/document-2.pdf",
+          "role": "timetable",
+          "sha256": "250b61662096eca48103ebf47baf716819ff824b315b64c66543a9dc5a034782",
+          "bytes": 4894826,
+          "textPath": "data/rail-capture/runs/20261003T142346427504Z/jr-central/document-2.txt",
+          "textSha256": "a61f149fa51d21a7666743f05977a61c858db20e63ecc70834dd3885b3062550",
+          "textCharacters": 8,
+          "label": "Shinkansen Timetable 2026.3.14-(east bound)",
+          "discoveredOn": "https://global.jr-central.co.jp/en/info/timetable/",
+          "parsingStatus": "requires-ocr"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "Shinkansen Timetable 2026.3.14-(west bound)",
+          "url": "https://global.jr-central.co.jp/en/info/timetable/_pdf/shinkansen_west_bound2603.pdf"
+        },
+        {
+          "label": "Shinkansen Timetable 2026.3.14-(east bound)",
+          "url": "https://global.jr-central.co.jp/en/info/timetable/_pdf/shinkansen_east_bound2603.pdf"
+        }
+      ]
+    },
+    {
+      "source": "korail",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.korail.com/robots.txt",
+          "effectiveUrl": "https://www.korail.com/robots.txt",
+          "retrievedAt": "2026-10-03T14:27:05.112046+00:00",
+          "httpStatus": 200,
+          "contentType": "text/plain",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/korail/robots-0.txt",
+          "role": "robots",
+          "sha256": "e5ab0d231eeb01b4a982d1c79a6729cac9797ad15a69247e4f28ba6afc149b4c",
+          "bytes": 70,
+          "finding": "parsed directives"
+        },
+        {
+          "url": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable",
+          "effectiveUrl": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable",
+          "retrievedAt": "2026-10-03T14:27:07.255845+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html;charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/korail/index.html",
+          "role": "index",
+          "sha256": "50d71e37b18822de7a504ccc3025499288b6b046e5eb224c517e449834b933d1",
+          "bytes": 71672
+        },
+        {
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/23/202609231a0cb38a2c5200.xlsx",
+          "effectiveUrl": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/23/202609231a0cb38a2c5200.xlsx",
+          "retrievedAt": "2026-10-03T14:27:09.345094+00:00",
+          "httpStatus": 200,
+          "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/korail/document-1.xlsx",
+          "role": "timetable",
+          "sha256": "eaadc99d90aa9fb4e009ca74d812cc4aa4885a7aee98950adc715dca6c0ad623",
+          "bytes": 612015,
+          "cellsPath": "data/rail-capture/runs/20261003T142704490007Z/korail/document-1.cells.json",
+          "cellsSha256": "5f8bffa3f21caa45883b3df01ac22d288704263d83febf1458d41cc6fa9da245",
+          "sheets": [
+            {
+              "name": "경부선",
+              "nonemptyCells": 5990
+            },
+            {
+              "name": "경전선",
+              "nonemptyCells": 1156
+            },
+            {
+              "name": "동해선(서울~포항)",
+              "nonemptyCells": 822
+            },
+            {
+              "name": "호남선",
+              "nonemptyCells": 3110
+            },
+            {
+              "name": "전라선",
+              "nonemptyCells": 1590
+            },
+            {
+              "name": "동해선(부전-강릉)",
+              "nonemptyCells": 158
+            },
+            {
+              "name": "강릉선",
+              "nonemptyCells": 1358
+            },
+            {
+              "name": "중앙선",
+              "nonemptyCells": 690
+            },
+            {
+              "name": "중부내륙선",
+              "nonemptyCells": 172
+            }
+          ],
+          "label": "KTX 시간표(2026. 10. 1. 기준)",
+          "discoveredOn": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable"
+        },
+        {
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/28/202609281a0e67dd00a850.xlsx",
+          "effectiveUrl": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/28/202609281a0e67dd00a850.xlsx",
+          "retrievedAt": "2026-10-03T14:27:11.646302+00:00",
+          "httpStatus": 200,
+          "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/korail/document-2.xlsx",
+          "role": "timetable",
+          "sha256": "f8d30c98b684d5a68dfd7cd3aa19b1f8c6acc704a36f6ec3eb7ec666d3b399c0",
+          "bytes": 372541,
+          "cellsPath": "data/rail-capture/runs/20261003T142704490007Z/korail/document-2.cells.json",
+          "cellsSha256": "9e4147a85e53294f5f7600b9d770e1618540776d7ca10c85ee5544076e293920",
+          "sheets": [
+            {
+              "name": "보는방법",
+              "nonemptyCells": 82
+            },
+            {
+              "name": "경부선",
+              "nonemptyCells": 4271
+            },
+            {
+              "name": "호남선",
+              "nonemptyCells": 2184
+            },
+            {
+              "name": "전라선",
+              "nonemptyCells": 1251
+            },
+            {
+              "name": "장항선",
+              "nonemptyCells": 1440
+            },
+            {
+              "name": "중앙선",
+              "nonemptyCells": 1322
+            },
+            {
+              "name": "경전선",
+              "nonemptyCells": 2113
+            },
+            {
+              "name": "충북선",
+              "nonemptyCells": 850
+            },
+            {
+              "name": "목포보성선",
+              "nonemptyCells": 302
+            },
+            {
+              "name": "동해선",
+              "nonemptyCells": 2408
+            },
+            {
+              "name": "대구선",
+              "nonemptyCells": 935
+            },
+            {
+              "name": "영동선",
+              "nonemptyCells": 784
+            },
+            {
+              "name": "태백선",
+              "nonemptyCells": 382
+            },
+            {
+              "name": "경북선",
+              "nonemptyCells": 296
+            },
+            {
+              "name": "교외선",
+              "nonemptyCells": 502
+            },
+            {
+              "name": "서해선",
+              "nonemptyCells": 476
+            }
+          ],
+          "label": "일반열차 시간표(2026. 10. 1. 기준)",
+          "discoveredOn": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "KTX 시간표(2026. 10. 1. 기준)",
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/23/202609231a0cb38a2c5200.xlsx"
+        },
+        {
+          "label": "일반열차 시간표(2026. 10. 1. 기준)",
+          "url": "https://www.korail.com/file/cubedata/COMMON/jfile/202609/28/202609281a0e67dd00a850.xlsx"
+        }
+      ]
+    },
+    {
+      "source": "sr",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://etk.srail.kr/robots.txt",
+          "effectiveUrl": "https://etk.srail.kr/error.html",
+          "retrievedAt": "2026-10-03T14:27:05.513688+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/sr/robots-0.txt",
+          "role": "robots",
+          "sha256": "b871c9aba0067070f8e65ef2193c036ee07892bca1093e13b0fec4502db17144",
+          "bytes": 995,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000",
+          "effectiveUrl": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000",
+          "retrievedAt": "2026-10-03T14:27:07.212771+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/sr/index.html",
+          "role": "index",
+          "sha256": "4e1755206fada256380abcb81243d46843f62a32f5ce1e0cde9efb80786c8103",
+          "bytes": 28251
+        },
+        {
+          "url": "https://www.srail.or.kr/robots.txt",
+          "effectiveUrl": "https://www.srail.or.kr/404.html",
+          "retrievedAt": "2026-10-03T14:27:09.531886+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/sr/robots-1.txt",
+          "role": "robots",
+          "sha256": "29f02b78e9b3b394b1dedfbeb7de0daa74cd39ccbcf0390f2107e457fc171576",
+          "bytes": 1653,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://www.srail.or.kr/cms/attach/download.do?pageId=TK0402050000&atchNo=29",
+          "effectiveUrl": "https://www.srail.or.kr/cms/attach/download.do?pageId=TK0402050000&atchNo=29",
+          "retrievedAt": "2026-10-03T14:27:11.445013+00:00",
+          "httpStatus": 200,
+          "contentType": "application/x-octetstream;charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/sr/document-1.xlsx",
+          "role": "timetable",
+          "sha256": "cf69ea35e0b6ad9fb82c0e0b44f60833e34eadab55ea610eaf6784622351e9d0",
+          "bytes": 612316,
+          "cellsPath": "data/rail-capture/runs/20261003T142704490007Z/sr/document-1.cells.json",
+          "cellsSha256": "7b9ae4ee225292d918a1769c11f763ece236b99c578f1f0556ab7d5f6d53465e",
+          "sheets": [
+            {
+              "name": "경부선",
+              "nonemptyCells": 5990
+            },
+            {
+              "name": "경전선",
+              "nonemptyCells": 1156
+            },
+            {
+              "name": "동해선(서울~포항)",
+              "nonemptyCells": 822
+            },
+            {
+              "name": "호남선",
+              "nonemptyCells": 3110
+            },
+            {
+              "name": "전라선",
+              "nonemptyCells": 1590
+            },
+            {
+              "name": "동해선(부전-강릉)",
+              "nonemptyCells": 158
+            },
+            {
+              "name": "강릉선",
+              "nonemptyCells": 1358
+            },
+            {
+              "name": "중앙선",
+              "nonemptyCells": 690
+            },
+            {
+              "name": "중부내륙선",
+              "nonemptyCells": 172
+            }
+          ],
+          "label": "2026. 09. 01. 기준",
+          "discoveredOn": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "2026. 09. 01. 기준",
+          "url": "https://www.srail.or.kr/cms/attach/download.do?pageId=TK0402050000&atchNo=29"
+        }
+      ]
+    },
+    {
+      "source": "ktmb",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://api.data.gov.my/robots.txt",
+          "effectiveUrl": "https://api.data.gov.my/robots.txt",
+          "retrievedAt": "2026-10-03T14:24:04.450338+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/ktmb/robots-0.txt",
+          "role": "robots",
+          "sha256": "5547992afdadb59737c5c0feb1a35dff294cd27145bf290c031737ecf8a2577d",
+          "bytes": 179,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://api.data.gov.my/gtfs-static/ktmb",
+          "effectiveUrl": "https://openapi-malaysia-transport.s3.ap-southeast-1.amazonaws.com/ktmb/gtfs_ktmb.zip",
+          "retrievedAt": "2026-10-03T14:24:06.272750+00:00",
+          "httpStatus": 200,
+          "contentType": "binary/octet-stream",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/ktmb/feed.zip",
+          "role": "feed",
+          "sha256": "eba00dd8a2a9a736d3e03353fa2d5af07f935639060c36f97d2444a6a79d17fc",
+          "bytes": 46125
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "calendarRange": {
+        "start": "20260818",
+        "end": "20261017"
+      },
+      "tableRows": {
+        "stops.txt": 156,
+        "routes.txt": 9,
+        "trips.txt": 374,
+        "stop_times.txt": 5155,
+        "calendar.txt": 6,
+        "calendar_dates.txt": 6
+      }
+    },
+    {
+      "source": "vietnam",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://giotaugiave.dsvn.vn/robots.txt",
+          "effectiveUrl": "https://giotaugiave.dsvn.vn/robots.txt",
+          "retrievedAt": "2026-10-03T14:24:04.622551+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/vietnam/robots-0.txt",
+          "role": "robots",
+          "sha256": "dc1d54dab6ec8c00f70137927504e4f222c8395f10760b6beecfcfa94e08249f",
+          "bytes": 1245,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://giotaugiave.dsvn.vn/",
+          "effectiveUrl": "https://giotaugiave.dsvn.vn/",
+          "retrievedAt": "2026-10-03T14:24:06.346345+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=utf-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/vietnam/index.html",
+          "role": "index",
+          "sha256": "92137b80254d29b8af6a2b5e8a3f115edef3b85e4da0a9881f11e96f937a711f",
+          "bytes": 100452
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access."
+    },
+    {
+      "source": "thailand",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://ttsview.railway.co.th/robots.txt",
+          "effectiveUrl": "https://ttsview.railway.co.th/robots.txt",
+          "retrievedAt": "2026-10-03T14:24:06.216288+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/robots-0.txt",
+          "role": "robots",
+          "sha256": "dc1d54dab6ec8c00f70137927504e4f222c8395f10760b6beecfcfa94e08249f",
+          "bytes": 1245,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1",
+          "effectiveUrl": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1",
+          "retrievedAt": "2026-10-03T14:24:08.265046+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/index.html",
+          "role": "index",
+          "sha256": "86bdfe19d2b2cd307f58c25c886b0ebc7b1e0cca6415257958df133f9c086b8a",
+          "bytes": 432742
+        },
+        {
+          "url": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2",
+          "effectiveUrl": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=2",
+          "retrievedAt": "2026-10-03T14:24:10.129282+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-1-2.html",
+          "role": "timetable",
+          "sha256": "f964d253d9bf0488fe43fd4a19e0557e92f3611af902420ffe68b89f174c1864",
+          "bytes": 521162
+        },
+        {
+          "url": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1",
+          "effectiveUrl": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=1",
+          "retrievedAt": "2026-10-03T14:24:12.023236+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-2-1.html",
+          "role": "timetable",
+          "sha256": "d575f442b30a25af446456c97fb3841cd74b85af3ff010159a51c0df9a44a383",
+          "bytes": 507141
+        },
+        {
+          "url": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2",
+          "effectiveUrl": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=2&trip=2",
+          "retrievedAt": "2026-10-03T14:24:13.890038+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-2-2.html",
+          "role": "timetable",
+          "sha256": "07c285a94dffa8eb65315c493d5db1a24bed4a94be84edfde24eaa3b5e018c4d",
+          "bytes": 507023
+        },
+        {
+          "url": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1",
+          "effectiveUrl": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=1",
+          "retrievedAt": "2026-10-03T14:24:16.031346+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-4-1.html",
+          "role": "timetable",
+          "sha256": "0dcc9f5e98c76af888d9601ceb230f7d788193cf97cc82b1c7da331ea4f24aaf",
+          "bytes": 696618
+        },
+        {
+          "url": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2",
+          "effectiveUrl": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=4&trip=2",
+          "retrievedAt": "2026-10-03T14:24:18.218631+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-4-2.html",
+          "role": "timetable",
+          "sha256": "da8c5eaf37ee352a04e12c7b49e446c633dbcea3b22e052d474d24a90a383b5e",
+          "bytes": 696899
+        },
+        {
+          "url": "https://ttsview.railway.co.th/timetable_modern/timetable_data.js",
+          "effectiveUrl": "https://ttsview.railway.co.th/timetable_modern/timetable_data.js",
+          "retrievedAt": "2026-10-03T14:24:19.755840+00:00",
+          "httpStatus": 200,
+          "contentType": "application/javascript",
+          "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/train-metadata.js",
+          "role": "service-rules",
+          "sha256": "44b175788915db0b0382108c3040cd7b883f43d816e3ef2297b7fd389f8d3114",
+          "bytes": 35494
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access."
+    },
+    {
+      "source": "jr-kyushu",
+      "status": "captured",
+      "assets": [
+        {
+          "url": "https://www.jrkyushu.co.jp/robots.txt",
+          "effectiveUrl": "https://www.jrkyushu.co.jp/robots.txt",
+          "retrievedAt": "2026-10-03T14:27:05.201497+00:00",
+          "httpStatus": 404,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/jr-kyushu/robots-0.txt",
+          "role": "robots",
+          "sha256": "00f039488428ea98ca4d663dbbb0a384106ad81260b8a18844846a3557074d03",
+          "bytes": 49427,
+          "finding": "no robots directives; missing or HTML error page, not a reuse licence"
+        },
+        {
+          "url": "https://www.jrkyushu.co.jp/english/train/700series.html",
+          "effectiveUrl": "https://www.jrkyushu.co.jp/english/train/700series.html",
+          "retrievedAt": "2026-10-03T14:27:06.812685+00:00",
+          "httpStatus": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/jr-kyushu/index.html",
+          "role": "index",
+          "sha256": "ba9b8bdd9cd12b6aa3c5dd19d225050bdd3a3684da643c6e9b82ceaebf2136af",
+          "bytes": 58316
+        },
+        {
+          "url": "https://www.jrkyushu.co.jp/english/pdf/timetable_20260314_20270228.pdf",
+          "effectiveUrl": "https://www.jrkyushu.co.jp/english/pdf/timetable_20260314_20270228.pdf",
+          "retrievedAt": "2026-10-03T14:27:08.810622+00:00",
+          "httpStatus": 200,
+          "contentType": "application/pdf",
+          "path": "data/rail-capture/runs/20261003T142704490007Z/jr-kyushu/document-1.pdf",
+          "role": "timetable",
+          "sha256": "208a0a10946b7c2b4ddbe9b3eeb19cb1dd8a1425e64d89f91ece743b67405faa",
+          "bytes": 1800471,
+          "textPath": "data/rail-capture/runs/20261003T142704490007Z/jr-kyushu/document-1.txt",
+          "textSha256": "007d1f4731aa05b244c9480632f4593f81180cc1de4faecf4ddd2704692d84bd",
+          "textCharacters": 316998,
+          "parsingStatus": "font-encoding-review-required",
+          "label": "Timetables (major trains, 2026.3.14-2027.2.28)",
+          "discoveredOn": "https://www.jrkyushu.co.jp/english/train/700series.html"
+        }
+      ],
+      "collectorVersion": "rail-source-capture/1",
+      "kind": "source-evidence",
+      "runtimeIntegrated": false,
+      "queriedTravelDate": null,
+      "reuse": "Local source review; no redistribution licence inferred from public access.",
+      "discoveredDocuments": [
+        {
+          "label": "Timetables (major trains, 2026.3.14-2027.2.28)",
+          "url": "https://www.jrkyushu.co.jp/english/pdf/timetable_20260314_20270228.pdf"
+        }
+      ]
+    }
+  ]
+}

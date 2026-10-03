@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     ".worktrees/**",
     ".ds-sync/**",
     "design-system/paper-atlas/dist/**",
+    // Unmodified third-party timetable evidence, never application code.
+    "data/rail-capture/runs/**",
   ]),
 ]);
 
