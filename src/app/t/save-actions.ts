@@ -10,7 +10,8 @@ import { getAccountClaims, profileName } from "@/lib/supabase/server";
 import { buildSoloStorage, soloSaveSchema, toStorageLson } from "@/lib/trip/server";
 import { planTitle } from "@/lib/trip/title";
 
-export type SaveSoloTripResult = { id: string } | { error: "invalid" | "failed" };
+/** `legs` are the new legs' ids, in the order they were sent. */
+export type SaveSoloTripResult = { id: string; legs: string[] } | { error: "invalid" | "failed" };
 
 const shortId = () => randomBytes(6).toString("base64url");
 
@@ -55,5 +56,6 @@ export async function saveSoloTrip(input: unknown): Promise<SaveSoloTripResult> 
     if (created) await lb.deleteRoom(roomId).catch(() => {});
     return { error: "failed" };
   }
-  return { id };
+  // createdAt keeps the order they were sent in
+  return { id, legs: Object.entries(storage.legs).sort((a, b) => a[1].createdAt - b[1].createdAt).map(([legId]) => legId) };
 }

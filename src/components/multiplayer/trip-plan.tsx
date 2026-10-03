@@ -17,6 +17,7 @@ import { lastLegDate, leaveBounds, legBefore } from "@/lib/trip/dates";
 import { editorChoice, stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, useSplit, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
+import { isBookable, shownOffers } from "@/lib/trip/offers";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
@@ -87,7 +88,8 @@ function DateInput({ value, min, max, onCommit }: { value: string | null; min: s
 }
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
-export function TripPlan({ email = null, nationalities = [], onMinimise }: { email?: string | null; nationalities?: string[]; onMinimise?: () => void }) {
+/** `bookLeg` is a leg to open at its booking, as Book on the home globe asks. */
+export function TripPlan({ email = null, nationalities = [], bookLeg = null, onMinimise }: { email?: string | null; nationalities?: string[]; bookLeg?: string | null; onMinimise?: () => void }) {
   const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useSplit();
@@ -152,6 +154,7 @@ export function TripPlan({ email = null, nationalities = [], onMinimise }: { ema
             rates={rates}
             email={email}
             nationalities={nationalities}
+            focusBooking={leg.id === bookLeg}
           />
         </Fragment>
       ))}
@@ -167,6 +170,7 @@ function LegCard({
   rates,
   email,
   nationalities,
+  focusBooking = false,
 }: {
   leg: PlanLeg;
   stay: Readonly<Stay> | null;
@@ -176,6 +180,7 @@ function LegCard({
   rates: ExchangeRates | null;
   email: string | null;
   nationalities: string[];
+  focusBooking?: boolean;
 }) {
   const me = useSelf((s) => s.id);
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
@@ -190,7 +195,8 @@ function LegCard({
   const [draft, setDraft] = useState<string | null | undefined>(undefined);
   const [pendingHotel, setPendingHotel] = useState<HotelResult | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const offers = leg.search.offers.slice(0, SHOWN);
+  // the pick shows even when it's further down the options
+  const offers = shownOffers(leg.search.offers, leg.chosen?.id, SHOWN);
 
   const stored = leg.chosen?.id ?? null;
   const choice = editorChoice(draft, stored, leg.search.offers.map((o) => o.id));
@@ -376,6 +382,7 @@ function LegCard({
                   {duration(o.durationMin)}
                   {chosen ? <span className="ts-badge">Picked</span> : null}
                   {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                  {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
                 </span>
                 <span className="ts-price" data-none={!price || undefined}>
                   {price ?? "No fare"}
@@ -400,7 +407,7 @@ function LegCard({
         })}
       </div>
 
-      <LegBooking leg={leg} email={email} nationalities={nationalities} />
+      <LegBooking leg={leg} email={email} nationalities={nationalities} focus={focusBooking} />
 
       {locked ? null : (
         <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>

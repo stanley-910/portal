@@ -74,8 +74,14 @@ export type BookableOffer = {
   flights: { number: string; departingAt: string; arrivingAt: string; from: string; to: string }[];
 };
 
+/** What identifies a flight across searches. */
+export type FlightKey = { number: string; departingAt: string; from: string; to: string };
+
+/** Enough of an offer to search for the same flights again. */
+export type OfferLike = Pick<BookableOffer, "origin" | "destination" | "date"> & { flights: FlightKey[] };
+
 /** The same flights: every segment's flight number, airports and departure minute agree. */
-export function sameFlights(a: BookableOffer, b: BookableOffer): boolean {
+export function sameFlights(a: { flights: readonly FlightKey[] }, b: { flights: readonly FlightKey[] }): boolean {
   return (
     a.flights.length === b.flights.length &&
     a.flights.every((f, i) => {
@@ -89,7 +95,7 @@ export function sameFlights(a: BookableOffer, b: BookableOffer): boolean {
  * The offer in `raw` for the same flights as `like`, with a seat for every passenger. Several fares can match; the
  * cheapest wins. Null when none does, which the flow reads as sold out.
  */
-export function matchOffer(like: BookableOffer, raw: readonly unknown[], passengers: number): BookableOffer | null {
+export function matchOffer(like: { flights: readonly FlightKey[] }, raw: readonly unknown[], passengers: number): BookableOffer | null {
   let best: BookableOffer | null = null;
   for (const item of raw) {
     const parsed = offerSchema.safeParse(item);

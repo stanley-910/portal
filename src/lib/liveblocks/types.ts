@@ -75,6 +75,8 @@ export type StoredOffer = {
   stops: number;
   bookingUrl: string | null;
   attribution: string | null;
+  /** Each flight's number, airports and local departure, when the provider gave them all. Settling matches on these. */
+  flights?: { number: string; from: string; to: string; depart: string }[];
 };
 
 export type LegSearch = {
@@ -111,6 +113,8 @@ export type LegBooking = {
   offerId: string;
   /** The airport pair and date the offer was searched for, so the server can search again when it expires. */
   route: { origin: string; destination: string; date: string };
+  /** The settled flights. Duffel stops serving an offer once it expires, so later steps search for these again. */
+  flights?: { number: string; from: string; to: string; departingAt: string }[];
   /** Group: the hold order, once every rider's details are in. */
   orderId?: string | null;
   /** ISO 8601. Group: when the hold and the card holds lapse. Null for separate tickets. */

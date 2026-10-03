@@ -14,11 +14,13 @@ import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
 import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useCursorPref } from "@/lib/cursor-pref";
 import type { Person } from "@/lib/identity";
+import { isBookable } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
 import { stopFromPoint } from "@/lib/trip/stops";
 
 import { createTrip } from "./t/actions";
 import { saveSoloTrip } from "./t/save-actions";
+import { useBookAfterSave } from "./use-book-after-save";
 
 /** A local Date as YYYY-MM-DD. */
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -78,14 +80,20 @@ export function GlobeScreen({ person }: { person: Person | null }) {
 
   const account = person?.account ?? false;
   const openAuth = useOpenAuth();
+  // Book saves like Save trip, then opens the saved trip at the leg to settle
+  const book = useBookAfterSave(account);
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
       const result = await saveSoloTrip(input).catch(() => ({ error: "failed" as const }));
-      if ("error" in result) return setSaveFailed(true);
+      if ("error" in result) {
+        book.cancel();
+        return setSaveFailed(true);
+      }
       const legs = (input as { legs?: { chosen?: string | null }[] }).legs;
       // No refresh: nothing on the globe screen shows saved trips, and /trips is dynamic, so it reads them fresh when
       // opened. A refresh here re-rendered the whole screen and held the button on "Saving" for another round trip.
       setSaved({ id: result.id, offer: legs?.at(-1)?.chosen ?? null });
+      if (book.after(result, input)) return;
     });
   const save = (input: Parameters<typeof saveSoloTrip>[0]) => {
     setSaveFailed(false);
@@ -212,6 +220,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           setPendingAction({ type: "save", input });
           openAuth("signup");
         }}
+        onBook={book.request}
+        canBook={picks.slice(0, active).some((p) => !!p.offer && isBookable(p.offer))}
         onDismiss={() => globe.current?.cancel()}
         collapsed={collapsed}
         onCollapse={() => setCollapsed(true)}

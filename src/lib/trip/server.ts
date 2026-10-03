@@ -120,7 +120,8 @@ const stopSchema = z.object({
   name: text(120),
 });
 
-const placeSchema = z.object({ name: z.string().max(200), lat, lng });
+// the airport code stays: settling a saved Duffel flight matches on it
+const placeSchema = z.object({ name: z.string().max(200), lat, lng, iata: z.string().max(8).optional() });
 
 const offerSchema = z.object({
   id: text(200),
