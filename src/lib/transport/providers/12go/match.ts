@@ -1,8 +1,9 @@
 import type { Place } from "../../types";
+import { matchRadiusKm } from "../match-radius";
 
 import type { SeedRoute } from "./index";
 
-export const MAX_SNAP_DISTANCE_KM = 30;
+export const MIN_SNAP_DISTANCE_KM = 30;
 
 function distanceKm(a: Place, b: SeedRoute["from"]): number {
   const lat1 = (a.lat * Math.PI) / 180;
@@ -14,7 +15,7 @@ function distanceKm(a: Place, b: SeedRoute["from"]): number {
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-export function nearestStop(place: Place, routes: SeedRoute[], side: "from" | "to") {
+export function nearestStop(place: Place, routes: SeedRoute[], side: "from" | "to", radiusKm = MIN_SNAP_DISTANCE_KM) {
   let nearest: SeedRoute["from"] | undefined;
   let nearestDistance = Infinity;
   for (const route of routes) {
@@ -25,17 +26,19 @@ export function nearestStop(place: Place, routes: SeedRoute[], side: "from" | "t
       nearestDistance = distance;
     }
   }
-  return nearest && nearestDistance <= MAX_SNAP_DISTANCE_KM
+  return nearest && nearestDistance <= radiusKm
     ? { stop: nearest, distanceKm: nearestDistance }
     : null;
 }
 
+/** Which way the query runs along the route, within the shared match radius. If both ways fit, the smaller total snap wins. */
 export function matchesRoute(queryFrom: Place, queryTo: Place, route: SeedRoute): "forward" | "reverse" | null {
-  const fromToFrom = distanceKm(queryFrom, route.from);
-  const toToTo = distanceKm(queryTo, route.to);
-  if (fromToFrom <= MAX_SNAP_DISTANCE_KM && toToTo <= MAX_SNAP_DISTANCE_KM) return "forward";
-  const fromToTo = distanceKm(queryFrom, route.to);
-  const toToFrom = distanceKm(queryTo, route.from);
-  if (fromToTo <= MAX_SNAP_DISTANCE_KM && toToFrom <= MAX_SNAP_DISTANCE_KM) return "reverse";
-  return null;
+  const radiusKm = matchRadiusKm(queryFrom, queryTo, MIN_SNAP_DISTANCE_KM);
+  const forwardKm = distanceKm(queryFrom, route.from) + distanceKm(queryTo, route.to);
+  const reverseKm = distanceKm(queryFrom, route.to) + distanceKm(queryTo, route.from);
+  const forward = distanceKm(queryFrom, route.from) <= radiusKm && distanceKm(queryTo, route.to) <= radiusKm;
+  const reverse = distanceKm(queryFrom, route.to) <= radiusKm && distanceKm(queryTo, route.from) <= radiusKm;
+  if (forward && reverse) return reverseKm < forwardKm ? "reverse" : "forward";
+  if (forward) return "forward";
+  return reverse ? "reverse" : null;
 }

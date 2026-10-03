@@ -1,5 +1,6 @@
 import "server-only";
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import { ProviderFailure, type Offer, type Place, type SearchQuery, type TransportProvider } from "../../types";
 import { servesModes } from "../stub";
 import { SRT_BOOKING_URL } from "./links";
@@ -8,7 +9,7 @@ import seedJson from "./seed.json";
 
 // SRT seed from the TTS timetable, no request-time calls.
 const MODES = ["train"] as const;
-const MATCH_KM = 15;
+const MIN_MATCH_KM = 15;
 const OFFSET = "+07:00"; // Asia/Bangkok, no DST
 const DAY = 1440;
 const TYPE_LABEL: Record<TrainType, string> = {
@@ -31,10 +32,10 @@ interface Leg {
   arriveMin: number;
 }
 
-/** Nearest station within MATCH_KM picks the city; every station of that city matches (Bangkok's two terminals). */
-function cityStations(seed: Seed, lat: number, lng: number): { city?: string; keys: Set<string> } {
+/** Nearest station within `radiusKm` picks the city; every station of that city matches (Bangkok's two terminals). */
+function cityStations(seed: Seed, lat: number, lng: number, radiusKm: number): { city?: string; keys: Set<string> } {
   let city: string | undefined;
-  let bestKm = MATCH_KM;
+  let bestKm = radiusKm;
   for (const s of Object.values(seed.stations)) {
     const km = distanceKm(lat, lng, s.lat, s.lng);
     if (km <= bestKm) {
@@ -67,8 +68,9 @@ export function createSrtProvider(seed: Seed): TransportProvider {
   const timelines = seed.trains.map((train) => ({ train, times: timeline(train) }));
 
   const legsFor = (q: SearchQuery): Leg[] | undefined => {
-    const from = cityStations(seed, q.from.lat, q.from.lng);
-    const to = cityStations(seed, q.to.lat, q.to.lng);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+    const from = cityStations(seed, q.from.lat, q.from.lng, radiusKm);
+    const to = cityStations(seed, q.to.lat, q.to.lng, radiusKm);
     if (!from.city || !to.city || from.city === to.city) return undefined;
     const legs: Leg[] = [];
     for (const { train, times } of timelines) {

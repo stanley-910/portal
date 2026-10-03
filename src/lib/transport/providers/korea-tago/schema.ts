@@ -34,7 +34,7 @@ const busTerminal = z.object({
   kobusCode: z.string().regex(/^\d{3}$/), // KoBus deprCd / arvlCd
   lat: z.number(),
   lng: z.number(),
-  matchKm: z.number().positive().optional(), // default bus.ts MATCH_KM; Busan (Nopo) sits ~19 km from the centre
+  matchKm: z.number().positive().optional(), // default bus.ts MIN_MATCH_KM; Busan (Nopo) sits ~19 km from the centre
   source: url,
 });
 
