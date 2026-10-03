@@ -199,7 +199,7 @@ export class GlobeEngine {
   private nameFamily = '"Courier Prime", ui-monospace, monospace';
   /** Each name's width at a 1px font size, letter spacing included. Cleared when fonts load. */
   private nameWidths = new Map<string, number>();
-  /** Each name drawn once, halo and all, at its largest size; frames only copy these. Cleared on theme or font change. */
+  /** Each name drawn, halo and all, per half-px size; frames only copy these. Cleared on theme or font change. */
   private nameSprites = new Map<string, HTMLCanvasElement>();
   /** How strongly names print: full while idle, dimmed while a trip is on the globe. */
   private nameInk = 1;
@@ -1382,12 +1382,16 @@ export class GlobeEngine {
     return w;
   }
 
-  /** A name drawn at NAME_MAX × the token size and the screen's pixel ratio, with its halo, centred. */
-  private nameSprite(name: string, dpr: number) {
-    let c = this.nameSprites.get(name);
+  /**
+   * A name drawn at `size` (snapped to a half px) and the screen's pixel ratio, with its halo, centred. Drawing near the
+   * size it shows at keeps the strokes crisp; shrinking one big sprite thins and blurs them.
+   */
+  private nameSprite(name: string, size: number, dpr: number) {
+    const key = `${size}|${name}`;
+    let c = this.nameSprites.get(key);
     if (c) return c;
     const P = this.P;
-    const px = COUNTRY_TYPE.size * NAME_MAX * dpr;
+    const px = size * dpr;
     const ls = COUNTRY_TYPE.spacing * px;
     const pad = Math.ceil(px * 0.3);
     c = document.createElement("canvas");
@@ -1406,13 +1410,13 @@ export class GlobeEngine {
     const y = c.height / 2 + px * 0.05 - (lh * (lines.length - 1)) / 2;
     // a soft paper halo lifts the letters off the halftone without boxing them in
     g.strokeStyle = P.paper;
-    g.globalAlpha = 0.7;
+    g.globalAlpha = 0.9;
     g.lineWidth = px * 0.22;
     lines.forEach((line, i) => g.strokeText(line, x, y + i * lh));
     g.globalAlpha = 1;
     g.fillStyle = P.ink;
     lines.forEach((line, i) => g.fillText(line, x, y + i * lh));
-    this.nameSprites.set(name, c);
+    this.nameSprites.set(key, c);
     return c;
   }
 
@@ -1540,8 +1544,9 @@ export class GlobeEngine {
       const alpha = f * smooth(0.22, 0.4, sp.facing) * this.nameInk * zoomInk;
       if (alpha < 0.01) continue;
       const n = NAMES[sp.i];
-      const img = this.nameSprite(sp.wrapped && n.wrap ? n.wrap : n.name, dpr);
-      const k = sp.size / (base * NAME_MAX * dpr);
+      const snapped = Math.round(sp.size * 2) / 2;
+      const img = this.nameSprite(sp.wrapped && n.wrap ? n.wrap : n.name, snapped, dpr);
+      const k = sp.size / (snapped * dpr);
       const c = Math.cos(sp.a) * k;
       const si = Math.sin(sp.a) * k;
       ctx.globalAlpha = alpha;
