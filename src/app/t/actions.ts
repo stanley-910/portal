@@ -16,7 +16,7 @@ import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
 import { runLegSearch } from "@/lib/trip/search-leg";
 
-/** Creates a trip room owned by the current guest and opens it. Its URL is the invite (M7). */
+/** Creates a trip room owned by the current guest and opens it. Its URL is the invite. */
 export async function createTrip() {
   const guest = await ensureGuest();
   const id = randomBytes(12).toString("base64url");
@@ -67,7 +67,7 @@ export async function saveName(formData: FormData) {
   if (name) await setGuestName(name);
 }
 
-/** Starts the route search for one leg on the server, so provider keys stay there (ADR-C01) and results land even if
+/** Starts the route search for one leg on the server, so provider keys stay there and results land even if
  * whoever drew the leg closes the tab. */
 export async function searchLeg(tripId: string, legId: string, searchId: string) {
   if (!TRIP_ID.test(tripId)) return;

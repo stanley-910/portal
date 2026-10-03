@@ -6,7 +6,7 @@ import { SRT_BOOKING_URL } from "./links";
 import { seedSchema, type Seed, type SeedTrain, type TrainType } from "./schema";
 import seedJson from "./seed.json";
 
-// SRT seed from the TTS timetable, no request-time calls (ADR-T06, core ADR-C08).
+// SRT seed from the TTS timetable, no request-time calls.
 const MODES = ["train"] as const;
 const MATCH_KM = 15;
 const OFFSET = "+07:00"; // Asia/Bangkok, no DST

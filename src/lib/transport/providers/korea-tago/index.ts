@@ -6,7 +6,7 @@ import type { BusSeed, TrainSeed } from "./schema";
 import { busSeed, trainSeed } from "./seed";
 import { createTrainSearch } from "./train";
 
-// Korea = hand-curated seed, no data.go.kr calls (ADR-T05 trains, ADR-B07 express buses). Provider id stays `korea-tago`.
+// Korea = hand-curated seed, no data.go.kr calls. Provider id stays `korea-tago`.
 const TRAIN: Mode[] = ["train"];
 const BUS: Mode[] = ["bus"];
 

@@ -9,7 +9,7 @@ export interface Station {
   source: string;
 }
 
-/** One train (ADR-C05): typical local departures + duration, cited. */
+/** One train: typical local departures + duration, cited. */
 export interface SeedTrain {
   from: string; // Station key
   to: string;

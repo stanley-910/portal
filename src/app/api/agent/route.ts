@@ -7,7 +7,7 @@ import { readGuest } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 
-// Posts a message to a trip's thread, and wakes Pip when it's mentioned (M15). The reply arrives through the room,
+// Posts a message to a trip's thread, and wakes Pip when it's mentioned. The reply arrives through the room,
 // not this response: everyone in the trip sees it at once.
 
 export const runtime = "nodejs";

@@ -3,7 +3,7 @@ import type { Offer, Place, SearchQuery } from "../../types";
 import type { BusRow, BusSeed } from "./schema";
 import { at } from "./train";
 
-// KoBus express seed search (ADR-B07). Pure: no network, no env.
+// KoBus express seed search. Pure: no network, no env.
 // Seoul and Busan each have two express terminals; every terminal in range counts, rows pick the pair.
 const MATCH_KM = 10;
 // KoBus booking page; takes no OD/date params (observed 2026-10-03).

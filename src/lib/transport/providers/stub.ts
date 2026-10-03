@@ -5,7 +5,7 @@ export function servesModes(modes: readonly Mode[], q: SearchQuery): boolean {
   return q.modes.length === 0 || q.modes.some((m) => modes.includes(m));
 }
 
-/** Placeholder until the provider's adapter task replaces its index.ts (ADR-C02). */
+/** Placeholder until the provider's adapter task replaces its index.ts. */
 export function stubProvider(id: ProviderId, modes: Mode[]): TransportProvider {
   return {
     id,

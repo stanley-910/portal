@@ -4,7 +4,7 @@ import { transfersOf, type Offer } from "@/lib/transport/types";
 /** How many options a leg keeps. Rooms are capped at 10 MB, and nobody reads past this many. */
 export const MAX_OFFERS = 20;
 
-/** Trims a search result to what the plan shows (M13). */
+/** Trims a search result to what the plan shows. */
 export function toStoredOffer(offer: Offer): StoredOffer {
   const first = offer.segments[0]!;
   const last = offer.segments.at(-1)!;

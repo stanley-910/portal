@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 
 import { AGENT_ID, type ThreadMessage } from "@/lib/agent/types";
 
-// The trip's thread as the chat panel reads it. Messages live in Storage (M15); Pip's text streams by broadcast
+// The trip's thread as the chat panel reads it. Messages live in Storage; Pip's text streams by broadcast
 // until its reply is written, so this merges the two.
 
 export function useThread(): ThreadMessage[] {

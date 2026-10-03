@@ -5,8 +5,8 @@ import { TRIP_ID } from "@/lib/liveblocks/types";
 export const runtime = "nodejs";
 
 /**
- * Issues a Liveblocks access token for the guest (M4) that lets them into this one trip room, with their name and
- * member colour. Holding the trip's URL is the invite (M7), so this route decides access itself; the room's access
+ * Issues a Liveblocks access token for the guest that lets them into this one trip room, with their name and
+ * member colour. Holding the trip's URL is the invite, so this route decides access itself; the room's access
  * list only records who has joined. An ID token would make Liveblocks check that list on connect, and in production
  * it kept refusing guests added while the room was already active.
  */

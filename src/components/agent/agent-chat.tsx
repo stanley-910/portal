@@ -11,7 +11,7 @@ import { AGENT_NAME, type MeetupLeg, type ThreadCard, type ThreadMessage } from 
 import { usePipActivity, usePipBusy, useSendMessage, useThread } from "@/lib/agent/use-thread";
 import { memberColor } from "@/lib/liveblocks/types";
 
-// The trip's thread with Pip in it (M15), rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
+// The trip's thread with Pip in it, rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
 // a chat panel. Pip's surfaces are starlight pixels; people's are Paper Atlas print (handoff: "what Pip makes").
 
 const CHIPS = ["@Pip where should we meet?", "@Pip somewhere fair in the middle", "@Pip what's on the trip so far?"];

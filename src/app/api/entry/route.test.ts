@@ -5,7 +5,7 @@ import { GET } from "./route";
 const get = (qs: string) => GET(new Request(`http://localhost/api/entry?${qs}`));
 
 describe("GET /api/entry", () => {
-  it("resolves a leg with ADR-C06 style params and ISO-2 countries", async () => {
+  it("resolves a leg with transport-search style params and ISO-2 countries", async () => {
     const res = await get("passport=US&fromIata=ICN&toIata=PVG&onwardCountry=JP");
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ usesTransit: true, rule: { kind: "transit_exempt" } });

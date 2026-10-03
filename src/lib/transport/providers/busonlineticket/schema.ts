@@ -14,7 +14,7 @@ const city = z.object({
   source: url,
 });
 
-/** One operator on one pair (ADR-C05): published first/last departure, local at origin, cited. */
+/** One operator on one pair: published first/last departure, local at origin, cited. */
 const route = z.object({
   from: z.string(), // city key
   to: z.string(),

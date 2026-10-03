@@ -1,5 +1,5 @@
 // Entry requirements: shared by the build script (scripts/entry-requirements.mts), the runtime lookup and the API.
-// Spec: docs/entry/spec.md. Imports use explicit .ts extensions so Node can run this file directly.
+// Imports use explicit .ts extensions so Node can run this file directly.
 import { z } from "zod";
 
 /** ISO 3166-1 alpha-3, plus the territory codes the dataset uses (HKG, MAC, TWN). */

@@ -1,4 +1,4 @@
-// The shared thread and the agent in it (M15, M16). Harness design: docs/multiplayer/agent-harness.md.
+// The shared thread and the agent in it.
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
 
 /** The agent's user id in presence. Never a guest id, so it can't collide with a member. */

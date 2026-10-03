@@ -1,4 +1,4 @@
-// Entry requirements over the committed snapshot. Regenerate with `pnpm entry`; spec in docs/entry/spec.md.
+// Entry requirements over the committed snapshot. Regenerate with `pnpm entry`.
 import raw from "@/data/entry-requirements.json";
 
 import { createEntryLookup } from "./lookup";

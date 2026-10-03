@@ -7,7 +7,7 @@ import { botRouteUrl } from "./links";
 import { seedSchema, type City, type Seed, type SeedRoute } from "./schema";
 import seedJson from "./seed.json";
 
-// Seed + link-out, no BOT calls (ADR-B03). JB and Singapore centres are ~21 km apart → nearest wins.
+// Seed + link-out, no BOT calls. JB and Singapore centres are ~21 km apart → nearest wins.
 const MODES = ["bus"] as const;
 const MATCH_KM = 30;
 // Fixed offsets in minutes, no DST in any of these zones.

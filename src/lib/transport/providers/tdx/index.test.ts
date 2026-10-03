@@ -21,7 +21,7 @@ const CHIAYI = city("Chiayi HSR", 23.4593, 120.3232);
 
 const WED = "2026-10-14";
 const SUN = "2026-10-18";
-// THSR tests pin modes to train: since B01 an empty `modes` also returns buses.
+// THSR tests pin modes to train: an empty `modes` also returns buses.
 const q = (from: Place, to: Place, extra: Partial<SearchQuery> = {}): SearchQuery => ({
   from, to, date: WED, modes: ["train"], passengers: 1, currency: "USD", ...extra,
 });

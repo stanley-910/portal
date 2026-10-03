@@ -129,7 +129,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     const legs = root.get("legs");
     const stopFor = (s: string | Stop) => {
       if (typeof s === "string") return s;
-      // snap onto a stop already at this hub or point (M8), else make one
+      // snap onto a stop already at this hub or point, else make one
       for (const [id, existing] of stops) {
         const e = existing.toJSON();
         if ((s.hub && e.hub === s.hub) || (e.lat === s.lat && e.lng === s.lng)) return id;
@@ -168,7 +168,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       remember(p.leg);
       const label = `${stopName(leg.get("from"), created)} → ${stopName(leg.get("to"), created)}`;
       if (p.kind === "date") {
-        // a new date resets the leg's options, votes and pick (M12)
+        // a new date resets the leg's options, votes and pick
         const search = pending();
         leg.update({ date: p.date, search, chosen: null });
         const votes = leg.get("votes");

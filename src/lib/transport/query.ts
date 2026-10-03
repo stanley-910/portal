@@ -51,7 +51,7 @@ function parse(params: URLSearchParams): SearchQuery {
   return parsed;
 }
 
-/** URL helper throws on invalid input; URLSearchParams form preserves ADR-C06 diagnostics. */
+/** URL helper throws on invalid input; URLSearchParams form preserves per-field diagnostics. */
 export function parseSearchQuery(url: string): SearchQuery;
 export function parseSearchQuery(params: URLSearchParams): ParsedQuery;
 export function parseSearchQuery(input: string | URLSearchParams): SearchQuery | ParsedQuery {

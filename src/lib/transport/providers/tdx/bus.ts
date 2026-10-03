@@ -4,7 +4,7 @@ import type { Offer, Place, SearchQuery } from "../../types";
 import type { BusSeed, BusTerminals, BusTrip } from "./schema";
 import { at, runsOn, timeline } from "./time";
 
-// 國道客運 seed (ADR-B07). A city can have several intercity terminals (Taipei: main, Yuanshan, Nangang,
+// 國道客運 seed. A city can have several intercity terminals (Taipei: main, Yuanshan, Nangang,
 // City Hall), so every terminal within MATCH_KM counts; per trip the one nearest the query point wins.
 const MATCH_KM = 10;
 

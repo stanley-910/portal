@@ -9,7 +9,7 @@ import type { LandedTrip } from "@/components/trip-globe";
 import type { LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
 import { sameStop, stopFromPoint } from "@/lib/trip/stops";
 
-// The shared trip plan (M8): stops, the legs between them, and each leg's options, votes and pick. Presentation
+// The shared trip plan: stops, the legs between them, and each leg's options, votes and pick. Presentation
 // lives in components; these hooks are the only place that writes the plan, so every edit follows M12.
 
 /** What a new trip room's Storage starts as. Pass to `RoomProvider`. */
@@ -94,7 +94,7 @@ export function usePlanReady() {
   return useStorage(() => true) ?? false;
 }
 
-/** Every edit to the plan. Edits that change where or when a leg goes start a new search for it (M12). */
+/** Every edit to the plan. Edits that change where or when a leg goes start a new search for it. */
 export function usePlanActions() {
   const room = useRoom();
   const tripId = room.id.slice("trip:".length);
@@ -105,7 +105,7 @@ export function usePlanActions() {
     [tripId],
   );
 
-  /** Stores a landed trip at its exact clicks, sharing only identical stops (M8). */
+  /** Stores a landed trip at its exact clicks, sharing only identical stops. */
   const addLegMutation = useMutation(({ storage, self }, trip: LandedTrip) => {
     const stops = storage.get("stops");
     const stopAt = (stop: Stop) => {
@@ -135,7 +135,7 @@ export function usePlanActions() {
     return { id, searchId: search.id };
   }, []);
 
-  /** Starts a fresh search for a leg, dropping its old options, votes and pick (M12). */
+  /** Starts a fresh search for a leg, dropping its old options, votes and pick. */
   const resetMutation = useMutation(({ storage }, legId: string, patch: { date?: string }) => {
     const leg = storage.get("legs").get(legId);
     if (!leg) return null;

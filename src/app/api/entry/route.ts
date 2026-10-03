@@ -1,5 +1,5 @@
 // Entry requirements for one passport. Backs the planner and the agent's check_entry tool (POR-39).
-// Query shape follows the transport search (core ADR-C06): flat params, countries ISO-2 or ISO-3.
+// Query shape follows the transport search: flat params, countries ISO-2 or ISO-3.
 //   GET /api/entry?passport=US&toCountry=CN                              entry rule for a country
 //   GET /api/entry?passport=US&fromIata=ICN&toIata=PVG&onwardCountry=JP  rule for a leg, with transit if it applies
 // Static data and no keys, so unlike /api/transport/search it needs no Node runtime or provider timeouts.

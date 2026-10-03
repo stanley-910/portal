@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { cookies } from "next/headers";
 
-// Who you are, without accounts (M4): a random id in a cookie. Clearing cookies makes you a new person.
+// Who you are before signing in: a random id in a cookie. Clearing cookies makes you a new person.
 const ID_COOKIE = "portal_guest";
 const NAME_COOKIE = "portal_name";
 const YEAR = 60 * 60 * 24 * 365;

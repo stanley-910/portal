@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { NAV_ICONS, NavButton } from "@/components/nav-bar";
 
-/** Copies the trip's URL, which is its invite (M7). */
+/** Copies the trip's URL, which is its invite. */
 export function InviteButton() {
   const [copied, setCopied] = useState(false);
   return (

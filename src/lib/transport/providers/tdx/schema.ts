@@ -14,7 +14,7 @@ const station = z.object({
   source: url,
 });
 
-/** One THSR train (ADR-C05 / ADR-T04): served stops in running order, cited. */
+/** One THSR train: served stops in running order, cited. */
 const seedTrain = z.object({
   number: z.string().regex(/^\d{4}$/),
   direction: z.enum(["S", "N"]), // southbound (Nangang → Zuoying) / northbound
@@ -38,7 +38,7 @@ export type Station = z.infer<typeof station>;
 export type SeedTrain = z.infer<typeof seedTrain>;
 export type Seed = z.infer<typeof seedSchema>;
 
-// --- Intercity bus (國道客運) seed, B01 / ADR-B07 ---
+// --- Intercity bus (國道客運) seed ---
 
 const busTerminal = z.object({
   name: z.string(),
@@ -62,7 +62,7 @@ const busRoute = z.object({
   crossCheck: url, // 公路局 timetable the times were compared against
 });
 
-/** One scheduled run: seeded terminals it serves in running order (ADR-C05 times, Asia/Taipei). */
+/** One scheduled run: seeded terminals it serves in running order (published local times, Asia/Taipei). */
 const busTrip = z.object({
   route: z.string(),
   sub: z.string(), // TDX SubRouteName, e.g. "1619B"

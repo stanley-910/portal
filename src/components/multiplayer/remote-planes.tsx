@@ -7,7 +7,7 @@ import { memberColor as paperMemberColor } from "@/components/paper-atlas";
 import type { LatLng, RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
 
 /**
- * Everyone else's trips on the globe (M14 step 2) and every stored leg (M8): the globe draws each plane, route and
+ * Everyone else's trips on the globe and every stored leg: the globe draws each plane, route and
  * pins; this adds a member's name label beside their plane while it flies. Flights go straight from presence to the
  * globe engine, and labels are positioned after every frame, so a moving plane never re-renders React. React only
  * re-renders when someone takes off or stops, or the plan changes.
