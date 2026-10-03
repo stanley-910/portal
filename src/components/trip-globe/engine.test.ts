@@ -218,6 +218,75 @@ describe("canvas invalidation", () => {
     expect(changes.at(-1)).toEqual({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   });
 
+  it("holds the plane to a new stop like a magnet: a small nudge lands there, a bigger move flies on", () => {
+    const onLand = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onLand });
+    frames(5);
+    const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const down = (x: number, y: number) =>
+      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const plane = () => (engine as unknown as { pl: { n: Vec3 } }).pl.n;
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
+    move(1280, 650);
+    frames(30);
+    down(1280, 650); // drops a stop
+    const stop = state.pick(1280, 650)!;
+    move(1305, 650);
+    frames(5);
+    // 25 px off, the plane is still at the stop, leaning only a little toward the pointer
+    expect(angle(plane(), stop)).toBeLessThan(angle(state.pick(1305, 650)!, stop) * 0.3);
+    down(1305, 650);
+    expect(onLand).toHaveBeenCalledTimes(1);
+    expect(onLand.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  it("lets the plane go once the pointer pulls far enough from the stop", () => {
+    const onLand = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onLand });
+    frames(5);
+    const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const down = (x: number, y: number) =>
+      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const plane = () => (engine as unknown as { pl: { n: Vec3 } }).pl.n;
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
+    move(1280, 650);
+    frames(30);
+    down(1280, 650);
+    const stop = state.pick(1280, 650)!;
+    move(1380, 650);
+    frames(5);
+    // 100 px off, the plane has left the stop and is back under the pointer
+    expect(angle(plane(), stop)).toBeGreaterThan(angle(state.pick(1380, 650)!, stop) * 0.9);
+    down(1380, 650); // another stop, not a landing
+    expect(onLand).not.toHaveBeenCalled();
+    expect(engine["mode"]).toBe("flying");
+  });
+
+  it("opens the landed trip from a click on its route instead of cancelling or taking off", () => {
+    const onRouteClick = vi.fn();
+    const onCancel = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onRouteClick, onCancel });
+    frames(5);
+    const a = state.pick(1180, 650)!;
+    const b = state.pick(1480, 650)!;
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](a);
+    (engine as unknown as { land(v: Vec3): void })["land"](b);
+    frames(5);
+    const click = (x: number, y: number) => {
+      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+      engine.pointerUp({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse", type: "pointerup" } as PointerEvent);
+    };
+    const mid = state.proj(slerp(a, b, 0.5))!;
+    click(mid.x, mid.y);
+    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(engine["mode"]).toBe("landed");
+    // well off the route, a click on the globe still takes off again
+    click(mid.x, mid.y + 200);
+    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(engine["mode"]).toBe("flying");
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it("redraws only the HUD when the 80ms surface-hub cache catches up under a still pointer", () => {
     const { engine, state, frames, drawGL, drawHud } = setup();
     frames(10);

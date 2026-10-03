@@ -30,10 +30,10 @@ export interface OptionRow {
   badge?: "Best" | "Lowest";
   /** Not live data (AGENTS.md: anything that isn't live shows as estimated). */
   estimated: boolean;
-  /** Where each leg goes, joined with commas. */
+  /** Who runs it and where it goes, e.g. "Flight to Seoul Gimpo, 1 stop". The provider's credit goes under the list. */
   description: string;
   legs: TimelineLeg[];
-  /** Where the data came from, for the row's tooltip. */
+  /** Where the data came from, in full, for the row's tooltip. */
   source: string;
 }
 
@@ -47,6 +47,11 @@ const NOUN: Record<Mode, string> = { flight: "flight", train: "train", bus: "bus
 const LEG_LABEL: Record<Mode, string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** "Seoul Gimpo International Airport" → "Seoul Gimpo". Rows name the place; the code and full name are on the ticket. */
+export function shortPlace(name: string): string {
+  return name.replace(/\s+(International\s+)?Airport$/i, "").trim() || name;
+}
+
 /** The moving legs and the layovers between them. A gap that can't be worked out (bad or mixed time zones) is left out. */
 export function timeline(offer: Offer): TimelineLeg[] {
   const legs: TimelineLeg[] = [];
@@ -55,7 +60,7 @@ export function timeline(offer: Offer): TimelineLeg[] {
       const prev = offer.segments[i - 1];
       const wait = Math.round((Date.parse(s.depart) - Date.parse(prev.arrive)) / 60_000);
       if (Number.isFinite(wait) && wait > 0 && wait < 48 * 60) {
-        legs.push({ kind: "wait", minutes: wait, label: `Layover ${duration(wait)} in ${s.from.name}` });
+        legs.push({ kind: "wait", minutes: wait, label: `Layover ${duration(wait)} in ${shortPlace(s.from.name)}` });
       }
     }
     legs.push({ kind: s.mode, minutes: s.durationMin, label: `${LEG_LABEL[s.mode]} ${duration(s.durationMin)}` });
@@ -99,9 +104,9 @@ function describe(offer: Offer, tab: Tab): string {
   const last = offer.segments[offer.segments.length - 1];
   // a timetable train has a number but no operator: "Train G2" tells the rows apart
   const who = !first.carrier && first.number ? `${capital(NOUN[offer.mode])} ${first.number}` : carrierLabel(first.carrier, offer.mode);
-  const stops = offer.segments.slice(1).map((s) => s.from.name);
+  const stops = offer.segments.slice(1).map((s) => shortPlace(s.from.name));
   const via = stops.length ? ` via ${stops.join(" and ")}` : "";
-  const parts = [`${who}${via} to ${last.to.name}`];
+  const parts = [`${who}${via} to ${shortPlace(last.to.name)}`];
   // cached fares count their connections without listing them, so say how many instead of where
   const unlisted = transfersOf(offer);
   if (!stops.length && unlisted) parts.push(`${unlisted} stop${unlisted > 1 ? "s" : ""}`);
@@ -109,8 +114,30 @@ function describe(offer: Offer, tab: Tab): string {
   // Best's headline is the duration, so say when it leaves
   const dep = wallClock(first.depart);
   if (tab === "best" && dep && offer.kind !== "estimated") parts.push(`leaves ${dep.time}`);
-  if (offer.attribution) parts.push(offer.attribution);
   return parts.join(", ");
+}
+
+export interface Credit {
+  /** "Travelpayouts / Aviasales" */
+  label: string;
+  /** The source's own page for a shown row, the selected one first. */
+  url?: string;
+}
+
+/**
+ * The credits a provider's terms want near its results, once each for the rows shown, linked to the source.
+ * What follows a " — " qualifies the fare, which the Estimated badge and the row's tooltip already say.
+ */
+export function credits(rows: OptionRow[], selected?: OptionRow): Credit[] {
+  const out = new Map<string, Credit>();
+  for (const r of selected ? [selected, ...rows] : rows) {
+    const label = r.offer.attribution?.split(" — ")[0].trim();
+    if (!label) continue;
+    const credit = out.get(label) ?? { label };
+    credit.url ??= r.offer.bookingUrl;
+    out.set(label, credit);
+  }
+  return [...out.values()];
 }
 
 const SOURCE: Record<Offer["kind"], string> = {
@@ -167,7 +194,7 @@ export function rowsFor(offers: Offer[], tab: Tab, rates: ExchangeRates | null):
     estimated: offer.kind !== "live",
     description: describe(offer, tab),
     legs: timeline(offer),
-    source: `From ${offer.provider}, ${SOURCE[offer.kind]}`,
+    source: `From ${offer.provider}, ${SOURCE[offer.kind]}${offer.attribution ? `. ${offer.attribution}` : ""}`,
   }));
 }
 

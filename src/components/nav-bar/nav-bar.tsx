@@ -32,10 +32,12 @@ export interface NavBarProps {
   reloadOnRename?: boolean;
   /** This screen's settings, shown in the profile menu under Theme. */
   settings?: ReactNode;
+  /** Your passports, ISO-3, for the profile menu. */
+  nationalities?: string[];
 }
 
 /** The top bar: the Portal logo on the left, controls on the right. The logo draws itself on at load. */
-export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings }: NavBarProps) {
+export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings, nationalities }: NavBarProps) {
   const compact = useCompact(globe);
   const { resolvedTheme } = useTheme();
   const logo = useRef<HTMLElement & { play(): void }>(null);
@@ -87,7 +89,7 @@ export function NavBar({ globe, children, name, email, account = false, reloadOn
       </Link>
       <div className="pn-controls">
         {children}
-        <ProfileMenu name={name} email={email ?? null} account={account} reloadOnRename={reloadOnRename}>
+        <ProfileMenu name={name} email={email ?? null} account={account} reloadOnRename={reloadOnRename} nationalities={nationalities}>
           {settings}
         </ProfileMenu>
       </div>

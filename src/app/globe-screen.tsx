@@ -42,6 +42,8 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
   // the landed trip's legs, the one the popover shows, and what was picked on the legs before it
   const [legs, setLegs] = useState<LandedTrip[] | null>(null);
   const [active, setActive] = useState(0);
+  // the ticket card minimised to a tag on the route
+  const [collapsed, setCollapsed] = useState(false);
   const [picks, setPicks] = useState<LegPick[]>([]);
   const trip = legs?.[active] ?? null;
   // Save trip makes a new trip room and opens it. Guests sign in first, and the save carries on after.
@@ -96,16 +98,19 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
       onLand={(landed) => {
         setLegs(landed);
         setActive(0);
+        setCollapsed(false);
         setPicks([]);
         setSaveFailed(false);
       }}
       onCancel={() => setLegs(null)}
+      onRouteClick={() => setCollapsed(false)}
     />
     <NavBar
       globe={globe}
       name={person?.name ?? null}
       email={person?.email ?? null}
       account={person?.account ?? false}
+      nationalities={person?.nationalities}
       settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrency} />}
     >
       <PlaceSearch globe={globe} />
@@ -159,6 +164,9 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
         }}
         onDismiss={() => globe.current?.cancel()}
         onChoiceMode={(mode) => globe.current?.setVehicle(mode ?? "flight")}
+        collapsed={collapsed}
+        onCollapse={() => setCollapsed(true)}
+        onExpand={() => setCollapsed(false)}
       />
     ) : null}
     <HomePip account={account} />

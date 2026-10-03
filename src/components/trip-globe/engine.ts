@@ -76,11 +76,20 @@ export interface GlobeEvents {
   /** The trip's legs, in order: one per click while flying, ended by clicking the last stop again. */
   onLand?: (legs: LandedTrip[]) => void;
   onCancel?: () => void;
+  /** A click on the landed trip's route, which doesn't take off or cancel. */
+  onRouteClick?: () => void;
   /** When the pointer's lie on the ground under it changes, so it can be drawn flat on the globe. */
   onCursorChange?: (cursor: GlobeCursor) => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
   onFrame?: () => void;
+  /**
+   * The part of the globe's box the page leaves open, in CSS px. A landed route or a searched place is framed
+   * there instead of the middle of the screen. Asked once per turn, as it starts, so panels that open on landing count.
+   */
+  freeArea?: () => FreeArea | null;
 }
+
+export type FreeArea = { x: number; y: number; w: number; h: number };
 
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
 const ALT = 0.03; // flying altitude, fully zoomed out
@@ -94,6 +103,7 @@ const CURSOR_CHASE = 0.035; // s for the shadow to close most of the gap when th
 const CURSOR_PEEL = 0.32; // s
 const CURSOR_PULL = 8;
 const CURSOR_FLOAT = { x: 6, y: 8 };
+const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
@@ -106,6 +116,13 @@ const RANGE_MAX = DG - 1; // the whole-globe view
 const RANGE_MIN = 0.2; // about 1,300 km up: the 2048px earth texture still prints cleanly here
 const TILT_MAX = 0.8; // radians from straight down, at RANGE_MIN
 const STOP_HIT = 16; // px: a click this close to the stop the plane just left ends the trip there
+// After a stop, the plane sticks to it like a magnet, so a second click lands there even if the pointer wandered a
+// little. It lets go past MAGNET_RELEASE px, and catches again inside MAGNET_CATCH. While held it leans
+// MAGNET_LEAN of the way toward the pointer; for MAGNET_EASE s after either change it glides instead of jumping.
+const MAGNET_CATCH = 18;
+const MAGNET_RELEASE = 40;
+const MAGNET_LEAN = 0.15;
+const MAGNET_EASE = 0.18;
 const FLY_SCROLL = 2.5; // two-finger scroll turns the globe this much faster while a route is being plotted
 
 interface Camera {
@@ -284,6 +301,7 @@ export class GlobeEngine {
   private namesMoving = true;
   private groundArc: ArcBuffer = { points: [], pool: [] };
   private airArc: ArcBuffer = { points: [], pool: [] };
+  private hitArc: ArcBuffer = { points: [], pool: [] };
   private glDirty = true;
   private hudDirty = true;
   private scene: number[] = [];
@@ -317,7 +335,13 @@ export class GlobeEngine {
     hop: number;
     t0: number;
     dur: number;
+    /** What to frame, worked out as the turn starts: ground point p, w radians of arc, no closer than minRange. */
+    frame?: { p: Vec3; w: number; minRange: number };
   } | null = null;
+  // The landed route, kept framed in the open part of the screen as panels open and grow, until someone moves the
+  // globe themselves. `area` is the open area it was last framed in.
+  private autoFrame: { p: Vec3; w: number; minRange: number } | null = null;
+  private frameArea: FreeArea | null = null;
 
   // trip
   private mode: GlobeMode = "idle";
@@ -327,6 +351,9 @@ export class GlobeEngine {
   private destinationHub: Hub | null = null;
   /** Stops before `origin`, from takeoff on: each click while flying ends a leg there and starts the next. */
   private via: { v: Vec3; hub: Hub | null; name: string | null }[] = [];
+  // the plane is held at the stop it just left (only after a stop, not at takeoff), and when that last changed
+  private magnet = false;
+  private magnetT = -Infinity;
   /** The cities the labels name: where the trip starts, where it landed, and what's under the pointer or plane. */
   private originName: string | null = null;
   private destinationName: string | null = null;
@@ -539,6 +566,7 @@ export class GlobeEngine {
     if (!d || this.mode === "flying" || this.turn) return;
     if (!d.drag && Math.hypot(x - d.x, y - d.y) > 6) d.drag = true;
     if (d.drag) {
+      this.autoFrame = null;
       const now = performance.now();
       const lon = this.lon0;
       const lat = this.lat0;
@@ -580,9 +608,36 @@ export class GlobeEngine {
       return;
     }
     const [x, y] = this.pos(e);
+    if (this.mode === "landed" && this.onRoute(x, y)) {
+      this.events.onRouteClick?.();
+      return;
+    }
     const hit = this.pick(x, y);
     if (hit) this.takeoff(hit);
     else if (this.mode === "landed") this.cancel();
+  }
+
+  /** Whether a screen point is within ROUTE_HIT px of the landed trip's arcs or their ground tracks. */
+  private onRoute(x: number, y: number) {
+    const origin = this.origin;
+    const pl = this.pl;
+    if (!origin || !pl) return false;
+    const stops = [...this.via.map((s) => s.v), origin, pl.n];
+    for (let i = 0; i < stops.length - 1; i++) {
+      const alt = i === stops.length - 2 ? pl.alt : 0;
+      for (const lift of [1, 0]) {
+        const pts = this.arc(stops[i], stops[i + 1], lift, lift ? alt : 0, this.hitArc);
+        for (let j = 1; j < pts.length; j++) {
+          const a = pts[j - 1];
+          const b = pts[j];
+          if (!a?.vis || !b?.vis) continue;
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const k = clamp(((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy || 1), 0, 1);
+          if (Math.hypot(x - a.x - dx * k, y - a.y - dy * k) <= ROUTE_HIT) return true;
+        }
+      }
+    }
+    return false;
   }
 
   pointerLeave() {
@@ -595,6 +650,7 @@ export class GlobeEngine {
   /** Zooms by a factor (below 1 zooms in) toward screen point (x, y), easing in. */
   zoomAt(x: number, y: number, factor: number) {
     this.turn = null;
+    this.autoFrame = null;
     this.lastInteract = this.t;
     this.rangeTarget = clamp(this.rangeTarget * factor, RANGE_MIN, RANGE_MAX);
     const p = this.pick(x, y);
@@ -619,6 +675,7 @@ export class GlobeEngine {
    */
   private scrollPan(e: WheelEvent) {
     this.turn = null;
+    this.autoFrame = null;
     this.zoomAnchor = null;
     this.lastInteract = this.t;
     this.cam = this.camera();
@@ -655,6 +712,7 @@ export class GlobeEngine {
     const y = (ay + by) / 2;
     this.down = null;
     this.turn = null;
+    this.autoFrame = null;
     this.pinch = { d0: Math.hypot(ax - bx, ay - by) || 1, range0: this.range, p: this.pick(x, y) };
   }
 
@@ -686,9 +744,11 @@ export class GlobeEngine {
     this.cam = this.camera();
   }
 
-  /** The camera range that fits a route of angular length w comfortably on screen. */
-  private fitRange(w: number) {
-    const half = Math.atan(this.tan0 * Math.min(1, this.asp)) * 0.6;
+  /** The camera range that fits a route of angular length w comfortably on screen, or in `area` of it. */
+  private fitRange(w: number, area?: FreeArea) {
+    const fx = area ? area.w / this.W : 1;
+    const fy = area ? area.h / this.H : 1;
+    const half = Math.atan(this.tan0 * Math.min(this.asp * fx, fy)) * 0.6;
     const a = w / 2 + 0.03;
     return clamp(Math.sin(a) / Math.tan(half) + Math.cos(a) - 1, RANGE_MIN, RANGE_MAX);
   }
@@ -708,6 +768,7 @@ export class GlobeEngine {
   cancel() {
     const wasActive = this.mode !== "idle";
     this.mode = "idle";
+    this.autoFrame = null;
     this.origin = null;
     this.dest = null;
     this.via = [];
@@ -727,6 +788,7 @@ export class GlobeEngine {
     this.origin = o;
     this.dest = null;
     this.via = [];
+    this.magnet = false;
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
@@ -738,8 +800,9 @@ export class GlobeEngine {
     this.events.onModeChange?.("flying", this.originHub);
   }
 
-  /** Whether screen point (x, y) is on the stop the plane is flying from. */
+  /** Whether screen point (x, y) is on the stop the plane is flying from, or the plane is still held there. */
   private nearOrigin(x: number, y: number) {
+    if (this.magnet) return true;
     const p = this.origin && this.proj(this.origin);
     return !!p && p.vis && Math.hypot(p.x - x, p.y - y) < STOP_HIT;
   }
@@ -750,8 +813,10 @@ export class GlobeEngine {
     this.origin = v;
     this.originHub = nearestPreviewHub(toLatLng(v));
     this.originName = this.originHub && placeName(toLatLng(v), this.originHub);
-    // the plane touches down and lifts off again, with the takeoff ripple
+    // the plane touches down and lifts off again, with the takeoff ripple, held to the stop by the magnet
     this.tTake = this.t;
+    this.magnet = true;
+    this.magnetT = this.t;
   }
 
   /** Lands the trip at the last stop, which ends the leg flown into it. */
@@ -783,7 +848,8 @@ export class GlobeEngine {
     // and back out if the whole route doesn't fit, rising mid-way like a fly-to
     let span = 0;
     for (const a of stops) for (const b of stops) span = Math.max(span, angle(a, b));
-    const mid = llOf(stops.length === 2 ? slerp(origin, v, 0.5) : norm(stops.reduce((a, b) => add(a, b))));
+    const midV = stops.length === 2 ? slerp(origin, v, 0.5) : norm(stops.reduce((a, b) => add(a, b)));
+    const mid = llOf(midV);
     const range = Math.max(this.range, this.fitRange(span));
     this.zoomAnchor = null;
     this.turn = {
@@ -792,7 +858,11 @@ export class GlobeEngine {
       hop: this.range < 1.2 && !this.reduceMotion ? Math.min(0.5, 0.25 * span + 0.08) : 0,
       t0: this.t + (this.reduceMotion ? 0 : 0.5),
       dur: this.reduceMotion ? 0.001 : 1.5,
+      // the trip's panel opens as the plane lands; by the time the turn starts it's there to frame around
+      // zooms in to fit the route in the open space, so a short trip fills it rather than sitting on a far-off globe
+      frame: { p: midV, w: span, minRange: RANGE_MIN },
     };
+    this.autoFrame = { ...this.turn.frame! };
     const hubs = [...this.via.map((s) => s.hub), this.originHub, this.destinationHub];
     this.events.onModeChange?.("landed", hubs[0]);
     this.events.onLand?.(stops.slice(1).map((b, i) => {
@@ -1203,8 +1273,70 @@ export class GlobeEngine {
       hop: this.reduceMotion ? 0 : Math.max(0, Math.min(0.6, 0.35 * far) - (this.range - Math.min(this.range, to.range)) * 0.5),
       t0: this.t,
       dur,
+      frame: { p: vecOf(to.lat, to.lon), w: spanDeg * D2R, minRange: RANGE_MIN },
     };
     // hold the idle drift until well after it arrives
+    this.lastInteract = this.t + dur;
+  }
+
+  /**
+   * Where the camera should end up to show ground point p and w radians around it in the open part of the screen:
+   * zoomed to fit the open area, and turned so p sits at its middle. With no panels in the way, p is centred as before.
+   */
+  private framed({ p, w, minRange }: { p: Vec3; w: number; minRange: number }) {
+    const ll = llOf(p);
+    const centred = { lon: ll.lon, lat: clamp(ll.lat, -LAT_MAX, LAT_MAX) };
+    const area = this.events.freeArea?.() ?? null;
+    this.frameArea = area;
+    if (!area || (area.w >= this.W - 1 && area.h >= this.H - 1)) {
+      return { ...centred, range: Math.max(minRange, this.fitRange(w)) };
+    }
+    const keep = { lon: this.lon0, lat: this.lat0, range: this.range };
+    const x = area.x + area.w / 2;
+    const y = area.y + area.h / 2;
+    // Zoomed out, the globe can only turn, not slide, so the open area's middle may be off the disc or near its
+    // edge, where a route would sit foreshortened at the horizon. Zoom in until the disc reaches it comfortably;
+    // a route too long to fit that close is centred on the whole screen instead.
+    const fit = this.fitRange(w, area);
+    let range = Math.max(minRange, fit);
+    let reached = false;
+    for (let i = 0; i < 12 && range >= RANGE_MIN && range >= fit * 0.6; i++) {
+      Object.assign(this, { lon0: centred.lon, lat0: centred.lat, range });
+      this.cam = this.camera();
+      const c = this.disc();
+      // past the screen's size the globe fills the view, so it reaches anywhere
+      if (c.r >= Math.min(this.W, this.H) / 2 || Math.hypot(x - c.x, y - c.y) <= c.r * 0.6) {
+        reached = true;
+        break;
+      }
+      range *= 0.85;
+    }
+    let to = { ...centred, range: Math.max(keep.range, this.fitRange(w)) };
+    if (reached) {
+      this.anchor(p, x, y);
+      to = { lon: this.lon0, lat: this.lat0, range: this.range };
+    }
+    Object.assign(this, keep);
+    this.cam = this.camera();
+    return to;
+  }
+
+  /**
+   * Frames the landed route again when the open part of the screen has changed, say a panel grew once its results
+   * came in. Does nothing once someone has moved the globe since landing.
+   */
+  reframe() {
+    const f = this.autoFrame;
+    if (!f || this.mode !== "landed" || this.turn?.frame) return;
+    const area = this.events.freeArea?.() ?? null;
+    const was = this.frameArea;
+    const near = (a: number, b: number) => Math.abs(a - b) < 24;
+    if (area === was || (area && was && near(area.x, was.x) && near(area.y, was.y) && near(area.w, was.w) && near(area.h, was.h))) return;
+    const dur = this.reduceMotion ? 0.001 : 0.8;
+    const here = { lon: this.lon0, lat: this.lat0, range: this.range };
+    this.zoomAnchor = null;
+    this.vlon = this.vlat = 0;
+    this.turn = { from: here, to: here, hop: 0, t0: this.t, dur, frame: { ...f } };
     this.lastInteract = this.t + dur;
   }
 
@@ -1232,6 +1364,10 @@ export class GlobeEngine {
     if (this.turn) {
       // fly the view to frame a finished route
       const tr = this.turn;
+      if (tr.frame && t >= tr.t0) {
+        tr.to = this.framed(tr.frame);
+        tr.frame = undefined;
+      }
       const e = ease((t - tr.t0) / tr.dur);
       this.lon0 = tr.from.lon + wrapPi(tr.to.lon - tr.from.lon) * e;
       this.lat0 = tr.from.lat + (tr.to.lat - tr.from.lat) * e;
@@ -1287,7 +1423,19 @@ export class GlobeEngine {
         const origin = this.origin!;
         const fPrev = pl.f;
         const fT = angle(origin, hit) > 0.01 ? tangent(sub(hit, slerp(origin, hit, 0.97)), hit) : tangent(pl.f, hit);
-        pl.n = hit;
+        let at = hit;
+        if (this.via.length) {
+          const p = this.proj(origin);
+          const d = p && p.vis ? Math.hypot(p.x - this.mx, p.y - this.my) : Infinity;
+          const held = this.magnet ? d <= MAGNET_RELEASE : d < MAGNET_CATCH;
+          if (held !== this.magnet) {
+            this.magnet = held;
+            this.magnetT = t;
+          }
+          if (held) at = slerp(origin, hit, MAGNET_LEAN);
+        }
+        // glide for a moment after the magnet catches or lets go, rather than jumping
+        pl.n = t - this.magnetT < MAGNET_EASE && !this.reduceMotion ? slerp(pl.n, at, k(30)) : at;
         pl.f = tangent(lerp(tangent(pl.f, hit), fT, k(14)), hit);
         const turn = Math.atan2(dot(cross(fPrev, pl.f), hit), dot(fPrev, pl.f)) / Math.max(dt, 1e-3);
         pl.bank += (clamp(-turn * 0.08, -0.6, 0.6) - pl.bank) * k(6);
