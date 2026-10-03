@@ -3,7 +3,7 @@
 import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AgentChat } from "@/components/agent/agent-chat";
 import { PipCursor } from "@/components/agent/pip-cursor";
@@ -15,7 +15,7 @@ import { RemotePlanes } from "@/components/multiplayer/remote-planes";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { initialTripStorage, usePlanActions, usePlanLegs, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
@@ -46,6 +46,10 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLeg, setLandedLeg] = useState<string | null>(null);
+  // your own vehicle is still standing in for that leg, so it parks as the leg's chosen offer
+  const legs = usePlanLegs();
+  const landedMode = legs?.find((leg) => leg.id === landedLeg)?.chosen?.mode ?? "flight";
+  useEffect(() => globe.current?.setVehicle(landedMode), [landedMode]);
   useRecordMember();
 
   useErrorListener((error) => {
