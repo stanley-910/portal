@@ -6,31 +6,32 @@ import { memberColor } from "@/components/paper-atlas";
 // mice, the left one's left button held down in your cursor colour (Create a trip), the right one's right (Add a
 // stop). Hidden on touch screens, which have no right click.
 
-// the mouse, 7 × 10 cells: its outline, the two buttons and the body below the divider
-const CELL = 2;
+// the mouse in CSS px, 13 × 18 with a 1px outline: the outline, the two buttons and the body below the divider
+const W = 13;
+const H = 18;
 const OUTLINE = [
-  [1, 0, 5, 1],
-  [0, 1, 1, 8],
-  [6, 1, 1, 8],
-  [1, 9, 5, 1],
-  [3, 1, 1, 3],
-  [1, 4, 5, 1],
+  [1, 0, 11, 1],
+  [0, 1, 1, 16],
+  [12, 1, 1, 16],
+  [1, 17, 11, 1],
+  [6, 1, 1, 6],
+  [1, 7, 11, 1],
 ] as const;
-const LEFT = [1, 1, 2, 3] as const;
-const RIGHT = [4, 1, 2, 3] as const;
-const BODY = [1, 5, 5, 4] as const;
+const LEFT = [1, 1, 5, 6] as const;
+const RIGHT = [7, 1, 5, 6] as const;
+const BODY = [1, 8, 11, 9] as const;
 
 function Mouse({ press }: { press: "left" | "right" }) {
   const rect = ([x, y, w, h]: readonly number[], className: string) => (
-    <rect className={className} x={x * CELL} y={y * CELL} width={w * CELL} height={h * CELL} />
+    <rect className={className} x={x} y={y} width={w} height={h} />
   );
   return (
-    <svg className="ch-mouse" width={7 * CELL} height={10 * CELL} viewBox={`0 0 ${7 * CELL} ${10 * CELL}`} aria-hidden shapeRendering="crispEdges">
+    <svg className="ch-mouse" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden shapeRendering="crispEdges">
       {rect(BODY, "ch-body")}
       {rect(LEFT, press === "left" ? "ch-key ch-pressed" : "ch-key")}
       {rect(RIGHT, press === "right" ? "ch-key ch-pressed" : "ch-key")}
       {OUTLINE.map((r, i) => (
-        <rect key={i} className="ch-ink" x={r[0] * CELL} y={r[1] * CELL} width={r[2] * CELL} height={r[3] * CELL} />
+        <rect key={i} className="ch-ink" x={r[0]} y={r[1]} width={r[2]} height={r[3]} />
       ))}
     </svg>
   );
