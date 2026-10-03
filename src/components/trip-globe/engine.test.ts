@@ -263,6 +263,19 @@ describe("canvas invalidation", () => {
     expect(engine["mode"]).toBe("flying");
   });
 
+  it("follows Pip in close from the whole globe, and never pulls back out from closer", () => {
+    const { engine, state } = setup(2560, 1440);
+    const whole = state.rangeTarget;
+    engine.setFollow(true);
+    // a regional view, not halfway: Pip reads at a glance
+    expect(state.rangeTarget).toBeLessThan(whole / 4);
+    const regional = state.rangeTarget;
+    engine.setFollow(false);
+    state.rangeTarget = regional / 2;
+    engine.setFollow(true);
+    expect(state.rangeTarget).toBe(regional / 2);
+  });
+
   it("treats a click on a saved leg's route as a route click, not a takeoff", () => {
     const onRouteClick = vi.fn();
     const { engine, state, frames } = setup(2560, 1440, { onRouteClick });
@@ -276,7 +289,7 @@ describe("canvas invalidation", () => {
     expect(mid.visible).toBe(true);
     engine.pointerDown({ clientX: mid.x, clientY: mid.y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
     engine.pointerUp({ clientX: mid.x, clientY: mid.y, button: 0, pointerId: 1, pointerType: "mouse", type: "pointerup" } as PointerEvent);
-    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(onRouteClick).toHaveBeenCalledWith("leg:1");
     expect(engine["mode"]).toBe("idle");
   });
 
@@ -296,7 +309,7 @@ describe("canvas invalidation", () => {
     };
     const mid = state.proj(slerp(a, b, 0.5))!;
     click(mid.x, mid.y);
-    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(onRouteClick).toHaveBeenCalledWith(undefined);
     expect(engine["mode"]).toBe("landed");
     // well off the route, a click on the globe still takes off again
     click(mid.x, mid.y + 200);

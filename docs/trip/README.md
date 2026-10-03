@@ -42,7 +42,7 @@ A round trip is no special case. A return date on the globe's last leg saves as 
 - Totals are kept per currency. The split never converts, since one trip mixes yuan, won and dollars. The currency setting converts for display only.
 - A night's cost is a stay's, split evenly among its guests there that night.
 - `missing` flags a leg with no chosen option or a stay nobody has priced. Those are left out of the totals, and the split should say so.
-- My trips reads every trip's plan side by side for what you owe on each. A plan that isn't read within 2.5 seconds lists its trip without costs, and says so, rather than holding up the page.
+- My trips, the library on the home globe (`/?trips`, which old `/trips` links redirect to), reads every trip's plan side by side for its legs and your share. A plan that isn't read within 2.5 seconds lists its trip without them rather than holding up the list.
 
 The bill on the plan card shows the split for the whole group (`TripSplit`): each member's total, opening to their fares by leg, with any leg that has no option chosen, and their nights by stop, with any that have no price.
 
@@ -50,11 +50,11 @@ Not covered yet: who paid what and settling up, shared extras, and overnight leg
 
 ## Leaving
 
-Anyone can leave a trip from the profile menu in the room, or from My trips, after confirming. Leaving takes them off every leg and out of every stay, with their votes and messages. Legs and stays others are still on go on without them, whoever drew them; one left with nobody on it goes, and so does any stop no remaining leg or stay uses.
+Anyone can leave a trip from the profile menu in the room, or from the trip picked in My trips, after confirming. Leaving takes them off every leg and out of every stay, with their votes and messages. Legs and stays others are still on go on without them, whoever drew them; one left with nobody on it goes, and so does any stop no remaining leg or stay uses.
 
 The owner is whoever made the trip, until it passes on (`owner` in the room's metadata, which the server trusts, and in Storage, so the room sees it change). When the owner leaves, the trip passes to whoever joined next; when the last person leaves, the trip is deleted. The link is still the invite, so opening it again joins afresh. You join when the room connects, never when the page renders, so nothing that re-renders the page puts someone who left back in.
 
-Only the owner can delete a trip: from My trips, or with End trip in the room's profile menu. Everyone still in the room is told it ended and sees "This trip has ended" instead of the plan. If a leave or end fails, the server log says why (`[trip] leaving …`, `[trip] ending …`).
+Only the owner can delete a trip: with Delete on the trip picked in My trips, or with End trip in the room's profile menu. Everyone still in the room is told it ended and sees "This trip has ended" instead of the plan. If a leave or end fails, the server log says why (`[trip] leaving …`, `[trip] ending …`).
 
 ## A test party locally
 

@@ -18,7 +18,7 @@ import { SAUCER_DRAW_MS, SAUCER_ENTER_MS, SAUCER_FLY_MS, SAUCER_STAY_MS, type Ag
 // handles; the cards people see are written to the thread separately (harness: "two views").
 
 // Rough rates to put options in price order. Ordering only; prices are always quoted in their own currency.
-const USD_RATE: Record<string, number> = { USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08 };
+const USD_RATE: Record<string, number> = { USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08, CAD: 0.73 };
 
 export type ToolContext = {
   roomId: string;

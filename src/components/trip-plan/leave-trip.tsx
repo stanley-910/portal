@@ -5,7 +5,7 @@ import { useEffect, useId, useState, useTransition, type ReactNode } from "react
 
 import "@/components/auth/auth.css";
 import { Button } from "@/components/paper-atlas";
-import { endTrip, leavePreview, leaveTrip, type LeavePreview } from "@/app/trips/actions";
+import { endTrip, leavePreview, leaveTrip, type LeavePreview } from "@/app/t/trip-actions";
 
 /** What leaving takes with you, and what happens to the trip after. */
 function consequences(preview: LeavePreview | null) {
@@ -19,11 +19,14 @@ function consequences(preview: LeavePreview | null) {
 /** The room's connection, paused while a dialog acts on the trip: reconnecting goes through the auth route, which joins you. */
 type Connection = { pause(): void; resume(): void };
 
+/** Where a dialog goes once its action is done: a page, or a callback for one that stays where it is (the library). */
+type Next = string | (() => void);
+
 /**
  * Runs a trip action behind a confirm, then goes to `next`. The room's connection is paused while it runs and resumed
  * if it fails. A thrown action is logged, since the dialog only says it failed.
  */
-function useTripAction(run: () => Promise<{ ok: boolean }>, next: string, connection?: Connection) {
+function useTripAction(run: () => Promise<{ ok: boolean }>, next: Next, connection?: Connection) {
   const router = useRouter();
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -39,7 +42,8 @@ function useTripAction(run: () => Promise<{ ok: boolean }>, next: string, connec
         connection?.resume();
         return setFailed(true);
       }
-      router.replace(next);
+      if (typeof next === "string") router.replace(next);
+      else next();
     });
   return { act, failed, pending };
 }
@@ -68,9 +72,11 @@ function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, bu
   }, [onCancel, pending]);
 
   return (
-    <div className="au-layer">
+    // marked so a press in it doesn't put the library away behind it
+    <div className="au-layer" data-library-keep>
       <div className="au-scrim" aria-hidden onClick={() => !pending && onCancel()} />
       <section className="au-panel" role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={`${titleId}-body`}>
+        <div className="au-body">
         <div>
           <h2 id={titleId} className="au-title">
             {title}
@@ -80,7 +86,7 @@ function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, bu
           </p>
         </div>
         {failed ? (
-          <p role="alert" className="au-message" data-kind="error">
+          <p role="alert" className="au-message pa-px-box" data-kind="error">
             {error}
           </p>
         ) : null}
@@ -91,6 +97,7 @@ function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, bu
           <Button onClick={onConfirm} disabled={pending}>
             {pending ? busy : confirm}
           </Button>
+        </div>
         </div>
       </section>
     </div>
@@ -103,7 +110,7 @@ function ConfirmPanel({ title, body, error, failed, pending, cancel, confirm, bu
  */
 export function LeaveTripDialog({ tripId, next, onClose, connection }: {
   tripId: string;
-  next: string;
+  next: Next;
   onClose: () => void;
   connection?: Connection;
 }) {
@@ -137,7 +144,7 @@ export function LeaveTripDialog({ tripId, next, onClose, connection }: {
 /** The owner ending the trip for everyone, from inside it: the room is deleted and the others are told it ended. */
 export function EndTripDialog({ tripId, next, onClose, connection }: {
   tripId: string;
-  next: string;
+  next: Next;
   onClose: () => void;
   connection?: Connection;
 }) {
@@ -158,15 +165,21 @@ export function EndTripDialog({ tripId, next, onClose, connection }: {
   );
 }
 
-/** "Leave trip" in a My trips row, with its confirm dialog. */
-export function LeaveTripButton({ tripId }: { tripId: string }) {
-  const [open, setOpen] = useState(false);
+/** The owner deleting a trip from the library: the same as ending it from inside, for everyone. */
+export function DeleteTripDialog({ tripId, next, onClose }: { tripId: string; next: Next; onClose: () => void }) {
+  const { act, failed, pending } = useTripAction(() => endTrip(tripId), next);
   return (
-    <>
-      <button type="button" className="type-meta text-ink-muted underline underline-offset-4" onClick={() => setOpen(true)}>
-        Leave trip
-      </button>
-      {open ? <LeaveTripDialog tripId={tripId} next="/trips" onClose={() => setOpen(false)} /> : null}
-    </>
+    <ConfirmPanel
+      title="Delete this trip?"
+      body="This deletes the trip for everyone, with its plan and messages."
+      error="Couldn't delete the trip. Try again."
+      failed={failed}
+      pending={pending}
+      cancel="Keep trip"
+      confirm="Delete trip"
+      busy="Deleting…"
+      onCancel={onClose}
+      onConfirm={act}
+    />
   );
 }

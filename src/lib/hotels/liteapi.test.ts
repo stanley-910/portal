@@ -26,6 +26,15 @@ describe("LiteAPI quote mapping", () => {
     const stay = mapLiteStay(fixture.rates.data[0], fixture.detail, query, "2026-10-03T00:00:00Z");
     expect(stay).toMatchObject({ total: 480, rooms: 2, pricePerNight: { amount: 80, currency: "USD" }, freshness: "live", source: "LiteAPI", quote: { checkIn: query.checkIn, checkOut: query.checkOut, occupants: 3, guestNationality: "HK" } });
   });
+  it("shows the hotel's main photo, else its first gallery image, and only over https", () => {
+    const at = (data: object) => mapLiteStay(fixture.rates.data[0], { data: { ...fixture.detail.data, ...data } }, query, "now");
+    expect(at({ main_photo: "https://static.example/hotel.jpg" })?.photoUrl).toBe("https://static.example/hotel.jpg");
+    expect(at({ hotelImages: [{ url: "https://static.example/one.jpg" }, { url: "https://static.example/two.jpg" }] })?.photoUrl).toBe("https://static.example/one.jpg");
+    expect(at({ main_photo: "http://static.example/plain.jpg", hotelImages: [{ url: "javascript:alert(1)" }] })?.photoUrl).toBeUndefined();
+    // a malformed gallery doesn't cost the hotel its rate
+    expect(at({ hotelImages: "nope" })).not.toBeNull();
+  });
+
   it("drops incomplete or mismatched multi-room offers", () => {
     const row = structuredClone(fixture.rates.data[0]);
     row.roomTypes[0].rates.pop();

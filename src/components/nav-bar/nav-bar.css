@@ -91,6 +91,8 @@
 .pn-pp { display: flex; flex-direction: column; gap: var(--space-2); }
 .pn-pp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .pn-pp-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 4px 0 10px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); font-size: 13px; }
+/* the pixel flag sits on the chip's middle: no drop below the line as beside a city name */
+.pn-pp-flag.ts-flag { margin: 0; align-self: center; }
 .pn-pp-remove { position: relative; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: none; border-radius: var(--radius-round); background: transparent; color: var(--ink-muted); cursor: pointer; }
 .pn-pp-remove::before { content: ""; position: absolute; inset: -8px; }
 .pn-pp-remove:hover { background: var(--control-hover); color: var(--ink); }
@@ -125,7 +127,7 @@
 .pn-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-profile-about { padding-block: var(--space-1); }
 .pn-profile-section { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); margin-top: var(--space-2); border-top: var(--line-hair) solid var(--line); }
-.pn-profile-trips { display: block; padding: var(--space-2); color: var(--ink); border-top: var(--line-hair) solid var(--line); font-size: 14px; font-weight: 600; text-decoration: none; }
+.pn-profile-trips { display: block; width: 100%; padding: var(--space-2); background: none; border: 0; text-align: left; cursor: pointer; color: var(--ink); border-top: var(--line-hair) solid var(--line); font-size: 14px; font-weight: 600; text-decoration: none; }
 .pn-profile-trips:hover { color: var(--ink-hover); }
 .pn-choices { display: flex; padding: 2px; gap: 2px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
 .pn-choice { position: relative; flex: 1; display: grid; place-items: center; min-height: 40px; border-radius: calc(var(--radius-control) - 2px); font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease; }
@@ -145,6 +147,31 @@
 .pn-search-field svg, .pn-search .pn-menu-symbol svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
 .pn-search-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: inherit; font-family: var(--font-sans); font-size: 15px; }
 .pn-search-field input::-webkit-search-cancel-button { display: none; }
+.pn-search-field input::placeholder { color: var(--ink-muted); }
+
+/* Opening, the field grows leftward out of the round button: a circle at the button's spot that stretches into the
+   bar with a little overshoot, the glyph wiggling once and the text fading in after. The results cascade in under it.
+   Closing runs the stretch backwards, into the button. */
+.pn-search-panel { --pn-from: inset(0 0 0 calc(100% - max(var(--ctrl-h), 36px)) round calc(max(var(--ctrl-h), 36px) / 2)); }
+.pn-search-field { animation: pn-search-grow 340ms cubic-bezier(0.2, 0.9, 0.25, 1.12) both; }
+.pn-search-field svg { animation: pn-search-wiggle 420ms ease-out 60ms both; }
+.pn-search-field input { animation: pn-search-text 200ms ease-out 140ms both; }
+.pn-search-list { animation: pn-search-drop 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 100% 0; }
+.pn-search-option { animation: pn-search-row 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 28ms + 60ms); }
+.pn-search-panel[data-closing] .pn-search-field { animation: pn-search-shrink 160ms cubic-bezier(0.4, 0, 1, 1) both; }
+.pn-search-panel[data-closing] .pn-search-field input { animation: none; opacity: 0; }
+.pn-search-panel[data-closing] .pn-search-list { animation: pn-search-lift 120ms ease-in both; }
+@keyframes pn-search-grow { from { clip-path: var(--pn-from); } to { clip-path: inset(0 round var(--radius-control)); } }
+@keyframes pn-search-shrink { from { clip-path: inset(0 round var(--radius-control)); } to { clip-path: var(--pn-from); } }
+@keyframes pn-search-wiggle { 0% { transform: rotate(0); } 35% { transform: rotate(-18deg) scale(1.15); } 70% { transform: rotate(8deg); } 100% { transform: none; } }
+@keyframes pn-search-text { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes pn-search-drop { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } to { opacity: 1; transform: none; } }
+@keyframes pn-search-lift { to { opacity: 0; transform: translateY(-4px); } }
+@keyframes pn-search-row { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .pn-search-field, .pn-search-field svg, .pn-search-field input, .pn-search-list, .pn-search-option,
+  .pn-search-panel[data-closing] .pn-search-field, .pn-search-panel[data-closing] .pn-search-list { animation: none; }
+}
 .pn-search-list { left: 0; margin: var(--space-2) 0 0; list-style: none; max-height: min(26rem, 70dvh); overflow-y: auto; }
 .pn-search-option { display: flex; align-items: center; gap: var(--space-gap); min-height: 44px; padding: var(--space-2); border-radius: var(--radius-control); font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .pn-search-option[aria-selected="true"] { background: var(--control-hover); }
@@ -155,3 +182,6 @@
 .pn-account { display: flex; align-items: center; gap: calc(var(--space-gap) * (1 - var(--fold))); }
 .pn-account-name { display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(10em * (1 - var(--fold))); opacity: calc(1 - var(--fold) * 2); font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: 20px; color: var(--ink); }
 @media (max-width: 640px) { .pn-account-name { display: none; } }
+
+/* a member of the trip who isn't in the room now: their colour as a dashed ring, their initials muted */
+.pn-avatar[data-away] { border-style: dashed; color: var(--ink-muted); }

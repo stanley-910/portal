@@ -7,6 +7,31 @@
 .pa-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pa-btn-primary { background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-control); }
 .pa-btn-primary:hover:not(:disabled) { background: var(--ink-hover); }
+/* A big primary button carries Pip's pixel flare: stepped corners, a hard 2px shadow and a 2px shade along its foot.
+   The fill is a layer under the label, clipped to the steps, so the shadow (a filter on the button) follows them.
+   Compact buttons in cards and the nav bar's folded disc stay plain. */
+.pa-btn-primary:not(.ts .pa-btn, .pn-bar[data-compact] .pa-btn) {
+  --pa-px-round: polygon(0 6px, 2px 6px, 2px 4px, 4px 4px, 4px 2px, 6px 2px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 2px) calc(100% - 6px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 6px) calc(100% - 2px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 6px), 0 calc(100% - 6px));
+  --pa-px-fill: var(--ink);
+  position: relative;
+  isolation: isolate;
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(2px 2px 0 var(--sticker-shadow));
+}
+.pa-btn-primary:not(.ts .pa-btn, .pn-bar[data-compact] .pa-btn)::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--line-control));
+  z-index: -1;
+  clip-path: var(--pa-px-round);
+  background:
+    linear-gradient(color-mix(in srgb, var(--pa-px-fill) 72%, var(--sticker-ink)), color-mix(in srgb, var(--pa-px-fill) 72%, var(--sticker-ink))) 0 100% / 100% 2px no-repeat,
+    var(--pa-px-fill);
+}
+.pa-btn-primary:not(.ts .pa-btn, .pn-bar[data-compact] .pa-btn):hover:not(:disabled) { --pa-px-fill: var(--ink-hover); background: transparent; }
 .pa-btn-secondary { background: var(--paper-raised); color: var(--ink); border-color: var(--control-border); }
 .pa-btn-secondary:hover:not(:disabled) { background: var(--control-hover); }
 .pa-btn-quiet { background: transparent; color: var(--ink); }
@@ -96,3 +121,95 @@
 .pa-cursor-dashed { fill: none; stroke: var(--sticker-ink); stroke-width: 1.2px; stroke-linecap: round; stroke-dasharray: 1.6 1.6; }
 .pa-cursor-outline { fill: none; stroke: var(--sticker-ink); stroke-width: var(--line-ink); stroke-linejoin: round; }
 .pa-cursor-name { position: absolute; top: 22px; left: 14px; padding: 1px var(--space-2); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; color: var(--sticker-ink); background: var(--member); border: var(--line-hair) solid var(--sticker-ink); border-radius: var(--radius-tag); transform: rotate(-1.2deg); }
+
+/* Scrollbars, everywhere: a thin solid bar in Pip's pixels, its corner pixels stepped off. Drawn as two overlapping
+   blocks (the middle columns full length, the full width short of the ends) so the corners stay see-through. Firefox
+   can't draw one, so it gets a thin bar in the same grey. */
+:root { --scroll-thumb: var(--control-border); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-track { margin: 4px; }
+::-webkit-scrollbar-thumb {
+  background:
+    linear-gradient(var(--scroll-thumb), var(--scroll-thumb)) 2px 0 / calc(100% - 4px) 100% no-repeat,
+    linear-gradient(var(--scroll-thumb), var(--scroll-thumb)) 0 2px / 100% calc(100% - 4px) no-repeat;
+}
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active {
+  background:
+    linear-gradient(var(--ink-muted), var(--ink-muted)) 2px 0 / calc(100% - 4px) 100% no-repeat,
+    linear-gradient(var(--ink-muted), var(--ink-muted)) 0 2px / 100% calc(100% - 4px) no-repeat;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+}
+
+/* Select (select.tsx): a field with the value and a chevron kept clear of the right edge, and its list in a layer over
+   the page, in the same print as the passport picker's list. */
+.pa-select { position: relative; display: block; min-width: 0; }
+.pa-select-button { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; min-height: 30px; box-sizing: border-box; padding: 3px 10px 3px 8px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper-raised); color: var(--ink); font-family: var(--font-sans); font-size: 12.5px; line-height: 16px; font-weight: 600; text-align: left; cursor: pointer; }
+.pa-select-button:hover:not(:disabled), .pa-select-button[aria-expanded="true"] { background: var(--control-hover); }
+.pa-select-button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pa-select-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.pa-select-button[aria-invalid="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.pa-select-button[data-empty] .pa-select-value { color: var(--ink-muted); font-weight: 400; }
+.pa-select-value { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pa-select-chevron { flex: none; color: var(--ink-muted); fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.pa-select-icon { display: inline-flex; flex: none; }
+.pa-select-icon .ts-flag { margin: 0; animation: none; }
+/* as a card field: the small label over the value, the chevron at the value's end */
+.pa-select-field.pa-select-button { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 6px; row-gap: 1px; align-content: center; height: 40px; padding: 4px 10px 4px 8px; background: transparent; }
+.pa-select-field .ts-field-label { grid-column: 1 / -1; }
+.pa-select-field .pa-select-chevron { grid-row: 2; grid-column: 2; align-self: center; }
+.pa-select-field[data-empty] .ts-field-value { font-weight: 400; color: var(--ink-muted); }
+.pa-select-native { position: absolute; bottom: 0; left: 50%; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+
+.pa-select-list { position: fixed; z-index: 80; display: flex; flex-direction: column; box-sizing: border-box; padding: 3px; overflow: hidden; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-float); font-family: var(--font-sans); animation: pa-select-in 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pa-select-options { min-height: 0; overflow-y: auto; }
+.pa-select-search { flex: none; height: 30px; margin-bottom: 3px; padding: 0 8px; border: var(--line-control) solid var(--control-border); border-radius: calc(var(--radius-control) - 2px); background: var(--paper); color: var(--ink); font: inherit; font-size: 12.5px; }
+.pa-select-search:focus { background: var(--control-hover); }
+.pa-select-option { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 8px; border-radius: calc(var(--radius-control) - 2px); font-size: 12.5px; line-height: 16px; cursor: pointer; }
+.pa-select-option[data-active] { background: var(--control-hover); }
+.pa-select-option[aria-selected="true"] { font-weight: 600; }
+.pa-select-label { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pa-select-check { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
+.pa-select-empty { margin: 0; padding: 6px 8px; color: var(--ink-muted); font-size: 12px; }
+@keyframes pa-select-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pa-select-list { animation: none; } }
+
+/* Pixel marks (pixel.tsx): glyphs in the ink, with cut-outs in the surface under them */
+.pa-px-icon { flex: none; image-rendering: pixelated; }
+.pa-px-ink { fill: currentColor; }
+.pa-px-cut { fill: var(--px-surface, var(--paper-raised)); }
+.pa-px-close { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: var(--radius-tag); background: none; color: var(--ink-muted); cursor: pointer; }
+.pa-px-close::before { content: ""; position: absolute; inset: -4px; }
+.pa-px-close:hover { background: var(--control-hover); color: var(--ink); }
+.pa-px-close svg { fill: currentColor; }
+.pa-px-close:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* A box in Pip's pixels: a 2px frame with its corner pixels stepped off, round a fill. Set --px-frame and --px-fill.
+   The frame is the border; the inner corner pixel the clip leaves bare is painted back in the frame's colour. */
+.pa-px-box {
+  --px-frame: var(--control-border);
+  --px-fill: var(--paper);
+  border: 2px solid var(--px-frame);
+  border-radius: 0;
+  clip-path: polygon(0 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px));
+  --px-layers:
+    linear-gradient(var(--px-frame), var(--px-frame)) 2px 2px / 2px 2px no-repeat border-box,
+    linear-gradient(var(--px-frame), var(--px-frame)) calc(100% - 2px) 2px / 2px 2px no-repeat border-box,
+    linear-gradient(var(--px-frame), var(--px-frame)) 2px calc(100% - 2px) / 2px 2px no-repeat border-box,
+    linear-gradient(var(--px-frame), var(--px-frame)) calc(100% - 2px) calc(100% - 2px) / 2px 2px no-repeat border-box,
+    var(--px-fill);
+  background: var(--px-layers);
+}
+/* a pixel-framed button keeps its frame and steps on hover; only the fill changes */
+.pa-btn.pa-px-box:hover:not(:disabled) { --px-fill: var(--control-hover); background: var(--px-layers); }
+
+/* Text fields never take a focus outline or a bright frame, here or in any component: typing in one fills it with
+   control-hover instead (each field's own rule). Important so no component rule can bring the outline back. */
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]):focus,
+textarea:focus,
+select:focus,
+[contenteditable]:focus {
+  outline: none !important;
+}

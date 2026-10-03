@@ -13,12 +13,8 @@ import { stayDates } from "./leg-edit";
 import { tripOwner } from "./leave";
 import { MAX_OFFERS, toStoredOffer, webUrlOrNull } from "./offers";
 import { sameStop, sharesStop } from "./stops";
-import { computeSplit, type SplitInput } from "./split";
+import { libraryTripOf, type LibraryTrip } from "./library";
 
-export type TripCostBreakdown = {
-  fares: { label: string; price: { amount: number; currency: string } | null; kind: string | null }[];
-  nights: { stop: string; date: string; share: { amount: number; currency: string } }[];
-};
 export type TripSummary = {
   id: string;
   title: string;
@@ -26,7 +22,6 @@ export type TripSummary = {
   updatedAt: string;
   /** Whether the user the list is for owns the trip. Set only when the list is for someone. */
   owner?: boolean;
-  costs?: Record<string, number>; breakdown?: TripCostBreakdown;
 };
 
 /** The saved plan of a trip room as plain JSON. Unreadable Storage, or a read `signal` cut short, reads as an empty plan. */
@@ -55,45 +50,31 @@ export function toTripSummaries(rooms: Pick<RoomData, "id" | "metadata" | "creat
 }
 
 /**
- * How long the trips list waits for any one trip's plan. The plans are read side by side, so the slowest sets the
- * page's time; a trip whose plan is later than this is listed without its costs rather than holding up the rest.
+ * How long the library waits for any one trip's plan. The plans are read side by side, so the slowest sets the
+ * list's time; a trip whose plan is later than this is listed without its legs rather than holding up the rest.
  */
 export const PLAN_READ_MS = 2_500;
 
-/** The trips this user belongs to. Liveblocks being down gives an empty list, never an error. */
-export async function listMyTrips(userId: string): Promise<TripSummary[]> {
+/**
+ * The person's trips for the library sidebar: each trip's legs, stops and people, who is in its room now, and their
+ * share. Plans and presence are read side by side under `PLAN_READ_MS`; a trip whose plan is late lists with no legs
+ * rather than holding up the rest. Liveblocks being down gives an empty list, never an error.
+ */
+export async function listMyLibrary(userId: string): Promise<LibraryTrip[]> {
   try {
-    const { data } = await liveblocks().getRooms({ userId });
+    const { data } = await liveblocks().getRooms({ userId, limit: 100 });
     const summaries = toTripSummaries(data.filter((room) => room.id.startsWith("trip:")), userId);
     const deadline = AbortSignal.timeout(PLAN_READ_MS);
     return await Promise.all(
       summaries.map(async (summary) => {
-        try {
-          const plan = (await readPlan(summary.id, deadline)) as SplitInput & { stops?: Record<string, { name: string }> };
-          const split = computeSplit(plan);
-          const mine = split.members[userId];
-          const legs = plan.legs ?? {};
-          return {
-            ...summary,
-            costs: mine?.totals,
-            breakdown: mine
-              ? {
-                  fares: mine.fares.map((fare) => {
-                    const leg = legs[fare.leg];
-                    const from = leg ? plan.stops?.[leg.from]?.name ?? leg.from : fare.leg;
-                    const to = leg ? plan.stops?.[leg.to]?.name ?? leg.to : "";
-                    return { label: `${from}${to ? ` → ${to}` : ""}`, price: fare.price, kind: fare.kind };
-                  }),
-                  nights: mine.nightShares.map((night) => ({
-                    ...night,
-                    stop: plan.stops?.[night.stop]?.name ?? night.stop,
-                  })),
-                }
-              : undefined,
-          };
-        } catch {
-          return summary;
-        }
+        const [plan, present] = await Promise.all([
+          readPlan(summary.id, deadline),
+          liveblocks()
+            .getActiveUsers(tripRoomId(summary.id), { signal: deadline })
+            .then(({ data: users }) => new Set(users.map((u) => u.id).filter((id): id is string => !!id)))
+            .catch(() => new Set<string>()),
+        ]);
+        return libraryTripOf({ id: summary.id, title: summary.title, owner: summary.owner ?? false, updatedAt: summary.updatedAt, plan, present }, userId);
       }),
     );
   } catch {

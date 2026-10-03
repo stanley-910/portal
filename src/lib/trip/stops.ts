@@ -1,6 +1,8 @@
 import type { Stop } from "@/lib/liveblocks/types";
 import type { Hub } from "@/lib/transport/hubs/types";
+import { HUBS } from "@/lib/transport/hubs/catalog";
 import { distanceKm } from "@/lib/transport/hubs/geo";
+import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Place } from "@/lib/transport/types";
 
 type Point = { lat: number; lng: number };
@@ -37,3 +39,9 @@ export function sharesStop(a: Pick<Stop, "lat" | "lng" | "hub">, b: Pick<Stop, "
 export function stopToPlace(stop: Stop): Place {
   return { name: stop.name, lat: stop.lat, lng: stop.lng };
 }
+
+const HUB_COUNTRY = new Map(HUBS.map((hub) => [hub.id, hub.country]));
+
+/** A stop's country (ISO-2), for its flag: its hub's, else the nearest hub's, for stops saved without one. */
+export const stopCountry = (stop: Pick<Stop, "lat" | "lng" | "hub">): string | null =>
+  (stop.hub && HUB_COUNTRY.get(stop.hub)) || nearestPreviewHub(stop)?.country || null;

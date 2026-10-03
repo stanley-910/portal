@@ -47,7 +47,8 @@ const names = new Intl.ListFormat("en", { type: "conjunction" });
  * draws them. Pointing at a stop's pins names its riders, clicking them opens the trip plan, and dragging them moves
  * the stop for everyone: its legs search again from where it's dropped.
  */
-export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle | null>; onOpen: () => void }) {
+/** The riders' pins at each stop. Clicked, they open the plan at the first leg into that stop. */
+export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle | null>; onOpen: (leg?: string) => void }) {
   const legs = usePlanLegs();
   const members = usePlanMembers();
   const me = useSelf((self) => self.id);
@@ -72,7 +73,7 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
             globe={globe}
             stop={stop}
             who={said.charAt(0).toUpperCase() + said.slice(1)}
-            onOpen={onOpen}
+            onOpen={() => onOpen(legs?.find((l) => l.to.id === stop.id)?.id)}
             onMove={(place) => {
               const result = moveStop(stop.id, stopFromPoint(place.at, place.hub));
               return result === "ok" ? null : REFUSED[result];

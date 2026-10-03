@@ -2,7 +2,9 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
-import { countryName, flagEmoji, MAX_NATIONALITIES, searchCountries } from "@/lib/nationality";
+import { PixelFlag } from "@/components/ticket-search/pixel-flag";
+import { iso2 } from "@/lib/entry/iso";
+import { countryName, MAX_NATIONALITIES, searchCountries } from "@/lib/nationality";
 
 /**
  * The passports you hold: chips for the ones picked, and a search box that fuzzy-finds countries and ticks them on
@@ -58,7 +60,7 @@ export function PassportPicker({ value, onChange }: { value: string[]; onChange:
         <ul className="pn-pp-chips" aria-label="Your passports">
           {value.map((code) => (
             <li key={code} className="pn-pp-chip">
-              <span aria-hidden>{flagEmoji(code)}</span>
+              <PixelFlag country={iso2(code) ?? code} className="pn-pp-flag" />
               <span>{countryName(code)}</span>
               <button type="button" className="pn-pp-remove" aria-label={`Remove ${countryName(code)}`} onClick={() => remove(code)}>
                 <svg width={10} height={10} viewBox="0 0 12 12" aria-hidden>
@@ -123,7 +125,7 @@ export function PassportPicker({ value, onChange }: { value: string[]; onChange:
                       </svg>
                     ) : null}
                   </span>
-                  <span aria-hidden>{flagEmoji(c.code)}</span>
+                  <PixelFlag country={iso2(c.code) ?? c.code} className="pn-pp-flag" />
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
                 </li>
               );

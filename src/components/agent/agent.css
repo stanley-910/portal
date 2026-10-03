@@ -19,7 +19,12 @@
 .pip-launcher-left { right: auto; left: var(--space-6); flex-direction: row-reverse; transform-origin: 0 100%; }
 .pip-panel-left { right: auto; left: var(--space-6); transform-origin: 0 100%; }
 .pip-hidden { visibility: hidden; }
-.pip-unread { position: absolute; top: 0; right: 0; width: 8px; height: 8px; background: var(--star-light); border: 1px solid var(--sticker-ink); box-shadow: var(--shadow-pixel); }
+/* a new reply: a pixel-round red dot in a 2px ink frame, a glint at its top left; the frame and the dot each lose
+   their corner pixels, and the shadow is a filter so it follows the stepped shape */
+.pip-unread { --pip-px-dot: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 2px 2px); position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; filter: drop-shadow(1px 1px 0 var(--sticker-shadow)); }
+.pip-unread::before, .pip-unread::after { content: ""; position: absolute; clip-path: var(--pip-px-dot); }
+.pip-unread::before { inset: 0; background: var(--sticker-ink); }
+.pip-unread::after { inset: 2px; background: linear-gradient(var(--star-light), var(--star-light)) 2px 2px / 2px 2px no-repeat, var(--alert); }
 
 .pip-nudge { position: relative; margin-bottom: 46px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; filter: drop-shadow(3px 3px 0 var(--sticker-shadow)); }
 /* a sticker speech bubble with pixel-stepped round corners: an ink layer, and the paper layer 2px inside it */
@@ -57,9 +62,12 @@
 .pip-close svg { fill: currentColor; }
 .pip-close:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-.pip-messages { flex: 1 1 auto; min-height: 0; display: grid; grid-auto-rows: max-content; gap: 12px; padding: 12px 14px; overflow-y: auto; }
+/* the log scrolls; inside it the thread sits at the bottom, then the suggestions, so they scroll away with it */
+.pip-messages { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 4px; overflow-y: auto; }
+.pip-thread { margin-top: auto; display: grid; grid-auto-rows: max-content; gap: 12px; }
 .pip-empty { font-size: 14px; line-height: 20px; color: var(--ink-muted); }
-.pip-text, .pip-bubble { font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the same bold sans as the message box and the suggestions */
+.pip-text, .pip-bubble { font-family: var(--font-sans); font-size: 13px; line-height: 19px; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .pip-msg-member, .pip-msg-you { display: flex; flex-direction: column; gap: 4px; max-width: 86%; }
 .pip-msg-you { justify-self: end; align-items: flex-end; }
@@ -69,16 +77,22 @@
 .pip-msg-you .pip-bubble { background: var(--control-hover); border-radius: 14px 4px 14px 14px; }
 
 .pip-msg-agent { display: flex; gap: var(--space-3); max-width: 100%; }
-.pip-msg-agent-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.pip-msg-agent-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1; }
 .pip-label { align-self: flex-start; padding: 1px 6px; background: var(--star-light); color: var(--sticker-ink); font-family: var(--font-typewriter); font-size: 11px; line-height: 15px; font-weight: 700; box-shadow: var(--shadow-pixel); }
 
 .pip-caption { font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
 
 /* Pip working: one line per tool call, in the reply where it happened */
-.pip-step { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; color: var(--ink-muted); }
-.pip-step-mark { align-self: center; width: 8px; height: 8px; flex: none; background: var(--star-light); box-shadow: 0 0 0 1px var(--sticker-ink); }
+/* the mark centres on the label's capitals: the line box is trimmed to them, so the typewriter face's tall ascender
+   doesn't push the text off the mark's middle */
+/* a quiet line per tool call: a small pixel and a word or two, muted, under Pip's text rather than shouting */
+.pip-step { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; margin: 0; font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-muted); }
+.pip-step > span:not(.pip-step-mark) { text-box: trim-both cap alphabetic; }
+/* done: a solid pixel; running: a starlight one in an ink ring, blinking */
+.pip-step-mark { width: 6px; height: 6px; flex: none; margin-left: 1px; background: var(--ink-muted); }
 .pip-step-running { color: var(--ink); }
-.pip-step-running .pip-step-mark { animation: pip-blink 600ms steps(1) infinite; }
+.pip-step-running .pip-step-mark { width: 8px; height: 8px; margin-left: 0; background: var(--star-light); box-shadow: 0 0 0 1px var(--sticker-ink); animation: pip-blink 600ms steps(1) infinite; }
+.pip-step + .pip-step { margin-top: -4px; }
 .pip-step-detail { font-weight: 400; }
 .pip-thinking { display: flex; align-items: center; gap: var(--space-3); }
 
@@ -104,21 +118,21 @@
 .pip-changes { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: 2px 0 2px 10px; border-left: 2px solid var(--pip-shade); }
 .pip-changes ul { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
 .pip-changes-note { font-size: 12px; line-height: 18px; color: var(--ink-muted); }
-/* Undo: a small text button that keeps a 44px tap area */
-.pip-undo { position: relative; flex: none; padding: 0; border: 0; background: none; color: var(--ink); font-size: 12px; line-height: 18px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.pip-undo::before { content: ""; position: absolute; inset: -13px -10px; }
-.pip-undo:hover:not(:disabled) { color: var(--ink-muted); }
-.pip-undo:disabled { opacity: 0.5; cursor: default; }
-.pip-undo:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Undo: a pixel rewind on a solid block, styled like the send button, with a 44px tap area round it */
+.pip-changes { align-items: center; }
+.pip-undo { position: relative; display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; background: var(--pip-px-ink); color: var(--pip-px-fill); clip-path: var(--pip-px-round-sm); cursor: pointer; }
+.pip-undo::before { content: ""; position: absolute; inset: -8px; }
+.pip-undo:hover:not(:disabled) { background: var(--ink-hover); }
+.pip-undo:disabled { opacity: 0.45; cursor: default; }
+.pip-undo:focus-visible { outline: none; background: var(--focus); }
 .pip-changes-undone ul { text-decoration: line-through; color: var(--ink-muted); }
 
 /* Composer */
-.pip-composer { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; flex: none; }
+.pip-composer { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; flex: none; }
 /* Suggested messages: a drop-down stack of small "you" bubbles, right-aligned where your messages go */
 /* the suggestions: small pixel bubbles filing into right-aligned rows; while you type they fade out but keep their
    space, so the panel never changes height */
-.pip-suggest { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; padding: 4px 12px 2px; flex: none; transition: opacity 120ms ease; }
-.pip-suggest[data-hidden] { opacity: 0; pointer-events: none; }
+.pip-suggest { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; flex: none; }
 .pip-suggestion { position: relative; flex: none; padding: 2px; border: 0; background: var(--pip-px-frame); clip-path: var(--pip-px-round-sm); cursor: pointer; animation: pip-suggest-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .pip-px { display: block; padding: 3px 9px; background: var(--pip-px-fill); color: var(--pip-px-ink); clip-path: var(--pip-px-round-sm); font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; white-space: nowrap; }
 .pip-suggestion:hover:not(:disabled) .pip-px { background: var(--pip-px-hover); }
@@ -127,7 +141,8 @@
 .pip-input-row { display: flex; gap: 6px; padding: 4px 0; margin: -4px 0; cursor: text; }
 /* the message box: the same pixel bubble, its frame in the focus colour while you type */
 .pip-input-frame { flex: 1; min-width: 0; display: flex; padding: 2px; background: var(--pip-px-frame); clip-path: var(--pip-px-round-sm); }
-.pip-input-frame:focus-within { background: var(--focus); }
+/* typing in it: the box fills, its frame stays as it is */
+.pip-input-frame:focus-within .pip-input { background: var(--pip-px-hover); }
 .pip-input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 0; background: var(--pip-px-fill); color: var(--pip-px-ink); clip-path: var(--pip-px-round-sm); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
 .pip-input::placeholder { color: var(--pip-px-ink); opacity: 0.55; }
 .pip-send { position: relative; align-self: center; display: grid; place-items: center; width: 34px; height: 34px; flex: none; background: var(--pip-px-ink); color: var(--pip-px-fill); border: 0; clip-path: var(--pip-px-round-sm); cursor: pointer; }

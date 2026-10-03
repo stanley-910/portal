@@ -25,7 +25,7 @@ export interface TimelineLeg {
 
 export interface OptionRow {
   offer: Offer;
-  /** Total duration on Best; departure and arrival times on a mode tab when both are local. */
+  /** The total duration. Departure and arrival times ride on the timeline (`clock`). */
   headline: string;
   badge?: "Best" | "Lowest";
   /** Not live data (AGENTS.md: anything that isn't live shows as estimated). */
@@ -33,6 +33,8 @@ export interface OptionRow {
   /** Who runs it and where it goes, e.g. "Flight to Seoul Gimpo, 1 stop". The provider's credit goes under the list. */
   description: string;
   legs: TimelineLeg[];
+  /** When it leaves and gets in, at either end of the timeline. Null for a modelled option with no schedule. */
+  clock: Clock | null;
   /** Where the data came from, in full, for the row's tooltip. */
   source: string;
 }
@@ -77,18 +79,32 @@ function wallClock(iso: string): { time: string; day: number } | null {
   return { time: m[2], day: Date.parse(`${m[1]}T00:00:00Z`) / 86_400_000 };
 }
 
-/** "23:10 – 18:50 +1", "Leaves 08:15" when the arrival isn't in local time, or the duration when neither is. */
-function times(offer: Offer): string {
-  // a modelled option has no schedule, only a typical duration
-  if (offer.kind === "estimated") return duration(totalMinutes(offer));
-  const first = offer.segments[0];
-  const last = offer.segments[offer.segments.length - 1];
-  const dep = wallClock(first.depart);
-  if (!dep) return duration(totalMinutes(offer));
-  const arr = wallClock(last.arrive);
-  if (!arr) return `Leaves ${dep.time}`;
-  const days = arr.day - dep.day;
-  return `${dep.time} – ${arr.time}${days !== 0 ? ` ${days > 0 ? "+" : ""}${days}` : ""}`;
+/** Local departure and arrival, "HH:MM", for either end of a timeline. `approx` when the arrival is worked out. */
+export interface Clock {
+  departs: string;
+  /** Null when neither the provider nor the duration can say. */
+  arrives: string | null;
+  /** The arrival is the departure plus the duration, not a time the provider gave. */
+  approx: boolean;
+  /** Days after the departure day it gets in: 1 for "+1". */
+  days: number;
+}
+
+/**
+ * When an option leaves and gets in, in local time: the provider's arrival when it's local, else the departure plus
+ * the duration (marked approximate). Null without a local departure, or for a modelled option, which has no schedule.
+ */
+export function clockOf(depart: string, arrive: string, minutes: number, modelled: boolean): Clock | null {
+  if (modelled) return null;
+  const dep = wallClock(depart);
+  if (!dep) return null;
+  const arr = wallClock(arrive);
+  if (arr) return { departs: dep.time, arrives: arr.time, approx: false, days: arr.day - dep.day };
+  if (!Number.isFinite(minutes) || minutes <= 0) return { departs: dep.time, arrives: null, approx: false, days: 0 };
+  const [h, m] = dep.time.split(":").map(Number);
+  const end = h * 60 + m + minutes;
+  const hhmm = `${String(Math.floor(end / 60) % 24).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
+  return { departs: dep.time, arrives: hhmm, approx: true, days: Math.floor(end / 1440) };
 }
 
 /** "Ethiopian", or "CX flight" for a bare code, or "Flight" with no carrier. */
@@ -98,8 +114,8 @@ export function carrierLabel(carrier: string | null | undefined, mode: Mode): st
   return c ? (c.length <= 3 ? `${c} ${NOUN[mode]}` : c) : capital(NOUN[mode]);
 }
 
-/** "Ethiopian via Addis Ababa to Lagos", "CX flight to Shanghai", "Train G2 to Beijing South, leaves 07:00". */
-function describe(offer: Offer, tab: Tab): string {
+/** "Ethiopian via Addis Ababa to Lagos", "CX flight to Shanghai, 1 stop", "Train G2 to Beijing South". Times ride on the timeline. */
+function describe(offer: Offer): string {
   const first = offer.segments[0];
   const last = offer.segments[offer.segments.length - 1];
   // a timetable train has a number but no operator: "Train G2" tells the rows apart
@@ -110,17 +126,6 @@ function describe(offer: Offer, tab: Tab): string {
   // cached fares count their connections without listing them, so say how many instead of where
   const unlisted = transfersOf(offer);
   if (!stops.length && unlisted) parts.push(`${unlisted} stop${unlisted > 1 ? "s" : ""}`);
-  if (tab !== "best") parts.push(duration(totalMinutes(offer)));
-  // Best's headline is the duration, so say when it leaves
-  const dep = wallClock(first.depart);
-  if (tab === "best" && dep && offer.kind !== "estimated") parts.push(`leaves ${dep.time}`);
-  const arr = wallClock(last.arrive);
-  if (offer.kind !== "estimated" && dep && arr && arr.day !== dep.day) {
-    const day = new Date(arr.day * 86_400_000).toLocaleDateString("en-GB", {
-      weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
-    });
-    parts.push(`arrives ${day}`);
-  }
   return parts.join(", ");
 }
 
@@ -196,11 +201,12 @@ export function rowsFor(offers: Offer[], tab: Tab, rates: ExchangeRates | null):
   }
   return picked.map((offer) => ({
     offer,
-    headline: tab === "best" ? duration(totalMinutes(offer)) : times(offer),
+    headline: duration(totalMinutes(offer)),
     badge: offer === best ? "Best" : offer === cheapest ? "Lowest" : undefined,
     estimated: offer.kind !== "live",
-    description: describe(offer, tab),
+    description: describe(offer),
     legs: timeline(offer),
+    clock: clockOf(offer.segments[0].depart, offer.segments[offer.segments.length - 1].arrive, totalMinutes(offer), offer.kind === "estimated"),
     source: `From ${offer.provider}, ${SOURCE[offer.kind]}${offer.attribution ? `. ${offer.attribution}` : ""}`,
   }));
 }

@@ -9,6 +9,8 @@
 @import "../components/multiplayer/trip-plan.css";
 @import "../components/multiplayer/trip-split.css";
 @import "../components/agent/agent.css";
+@import "../components/entry/entry.css";
+@import "../components/library/trip-library.css";
 
 @custom-variant dark (&:is(.dark *));
 

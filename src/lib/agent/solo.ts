@@ -81,7 +81,7 @@ function place(name: string) {
   return "refusal" in r ? { refused: r.refusal.code, reason: r.refusal.reason, next: r.refusal.next } : r.stop;
 }
 
-const usd: Record<string, number> = { USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08 };
+const usd: Record<string, number> = { USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08, CAD: 0.73 };
 
 type Emit = (event: SoloEvent) => void;
 

@@ -30,6 +30,8 @@ export interface ProfileMenuProps {
   color?: number | null;
   /** Inside a trip: your colour there, which a pick changes for everyone at once. */
   tripColor?: TripColor;
+  /** Opens My trips where it is (the library on the home globe); without it, My trips links there. */
+  onTrips?: () => void;
   /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
   children?: ReactNode;
 }
@@ -43,7 +45,7 @@ const TABS = [
 ] as const;
 
 /** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
-export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], color = null, tripColor, children }: ProfileMenuProps) {
+export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], color = null, tripColor, onTrips, children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"profile" | "about">("profile");
   const root = useRef<HTMLDivElement>(null);
@@ -102,7 +104,20 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
             <>
               <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
               <PassportSetting saved={nationalities} />
-              {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
+              {!account ? null : onTrips ? (
+                <button
+                  type="button"
+                  className="pn-profile-trips"
+                  onClick={() => {
+                    setOpen(false);
+                    onTrips();
+                  }}
+                >
+                  My trips
+                </button>
+              ) : (
+                <Link className="pn-profile-trips" href="/?trips">My trips</Link>
+              )}
               <CursorSetting trip={tripColor} />
               <ThemeSetting />
               {children}
@@ -314,6 +329,7 @@ export function MenuChoices<T extends string>({ name, label, value, options, onC
             type="radio"
             name={name}
             value={option.value}
+            aria-label={option.title ?? option.label}
             checked={option.value === value}
             disabled={option.disabled}
             onChange={() => onChange(option.value)}

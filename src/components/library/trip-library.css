@@ -1,0 +1,175 @@
+/* <TripLibrary>: My Trips as a sidebar on the globe screen (trip-library.tsx). Paper Atlas tokens only. */
+
+.lib-wrap {
+  --lib-top: calc(var(--space-4) * 2 + 36px + var(--space-1)); /* under the nav bar */
+  --lib-px-round-sm: polygon(0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px, calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px));
+  position: absolute;
+  z-index: 10;
+  top: var(--lib-top);
+  bottom: var(--space-5);
+  left: var(--space-5);
+  width: min(320px, calc(100vw - var(--space-5) * 2));
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 160ms ease;
+}
+.lib-wrap:not([data-open]) { transform: translateX(calc(-100% - var(--space-5) - 24px)); opacity: 0; pointer-events: none; }
+
+.lib {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--line-control) solid var(--control-border);
+  border-radius: var(--radius-panel);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-float);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* The handle: a slim tab tucked behind the panel's right edge, a lip showing. It slides out on hover or focus. */
+.lib-handle {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: calc(100% - 2px);
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 56px;
+  margin-top: -28px;
+  padding: 0 0 0 2px;
+  border: var(--line-control) solid var(--control-border);
+  border-left: 0;
+  border-radius: 0 var(--radius-tag) var(--radius-tag) 0;
+  background: var(--paper-raised);
+  color: var(--ink-muted);
+  box-shadow: var(--shadow-control);
+  cursor: pointer;
+  transform: translateX(-12px);
+  transition: transform 140ms ease-out, color 140ms ease;
+}
+/* a wider, invisible hit area so the lip is easy to catch */
+.lib-handle::before { content: ""; position: absolute; inset: -6px -14px -6px 0; }
+.lib-wrap:hover .lib-handle, .lib-handle:focus-visible { transform: none; }
+.lib-handle:hover { color: var(--ink); background: var(--control-hover); }
+.lib-handle:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.lib-handle svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+
+/* One inset for everything in the panel: --space-4. The list pads --space-gap and each card --space-gap again, so card
+   text lands on the same line as the header's while the picked card's fill stays inset. No tracked capitals here;
+   typewriter only for dates, money and the stats line. */
+
+/* Header: the title, and a quiet search button that swaps the row for the field */
+.lib-head { flex: none; display: flex; align-items: center; gap: var(--space-2); min-height: 36px; padding: var(--space-4) var(--space-4) var(--space-3); }
+.lib-title { flex: 1; min-width: 0; margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.005em; }
+.lib-search-btn { position: relative; flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin: -5px calc(var(--space-gap) * -1) -5px 0; border-radius: var(--radius-round); color: var(--ink-muted); cursor: pointer; transition: background-color 150ms ease; }
+.lib-search-btn::before { content: ""; position: absolute; inset: -4px; } /* 44px tap area */
+.lib-search-btn:hover { background: var(--control-hover); color: var(--ink); }
+.lib-search-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.lib-search-btn svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
+.lib-search { flex: 1; min-width: 0; height: 36px; margin: -5px calc(var(--space-gap) * -1); padding: 0 var(--space-gap); border: 0; border-radius: var(--radius-control); outline: 0; background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 15px; line-height: 20px; }
+.lib-search:focus { background: var(--control-hover); }
+.lib-search::placeholder { color: var(--ink-muted); }
+.lib-search::-webkit-search-cancel-button { display: none; }
+
+/* The list: scrolls on its own; the summary stays put under it. Only a keyboard focus draws a ring. */
+.lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--space-gap) var(--space-3); outline: none; }
+.lib-list:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.lib-none { margin: 0 calc(var(--space-4) - var(--space-gap)); color: var(--ink-muted); font-size: 13px; line-height: 18px; }
+/* past trips start under a hairline */
+.lib-past { margin: var(--space-1) calc(var(--space-4) - var(--space-gap)) 0; padding: var(--space-3) 0 var(--space-1); border-top: var(--line-hair) solid var(--line); color: var(--ink-muted); font-size: 13px; line-height: 18px; font-weight: 400; }
+
+.lib-card { display: grid; gap: var(--space-1); padding: var(--space-gap); border-radius: var(--radius-tag); cursor: pointer; }
+.lib-card + .lib-card { margin-top: var(--space-1); }
+.lib-card:hover { background: color-mix(in srgb, var(--control-hover) 55%, transparent); }
+/* picked: a calm fill, never an outline */
+.lib-card[aria-selected="true"] { background: var(--control-hover); }
+.lib-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.lib-card-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 600; }
+.lib-dates { flex: none; margin-left: auto; color: var(--ink-muted); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 400; white-space: nowrap; }
+.lib-path { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; white-space: nowrap; color: var(--ink); }
+/* a route longer than the row fades out under the discs rather than cutting off mid-code */
+.lib-path[data-long] { mask-image: linear-gradient(to right, var(--ink) calc(100% - var(--space-5)), transparent); }
+.lib-hop { display: inline-flex; align-items: center; gap: 5px; }
+.lib-hop-glyph { color: var(--ink-muted); }
+.lib-code { font-family: var(--font-fell-sc); font-size: 16px; line-height: 18px; }
+.lib-code[data-other] { color: var(--ink-muted); }
+.lib-code-sep { margin: 0 3px 0 -1px; color: var(--ink-muted); }
+.lib-card[data-past] .lib-card-title, .lib-card[data-past] .lib-path { color: var(--ink-muted); }
+
+/* Renaming the picked trip: a small pencil after its title, and the title as a field */
+.lib-pencil { position: relative; flex: none; display: grid; place-items: center; width: 22px; height: 22px; margin: -1px 0; border-radius: var(--radius-tag); color: var(--ink-muted); cursor: pointer; }
+.lib-pencil::before { content: ""; position: absolute; inset: -6px; }
+.lib-pencil:hover { background: var(--paper-raised); color: var(--ink); }
+.lib-pencil svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.lib-rename { flex: 1; min-width: 0; height: 24px; margin: -2px 0; padding: 0 var(--space-1); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-tag); outline: none; background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 14px; font-weight: 600; }
+.lib-failed { flex: none; color: var(--ink-muted); font-size: 13px; line-height: 18px; white-space: nowrap; }
+
+/* Others on the trip: 18px discs at the end of the route row. Here: their sticker colour. Away: a dashed outline. */
+.lib-avs { flex: none; display: flex; margin: 0 0 0 auto; padding: 0; list-style: none; }
+.lib-av { display: grid; place-items: center; box-sizing: border-box; width: 18px; height: 18px; flex: none; border-radius: var(--radius-round); border: var(--line-ink) dashed var(--m); background: var(--paper-raised); color: var(--ink-muted); font-size: 10px; line-height: 1; font-weight: 600; }
+.lib-av[data-present] { border: var(--line-control) solid var(--sticker-ink); background: var(--m); color: var(--sticker-ink); }
+.lib-av + .lib-av { margin-left: -5px; }
+
+/* The picked trip, under the list: its numbers, its next (or last) leg and your share, and the way in */
+.lib-foot { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-gap); padding: var(--space-3) var(--space-4); border-top: var(--line-hair) solid var(--line); background: var(--paper-raised); }
+.lib-stats { margin: 0; color: var(--ink-muted); font-family: var(--font-typewriter); font-size: 13px; line-height: 18px; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lib-facts { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.lib-next { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; margin: 0; color: var(--ink); }
+.lib-next .ts-glyph { flex: none; }
+.lib-next .lib-code { line-height: 1; text-box: trim-both cap alphabetic; white-space: nowrap; }
+.lib-stamp { color: var(--ink-muted); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; white-space: nowrap; }
+.lib-money { flex: none; display: grid; justify-items: end; margin: 0; }
+.lib-money-n { font-family: var(--font-typewriter); font-size: 14px; line-height: 18px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.lib-money-l { color: var(--ink-muted); font-size: 13px; line-height: 18px; white-space: nowrap; }
+.lib-foot a.pa-btn { text-decoration: none; }
+/* Leave and Delete stay quiet on the left; Open trip is the one big button, on the right */
+.lib-foot-actions { display: flex; align-items: center; gap: 4px; }
+.lib-action { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-tag); background: transparent; color: var(--ink-muted); font-size: 13px; line-height: 16px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.lib-action:hover { background: var(--control-hover); color: var(--ink); }
+.lib-action svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.lib-open { margin-left: auto; }
+
+/* Loading: ghost cards shaped like the real ones */
+.lib-card-ghost { cursor: default; }
+.lib-card-ghost:hover { background: none; }
+.lib-card-ghost .lib-row { justify-content: space-between; min-height: 20px; }
+.lib-bone { display: block; height: 12px; border-radius: var(--radius-tag); background: var(--line); animation: lib-pulse 1.1s ease-in-out infinite alternate; }
+.lib-bone-sm { height: 10px; }
+
+/* Empty and failed: a route not yet drawn, then a title and one line, at the top left */
+.lib-note { padding: 0 var(--space-4) var(--space-4); }
+.lib-note-mark { display: block; overflow: visible; }
+.lib-note-ring { fill: none; stroke: var(--ink); stroke-width: var(--line-hair); }
+.lib-note-track { fill: none; stroke: var(--rule); stroke-width: var(--line-route); stroke-dasharray: var(--dash-ground); stroke-linecap: round; }
+.lib-note-title { margin: var(--space-2) 0 0; font-size: 14px; line-height: 20px; font-weight: 600; }
+.lib-note-body { margin: var(--space-1) 0 0; color: var(--ink-muted); font-size: 13px; line-height: 18px; }
+
+/* Collapsed: a small tab under the logo brings it back */
+.lib-tab { position: absolute; z-index: 10; top: calc(var(--space-4) * 2 + 36px + var(--space-1)); left: var(--space-5); display: inline-flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-gap); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-float); font-family: var(--font-sans); font-size: 14px; font-weight: 600; cursor: pointer; animation: lib-in 160ms ease-out both; }
+.lib-tab::before { content: ""; position: absolute; inset: -4px 0; }
+.lib-tab:hover { background: var(--control-hover); }
+.lib-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.lib-tab svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
+.lib-tab-n { color: var(--ink-muted); font-family: var(--font-typewriter); font-size: 12px; font-weight: 700; }
+
+/* Over the globe: vehicle stickers at each leg's peak, and the hovered trip's ghost routes */
+.lib-overlay { position: absolute; inset: 0; pointer-events: none; }
+.lib-ghosts { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lib-ghosts path { fill: none; stroke: var(--ink); stroke-width: var(--line-route); stroke-dasharray: var(--dash-route); stroke-linecap: round; opacity: 0.3; }
+.lib-vehicle { position: absolute; left: 0; top: 0; will-change: transform; }
+.lib-vehicle-in { position: absolute; left: -9px; top: -9px; display: block; width: 18px; height: 18px; transform: rotate(var(--turn, 0deg)); animation: lib-pop 180ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both; }
+.lib-vehicle-in.pa-cast { --alt: 0.2; }
+.lib-vehicle-in svg { display: block; }
+.lib-vehicle .ts-glyph-sticker { fill: var(--m); }
+
+@keyframes lib-in { from { opacity: 0; transform: translateY(4px); } }
+@keyframes lib-pop { from { opacity: 0; transform: rotate(var(--turn, 0deg)) scale(0.4); } }
+@keyframes lib-pulse { from { opacity: 0.45; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lib-wrap, .lib-handle { transition: none; }
+  .lib-tab, .lib-vehicle-in, .lib-bone { animation: none; }
+}

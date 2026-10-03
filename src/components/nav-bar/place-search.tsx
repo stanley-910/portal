@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject, type CSSProperties } from "react";
 
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { mergePlaces, searchPlaces, type PlaceKind, type PlaceResult } from "@/lib/places/search";
@@ -35,6 +35,8 @@ const KIND_GLYPHS: Record<Exclude<PlaceKind, "region">, ReactNode> = {
 };
 
 const KIND_LABELS: Record<PlaceKind, string> = { country: "Country", region: "Region", city: "City", airport: "Airport", station: "Station" };
+/** How long the panel takes to fold back into its button. */
+const CLOSE_MS = 160;
 const ONLINE_MIN = 3;
 const ONLINE_DELAY_MS = 250;
 
@@ -65,6 +67,8 @@ function useOnlinePlaces(query: string) {
 /** A search field in the NavBar that turns the globe to a city, airport, station or country. `/` opens it. */
 export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null> }) {
   const [open, setOpen] = useState(false);
+  // folding back into the button: the panel stays for its closing animation, then goes
+  const [closing, setClosing] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const root = useRef<HTMLDivElement>(null);
@@ -75,32 +79,57 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
   const online = useOnlinePlaces(query);
   const results = useMemo(() => mergePlaces(local, online.places), [local, online.places]);
 
+  // opening again mid-close keeps it open
+  const show = () => {
+    // reopened while folding away: start fresh, as a closed search would
+    if (closing) {
+      setQuery("");
+      setActive(0);
+    }
+    setClosing(false);
+    setOpen(true);
+  };
   const close = (refocus: boolean) => {
-    setOpen(false);
-    setQuery("");
-    setActive(0);
+    setClosing(true);
     if (refocus) toggle.current?.focus();
   };
+  useEffect(() => {
+    if (!closing) return;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+      setQuery("");
+      setActive(0);
+    }, still ? 0 : CLOSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [closing]);
 
   const pick = (place: PlaceResult) => {
     // a city, airport or station is marked and named where it is, whether or not the map prints it; a country or
     // region already has its name on the map
     const mark = place.kind === "country" || place.kind === "region" ? undefined : place.name;
     globe.current?.flyTo({ lat: place.lat, lng: place.lng }, place.spanDeg, mark);
-    close(false);
+    // focus goes back to the button rather than dropping to the page as the panel folds away
+    close(true);
   };
 
   useEffect(() => {
-    if (open) input.current?.focus();
-  }, [open]);
+    if (open && !closing) input.current?.focus();
+  }, [open, closing]);
 
+  // the shortcut listens once; it calls whichever `show` is current, which knows whether the panel is closing
+  const showNow = useRef(show);
+  useLayoutEffect(() => {
+    showNow.current = show;
+  });
   useEffect(() => {
     const slash = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
-      setOpen(true);
+      showNow.current();
     };
     document.addEventListener("keydown", slash);
     return () => document.removeEventListener("keydown", slash);
@@ -110,9 +139,7 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
     if (!open) return;
     const away = (event: PointerEvent) => {
       if (root.current?.contains(event.target as Node)) return;
-      setOpen(false);
-      setQuery("");
-      setActive(0);
+      setClosing(true);
     };
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
@@ -142,11 +169,11 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
   return (
     <div ref={root} className="pn-search">
       <button ref={toggle} type="button" className="pa-round" aria-label="Find a place" title="Find a place"
-        aria-expanded={open} onClick={() => setOpen(true)}>
+        aria-expanded={open && !closing} onClick={show}>
         <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
       </button>
       {open ? (
-        <div className="pn-search-panel">
+        <div className="pn-search-panel" data-closing={closing || undefined}>
           <label className="pn-search-field">
             <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>{SEARCH_GLYPH}</svg>
             <input
@@ -160,6 +187,7 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
               aria-activedescendant={showList ? optionId(active) : undefined}
               autoComplete="off"
               spellCheck={false}
+              placeholder="Find a city, airport or station"
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
@@ -177,6 +205,7 @@ export function PlaceSearch({ globe }: { globe: RefObject<TripGlobeHandle | null
                   role="option"
                   aria-selected={i === active}
                   className="pn-search-option"
+                  style={{ "--i": Math.min(i, 8) } as CSSProperties}
                   onPointerMove={() => setActive(i)}
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => pick(place)}

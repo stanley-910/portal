@@ -7,7 +7,7 @@ import { applyMeetup, undoAgentChange } from "@/app/t/actions";
 import { useOpenAuth } from "@/components/auth/links";
 import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
-import { Button } from "@/components/paper-atlas";
+import { Button, PixelIcon } from "@/components/paper-atlas";
 import { tripContext } from "@/lib/agent/context";
 import { inOrder } from "@/lib/agent/parts";
 import { showDate } from "@/lib/agent/snapshot";
@@ -212,6 +212,7 @@ function Panel({ onClose }: { onClose: () => void }) {
   const stops = useStorage((root) => root.stops);
   const legs = useStorage((root) => root.legs);
   const context = useMemo(() => tripContext({ members, stops, legs }, me), [members, stops, legs, me]);
+  const composer = useComposer(send);
 
   return (
     <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
@@ -225,12 +226,12 @@ function Panel({ onClose }: { onClose: () => void }) {
       </header>
 
       <CardActionsContext value={actions}>
-        <ThreadLog thread={shown} me={me} members={members ?? NO_MEMBERS} activity={activity}>
+        <ThreadLog thread={shown} me={me} members={members ?? NO_MEMBERS} activity={activity} footer={<Suggestions composer={composer} chips={context.chips} />}>
           <p className="pip-empty">Ask {AGENT_NAME} how to get somewhere, or where everyone should meet. Everyone in the trip sees the chat.</p>
         </ThreadLog>
       </CardActionsContext>
 
-      <Composer send={send} chips={context.chips} />
+      <Composer composer={composer} />
     </section>
   );
 }
@@ -251,7 +252,7 @@ export const CardActionsContext = createContext<CardActions>({ apply: () => {} }
  * The conversation, scrolled to the latest message before it paints and following new text while you're at the
  * bottom, so reading back isn't yanked down every token. `children` shows when it's empty.
  */
-export function ThreadLog({ thread, me, members, activity, children }: { thread: ThreadMessage[]; me: string | undefined; members: Members; activity: string | null; children?: React.ReactNode }) {
+export function ThreadLog({ thread, me, members, activity, footer, children }: { thread: ThreadMessage[]; me: string | undefined; members: Members; activity: string | null; footer?: React.ReactNode; children?: React.ReactNode }) {
   const scroller = useRef<HTMLDivElement>(null);
   const stuck = useRef(true);
   useLayoutEffect(() => {
@@ -269,10 +270,14 @@ export function ThreadLog({ thread, me, members, activity, children }: { thread:
         stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
       }}
     >
-      {thread.length === 0 ? children : null}
-      {thread.map((m) => (
-        <Message key={m.id} message={m} me={me} members={members} activity={m.state === "streaming" ? activity : null} />
-      ))}
+      {/* the thread sits at the bottom, over the suggestions, so it settles onto the box when they go */}
+      <div className="pip-thread">
+        {thread.length === 0 ? children : null}
+        {thread.map((m) => (
+          <Message key={m.id} message={m} me={me} members={members} activity={m.state === "streaming" ? activity : null} />
+        ))}
+      </div>
+      {footer}
     </div>
   );
 }
@@ -405,6 +410,9 @@ function LegLine({ leg, members }: { leg: MeetupLeg; members: Members }) {
 
 const KIND: Record<MeetupLeg["kind"], string> = { live: "live", cached: "cached fare", timetable: "timetable", estimated: "estimated" };
 
+// Undo's glyph: rewind, at 2 px a cell
+const REWIND = ["  #  #", " ## ##", "######", " ## ##", "  #  #"];
+
 function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "changes" }>; messageId: string }) {
   const actions = use(CardActionsContext);
   const [pending, start] = useTransition();
@@ -418,8 +426,15 @@ function ChangesCard({ card, messageId }: { card: Extract<ThreadCard, { type: "c
       {card.undone ? (
         <span className="pip-changes-note">Undone</span>
       ) : actions.undo ? (
-        <button type="button" className="pip-undo" disabled={pending} onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId)))}>
-          Undo
+        <button
+          type="button"
+          className="pip-undo"
+          aria-label="Undo these changes"
+          title="Undo"
+          disabled={pending}
+          onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId)))}
+        >
+          <PixelIcon rows={REWIND} scale={2} />
         </button>
       ) : null}
     </div>
@@ -438,13 +453,16 @@ export function PipClose({ onClick }: { onClick: () => void }) {
 }
 
 /** The message box and chips. `send` posts to a trip, or (on the home globe) starts one. */
-export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }: { send: (text: string) => Promise<void>; chips: string[]; placeholder?: string }) {
+/**
+ * The message box's state, shared by the box and the suggestions at the end of the thread. The box clears the moment
+ * a message goes and gets the text back if sending fails.
+ */
+export function useComposer(send: (text: string) => Promise<void>) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<"failed" | "sign-in" | null>(null);
   const [pending, setPending] = useState(false);
-  const openAuth = useOpenAuth();
   // Not a transition: the message has to show the moment it's sent, and a transition holds every update back until
-  // the request finishes. The box clears at once and gets the text back if sending fails.
+  // the request finishes.
   const submit = async (text: string) => {
     const t = text.trim();
     if (!t || pending) return;
@@ -460,62 +478,71 @@ export function Composer({ send, chips, placeholder = `Message ${AGENT_NAME}` }:
       setPending(false);
     }
   };
+  return { draft, setDraft, error, pending, submit };
+}
+
+export type ComposerState = ReturnType<typeof useComposer>;
+
+/** Suggested messages, last in the thread so they scroll away with it. They go while you type. */
+export function Suggestions({ composer, chips }: { composer: ComposerState; chips: string[] }) {
+  if (!chips.length || composer.draft) return null;
   return (
-    <>
-      {/* the suggestions show while the box is empty and hide as you type, keeping their space so the panel holds still */}
-      {chips.length ? (
-        <div className="pip-suggest" role="menu" aria-label="Suggested messages" data-hidden={draft ? "" : undefined}>
-          {chips.map((chip, i) => (
-            <button
-              key={chip}
-              type="button"
-              role="menuitem"
-              className="pip-suggestion"
-              style={{ animationDelay: `${i * 40}ms` }}
-              disabled={pending || !!draft}
-              tabIndex={draft ? -1 : undefined}
-              onClick={() => void submit(chip)}
-            >
-              <span className="pip-px">{chip}</span>
-            </button>
-          ))}
-        </div>
+    <div className="pip-suggest" role="menu" aria-label="Suggested messages">
+      {chips.map((chip, i) => (
+        <button
+          key={chip}
+          type="button"
+          role="menuitem"
+          className="pip-suggestion"
+          style={{ animationDelay: `${i * 40}ms` }}
+          disabled={composer.pending}
+          onClick={() => void composer.submit(chip)}
+        >
+          <span className="pip-px">{chip}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Composer({ composer, placeholder = `Message ${AGENT_NAME}` }: { composer: ComposerState; placeholder?: string }) {
+  const { draft, setDraft, error, pending, submit } = composer;
+  const openAuth = useOpenAuth();
+  return (
+    <form
+      className="pip-composer"
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault();
+        void submit(draft);
+      }}
+    >
+      {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
+      {error === "sign-in" ? (
+        <p className="pip-caption" role="alert">
+          <button type="button" className="ts-oneway" onClick={() => openAuth("signin")}>
+            Sign in
+          </button>{" "}
+          to talk to {AGENT_NAME}.
+        </p>
       ) : null}
-      <form
-        className="pip-composer"
-        onSubmit={(e: FormEvent) => {
-          e.preventDefault();
-          void submit(draft);
-        }}
-      >
-        {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
-        {error === "sign-in" ? (
-          <p className="pip-caption" role="alert">
-            <button type="button" className="underline" onClick={() => openAuth("signin")}>
-              Sign in
-            </button>{" "}
-            to talk to {AGENT_NAME}.
-          </p>
-        ) : null}
-        <label className="pip-input-row">
-          <span className="pip-input-frame">
-            <input
-              className="pip-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={placeholder}
-              aria-label="Message"
-              maxLength={2000}
-            />
-          </span>
-          <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
-            <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-              <path d="M3 8 H13 M9 4 L13 8 L9 12" />
-            </svg>
-          </button>
-        </label>
-      </form>
-    </>
+      <label className="pip-input-row">
+        <span className="pip-input-frame">
+          <input
+            className="pip-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={placeholder}
+            aria-label="Message"
+            maxLength={2000}
+          />
+        </span>
+        <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
+          <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+            <path d="M3 8 H13 M9 4 L13 8 L9 12" />
+          </svg>
+        </button>
+      </label>
+    </form>
   );
 }
 

@@ -19,7 +19,7 @@ import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
 import { LegTags } from "@/components/multiplayer/leg-tags";
 import { RiderPins } from "@/components/multiplayer/rider-pins";
-import { FloatingTripPlan } from "@/components/multiplayer/trip-plan";
+import { FloatingTripPlan, type LegFocus } from "@/components/multiplayer/trip-plan";
 import { TripDock, type DockSpot } from "@/components/multiplayer/trip-dock";
 import { Button } from "@/components/paper-atlas";
 import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
@@ -93,6 +93,12 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   }, [landedLegs, landedOnTrip]);
   // the plan panel; folded away, each leg's ticket stub on its route opens it again
   const [planOpen, setPlanOpen] = useState(true);
+  // the leg asked for on the globe, which the plan opens at
+  const [focus, setFocus] = useState<LegFocus>(null);
+  const openLeg = (leg?: string) => {
+    setPlanOpen(true);
+    if (leg) setFocus({ leg, n: Date.now() });
+  };
   // the bill stays open or shut as the plan folds to its dock and back; the dock stays where it was dragged
   const [billOpen, setBillOpen] = useState(false);
   const [dockSpot, setDockSpot] = useState<DockSpot>(null);
@@ -118,8 +124,8 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       <main className="grid min-h-dvh place-items-center bg-paper p-(--space-5)">
         <div className="grid justify-items-center gap-(--space-3) text-center">
           <p className="type-body">This trip has ended.</p>
-          <Link href="/" className="type-meta text-ink underline underline-offset-4">
-            Back to globe
+          <Link href="/" className="pa-btn pa-btn-secondary no-underline">
+            <span>Back to globe</span>
           </Link>
         </div>
       </main>
@@ -146,7 +152,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
         onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
         onTakeoff={() => setLandedLegs([])}
         onCancel={() => setLandedLegs([])}
-        onRouteClick={() => setPlanOpen(true)}
+        onRouteClick={(id) => openLeg(id?.startsWith("leg:") ? id.slice("leg:".length) : undefined)}
       />
       <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
@@ -179,16 +185,21 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
         <AvatarStack />
         <InviteButton />
       </NavBar>
-      <RiderPins globe={globe} onOpen={() => setPlanOpen(true)} />
-      <LegTags globe={globe} onOpen={() => setPlanOpen(true)} />
+      <RiderPins globe={globe} onOpen={openLeg} />
+      <LegTags globe={globe} onOpen={openLeg} />
       {planOpen ? (
         <FloatingTripPlan
           globe={globe}
           email={email}
           nationalities={nationalities}
           bookLeg={bookLeg}
+          focus={focus}
           bill={{ open: billOpen, set: setBillOpen }}
-          onMinimise={() => setPlanOpen(false)}
+          onMinimise={() => {
+            setPlanOpen(false);
+            // a leg asked for once isn't asked for again the next time the plan opens
+            setFocus(null);
+          }}
         />
       ) : planReady ? (
         <TripDock spot={dockSpot} onMove={setDockSpot} bill={{ open: billOpen, set: setBillOpen }} onExpand={() => setPlanOpen(true)} />
@@ -197,7 +208,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {leaving ? (
         <LeaveTripDialog
           tripId={tripId}
-          next={account ? "/trips" : "/"}
+          next={account ? "/?trips" : "/"}
           onClose={() => setLeaving(false)}
           connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
         />
@@ -205,7 +216,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {ending ? (
         <EndTripDialog
           tripId={tripId}
-          next={account ? "/trips" : "/"}
+          next={account ? "/?trips" : "/"}
           onClose={() => setEnding(false)}
           connection={{ pause: () => room.disconnect(), resume: () => room.connect() }}
         />

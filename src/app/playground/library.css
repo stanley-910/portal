@@ -1,0 +1,6 @@
+/* The Library scene's own chrome. The library itself is <TripLibrary>, styled by src/components/library/trip-library.css. */
+
+/* The scene's data-state switches, out of the library's way */
+.lib-dev { position: fixed; right: var(--space-3); top: calc(var(--space-4) * 2 + 36px + var(--space-1)); z-index: 60; padding: var(--space-1); border: var(--line-control) dashed var(--ink-muted); border-radius: var(--radius-control); background: var(--paper-raised); box-shadow: var(--shadow-control); font-family: var(--font-sans); }
+/* the playground's control bar moves to the right in this scene, off the sidebar */
+.lib-scene ~ .pg-bar { left: auto; right: var(--space-3); align-items: flex-end; }

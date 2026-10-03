@@ -38,10 +38,12 @@ export interface NavBarProps {
   color?: number | null;
   /** Inside a trip: your colour there, for the profile menu to show and change. */
   tripColor?: TripColor;
+  /** Opens My trips on this screen, from the profile menu. */
+  onTrips?: () => void;
 }
 
 /** The top bar: the Portal logo on the left, controls on the right. The logo draws itself on at load. */
-export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings, nationalities, color, tripColor }: NavBarProps) {
+export function NavBar({ globe, children, name, email, account = false, reloadOnRename, settings, nationalities, color, tripColor, onTrips }: NavBarProps) {
   const compact = useCompact(globe);
   const { resolvedTheme } = useTheme();
   const logo = useRef<HTMLElement & { play(): void }>(null);
@@ -101,6 +103,7 @@ export function NavBar({ globe, children, name, email, account = false, reloadOn
           nationalities={nationalities}
           color={color}
           tripColor={tripColor}
+          onTrips={onTrips}
         >
           {settings}
         </ProfileMenu>
@@ -166,4 +169,6 @@ export const NAV_ICONS = {
     </>
   ),
   check: <path d="M3 8.4l3.2 3.1L13 4.6" />,
+  /** My Trips: a list. */
+  trips: <path d="M2.5 4h11M2.5 8h11M2.5 12h7" />,
 };

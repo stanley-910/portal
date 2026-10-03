@@ -21,6 +21,7 @@ Paper Atlas is the look of Portal: a globe printed in halftone ink on paper, wit
 - Keep `sea`, `sea-deep`, `sage` and `moss` for the globe and for maps. They are print inks, not UI colours: never use them for buttons or text.
 - Stickers keep the same paper colours in both themes (`sticker-fill`, `sticker-ink`, the `member-*` colours). A sticker is a real piece of paper laid on the page, so it does not change at night. Everything printed on the page (text, route, tags, ticket) follows the theme.
 - There is no accent colour. Emphasis comes from size, the sticker treatment, or motion.
+- `alert` is a signal, not an accent: a small mark for something waiting on you, such as Pip's new-reply badge. Edge it in `sticker-ink`, keep it to a dot, and never set text in it or behind it.
 
 ## Type
 
@@ -67,7 +68,9 @@ Paper Atlas is the look of Portal: a globe printed in halftone ink on paper, wit
 
 - The globe is the whole screen. The ticket sits bottom-centre, `space-6` from the bottom, tilted −1.2°.
 - Every interactive target is at least 44px. A `Button` inside a card is drawn compact (32px, `radius-tag` corners) and keeps its 44px tap area unseen. A round button over the globe is a `paper-raised` disc with a `control-border` border and the `shadow-float` shadow, so it reads against the map. Inside a panel (sign-in, Pip's chat) use the quiet one instead: the bare glyph in `ink-muted`, with no border or shadow, that fills with `control-hover` on hover.
-- Show keyboard focus as a solid 2px `focus` outline, offset 3px. Never outline a selection: a picked, open or typed-in control fills with `control-hover` (or `ink`, for a picked choice), and its border stays `control-border`.
+- Every scrollbar is a thin pixel bar: 6px of solid `control-border` (`ink-muted` while held), its corner pixels stepped off. Don't restyle one per component; a component that sets `scrollbar-width` or `scrollbar-color` loses it in Chrome.
+- Text fields (inputs, search boxes, the message box, rename fields) never show a focus outline or a bright frame: while you type in one it fills with `control-hover`, and its border stays as it is. A field drawn inside a wrapper fills the wrapper (`:focus-within`), never outlines it.
+- Show keyboard focus on everything else (buttons, links, chips) as a solid 2px `focus` outline, offset 3px. Never outline a selection: a picked, open or typed-in control fills with `control-hover` (or `ink`, for a picked choice), and its border stays `control-border`.
 
 ## Logo
 

@@ -36,23 +36,25 @@ function NamePrompt({ tripPath }: { tripPath: string }) {
   return (
     <main className="au-layer bg-paper">
       <form action={saveName} className="au-panel">
+        <div className="au-body">
         <div>
           <h1 className="au-title">Join the trip</h1>
           <p className="au-sub">Your friends see this name next to your cursor.</p>
         </div>
         <label className="au-field">
           <span>Your name</span>
-          <input name="name" required autoFocus maxLength={MAX_NAME} autoComplete="nickname" className="au-input" />
+          <input name="name" required autoFocus maxLength={MAX_NAME} autoComplete="nickname" className="au-input pa-px-box" />
         </label>
         <Button type="submit" block>
           Join
         </Button>
         <p className="au-sub">
           Have an account?{" "}
-          <Link href={`${tripPath}?auth=signin`} scroll={false} className="text-ink underline">
+          <Link href={`${tripPath}?auth=signin`} scroll={false} className="font-semibold text-ink hover:text-(--ink-hover)">
             Sign in
           </Link>
         </p>
+        </div>
       </form>
     </main>
   );

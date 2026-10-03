@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { convertCurrency, formatCurrency, type ExchangeRates } from "./currency";
 
-const rates: ExchangeRates = { USD: 1, EUR: 0.92, CNY: 7.12, HKD: 7.82 };
+const rates: ExchangeRates = { USD: 1, EUR: 0.92, CNY: 7.12, HKD: 7.82, CAD: 1.37 };
 
 describe("convertCurrency", () => {
   it("converts from USD using the target rate", () => {

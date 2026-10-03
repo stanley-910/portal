@@ -1,47 +1,43 @@
 "use client";
 
 import { useSelf } from "@liveblocks/react";
-import { Fragment, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from "react";
 
+import { EntryToggle } from "@/components/entry";
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import { LegBooking } from "@/components/multiplayer/leg-booking";
 import { BesidePanel, BesideProvider, useBeside } from "@/components/multiplayer/beside";
+import { usePresentIds } from "@/components/multiplayer/presence";
 import { CardBill } from "@/components/multiplayer/split-bill";
-import { StayCard } from "@/components/multiplayer/stay-card";
+import { StayCard, TrashGlyph } from "@/components/multiplayer/stay-card";
 import { legOffer } from "@/components/multiplayer/leg-tags";
 import { RoundButton } from "@/components/paper-atlas";
 import { reveal, useAnchor } from "@/components/ticket-search/anchor";
 import type { TripGlobeHandle } from "@/components/trip-globe";
 import { addDays, dateLabel, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { AirlineLogo } from "@/components/ticket-search/airline-logo";
-import { carrierLabel, duration } from "@/components/ticket-search/options";
+import { Glyph } from "@/components/ticket-search/glyphs";
+import { carrierLabel, clockOf, duration } from "@/components/ticket-search/options";
 import { formatMoney, inCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import { useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
-import { memberColor, type Stop, type StoredOffer } from "@/lib/liveblocks/types";
+import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
 import type { PlanStay } from "@/lib/trip/split";
 import { legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
-import { HUBS } from "@/lib/transport/hubs/catalog";
-import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
 import { isBookable, shownOffers } from "@/lib/trip/offers";
+import { stopCountry } from "@/lib/trip/stops";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
 
 const SHOWN = 3;
 
-const HUB_COUNTRY = new Map(HUBS.map((hub) => [hub.id, hub.country]));
-/** A stop's country for its flag: its hub's, else the nearest hub's, for stops saved without one. */
-const stopCountry = (stop: Stop) => (stop.hub && HUB_COUNTRY.get(stop.hub)) || nearestPreviewHub(stop)?.country || null;
-
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
-/** Departure time as the provider wrote it. Arrivals are left out: some providers give them in UTC, not local time. */
-const time = (iso: string) => iso.slice(11, 16);
 
 /** Why an edit didn't apply, said where the member made it. */
 const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
@@ -50,11 +46,11 @@ const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
   replaced: "A new search replaced these options. Pick again.",
 };
 
-/** "W4 flight, leaves 07:25, 1 stop". A modelled option has no schedule, so it says "any time". */
+/** "W4 flight, 1 stop". Its times ride on the timeline; a modelled option has no schedule, so it says "any time". */
 const describe = (o: StoredOffer) =>
   [
     carrierLabel(o.carrier, o.mode),
-    o.kind === "estimated" ? "any time" : `leaves ${time(o.depart)}`,
+    clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated") ? null : "any time",
     o.stops ? `${o.stops} stop${o.stops > 1 ? "s" : ""}` : null,
   ]
     .filter(Boolean)
@@ -70,7 +66,9 @@ function stripStart(date: string, after: string | null | undefined) {
   return centred > floor ? centred : floor;
 }
 
-type TripPlanProps = { email?: string | null; nationalities?: string[]; bookLeg?: string | null; onMinimise?: () => void };
+/** A leg someone asked to see, from its route, ticket stub or pins on the globe; `n` tells one ask from the next. */
+export type LegFocus = { leg: string; n: number } | null;
+type TripPlanProps = { email?: string | null; nationalities?: string[]; bookLeg?: string | null; focus?: LegFocus; onMinimise?: () => void };
 /** The header is a handle that moves the card; see `FloatingTripPlan`. */
 type DragProps = { onDrag?: (event: PointerEvent<HTMLElement>) => void };
 
@@ -116,7 +114,7 @@ export function FloatingTripPlan({ globe, bill, ...props }: TripPlanProps & { gl
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
 /** `bookLeg` is a leg to open at its booking, as Book on the home globe asks. */
-export function TripPlan({ email = null, nationalities = [], bookLeg = null, onMinimise, onDrag }: TripPlanProps & DragProps) {
+export function TripPlan({ email = null, nationalities = [], bookLeg = null, focus = null, onMinimise, onDrag }: TripPlanProps & DragProps) {
   const legs = usePlanLegs();
   const stays = usePlanStays();
   const currency = useCurrencyPref();
@@ -161,6 +159,7 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, onM
             email={email}
             nationalities={nationalities}
             focusBooking={leg.id === bookLeg}
+            focus={focus?.leg === leg.id ? focus.n : undefined}
           />
         </Fragment>
       ))}
@@ -177,6 +176,7 @@ function LegCard({
   email,
   nationalities,
   focusBooking = false,
+  focus,
 }: {
   leg: PlanLeg;
   /** The stays at this leg's destination around its arrival. */
@@ -188,17 +188,31 @@ function LegCard({
   email: string | null;
   nationalities: string[];
   focusBooking?: boolean;
+  /** Set (to a new value each time) when this leg is asked for on the globe: it opens and scrolls into view. */
+  focus?: number;
 }) {
   // every price in the picked currency, or as it came when there are no rates for it
   const shown = (price: { amount: number; currency: string }) => formatMoney(inCurrency(price, currency, rates));
   const money = (o: StoredOffer) => (o.price ? shown(o.price) : null);
   // folded to its route and a line of what's settled, so the other legs stay in view; a leg opened to book starts open
-  const [open, setOpen] = useState(focusBooking);
+  const [open, setOpen] = useState(focusBooking || focus !== undefined);
+  // asked for again on the globe: open, wherever it was left
+  const [asked, setAsked] = useState(focus);
+  if (focus !== asked) {
+    setAsked(focus);
+    if (focus !== undefined) setOpen(true);
+  }
+  const card = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (focus !== undefined) card.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [focus]);
   const me = useSelf((s) => s.id);
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
   const locked = !!leg.booking;
   const members = usePlanMembers();
   const dates = usePlanDates();
+  const present = usePresentIds();
+  const allLegs = usePlanLegs();
   const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg } = usePlanActions();
   const [picking, setPicking] = useState(false);
   const [dateBlocked, setDateBlocked] = useState(false);
@@ -246,22 +260,26 @@ function LegCard({
   ].join(" · ");
 
   return (
-    <article className="tp-leg">
+    <article ref={card} className="tp-leg">
       <button type="button" className="tp-leg-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <RouteHeader
           from={{ code: leg.from.code, name: leg.from.name, country: stopCountry(leg.from) }}
           to={{ code: leg.to.code, name: leg.to.name, country: stopCountry(leg.to) }}
           mode={lead?.mode ?? null}
+          below={
+            // the fold, under the route's middle, rather than a row of its own
+            <svg className="tp-leg-chevron" width={10} height={10} viewBox="0 0 10 10" aria-hidden>
+              <path d={open ? "M2 6.5 5 3.5 8 6.5" : "M2 3.5 5 6.5 8 3.5"} />
+            </svg>
+          }
         />
-        <span className="tp-leg-summary">
-          <span>
+        {/* what's settled, while folded; opened, the leg shows it all below */}
+        {open ? null : (
+          <span className="tp-leg-summary">
             {lead ? <AirlineLogo code={lead.carrierCode} className="mr-1" /> : null}
             {summary}
           </span>
-          <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden>
-            <path d={open ? "M2 6.5 5 3.5 8 6.5" : "M2 3.5 5 6.5 8 3.5"} />
-          </svg>
-        </span>
+        )}
       </button>
       {open ? (
         <>
@@ -278,7 +296,8 @@ function LegCard({
                         type="button"
                         className="tp-rider"
                         aria-pressed={leg.riders.includes(id)}
-                        title={info.name}
+                        data-away={(present && !present.has(id)) || undefined}
+                        title={present && !present.has(id) ? `${info.name} (away)` : info.name}
                         disabled={locked}
                         onClick={() => toggleRider(leg.id, id)}
                         style={{ borderColor: memberColor(info.color) }}
@@ -354,7 +373,10 @@ function LegCard({
                     {price ?? "No fare"}
                   </span>
                   <span className="ts-desc">{describe(o)}</span>
-                  <Timeline legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]} />
+                  <Timeline
+                    legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]}
+                    clock={clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated")}
+                  />
                 </button>
                 <button
                   type="button"
@@ -391,14 +413,9 @@ function LegCard({
             rates={rates}
             onChange={(patch) => updateStay(stay.id, patch)}
             onRemove={() => removeStay(stay.id)}
+            present={present}
           />
         ))}
-        <div className="tp-edit-row">
-          <span className="tp-stay">{stays.length ? null : `No stay in ${leg.to.name} yet`}</span>
-          <button ref={findButton} type="button" className="ts-oneway" aria-expanded={findStay.open} aria-controls={`stays-${leg.id}`} onClick={findStay.toggle}>
-            Find a stay
-          </button>
-        </div>
         {findStay.open ? (
           <BesidePanel id={`stays-${leg.id}`} label={`Stays in ${leg.to.name}`} align={findButton} trigger={findButton} onClose={findStay.close}>
           <HotelSearch
@@ -418,11 +435,39 @@ function LegCard({
 
         <LegBooking leg={leg} email={email} nationalities={nationalities} focus={focusBooking} />
 
-        {locked ? null : (
-          <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>
-            Remove leg
+        {/* the leg's actions, in one row: what it takes to get in, somewhere to sleep, and taking it off the trip */}
+        <div className="tp-actions">
+          <EntryToggle
+            id={leg.id}
+            label="Entry"
+            className="tp-action"
+            leg={{ fromCountry: stopCountry(leg.from) ?? undefined, toCountry: stopCountry(leg.to) ?? undefined, fromHub: leg.from.code ?? undefined, toHub: leg.to.code ?? undefined }}
+            riders={leg.riders.map((id) => {
+              const m = members?.[id];
+              // where they go after this leg's destination: their next leg out of it
+              const next = allLegs
+                ?.filter((l) => l.id !== leg.id && l.from.id === leg.to.id && l.riders.includes(id) && l.date >= leg.date)
+                .sort((x, y) => x.date.localeCompare(y.date))[0];
+              return {
+                id,
+                name: m?.name ?? "Someone",
+                passport: m?.nationalities?.[0] ?? null,
+                passports: m?.nationalities?.slice(1),
+                onwardCountry: next ? stopCountry(next.to) : null,
+              };
+            })}
+          />
+          <button ref={findButton} type="button" className="tp-action" aria-expanded={findStay.open} aria-controls={`stays-${leg.id}`} onClick={findStay.toggle}>
+            <Glyph kind="hotel" size={13} />
+            <span>Find a stay</span>
           </button>
-        )}
+          {locked ? null : (
+            <button type="button" className="tp-action tp-action-end" onClick={() => removeLeg(leg.id)}>
+              <TrashGlyph />
+              <span>Remove leg</span>
+            </button>
+          )}
+        </div>
         </>
       ) : null}
     </article>

@@ -3,7 +3,9 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import { Button, RoundButton } from "@/components/paper-atlas";
+import { EntryToggle, type EntryRider } from "@/components/entry";
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
+import { BesideProvider } from "@/components/multiplayer/beside";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelResult } from "@/lib/hotels/types";
@@ -148,7 +150,7 @@ function OptionList({
               {priceText(price, currency)}
             </span>
             <span className="ts-desc">{row.description}</span>
-            <Timeline legs={row.legs} />
+            <Timeline legs={row.legs} clock={row.clock} />
           </button>
         );
       })}
@@ -213,11 +215,13 @@ export interface TicketSearchProps {
   collapsed?: boolean;
   onCollapse?: () => void;
   onExpand?: () => void;
+  /** Who's travelling, for the passport button's entry rules beside the card. Without it there's no button. */
+  riders?: EntryRider[];
 }
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand,
+  trip, globe, currency, rates, onAdd, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand, riders,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -331,6 +335,8 @@ export function TicketSearch({
       onClick={collapsed ? onExpand : onCollapse}
     />
     <div ref={root} data-globe-follow className="ts-anchor pa-cast" style={{ "--alt": 0.8, visibility: "hidden" } as CSSProperties} hidden={collapsed}>
+      {/* panels open beside the card, not in it: the riders' entry rules */}
+      <BesideProvider>
       <section ref={card} className="ts" aria-label={`Trip from ${ends.from.name} to ${ends.to.name}`}>
         <div className="ts-top">
           <div className="ts-topbar">
@@ -340,12 +346,14 @@ export function TicketSearch({
                 <span>
                   Leg {step.index + 1} of {step.count}
                 </span>
-                {step.onBack ? (
-                  <button type="button" className="ts-oneway" onClick={step.onBack}>
-                    Back
-                  </button>
-                ) : null}
               </div>
+            ) : null}
+            {riders ? (
+              <EntryToggle
+                id={`${trip.origin.lat},${trip.origin.lng}-${trip.destination.lat},${trip.destination.lng}`}
+                leg={{ fromCountry: ends.from.country ?? undefined, toCountry: ends.to.country ?? undefined, fromHub: ends.from.code ?? undefined, toHub: ends.to.code ?? undefined }}
+                riders={riders}
+              />
             ) : null}
             {onCollapse ? (
               <RoundButton
@@ -380,6 +388,8 @@ export function TicketSearch({
                 value={returnDate}
                 open={openField === "return"}
                 onToggle={() => setOpenField((f) => (f === "return" ? null : "return"))}
+                onClear={oneWay}
+                clearLabel="Keep one way"
               />
             ) : null}
           </div>
@@ -387,16 +397,13 @@ export function TicketSearch({
           {openField ? (
             <>
               <DayStrip
+                key={openField}
                 start={openField === "return" ? addDays(depart, 1) : firstDay}
                 value={openField === "return" ? returnDate : depart}
+                from={openField === "return" ? depart : undefined}
                 label={openField === "depart" ? "Departure date" : "Return date"}
                 onPick={pickDay}
               />
-              {openField === "return" && returnDate ? (
-                <button type="button" className="ts-oneway" onClick={oneWay}>
-                  Keep one way
-                </button>
-              ) : null}
             </>
           ) : null}
         </div>
@@ -480,14 +487,7 @@ export function TicketSearch({
               rates={rates}
               onPick={setBackSelected}
               onRetry={back.retry}
-              empty={
-                <>
-                  No routes back found.{" "}
-                  <button type="button" className="ts-oneway" onClick={oneWay}>
-                    Keep one way
-                  </button>
-                </>
-              }
+              empty="No routes back found. Clear the return date to keep it one way."
             />
           ) : (
             <OptionList
@@ -512,6 +512,13 @@ export function TicketSearch({
 
           {checkout ?? (
             <>
+            {/* the leg before goes at the bottom left, across from the step forward */}
+            <div className="ts-actions">
+            {step?.onBack ? (
+              <Button variant="secondary" className="ts-prev" onClick={step.onBack}>
+                Previous leg
+              </Button>
+            ) : null}
             <Button
               block
               className="ts-save"
@@ -549,6 +556,7 @@ export function TicketSearch({
                             ? SAVE_LABEL[choice.offer.mode]
                             : "Save trip"}
             </Button>
+            </div>
             {onBook && !next && (canBook || (choice && isBookable(choice.offer))) ? (
               <Button
                 variant="secondary"
@@ -580,7 +588,7 @@ export function TicketSearch({
             {savedHref && !saving ? (
               <p className="ts-empty" role="status">
                 Saved to your trips ·{" "}
-                <a href={savedHref} className="underline underline-offset-2">
+                <a href={savedHref} className="ts-oneway">
                   Open
                 </a>
               </p>
@@ -589,6 +597,7 @@ export function TicketSearch({
           )}
         </div>
       </section>
+      </BesideProvider>
     </div>
     </>
   );

@@ -15,17 +15,17 @@ type Side = { slot: HTMLElement | null; open: string | null; setOpen: (key: stri
 const SideContext = createContext<Side>({ slot: null, open: null, setOpen: () => {} });
 
 /**
- * Wraps the plan card: `.tp-wrap`, the positioned box the panels sit against, with a slot they render into. Opening a
- * panel closes whichever was open. The bill's open state is the caller's (`bill`), so it lasts while the card is
- * minimised to its dock and back.
+ * Wraps a card (the plan, or the home fare card): `.tp-wrap`, the positioned box the panels sit against, with a slot
+ * they render into. Opening a panel closes whichever was open. The plan's bill keeps its open state with the caller
+ * (`bill`), so it lasts while the card is minimised to its dock and back.
  */
-export function BesideProvider({ bill, children }: { bill: { open: boolean; set: (open: boolean) => void }; children: ReactNode }) {
+export function BesideProvider({ bill, children }: { bill?: { open: boolean; set: (open: boolean) => void }; children: ReactNode }) {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const [other, setOther] = useState<string | null>(null);
-  const open = bill.open ? "bill" : other;
+  const open = bill?.open ? "bill" : other;
   const setOpen = (key: string | null) => {
-    bill.set(key === "bill");
-    setOther(key === "bill" ? null : key);
+    bill?.set(key === "bill");
+    setOther(key === "bill" && bill ? null : key);
   };
   return (
     <SideContext.Provider value={{ slot, open, setOpen }}>
@@ -96,10 +96,15 @@ export function BesidePanel({
   useEffect(() => {
     const away = (event: PointerEvent) => {
       const target = event.target as Node;
+      // a drop-down opened from inside the panel lists its options in a layer over the page: picking one isn't leaving
+      if ((target as Element).closest?.(".pa-select-list")) return;
       if (!stays && !card.current?.contains(target) && !trigger.current?.contains(target)) closeRef.current();
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      // something inside it (an open drop-down) already took this Escape
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      // and the card it sits beside doesn't take it too
+      event.preventDefault();
       closeRef.current();
       trigger.current?.focus();
     };

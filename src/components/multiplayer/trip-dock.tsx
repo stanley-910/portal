@@ -12,14 +12,14 @@ import { useMemberColor, usePlanLegs } from "@/lib/trip/plan";
 // where the trip runs, how many legs and when, with your share on the bill's button and one to expand the plan again.
 // It can be dragged anywhere and stays there; the bill opens down from under it.
 
-const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-/** "17–23 Oct", "30 Sep – 2 Oct", or one day. */
+const DAY = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", timeZone: "UTC" });
+/** "Oct 17–23", "Sep 30 – Oct 2", or one day: month first. */
 function span(first: string, last: string) {
-  const a = DAY.formatToParts(new Date(`${first}T00:00:00Z`));
-  const b = DAY.format(new Date(`${last}T00:00:00Z`));
-  if (first === last) return b;
+  const a = DAY.format(new Date(`${first}T00:00:00Z`));
+  const b = DAY.formatToParts(new Date(`${last}T00:00:00Z`));
+  if (first === last) return a;
   const month = (parts: Intl.DateTimeFormatPart[]) => parts.find((p) => p.type === "month")?.value;
-  return month(a) === month(DAY.formatToParts(new Date(`${last}T00:00:00Z`))) ? `${a.find((p) => p.type === "day")?.value}–${b}` : `${DAY.format(new Date(`${first}T00:00:00Z`))} – ${b}`;
+  return month(DAY.formatToParts(new Date(`${first}T00:00:00Z`))) === month(b) ? `${a}–${b.find((p) => p.type === "day")?.value}` : `${a} – ${DAY.format(new Date(`${last}T00:00:00Z`))}`;
 }
 
 /** Keep at least this far from the screen's edges. */

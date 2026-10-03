@@ -75,7 +75,8 @@ export function handlesFor(plan: PlanJson, prev?: Handles): Handles {
   return h;
 }
 
-const DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+// month first, as the app prints dates: "Sat, Oct 17"
+const DAY = new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 export const showDate = (iso: string) => DAY.format(new Date(`${iso}T00:00:00Z`));
 
 export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy: string | null): string {

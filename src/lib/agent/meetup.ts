@@ -107,7 +107,7 @@ export function shortlist(q: MeetupQuery, all: readonly City[] = bigCities()): S
 
 // Fixed rates to compare fares across currencies. Ranking and the "≈ total" only; each leg keeps its own price.
 const USD: Record<string, number> = {
-  USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08,
+  USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08, CAD: 0.73,
 };
 const toUsd = (p: Money | null) => (p && USD[p.currency.toUpperCase()] !== undefined ? p.amount * USD[p.currency.toUpperCase()] : null);
 

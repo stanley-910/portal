@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { HomePip, type HomePipHandle } from "@/components/agent/home-pip";
 import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
+import { TripLibrary } from "@/components/library/trip-library";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
 import { SoloCheckout } from "@/components/ticket-search/solo-checkout";
@@ -19,10 +20,12 @@ import { isBookable } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
 import { stopFromPoint } from "@/lib/trip/stops";
 import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
+import { DeleteTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 
 import { createTrip } from "./t/actions";
 import { saveSoloTrip } from "./t/save-actions";
 import { useBookAfterSave } from "./use-book-after-save";
+import { useLibrary } from "./use-library";
 
 /** A local Date as YYYY-MM-DD. */
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -47,7 +50,7 @@ const stopPins = (landed: { destination: LatLng }[], color: number | null, keys:
     return { key: keys.get(place) ?? `you:${place}`, stop: `stop:${i}`, at: leg.destination, color };
   });
 
-export function GlobeScreen({ person }: { person: Person | null }) {
+export function GlobeScreen({ person, openTrips = false }: { person: Person | null; openTrips?: boolean }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const cursorPref = useCursorPref();
@@ -75,22 +78,47 @@ export function GlobeScreen({ person }: { person: Person | null }) {
   const pinKeys = useRef(new Map<string, string>());
   // the way back, once picked, draws home like a saved leg, and your pin drops at home
   const color = cursorPref.color;
+  // dates for the legs Pip just put on the globe, or for the trip as it was when a stop is dragged, applied when the
+  // globe reports them landed; while set, the trip is being rebuilt and its pins stay
+  const pipDates = useRef<string[] | null>(null);
+  // My Trips: the library sidebar (accounts only), its trips once loaded, the one picked, and what it draws
+  const library = useLibrary(person?.account ?? false, openTrips);
+  // leaving or deleting the trip picked in the library, behind its confirm
+  const [tripAction, setTripAction] = useState<{ kind: "leave" | "delete"; id: string } | null>(null);
+  // `?trips` has done its job once the library is open; drop it so a reload doesn't open it again
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("trips")) return;
+    url.searchParams.delete("trips");
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
+  // the library draws only while a trip is picked in it, so letting go hands the globe back the same render
+  const showingLibrary = !!library.selected && (library.overlay.flights.length > 0 || library.overlay.pins.length > 0);
+  // One owner for the globe's flights and pins: a trip picked in the library while it's out, else the trip being
+  // planned here, so the two never draw over each other.
   useEffect(() => {
     const g = globe.current;
-    if (!g || !legs) return;
+    if (!g) return;
+    if (showingLibrary) {
+      g.setRemoteFlights(library.overlay.flights);
+      g.setPins(library.overlay.pins);
+      return () => g.setRemoteFlights([]);
+    }
+    if (!legs) {
+      // the library let go with nothing planned here: clear what it drew (a trip Pip is rebuilding keeps its pins)
+      if (!pipDates.current) g.setPins([]);
+      return;
+    }
     const home = legs[0].origin;
     g.setRemoteFlights(goesHome ? [{ id: "you:back", origin: legs.at(-1)!.destination, at: home, ahead: home, landed: true, color }] : []);
     const pins = stopPins(legs, color, pinKeys.current);
     g.setPins(goesHome ? [...pins, { key: "you:back", stop: "stop:home", at: home, color }] : pins);
     return () => g.setRemoteFlights([]);
-  }, [legs, goesHome, color]);
+  }, [legs, goesHome, color, showingLibrary, library.overlay]);
   // Save trip keeps the trip in your account and stays on the globe. Guests sign in first, and the save carries on after.
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
   const [saved, setSaved] = useState<{ id: string; offer: string | null } | null>(null);
-  // dates for the legs Pip just put on the globe, or for the trip as it was when a stop is dragged, applied when the
-  // globe reports them landed; while set, the trip is being rebuilt and its pins stay
-  const pipDates = useRef<string[] | null>(null);
   /** Moves stop `i` (where leg `i` ends) to where its pin was dropped: the trip lands again there, keeping its dates. */
   const moveStop = (i: number, place: PinDrop): string | null => {
     if (!legs) return "The trip has gone.";
@@ -162,10 +190,13 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
       onTakeoff={() => {
         setLegs(null);
+        // planning a new trip lets go of the one picked in the library
+        library.select(null);
         // Pip rebuilding the trip keeps the pins it doesn't move
         if (!pipDates.current) globe.current?.setPins([]);
       }}
       onLand={(flown) => {
+        library.select(null);
         // a trip Pip planned lands like a flown one, then takes Pip's dates
         const dates = pipDates.current;
         pipDates.current = null;
@@ -208,9 +239,13 @@ export function GlobeScreen({ person }: { person: Person | null }) {
       account={person?.account ?? false}
       nationalities={person?.nationalities}
       color={person?.color}
+      onTrips={() => library.setOpen(true)}
       settings={<CurrencySetting currency={currency} rates={rates} error={rateError} onChange={setCurrencyPref} />}
     >
       <PlaceSearch globe={globe} />
+      {account ? (
+        <NavButton icon={NAV_ICONS.trips} label="Trips" aria-expanded={library.open} onClick={() => library.setOpen(!library.open)} />
+      ) : null}
       <form
         action={createTrip}
         onSubmit={(e) => {
@@ -284,7 +319,39 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         collapsed={collapsed}
         onCollapse={() => setCollapsed(true)}
         onExpand={() => setCollapsed(false)}
+        riders={[{ id: "you", name: "You", passport: person?.nationalities?.[0] ?? null, passports: person?.nationalities?.slice(1), onwardCountry: legs?.[active + 1]?.to?.country ?? null }]}
       />
+    ) : null}
+    {account ? (
+      <TripLibrary
+        trips={library.trips}
+        error={library.error}
+        userId={library.userId ?? person?.id ?? ""}
+        today={isoDay(new Date())}
+        open={library.open}
+        onOpenChange={library.setOpen}
+        selected={library.selected}
+        onSelect={library.select}
+        onRename={library.rename}
+        hrefFor={(id) => `/t/${id}`}
+        onLeave={(id) => setTripAction({ kind: "leave", id })}
+        onDelete={(id) => setTripAction({ kind: "delete", id })}
+        currency={currency}
+        rates={rates}
+        draw={library.setOverlay}
+        globe={globe}
+      />
+    ) : null}
+    {tripAction?.kind === "leave" ? (
+      <LeaveTripDialog tripId={tripAction.id} next={() => {
+        library.remove(tripAction.id);
+        setTripAction(null);
+      }} onClose={() => setTripAction(null)} />
+    ) : tripAction?.kind === "delete" ? (
+      <DeleteTripDialog tripId={tripAction.id} next={() => {
+        library.remove(tripAction.id);
+        setTripAction(null);
+      }} onClose={() => setTripAction(null)} />
     ) : null}
     <HomePip
       globe={globe}

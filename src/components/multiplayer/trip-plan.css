@@ -13,17 +13,13 @@
 .tp-beside[data-side="right"] { left: calc(100% + var(--space-3)); }
 .tp-beside[data-side="left"] { right: calc(100% + var(--space-3)); }
 .tp-beside > .hs { padding: 10px; border-top: 0; }
-/* a thin scrollbar in the card's own ink, only as wide as it needs */
-.tp, .tp-beside { scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
-.tp::-webkit-scrollbar, .tp-beside::-webkit-scrollbar { width: 6px; }
-.tp::-webkit-scrollbar-thumb, .tp-beside::-webkit-scrollbar-thumb { background: var(--control-border); border-radius: var(--radius-round); }
-.tp::-webkit-scrollbar-track, .tp-beside::-webkit-scrollbar-track { background: transparent; }
 /* A leg folds to its route and one line of what's settled; the whole head opens it */
 .ts .tp-leg-head { display: grid; gap: 4px; width: calc(100% + 8px); margin: -4px; padding: 4px; text-align: left; background: none; border: 0; border-radius: var(--radius-control); }
 .ts .tp-leg-head:hover { background: var(--control-hover); }
-.tp-leg-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; }
-.tp-leg-summary svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
-.tp-leg-head[aria-expanded="true"] .tp-leg-summary > span { visibility: hidden; }
+.tp-leg-summary { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 0 2px; overflow: hidden; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; white-space: nowrap; text-overflow: ellipsis; }
+/* the fold chevron sits under the route's middle, where the solo card prints the distance */
+.tp-leg-chevron { display: block; margin: 0 auto; color: var(--ink-muted); fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.tp-leg-head:hover .tp-leg-chevron { color: var(--ink); }
 .tp-bar { padding: 8px 12px 0; }
 /* "Your trip" heads the card like "Your share" heads the bill, with Minimise beside it */
 .tp-head { margin-bottom: 0; padding: 0 12px 0 0; border-bottom: var(--line-control) solid var(--line); }
@@ -35,7 +31,17 @@
 .tp-total { padding: 10px 12px; border-bottom: var(--line-control) solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600; }
 .tp-hint { margin: 0; }
 .tp-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.tp-edit-row > .ts-oneway { flex: none; margin-left: auto; white-space: nowrap; }
+
+/* A leg's actions, one row: quiet compact buttons, an icon and a word each, evenly spaced; removing sits apart at the end */
+.tp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 2px; padding-top: 8px; border-top: var(--line-hair) solid var(--line); }
+.ts .tp-action { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-tag); background: transparent; color: var(--ink); font-size: 12px; line-height: 16px; font-weight: 600; white-space: nowrap; --px-surface: var(--paper-raised); }
+.ts .tp-action::before { content: ""; position: absolute; inset: -8px 0; }
+.ts .tp-action:hover, .ts .tp-action[aria-expanded="true"] { background: var(--control-hover); --px-surface: var(--control-hover); }
+.tp-action .ts-glyph { color: var(--ink-muted); }
+.tp-action-icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.ts .tp-action-end { margin-left: auto; color: var(--ink-muted); }
+.ts .tp-action-end:hover { color: var(--ink); }
+.tp-stay-card .tp-action { margin-right: -4px; color: var(--ink-muted); }
 .tp-stay { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; }
 .tp-refused { margin: 0; padding: 6px 8px; border-radius: var(--radius-tag); background: var(--control-hover); font-size: 11.5px; line-height: 15px; }
 
@@ -44,6 +50,8 @@
 .tp-rider-list { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .ts .tp-rider { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 2px solid; border-radius: var(--radius-round); background: var(--paper-raised); font-size: 11px; line-height: 1; font-weight: 600; }
 .tp-rider[aria-pressed="false"] { opacity: 0.4; }
+/* a member of the trip who isn't in the room now: their colour as a dashed ring */
+.tp-rider[data-away] { border-style: dashed; }
 /* the field grows to fit its discs; more riders than fit scroll sideways rather than squeeze */
 .ts .tp-riders { height: auto; min-height: 40px; min-width: 0; }
 /* the date takes only its width so the riders get the rest */
@@ -76,7 +84,8 @@
 /* Booking a leg: who has paid, what's owed, and the one thing you can do next */
 .tp-book-row { display: grid; gap: 6px; }
 .tp-book { display: grid; gap: 6px; padding: 8px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper-raised); }
-.tp-book-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 600; }
+/* the title and what it's at share a line and a size, so the header weighs what the buttons under the form do */
+.tp-book-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 0 4px; font-size: 13px; line-height: 16px; font-weight: 600; }
 .tp-book-head span:last-child { color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
 .tp-book-ref { margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; }
 .tp-seats { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
@@ -87,11 +96,14 @@
 .tp-notice { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0; padding: 6px 8px; border-radius: var(--radius-tag); background: var(--control-hover); font-size: 11.5px; line-height: 15px; }
 .tp-notice-actions { display: inline-flex; gap: 10px; white-space: nowrap; }
 .tp-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.tp-form label { display: grid; gap: 2px; min-width: 0; font-size: 10.5px; line-height: 13px; color: var(--ink-muted); }
-.tp-form label[data-wide] { grid-column: 1 / -1; }
+.tp-form label, .tp-form-field { display: grid; gap: 2px; min-width: 0; font-size: 10.5px; line-height: 13px; color: var(--ink-muted); }
+.tp-form label[data-wide], .tp-form-field[data-wide] { grid-column: 1 / -1; }
 .tp-form input, .tp-form select { min-height: 30px; min-width: 0; padding: 3px 6px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; font-size: 12.5px; }
+/* typing in a field fills it, as every text field does */
+.tp-form input:focus { background: var(--control-hover); }
 .tp-form [aria-invalid="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.tp-form-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Cancel and the step forward together at the end, the same height, so neither floats on its own */
+.tp-form-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 
 /* Rider pins: the globe draws a pin per rider at each stop; this is the unseen target over a stop's pins, which
    names their riders on a tag-style label while pointed at. */
@@ -137,13 +149,16 @@
 .tp-dock-rule { align-self: stretch; width: var(--line-hair); margin: 5px 0 5px 2px; background: var(--control-border); }
 .tp-dock-btn { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 6px; color: var(--ink); background: transparent; border: 0; border-radius: var(--radius-tag); font: inherit; cursor: pointer; }
 .tp-dock-btn:hover { background: var(--control-hover); }
+/* a pixel glyph's cut-outs show the button's own fill, hovered or not */
+.tp-dock-btn { --px-surface: var(--paper-raised); }
+.tp-dock-btn:hover, .tp-dock-btn[aria-expanded="true"] { --px-surface: var(--control-hover); }
 /* pressed while its panel is open: a flat fill, as on hover (`.ts button` would otherwise repaint its glyph) */
 .tp-dock-btn[aria-expanded="true"], .ts .tp-dock-btn[aria-expanded="true"] { background: var(--control-hover); color: var(--ink); }
 .tp-dock-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-.tp-dock-btn svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5px; stroke-linecap: round; stroke-linejoin: round; }
+.tp-dock-btn svg:not(.pa-px-icon) { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5px; stroke-linecap: round; stroke-linejoin: round; }
 @media (prefers-reduced-motion: reduce) {
   .tp-dock-live { animation: none; }
   .tp-dock-bar, .tp-dock-bar:hover, .tp-dock-bar[data-dragging] { transition: none; transform: none; }
 }
-.tp-dock-bill { max-height: calc(100dvh - var(--dock-top) - 80px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+.tp-dock-bill { max-height: calc(100dvh - var(--dock-top) - 80px); overflow-y: auto; }
 .tp-dock-bill .tsp { border-bottom: 0; }

@@ -2,7 +2,7 @@
 
 import { useImperativeHandle, useMemo, useRef, useState, type Ref, type RefObject } from "react";
 
-import { CardActionsContext, Composer, Launcher, PipClose, ThreadLog, type CardActions, type Members } from "@/components/agent/agent-chat";
+import { CardActionsContext, Composer, Launcher, PipClose, Suggestions, ThreadLog, useComposer, type CardActions, type Members } from "@/components/agent/agent-chat";
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { pipPlace } from "@/components/agent/pip-arrival";
 import { PipSaucer, type PipSaucerHandle } from "@/components/agent/pip-saucer";
@@ -69,6 +69,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
     },
   }));
 
+  const composer = useComposer(ask);
   const actions = useMemo<CardActions>(() => ({ apply, applyLabel: "Go with this" }), [apply]);
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming ? (streaming.text ? "talk" : "think") : "idle";
@@ -99,7 +100,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
           <PipClose onClick={() => setOpen(false)} />
         </header>
         <CardActionsContext value={actions}>
-          <ThreadLog thread={thread} me={ME} members={MEMBERS} activity={activity}>
+          <ThreadLog thread={thread} me={ME} members={MEMBERS} activity={activity} footer={<Suggestions composer={composer} chips={chips} />}>
             <div className="pip-msg-agent">
               <div className="pip-msg-agent-body">
                 <span className="pip-label">{AGENT_NAME}</span>
@@ -108,7 +109,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
             </div>
           </ThreadLog>
         </CardActionsContext>
-        <Composer chips={chips} send={ask} placeholder={`Tell ${AGENT_NAME} where you're going`} />
+        <Composer composer={composer} placeholder={`Tell ${AGENT_NAME} where you're going`} />
       </section>
     </>
   );

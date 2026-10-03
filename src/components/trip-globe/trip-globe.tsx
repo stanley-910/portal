@@ -79,8 +79,11 @@ export interface TripGlobeProps {
   onLand?: (legs: LandedTrip[]) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
-  /** Called on a click on the landed trip's route. That click neither takes off nor cancels. */
-  onRouteClick?: () => void;
+  /**
+   * Called on a click on a landed route: this viewer's trip (no `id`) or a stored leg (`id` is its remote flight's,
+   * `leg:<id>`). That click neither takes off nor cancels.
+   */
+  onRouteClick?: (id?: string) => void;
   /**
    * Called when the place under the pointer changes, including when the globe turns under a still pointer.
    * Null once the pointer leaves the globe. Rounded to about 10 m.
@@ -212,7 +215,7 @@ export function TripGlobe({
         setLanded(null);
         handlers.current.onCancel?.();
       },
-      onRouteClick: () => handlers.current.onRouteClick?.(),
+      onRouteClick: (id) => handlers.current.onRouteClick?.(id),
       onFollowEnd: () => followEnd.current?.(),
       // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
       // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that

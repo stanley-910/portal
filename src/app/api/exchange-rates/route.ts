@@ -1,4 +1,4 @@
-const TARGET_CURRENCIES = ["USD", "EUR", "CNY", "HKD"] as const;
+const TARGET_CURRENCIES = ["USD", "EUR", "CNY", "HKD", "CAD"] as const;
 const headers = { "Cache-Control": "no-store" };
 
 interface FrankfurterResponse {

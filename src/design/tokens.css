@@ -25,6 +25,7 @@
   --pip-shade: #8fad73;
   --pip-cheek: #dbe6c4;
   --pip-dither: rgba(40, 48, 32, 0.12);
+  --alert: #e04b3c;
   --member-1: #ec8a6c;
   --member-2: #9cb2ea;
   --member-3: #edc157;
@@ -122,6 +123,7 @@
   --color-pip-shade: var(--pip-shade);
   --color-pip-cheek: var(--pip-cheek);
   --color-pip-dither: var(--pip-dither);
+  --color-alert: var(--alert);
   --color-member-1: var(--member-1);
   --color-member-2: var(--member-2);
   --color-member-3: var(--member-3);

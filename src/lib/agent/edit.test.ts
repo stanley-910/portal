@@ -168,9 +168,9 @@ describe("editPlan, dates", () => {
     expect(dates()).toEqual({ a: "2026-10-10", c: "2026-10-10" });
     expect(json().ends).toBe("2026-10-10");
     expect(result.applied).toEqual([
-      "Moved Hong Kong → Taichung (Qingshui) to Sat 10 Oct",
-      "Moved Taichung (Qingshui) → Bintulu to Sat 10 Oct so it still comes after Hong Kong → Taichung (Qingshui)",
-      "Trip now ends the morning of Sat 10 Oct, the day of its last leg",
+      "Moved Hong Kong → Taichung (Qingshui) to Sat, Oct 10",
+      "Moved Taichung (Qingshui) → Bintulu to Sat, Oct 10 so it still comes after Hong Kong → Taichung (Qingshui)",
+      "Trip now ends the morning of Sat, Oct 10, the day of its last leg",
     ]);
     // one Undo puts all three back
     await undoChangeset("room", result.changesetId!);
@@ -181,7 +181,7 @@ describe("editPlan, dates", () => {
   it("won't move a leg before the leg that gets its riders there", async () => {
     const result = await editPlan("room", dated, handlesFor(dated), [{ op: "set_date", leg: "L2", date: "2026-10-01" }], "agent:pip");
     expect(dates()).toEqual({ a: "2026-10-04", c: "2026-10-04" });
-    expect(result.applied).toEqual(["Moved Taichung (Qingshui) → Bintulu to Sun 4 Oct, the earliest after Hong Kong → Taichung (Qingshui)"]);
+    expect(result.applied).toEqual(["Moved Taichung (Qingshui) → Bintulu to Sun, Oct 4, the earliest after Hong Kong → Taichung (Qingshui)"]);
   });
 
   it("refuses a move that would push a leg being booked", async () => {
@@ -195,7 +195,7 @@ describe("editPlan, dates", () => {
   it("keeps a leave date after the member's first leg", async () => {
     const result = await editPlan("room", dated, handlesFor(dated), [{ op: "set_leaves", member: "M1", date: "2026-10-01" }], "agent:pip");
     expect(json().members?.u1?.leaves).toBe("2026-10-04");
-    expect(result.applied).toEqual(["Stanley leaves on Sun 4 Oct, the day of their first leg"]);
+    expect(result.applied).toEqual(["Stanley leaves on Sun, Oct 4, the day of their first leg"]);
   });
 });
 
@@ -212,7 +212,7 @@ describe("editPlan, stays", () => {
     ], "agent:pip");
     const stays = Object.values(json().stays ?? {});
     expect(stays).toMatchObject([{ stop: "tc", checkIn: "2026-10-04", checkOut: "2026-10-07", guests: ["u2"], nightly: { amount: 900, currency: "TWD" }, label: "Flat", estimated: false }]);
-    expect(result.applied).toEqual(["Added a stay in Taichung (Qingshui) (Flat): Sun 4 Oct to Wed 7 Oct for Mei, TWD 900 a night"]);
+    expect(result.applied).toEqual(["Added a stay in Taichung (Qingshui) (Flat): Sun, Oct 4 to Wed, Oct 7 for Mei, TWD 900 a night"]);
   });
 
   it("changes a stay by its handle, removes it, and Undo puts it back", async () => {

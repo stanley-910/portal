@@ -4,6 +4,7 @@ import { useSelf } from "@liveblocks/react";
 import { forwardRef, useRef } from "react";
 
 import { BesidePanel, useBeside } from "@/components/multiplayer/beside";
+import { PixelIcon } from "@/components/paper-atlas";
 import { TripSplit } from "@/components/multiplayer/trip-split";
 import { formatMoney, sumIn, type Currency, type ExchangeRates } from "@/lib/currency";
 import { useCurrencyPref } from "@/lib/currency-pref";
@@ -49,6 +50,23 @@ export function BillContent() {
 }
 
 /** The bill's button: a receipt, pressed while the bill is open. */
+// The bill in Pip's pixels, like the passport beside each leg: a solid slip with its lines cut out and a torn foot.
+const RECEIPT = [
+  "###########",
+  "###########",
+  "##ooooooo##",
+  "###########",
+  "##ooooooo##",
+  "###########",
+  "##oooo#####",
+  "###########",
+  "#####ooo###",
+  "###########",
+  "###########",
+  "## ## ## ##",
+  "#  #  #  # ",
+];
+
 export const BillButton = forwardRef<HTMLButtonElement, { open: boolean; onToggle: () => void; controls: string }>(function BillButton(
   { open, onToggle, controls },
   ref,
@@ -64,10 +82,7 @@ export const BillButton = forwardRef<HTMLButtonElement, { open: boolean; onToggl
       aria-controls={controls}
       onClick={onToggle}
     >
-      <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-        <path d="M3.5 1.5h9v13l-1.5-1-1.5 1-1.5-1-1.5 1-1.5-1-1.5 1z" />
-        <path d="M6 5h4M6 8h4M6 11h2" />
-      </svg>
+<PixelIcon rows={RECEIPT} />
     </button>
   );
 });

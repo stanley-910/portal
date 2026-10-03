@@ -1,9 +1,14 @@
 import type { CSSProperties } from "react";
 
-import { entry, isBlocking, needsDocument, type EntryKind, type EntryMember, type EntryRule, type LegEntryInput, type MemberLegEntry } from "@/lib/entry";
+import { PixelIcon } from "@/components/paper-atlas";
+import { PixelFlag } from "@/components/ticket-search/pixel-flag";
+import { entry, hubCountry, isBlocking, needsDocument, type EntryKind, type EntryMember, type EntryRule, type LegEntryInput, type MemberLegEntry } from "@/lib/entry";
+import { iso2, iso3 } from "@/lib/entry/iso";
+import { countryName } from "@/lib/nationality";
 import { cn } from "@/lib/utils";
 
-import { PassportMark } from "./passport-mark";
+// What each rider needs to get into a leg's destination, at a glance: their passport's flag, a chip, and at most one
+// line under it. Opened beside a trip card from its passport button (EntryButton).
 
 const KIND_LABEL: Record<EntryKind, string> = {
   visa_free: "Visa free",
@@ -17,148 +22,151 @@ const KIND_LABEL: Record<EntryKind, string> = {
   unknown: "No data",
 };
 
-/** "2 Oct 2026" */
-const formatDay = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+/** "Oct 2" */
+const formatDay = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: "UTC" });
 
-const chipText = (rule: EntryRule) =>
-  rule.allowedDays ? `${KIND_LABEL[rule.kind]} · ${rule.allowedDays} days` : KIND_LABEL[rule.kind];
+const chipText = (rule: EntryRule) => (rule.allowedDays ? `${KIND_LABEL[rule.kind]} · ${rule.allowedDays} days` : KIND_LABEL[rule.kind]);
 
-/** Where the rule came from and how old it is. Every rule says "check official sources", however it was sourced. */
-function provenance(rule: EntryRule): string {
-  const parts: string[] = [];
-  if (rule.verifiedAt) parts.push(`Verified ${formatDay(rule.verifiedAt)}`);
-  else if (rule.datasetSnapshot) parts.push(`Dataset ${formatDay(rule.datasetSnapshot)}`);
-  if (rule.sourceUpdatedAt) parts.push(`GOV.UK updated ${formatDay(rule.sourceUpdatedAt)}`);
-  parts.push("Check official sources");
-  return parts.join(" · ");
+/**
+ * A rider, with whichever passports they've told us about (without one there's nothing to look up), and where they go
+ * after this leg's destination, which can let them in on a transit exemption.
+ */
+export type EntryRider = Omit<EntryMember, "passport"> & { passport?: string | null; onwardCountry?: string | null };
+
+/**
+ * The one thing worth knowing beyond the chip, only for a rider who has something to do: the first condition, else a
+ * transit hint, else when the rule ends. Visa free needs no line.
+ */
+function note({ rule, transitOption }: MemberLegEntry): string | null {
+  if (!rule) return null;
+  if (!transitOption && !isBlocking(rule) && !needsDocument(rule.kind)) return null;
+  if (rule.conditions[0]) return rule.conditions[0];
+  if (transitOption) return `${KIND_LABEL.transit_exempt} up to ${transitOption.allowedDays} days with an onward ticket.`;
+  if (rule.until) return `Until ${formatDay(rule.until)}.`;
+  return null;
 }
 
-function EntryChip({ rule }: { rule: EntryRule | null }) {
-  if (!rule) return <span className="type-tag text-ink-muted">Home</span>;
-  // Anything the member must act on is printed solid, so a member who differs from the party stands out.
+function Chip({ rule }: { rule: EntryRule | null }) {
+  if (!rule) return <span className="en-chip" data-tone="none">No border</span>;
+  // anything the rider must act on prints solid, so whoever differs from the party stands out
   const act = isBlocking(rule) || needsDocument(rule.kind);
   return (
-    <span
-      className={cn(
-        "type-tag inline-flex h-7 items-center rounded-tag border border-ink px-2",
-        act ? "bg-ink text-paper-raised" : "bg-paper-raised text-ink",
-        rule.kind === "unknown" && "border-dashed text-ink-muted",
-      )}
-    >
+    <span className="en-chip" data-tone={rule.kind === "unknown" ? "unknown" : act ? "act" : "ok"}>
       {chipText(rule)}
     </span>
   );
 }
 
-function EstimatedBadge() {
-  return <span className="type-meta rounded-tag border border-dashed border-ink px-1 text-ink-muted">Estimated</span>;
-}
-
-function LinkList({ rule }: { rule: EntryRule }) {
-  const source = rule.links.filter((l) => l.role === "source");
-  const apply = rule.links.find((l) => l.role === "apply");
-  const info = rule.links.filter((l) => l.role === "info" || l.role === "embassy");
-  const items = [
-    ...source.map((l) => ({ ...l, prefix: "Source" })),
-    ...(apply && needsDocument(rule.kind) ? [{ ...apply, prefix: "How to apply" }] : []),
-    ...info.map((l) => ({ ...l, prefix: "More" })),
-  ];
-  if (!items.length) return null;
+function Row(r: MemberLegEntry) {
+  const { member, passport, rule } = r;
+  const line = note(r);
+  const apply = rule && needsDocument(rule.kind) ? rule.links.find((l) => l.role === "apply") : undefined;
+  const also = [member.passport, ...(member.passports ?? [])].filter((p) => p !== passport).map(countryName);
   return (
-    <ul className="flex flex-col gap-(--space-1)">
-      {items.map((l) => (
-        <li key={l.url} className="type-meta">
-          <span className="text-ink-muted">{l.prefix}: </span>
-          <a
-            href={l.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus"
-          >
-            {l.label}
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function MemberRow({ member, passport, rule, transitOption }: MemberLegEntry) {
-  const body = rule ? (
-    <div className="flex flex-col gap-(--space-2) pt-(--space-2) pb-(--space-1)">
-      {rule.conditions.length ? (
-        <ul className="type-meta flex list-disc flex-col gap-(--space-1) pl-4 text-ink">
-          {rule.conditions.map((c) => (
-            <li key={c}>{c}</li>
-          ))}
-        </ul>
-      ) : null}
-      {rule.until ? <p className="type-meta text-ink">Until {formatDay(rule.until)}</p> : null}
-      {transitOption ? (
-        <p className="type-meta text-ink">
-          {KIND_LABEL.transit_exempt} for up to {transitOption.allowedDays} days with an onward ticket to a third country.
+    <li className="en-row">
+      <div className="en-head">
+        <PixelFlag country={iso2(passport) ?? passport} />
+        <span className="en-name" title={also.length ? `${countryName(passport)} passport (also holds ${also.join(", ")})` : `${countryName(passport)} passport`}>
+          {member.name}
+        </span>
+        {rule?.freshness === "estimated" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+        <Chip rule={rule} />
+      </div>
+      {line || apply ? (
+        <p className="en-note">
+          {line}
+          {apply ? (
+            <>
+              {line ? " " : null}
+              <a href={apply.url} target="_blank" rel="noopener noreferrer">
+                How to apply
+              </a>
+            </>
+          ) : null}
         </p>
       ) : null}
-      <LinkList rule={rule} />
-      {transitOption ? <LinkList rule={transitOption} /> : null}
-      <p className="type-meta text-ink-muted">{provenance(rule)}</p>
-    </div>
-  ) : null;
-
-  const summary = (
-    <span className="flex min-h-11 items-center justify-between gap-(--space-3)">
-      <span className="flex min-w-0 items-center gap-(--space-2)">
-        <PassportMark passport={passport} others={[member.passport, ...(member.passports ?? [])]} />
-        <span className="type-body text-ink">{member.name}</span>
-      </span>
-      <span className="flex items-center gap-(--space-2)">
-        {rule && rule.freshness === "estimated" ? <EstimatedBadge /> : null}
-        <EntryChip rule={rule} />
-      </span>
-    </span>
-  );
-
-  if (!body) return <li className="px-(--space-3)">{summary}</li>;
-  return (
-    <li className="px-(--space-3)">
-      <details className="group">
-        <summary className="cursor-pointer list-none rounded-tag focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
-          {summary}
-        </summary>
-        {body}
-      </details>
     </li>
   );
 }
 
 export interface EntryPanelProps {
   leg: LegEntryInput;
-  members: EntryMember[];
+  riders: EntryRider[];
   className?: string;
   style?: CSSProperties;
 }
 
-/** Per-member entry rules for one leg: what each passport needs at the destination, with sources. */
-export function EntryPanel({ leg, members, className, style }: EntryPanelProps) {
-  const rows = entry.getLegEntry(leg, members);
-  if (rows.every((r) => r.rule === null)) return null;
-
-  const destination = rows.find((r) => r.rule)?.rule?.destination;
-  const name = destination ? (entry.destinationName(destination) ?? destination) : undefined;
+/** Each rider's entry rule for one leg, with the sources they came from. */
+export function EntryPanel({ leg, riders, className, style }: EntryPanelProps) {
+  const known = riders.filter((r): r is EntryMember & EntryRider => !!r.passport);
+  const missing = riders.filter((r) => !r.passport);
+  // each rider's own onward stop, so one going on to a third country gets the transit rule and one going home doesn't
+  const rows = known.flatMap((r) => entry.getLegEntry({ ...leg, onwardCountry: r.onwardCountry ?? leg.onwardCountry }, [r]));
+  const destination = rows.find((r) => r.rule)?.rule?.destination ?? iso3(leg.toCountry) ?? (leg.toHub ? hubCountry(leg.toHub) : undefined);
+  const name = destination ? (entry.destinationName(destination) ?? countryName(destination)) : null;
+  // every source once, however many riders it covers
+  const sources = [...new Map(rows.flatMap((r) => r.rule?.links.filter((l) => l.role === "source") ?? []).map((l) => [l.url, l])).values()];
 
   return (
-    <section
-      aria-label={name ? `Entry to ${name}` : "Entry"}
-      className={cn("w-[min(360px,calc(100vw-32px))] rounded-ticket border border-ink bg-paper-raised py-(--space-2) shadow-ticket", className)}
-      style={style}
-    >
-      {name ? <h2 className="type-stamp px-(--space-3) pb-(--space-1) text-ink">Entry · {name}</h2> : null}
-      <ul className="flex flex-col divide-y divide-rule">
-        {rows.map((r) => (
-          <MemberRow key={r.member.id} {...r} />
-        ))}
-      </ul>
+    <section aria-label={name ? `Entry to ${name}` : "Entry"} className={cn("en", className)} style={style}>
+      <h3 className="ts-step">{name ? `Entry · ${name}` : "Entry"}</h3>
+      {rows.length || missing.length ? (
+        <ul className="en-list">
+          {rows.map((r) => (
+            <Row key={r.member.id} {...r} />
+          ))}
+          {missing.map((r) => (
+            <li key={r.id} className="en-row">
+              <div className="en-head">
+                <PixelFlag country={null} />
+                <span className="en-name">{r.name}</span>
+                <span className="en-chip" data-tone="unknown">
+                  No passport set
+                </span>
+              </div>
+              <p className="en-note">Add it in the profile menu to see what’s needed.</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="en-note">Nobody’s riding this leg yet.</p>
+      )}
+      {rows.some((r) => r.rule) ? (
+        <p className="en-foot">
+          Rules change, so check before you go.
+          {sources.length ? " Source: " : null}
+          {sources.map((s, i) => (
+            <span key={s.url}>
+              {i ? " · " : null}
+              <a href={s.url} target="_blank" rel="noopener noreferrer">
+                {s.label}
+              </a>
+            </span>
+          ))}
+        </p>
+      ) : null}
     </section>
   );
+}
+
+// A passport in Pip's pixels: a solid cover in the button's ink, its globe and name line cut out to the card behind.
+// # cover · o cut out
+const PASSPORT = [
+  " ########## ",
+  "############",
+  "####oooo####",
+  "###o#oo#o###",
+  "##oooooooo##",
+  "###o#oo#o###",
+  "####oooo####",
+  "############",
+  "############",
+  "###oooooo###",
+  "############",
+  "############",
+  " ########## ",
+];
+
+export function PassportIcon() {
+  return <PixelIcon rows={PASSPORT} className="en-passport" />;
 }

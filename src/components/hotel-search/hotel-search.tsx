@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Select } from "@/components/paper-atlas";
 import { dateLabel } from "@/components/ticket-search/parts";
 import { convertCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { HotelFilter, HotelResult } from "@/lib/hotels/types";
@@ -13,6 +14,7 @@ import { hotelQueryKey, resultForHotelQuery, type HotelSearchResult } from "./qu
 // Built from the ticket card's parts (ticket-search.css) so it reads as one more section of the same card: a caption
 // line, two small fields, the underline tabs, and option rows.
 
+const GUEST_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: String(n), label: String(n) }));
 const nationalityOptions = countries().flatMap((country) => {
   const code = iso2(country.code);
   return code ? [{ code, name: country.name }] : [];
@@ -77,19 +79,22 @@ export function HotelSearch({
         Stays in {city} · {dateLabel(checkIn)} to {dateLabel(checkOut)}, {nights} night{nights === 1 ? "" : "s"}
       </p>
       <div className="hs-fields">
-        <label className="ts-field hs-field">
-          <span className="ts-field-label">Guests</span>
-          <select className="ts-field-value" value={occupants} onChange={(event) => refine(setOccupants)(Number(event.target.value))}>
-            {[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count}</option>)}
-          </select>
-        </label>
-        <label className="ts-field hs-field">
-          <span className="ts-field-label">Nationality</span>
-          <select className="ts-field-value" data-empty={!guestNationality || undefined} value={guestNationality} onChange={(event) => refine(setGuestNationality)(event.target.value)}>
-            <option value="">Any</option>
-            {nationalityOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
-          </select>
-        </label>
+        <Select
+          className="hs-field"
+          label="Guests"
+          value={String(occupants)}
+          options={GUEST_OPTIONS}
+          onChange={(v) => refine(setOccupants)(Number(v))}
+        />
+        <Select
+          className="hs-field"
+          label="Nationality"
+          value={guestNationality}
+          placeholder="Any"
+          searchable
+          options={[{ value: "", label: "Any" }, ...nationalityOptions.map((c) => ({ value: c.code, label: c.name }))]}
+          onChange={(v) => refine(setGuestNationality)(v)}
+        />
       </div>
       <div className="ts-tabs" role="tablist" aria-label="Hotel type">
         {filters.map((option) => (

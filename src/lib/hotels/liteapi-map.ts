@@ -28,7 +28,14 @@ const detailSchema = z.object({ data: z.object({
   starRating: z.number().int().min(2).max(5),
   hotelType: z.string(),
   location: z.object({ latitude: z.number().finite().min(-90).max(90), longitude: z.number().finite().min(-180).max(180) }),
+  // the hotel's photos: a main one, and the gallery; anything that isn't an https URL is dropped, not the hotel
+  main_photo: z.string().optional().catch(undefined),
+  hotelImages: z.array(z.object({ url: z.string() }).catch({ url: "" })).optional().catch(undefined),
 }) });
+
+/** The hotel's main photo, else the first in its gallery, as long as it's served over https. */
+const photoOf = (hotel: { main_photo?: string; hotelImages?: { url: string }[] }) =>
+  [hotel.main_photo, ...(hotel.hotelImages ?? []).map((i) => i.url)].find((url) => !!url && /^https:\/\/\S+$/.test(url));
 
 export const liteOccupancies = (occupants: number) => Array.from(
   { length: roomsFor(occupants) }, (_, i) => ({ adults: Math.min(2, occupants - 2 * i) }),
@@ -62,10 +69,12 @@ export function mapLiteStay(raw: unknown, detail: unknown, query: HotelSearchQue
   if (!totals.length) return null;
   const total = Math.min(...totals);
   const rooms = requested.length;
+  const photoUrl = photoOf(hotel);
   const stay: LiveStay = {
     id: `liteapi:${hotel.id}`, name: hotel.name, city: query.city,
     lat: hotel.location.latitude, lng: hotel.location.longitude,
     kind: "hotel", stars: hotel.starRating as 2 | 3 | 4 | 5,
+    ...(photoUrl ? { photoUrl } : {}),
     bedsPerRoom: 2, rooms, total,
     pricePerNight: { amount: Math.round(total / rooms / nightsBetween(query.checkIn, query.checkOut) * 100) / 100, currency: "USD" },
     freshness: "live", source: "LiteAPI", sourceUrl: "https://liteapi.travel/",

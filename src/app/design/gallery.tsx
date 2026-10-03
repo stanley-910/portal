@@ -96,9 +96,16 @@ export function ComponentGallery() {
         <Timeline legs={[{ kind: "bus", minutes: 330, label: "Bus 5h 30m" }]} />
       </div>
       <div className="flex flex-wrap items-start gap-8">
-        <EntryPanel leg={{ fromHub: "HKG", toHub: "PVG" }} members={DEMO_PARTY} />
-        <EntryPanel leg={{ fromHub: "ICN", toHub: "PVG", onwardCountry: "JPN" }} members={DEMO_PARTY} />
-        <EntryPanel leg={{ fromHub: "PVG", toHub: "HND" }} members={DEMO_PARTY} />
+        {/* as they open beside a trip card */}
+        <section className="ts pa-cast">
+          <EntryPanel leg={{ fromHub: "HKG", toHub: "PVG" }} riders={DEMO_PARTY} />
+        </section>
+        <section className="ts pa-cast">
+          <EntryPanel leg={{ fromHub: "ICN", toHub: "PVG", onwardCountry: "JPN" }} riders={DEMO_PARTY} />
+        </section>
+        <section className="ts pa-cast">
+          <EntryPanel leg={{ fromHub: "PVG", toHub: "HND" }} riders={DEMO_PARTY} />
+        </section>
       </div>
     </div>
   );

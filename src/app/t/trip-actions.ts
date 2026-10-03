@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { currentPerson } from "@/lib/identity";
 import { isNotFound, liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId, type TripEvent } from "@/lib/liveblocks/types";
@@ -39,18 +37,9 @@ async function removeTrip(roomId: string) {
   await lb.deleteRoom(roomId);
 }
 
-/** Permanently removes a trip room from My trips. Only its owner can. */
-export async function deleteTrip(formData: FormData) {
-  const mine = await myRoom(String(formData.get("tripId") ?? ""), "deleting");
-  if (!mine?.person.account || tripOwner(mine.room.metadata) !== mine.person.id) return;
-
-  await removeTrip(mine.roomId);
-  revalidatePath("/trips");
-}
-
 /**
- * Ends a trip for everyone from inside it: the plan, the thread and the room are deleted. Only the owner can, account
- * or guest, since a trip can pass on to a guest.
+ * Ends a trip for everyone, from inside it or from the library: the plan, the thread and the room are deleted. Only
+ * the owner can, account or guest, since a trip can pass on to a guest.
  */
 export async function endTrip(tripId: string): Promise<{ ok: boolean }> {
   try {

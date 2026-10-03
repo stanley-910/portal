@@ -43,3 +43,19 @@ export function Glyph({ kind, size = 14, sticker = false, className }: { kind: G
     </svg>
   );
 }
+
+// A high-speed train from the side, nose to the right: one long body, a window band, flat bogies tucked under it. It
+// runs along a result's timeline, as the plane flies along a flight's. The front-on train above stays the mode's mark on tabs and tags.
+const RAIL =
+  "M.6 5.2h9.6c2.9 0 5 1.3 5.8 3.3.2.6-.2 1.2-.9 1.2H.6z" +
+  "M2 6.5h7.3v1.3H2zM10.6 6.5h1.3c1 0 1.9.4 2.5 1.3h-3.8z" +
+  "M2.4 9.7h3l-.5.9H2.9zM9.4 9.7h3l-.5.9H9.9z";
+
+/** The side-on train that heads a train's timeline. */
+export function RailGlyph({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" className={cn("ts-glyph", className)} aria-hidden>
+      <path d={RAIL} fillRule="evenodd" />
+    </svg>
+  );
+}

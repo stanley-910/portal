@@ -14,3 +14,5 @@ export { Route, type RouteProps } from "./route";
 export { PLANE_PATH, Sticker, starPath, type StickerProps, type StickerShape } from "./sticker";
 export { Tag, type TagProps } from "./tag";
 export { Ticket, type Place, type TicketProps } from "./ticket";
+export { Select, type SelectOption, type SelectProps } from "./select";
+export { PixelClose, PixelIcon } from "./pixel";

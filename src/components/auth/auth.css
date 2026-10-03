@@ -2,14 +2,36 @@
    paper wash so you can see you haven't left it. */
 .au-layer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--space-4); }
 .au-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--paper) 55%, transparent); backdrop-filter: blur(3px); animation: au-fade 160ms ease both; }
-.au-panel { position: relative; display: flex; flex-direction: column; gap: var(--space-4); box-sizing: border-box; width: min(24rem, 100%); max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; padding: var(--space-5); background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--shadow-float); font-family: var(--font-sans); animation: au-rise 220ms cubic-bezier(0.2, 0.9, 0.25, 1.1) both; }
-.au-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+/* Pip's pixel panel: a 2px frame with stepped corners round the paper, and a hard shadow that follows the steps.
+   The frame and paper are layers under the content, which scrolls inside them. */
+.au-panel {
+  --au-frame: var(--sticker-ink);
+  --au-round: polygon(0 6px, 2px 6px, 2px 4px, 4px 4px, 4px 2px, 6px 2px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 2px) calc(100% - 6px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 6px) calc(100% - 2px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 6px), 0 calc(100% - 6px));
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  box-sizing: border-box;
+  width: min(24rem, 100%);
+  max-height: calc(100dvh - 2 * var(--space-4));
+  color: var(--ink);
+  font-family: var(--font-sans);
+  filter: drop-shadow(4px 4px 0 var(--sticker-shadow));
+  animation: au-rise 220ms steps(5) both;
+}
+.dark .au-panel { --au-frame: var(--ink-muted); }
+.au-panel::before, .au-panel::after { content: ""; position: absolute; z-index: -1; clip-path: var(--au-round); pointer-events: none; }
+.au-panel::before { inset: 0; background: var(--au-frame); }
+.au-panel::after { inset: 2px; background: var(--paper-raised); }
+.au-body { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; min-height: 0; overflow-y: auto; padding: var(--space-5); box-sizing: border-box; }
+.au-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .au-title { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+/* a line under the title, on the panels that keep one (joining a trip, leaving one) */
 .au-sub { margin: var(--space-1) 0 0; font-size: 14px; line-height: 20px; color: var(--ink-muted); }
-.au-close { flex: none; margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0; }
+.au-close { margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0; }
 
-.au-tabs { display: flex; padding: 2px; gap: 2px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
-.au-tab { flex: 1; min-height: 40px; border: 0; border-radius: calc(var(--radius-control) - 2px); background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease; }
+.au-tabs { display: flex; padding: 2px; gap: 2px; }
+/* the picked tab is a solid pixel block inside the frame */
+.au-tab { flex: 1; min-height: 38px; border: 0; border-radius: 0; clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px)); background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease; }
 .au-tab:hover:not([aria-selected="true"]) { background: var(--control-hover); }
 .au-tab[aria-selected="true"] { background: var(--ink); color: var(--on-ink); }
 .au-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -18,11 +40,12 @@
 .au-or::before, .au-or::after { content: ""; flex: 1; border-top: var(--line-hair) solid var(--line); }
 .au-form { display: flex; flex-direction: column; gap: var(--space-3); }
 .au-field { display: flex; flex-direction: column; gap: var(--space-1); font-size: 13px; font-weight: 600; }
-.au-input { height: 44px; box-sizing: border-box; padding-inline: var(--space-3); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font: inherit; font-size: 15px; font-weight: 400; }
-.au-input:focus { outline: none; background: var(--control-hover); }
+.au-input { height: 44px; box-sizing: border-box; padding-inline: var(--space-3); color: var(--ink); font: inherit; font-size: 15px; font-weight: 400; }
+/* typing in it, it fills; the frame stays as it is */
+.au-input:focus { --px-fill: var(--control-hover); }
 .au-hint { font-weight: 400; color: var(--ink-muted); }
-.au-message { margin: 0; padding: var(--space-2) var(--space-3); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); font-size: 14px; line-height: 20px; }
-.au-message[data-kind="error"] { border-color: var(--ink); }
+.au-message { margin: 0; padding: var(--space-2) var(--space-3); font-size: 14px; line-height: 20px; }
+.au-message[data-kind="error"] { --px-frame: var(--ink); }
 
 @keyframes au-fade { from { opacity: 0; } }
 @keyframes au-rise { from { opacity: 0; transform: translateY(8px) rotate(-0.6deg); } }

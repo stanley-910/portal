@@ -4,7 +4,7 @@ import { useRoom, useSelf } from "@liveblocks/react";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { cancelSettleAction, dismissBookingNoticeAction, payShareAction, settleLegAction, submitDetailsAction } from "@/app/t/booking-actions";
-import { Button } from "@/components/paper-atlas";
+import { Button, Select } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
@@ -228,6 +228,16 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
 }
 
 const TITLES = ["mr", "ms", "mrs", "miss", "dr"] as const;
+const TITLE_OPTIONS = TITLES.map((t) => ({ value: t, label: t[0].toUpperCase() + t.slice(1) }));
+const GENDERS = [
+  { value: "f", label: "Female" },
+  { value: "m", label: "Male" },
+];
+// the passport's issuing country as Duffel wants it: ISO-2
+const COUNTRY_OPTIONS = countries().flatMap((c) => {
+  const two = iso2(c.code);
+  return two ? [{ value: two, label: c.name }] : [];
+});
 
 export function DetailsForm({
   documents,
@@ -266,26 +276,14 @@ export function DetailsForm({
   };
   return (
     <form className="tp-form" onSubmit={submit}>
-      <label>
-        Title
-        <select name="title" defaultValue="mr" aria-invalid={bad("title")}>
-          {TITLES.map((t) => (
-            <option key={t} value={t}>
-              {t[0].toUpperCase() + t.slice(1)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Gender
-        <select name="gender" defaultValue="" required aria-invalid={bad("gender")}>
-          <option value="" disabled>
-            Pick
-          </option>
-          <option value="f">Female</option>
-          <option value="m">Male</option>
-        </select>
-      </label>
+      <div className="tp-form-field">
+        <span>Title</span>
+        <Select name="title" aria-label="Title" defaultValue="mr" options={TITLE_OPTIONS} aria-invalid={bad("title")} />
+      </div>
+      <div className="tp-form-field">
+        <span>Gender</span>
+        <Select name="gender" aria-label="Gender" defaultValue="" required options={GENDERS} aria-invalid={bad("gender")} />
+      </div>
       <label>
         Given names
         <input name="givenName" required autoComplete="given-name" aria-invalid={bad("givenName")} />
@@ -316,28 +314,24 @@ export function DetailsForm({
             Expires
             <input name="passportExpires" type="date" required min={new Date().toISOString().slice(0, 10)} aria-invalid={bad("passport.expiresOn")} />
           </label>
-          <label data-wide>
-            Issuing country
-            <select name="passportCountry" defaultValue={passportCountry} required aria-invalid={bad("passport.country")}>
-              <option value="" disabled>
-                Pick
-              </option>
-              {countries().map((c) => {
-                const two = iso2(c.code);
-                return two ? (
-                  <option key={c.code} value={two}>
-                    {c.name}
-                  </option>
-                ) : null;
-              })}
-            </select>
-          </label>
+          <div className="tp-form-field" data-wide>
+            <span>Issuing country</span>
+            <Select
+              name="passportCountry"
+              aria-label="Issuing country"
+              defaultValue={passportCountry}
+              required
+              searchable
+              options={COUNTRY_OPTIONS}
+              aria-invalid={bad("passport.country")}
+            />
+          </div>
         </>
       ) : null}
       <div className="tp-form-actions">
-        <button type="button" className="ts-oneway" onClick={onCancel}>
+        <Button variant="quiet" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
         <Button type="submit" disabled={busy}>
           {submitLabel}
         </Button>

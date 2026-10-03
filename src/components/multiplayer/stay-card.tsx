@@ -17,6 +17,7 @@ export function StayCard({
   rates,
   onChange,
   onRemove,
+  present = null,
 }: {
   stay: PlanStay;
   members: Readonly<Record<string, Pick<TripMember, "name" | "color">>> | null;
@@ -24,6 +25,8 @@ export function StayCard({
   rates: ExchangeRates | null;
   onChange: (patch: Partial<NewStay>) => void;
   onRemove: () => void;
+  /** Who's in the room now; a guest who isn't is drawn away. Null leaves everyone plain. */
+  present?: ReadonlySet<string> | null;
 }) {
   const n = nights(stay.checkIn, stay.checkOut);
   const setDate = (field: "checkIn" | "checkOut", value: string) => {
@@ -63,7 +66,8 @@ export function StayCard({
                     type="button"
                     className="tp-rider"
                     aria-pressed={stay.guests.includes(id)}
-                    title={info.name}
+                    data-away={(present && !present.has(id)) || undefined}
+                    title={present && !present.has(id) ? `${info.name} (away)` : info.name}
                     onClick={() => onChange({ guests: stay.guests.includes(id) ? stay.guests.filter((g) => g !== id) : [...stay.guests, id] })}
                     style={{ borderColor: memberColor(info.color) }}
                   >
@@ -73,10 +77,20 @@ export function StayCard({
               ))
             : null}
         </ul>
-        <button type="button" className="ts-oneway tp-remove" onClick={onRemove}>
-          Remove stay
+        <button type="button" className="tp-action" onClick={onRemove} aria-label="Remove stay">
+          <TrashGlyph />
+          <span>Remove</span>
         </button>
       </div>
     </div>
+  );
+}
+
+/** A bin, in the 1.6px stroke of the card's other small marks: removing a stay or a leg. */
+export function TrashGlyph() {
+  return (
+    <svg className="tp-action-icon" width={13} height={13} viewBox="0 0 16 16" aria-hidden>
+      <path d="M2.5 4.5h11M6.5 4.5V2.8h3v1.7M4.2 4.5l.7 9h6.2l.7-9M6.8 7v4M9.2 7v4" />
+    </svg>
   );
 }

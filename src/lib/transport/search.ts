@@ -103,7 +103,7 @@ export function rankFareOffers(offers: readonly Offer[], currency: string): Offe
 
 // Fixed estimates are for the best-option heuristic only, never displayed fares.
 const USD_RATES: Record<string, number> = {
-  USD: 1, CNY: 0.138, HKD: 0.128, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08,
+  USD: 1, CNY: 0.138, HKD: 0.128, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08, CAD: 0.73,
 };
 
 function convenienceScore(offer: Offer): number {

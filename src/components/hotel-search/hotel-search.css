@@ -4,11 +4,7 @@
 .hs[role="tabpanel"] { padding-top: 6px; border-top: 0; }
 .hs-caption { margin: 0; }
 .hs-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px; }
-.ts .hs-field { cursor: pointer; }
-.ts .hs-field select { width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--font-sans); appearance: none; cursor: inherit; text-overflow: ellipsis; }
-.ts .hs-field select[data-empty] { font-weight: 400; color: var(--ink-muted); }
-.ts .hs-field:focus-within { background: var(--control-hover); }
-.hs-rows { max-height: 220px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+.hs-rows { max-height: 220px; overflow-y: auto; }
 .hs-option { display: grid; }
 /* a photo, when the provider has one, sits at the row's left across its lines */
 .hs-row:has(.hs-photo) { grid-template-columns: 44px minmax(0, 1fr) auto; }

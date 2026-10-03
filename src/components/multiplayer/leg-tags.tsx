@@ -22,7 +22,7 @@ export function legOffer(leg: Pick<PlanLeg, "chosen" | "votes" | "search">): Sto
   return best;
 }
 
-function LegTag({ leg, globe, onOpen, money }: { leg: PlanLeg; globe: RefObject<TripGlobeHandle | null>; onOpen: () => void; money: (o: StoredOffer | null) => string | null }) {
+function LegTag({ leg, globe, onOpen, money }: { leg: PlanLeg; globe: RefObject<TripGlobeHandle | null>; onOpen: (leg: string) => void; money: (o: StoredOffer | null) => string | null }) {
   const tag = useTagOnRoute(globe, leg.from, leg.to);
   const offer = legOffer(leg);
   return (
@@ -35,13 +35,13 @@ function LegTag({ leg, globe, onOpen, money }: { leg: PlanLeg; globe: RefObject<
       className="pa-cast pointer-events-auto"
       style={{ "--alt": 0.3, visibility: "hidden" } as CSSProperties}
       aria-label={`Open the plan for ${leg.from.name} to ${leg.to.name}`}
-      onClick={onOpen}
+      onClick={() => onOpen(leg.id)}
     />
   );
 }
 
-/** Every stored leg's ticket stub, riding on its route. Each opens the trip plan. */
-export function LegTags({ globe, onOpen }: { globe: RefObject<TripGlobeHandle | null>; onOpen: () => void }) {
+/** Every stored leg's ticket stub, riding on its route. Each opens the trip plan at its leg. */
+export function LegTags({ globe, onOpen }: { globe: RefObject<TripGlobeHandle | null>; onOpen: (leg: string) => void }) {
   const legs = usePlanLegs();
   const currency = useCurrencyPref();
   const rates = useExchangeRates();

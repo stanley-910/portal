@@ -92,7 +92,8 @@ export interface GlobeEvents {
   onLand?: (legs: LandedTrip[]) => void;
   onCancel?: () => void;
   /** A click on the landed trip's route, which doesn't take off or cancel. */
-  onRouteClick?: () => void;
+  /** `id` is the remote flight's whose route it was (a stored leg's `leg:<id>`), or undefined for this viewer's own trip. */
+  onRouteClick?: (id?: string) => void;
   /** When the pointer's lie on the ground under it changes, so it can be drawn flat on the globe. */
   onCursorChange?: (cursor: GlobeCursor) => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
@@ -111,6 +112,8 @@ export type AgentSpot = { x: number; y: number; ground: { x: number; y: number }
 
 export type FreeArea = { x: number; y: number; w: number; h: number };
 
+/** What `onRoute` answers for this viewer's own landed trip. */
+const OWN_ROUTE = "\u0000own";
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
 const ALT = 0.03; // flying altitude, fully zoomed out
 // The pointer's shadow falls toward the globe's middle: CURSOR_SHADOW px to the side at the left and right
@@ -169,7 +172,7 @@ const PIN_SPLAY = 0.25;
 const VEHICLE_CHECK = 0.1;
 // Pip's saucer: its size against the plane, how high it hovers in plane heights, how fast it glides (a share of
 // the way per second, plus radians per second so the last stretch doesn't crawl), and how close it has to be to count
-// as there. Following it, the view eases this fast and zooms in no further out than FOLLOW_RANGE.
+// as there. Following it, the view eases this fast and closes in to frame FOLLOW_SPAN around the saucer.
 const UFO_SCALE = 1; // the same size as the plane and the ground vehicles
 const UFO_TIP = 0.95; // radians it tips toward the viewer, like a pin leans, so its dome and Pip's face show
 const UFO_HOVER = 1.8;
@@ -186,7 +189,8 @@ const UFO_EXIT_ARC = 0.9; // radians over the globe it comes from and heads off
 const REEL = 0.9;
 const DRAW = 1.2;
 const FOLLOW_EASE = 2.4;
-const FOLLOW_RANGE = 1.2;
+// close enough that Pip reads at a glance: about the view from Hong Kong to Taipei, a city or two either side
+const FOLLOW_SPAN = 9 * D2R;
 const GROUND_LIFT = 0.35;
 // The land mask's size, sampled once from the earth texture for the vehicle guess.
 const LAND_W = 1024;
@@ -779,8 +783,9 @@ export class GlobeEngine {
       return;
     }
     const [x, y] = this.pos(e);
-    if (this.onRoute(x, y)) {
-      this.events.onRouteClick?.();
+    const route = this.onRoute(x, y);
+    if (route) {
+      this.events.onRouteClick?.(route === OWN_ROUTE ? undefined : route);
       return;
     }
     const hit = this.pick(x, y);
@@ -789,21 +794,21 @@ export class GlobeEngine {
   }
 
   /**
-   * Whether a screen point is within ROUTE_HIT px of a landed route: this viewer's landed trip, or anyone's stored
-   * or landed leg. Arcs and their ground tracks both count.
+   * The landed route within ROUTE_HIT px of a screen point, or null: this viewer's landed trip (OWN_ROUTE), or anyone's
+   * stored or landed leg (its remote flight's id). Arcs and their ground tracks both count.
    */
-  private onRoute(x: number, y: number) {
-    const legs: [Vec3, Vec3, number][] = [];
+  private onRoute(x: number, y: number): string | null {
+    const legs: [Vec3, Vec3, number, string][] = [];
     const origin = this.origin;
     const pl = this.pl;
     if (this.mode === "landed" && origin && pl) {
       const end = this.ownEnd(pl);
       const stops = [...this.via.map((s) => s.v), origin, end.v];
-      for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? end.alt : 0]);
+      for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? end.alt : 0, OWN_ROUTE]);
     }
     // landed routes end at their stop, as drawn
-    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, this.groundEnd(r.target), 0]);
-    for (const [from, to, alt] of legs) {
+    for (const [id, r] of this.remotes) if (r.landed) legs.push([r.o, this.groundEnd(r.target), 0, id]);
+    for (const [from, to, alt, id] of legs) {
       for (const lift of [1, 0]) {
         const pts = this.arc(from, to, lift, lift ? alt : 0, this.hitArc);
         for (let j = 1; j < pts.length; j++) {
@@ -812,11 +817,11 @@ export class GlobeEngine {
           if (!a?.vis || !b?.vis) continue;
           const dx = b.x - a.x, dy = b.y - a.y;
           const k = clamp(((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy || 1), 0, 1);
-          if (Math.hypot(x - a.x - dx * k, y - a.y - dy * k) <= ROUTE_HIT) return true;
+          if (Math.hypot(x - a.x - dx * k, y - a.y - dy * k) <= ROUTE_HIT) return id;
         }
       }
     }
-    return false;
+    return null;
   }
 
   pointerLeave() {
@@ -1793,7 +1798,7 @@ export class GlobeEngine {
   }
 
   /**
-   * Turns the view to follow Pip's saucer, closing in a little from the whole globe, until someone drags, scrolls
+   * Turns the view to follow Pip's saucer, closing in to a regional view around it, until someone drags, scrolls
    * or pinches the globe, or takes off (onFollowEnd). Zooming keeps following.
    */
   setFollow(on: boolean) {
@@ -1803,7 +1808,8 @@ export class GlobeEngine {
     if (!on) return;
     this.autoFrame = null;
     this.vlon = this.vlat = 0;
-    if (this.rangeTarget > FOLLOW_RANGE) this.rangeTarget = FOLLOW_RANGE;
+    // closes in from wherever the view is, never pulls back out from closer
+    this.rangeTarget = Math.min(this.rangeTarget, this.fitRange(FOLLOW_SPAN));
   }
 
   private endFollow() {

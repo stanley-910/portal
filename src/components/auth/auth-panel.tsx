@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useId, useRef } from "react";
 
 import { signIn, signInWithGoogle, signUp, type AuthState } from "@/app/(auth)/actions";
-import { Button, RoundButton } from "@/components/paper-atlas";
+import { Button, PixelClose } from "@/components/paper-atlas";
 import { MAX_NAME } from "@/lib/guest-name";
 
 import { AUTH_PARAM, hereWithAuth, takePendingAction, useOpenAuth, type AuthMode } from "./links";
@@ -59,35 +59,34 @@ function Panel({ mode, notice }: { mode: AuthMode; notice?: string }) {
     <div className="au-layer">
       <div className="au-scrim" aria-hidden onClick={close} />
       <section className="au-panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <header className="au-head">
-          <div>
+        <div className="au-body">
+          <header className="au-head">
             <h2 id={titleId} className="au-title">
               {mode === "signup" ? "Create an account" : "Sign in"}
             </h2>
-            <p className="au-sub">Save trips and ask Pip. Friends can join without one.</p>
+            <PixelClose onClick={close} className="au-close" />
+          </header>
+          <GoogleButton />
+          <div className="au-or" aria-hidden>
+            <span>or with email</span>
           </div>
-          <RoundButton label="Close" variant="quiet" onClick={close} className="au-close" />
-        </header>
-        <GoogleButton />
-        <div className="au-or" aria-hidden>
-          <span>or with email</span>
+          <div className="au-tabs pa-px-box" role="tablist" aria-label="Account">
+            {MODES.map((m) => (
+              <button
+                key={m.value}
+                type="button"
+                role="tab"
+                aria-selected={m.value === mode}
+                className="au-tab"
+                onClick={() => open(m.value, { replace: true })}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {/* keyed so switching tabs starts the form fresh */}
+          <AuthForm key={mode} mode={mode} notice={notice} />
         </div>
-        <div className="au-tabs" role="tablist" aria-label="Account">
-          {MODES.map((m) => (
-            <button
-              key={m.value}
-              type="button"
-              role="tab"
-              aria-selected={m.value === mode}
-              className="au-tab"
-              onClick={() => open(m.value, { replace: true })}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-        {/* keyed so switching tabs starts the form fresh */}
-        <AuthForm key={mode} mode={mode} notice={notice} />
       </section>
     </div>
   );
@@ -98,11 +97,11 @@ function GoogleButton() {
   const [state, action, pending] = useActionState<AuthState, FormData>(withNext(signInWithGoogle), {});
   return (
     <form action={action} className="au-form">
-      <Button type="submit" variant="secondary" block disabled={pending} aria-busy={pending || undefined}>
+      <Button type="submit" variant="secondary" block className="pa-px-box" disabled={pending} aria-busy={pending || undefined}>
         {pending ? "Opening Google…" : "Continue with Google"}
       </Button>
       {state.error ? (
-        <p role="status" className="au-message" data-kind="error">
+        <p role="status" className="au-message pa-px-box" data-kind="error">
           {state.error}
         </p>
       ) : null}
@@ -127,12 +126,12 @@ function AuthForm({ mode, notice }: { mode: AuthMode; notice?: string }) {
       {signup ? (
         <label className="au-field">
           <span>Your name</span>
-          <input ref={first} name="name" required maxLength={MAX_NAME} autoComplete="nickname" className="au-input" />
+          <input ref={first} name="name" required maxLength={MAX_NAME} autoComplete="nickname" className="au-input pa-px-box" />
         </label>
       ) : null}
       <label className="au-field">
         <span>Email</span>
-        <input ref={signup ? undefined : first} name="email" type="email" required autoComplete="email" className="au-input" />
+        <input ref={signup ? undefined : first} name="email" type="email" required autoComplete="email" className="au-input pa-px-box" />
       </label>
       <label className="au-field">
         <span>Password</span>
@@ -142,12 +141,12 @@ function AuthForm({ mode, notice }: { mode: AuthMode; notice?: string }) {
           required
           minLength={signup ? 8 : undefined}
           autoComplete={signup ? "new-password" : "current-password"}
-          className="au-input"
+          className="au-input pa-px-box"
         />
         {signup ? <span className="au-hint">At least 8 characters.</span> : null}
       </label>
       {message ? (
-        <p role="status" className="au-message" data-kind={state.error ? "error" : "notice"}>
+        <p role="status" className="au-message pa-px-box" data-kind={state.error ? "error" : "notice"}>
           {message}
         </p>
       ) : null}
