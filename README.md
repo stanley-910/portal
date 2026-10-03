@@ -1,6 +1,6 @@
 # HKU Hackathon Fall 2026 Project
 
-Trip Globe: draw a trip on the globe and find the best way to get there. Click to take off, move the plane, click to land.
+Portal: draw a trip on the globe and find the best way to get there. Click to take off, move the plane, click to land.
 
 ## Get started
 

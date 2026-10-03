@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import quote, urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +36,12 @@ PAGES = {
     "ktmb": "https://api.data.gov.my/gtfs-static/ktmb",
     "vietnam": "https://giotaugiave.dsvn.vn/",
     "thailand": "https://ttsview.railway.co.th/SRT_Schedule2022.php?ln=en&line=1&trip=1",
+    "ktmb-published": "https://www.ktmb.com.my/TrainTime.html",
+    "mtr-fares": "https://www.highspeed.mtr.com.hk/en/ticket/fare.html",
+    "korail-fares": "https://www.korail.com/com/userBoard.do?mode=list&schBcid=ticketTable",
+    "sr-fares": "https://etk.srail.kr/cms/archive.do?pageId=TK0402050000",
+    "smartex-fares": "https://smart-ex.jp/en/product/plan/service/",
+    "thsr-fares": "https://en.thsrc.com.tw/ArticleContent/4c3efc1d-e6df-4bfd-97b4-52e89f79ee5c",
 }
 
 
@@ -75,16 +81,17 @@ class Links(HTMLParser):
 
 def discover(source, body, url):
     """Yield source-provided labels and URLs, not inferred service calendars."""
-    if source == "korail":
+    if source in ("korail", "korail-fares"):
         rows = json.loads(body)["boardList"]
         # Current KTX and conventional timetables; skip older revisions of each.
-        for prefix in ["KTX 시간표", "일반열차 시간표"]:
+        prefixes = ["KTX 시간표", "일반열차 시간표"] if source == "korail" else ["KTX 운임표", "일반열차(ITX"]
+        for prefix in prefixes:
             candidates = [r for r in rows if r["bdTitle"].startswith(prefix)]
             if not candidates:
                 raise ValueError(f"Missing Korail board category: {prefix}")
             row = max(candidates, key=lambda r: r["bdIdx"])
             for file in row["fileId"]:
-                if not re.fullmatch(r"jfile/[\w/.-]+\.xlsx", file):
+                if not re.fullmatch(r"jfile/[\w/.-]+\.xlsx?", file):
                     raise ValueError("Unexpected Korail attachment path")
                 yield row["bdTitle"], urljoin(url, "/file/cubedata/COMMON/" + file)
         return
@@ -103,7 +110,7 @@ def discover(source, body, url):
         return
     for a in anchors:
         href = a.get("href", "")
-        if source == "mtr" and href.endswith(".pdf"):
+        if source in ("mtr", "mtr-fares") and href.endswith(".pdf"):
             yield a.get("title") or a["text"] or href, urljoin(url, href)
         elif source == "thsr" and "/Attachment/Download" in href:
             yield a.get("title") or a["text"], urljoin(url, href)
@@ -111,6 +118,16 @@ def discover(source, body, url):
             yield a["text"], urljoin(url, href)
         elif source == "jr-kyushu" and re.search(r"timetable[^/]*\.pdf$", href):
             yield a["text"], urljoin(url, href)
+        elif source == "ktmb-published" and a.get("data-dl", "").endswith(".pdf"):
+            # Published passenger timetables only; historical commented links are ignored.
+            if "/2026/" in a["data-dl"]:
+                yield a["text"], urljoin(url, a["data-dl"])
+        elif source == "smartex-fares" and re.search(r"service_fares_.*\.pdf$", href):
+            yield a["text"], urljoin(url, href)
+        elif source == "sr-fares" and "운임표 다운로드" in a["text"]:
+            match = re.search(r"downloadAttach\('([^']+)',\s*'([^']+)'\)", a.get("onclick", ""))
+            if match:
+                yield a["text"], f"https://www.srail.or.kr/cms/attach/download.do?pageId={match[1]}&atchNo={match[2]}"
 
 
 def workbook_cells(raw):
@@ -159,6 +176,7 @@ class Capture:
         self.robots = {}
 
     def fetch(self, url, name, role, expected=None, check_robots=True):
+        url = quote(url, safe=":/?=&%+#@,;")
         if check_robots:
             self.robot_check(url)
         path = self.directory / name
@@ -189,8 +207,11 @@ class Capture:
                     if z.testzip():
                         raise ValueError("Damaged XLSX attachment")
                 suffix = ".xlsx"
+            elif raw.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+                suffix = ".xls"
+                asset["parsingStatus"] = "legacy-workbook-not-normalized"
             else:
-                raise ValueError("Download is not a PDF/XLSX (possibly a challenge/error page)")
+                raise ValueError("Download is not a PDF/XLSX/XLS (possibly a challenge/error page)")
             renamed = path.with_suffix(suffix)
             path.rename(renamed)
             asset["path"] = str(renamed.relative_to(ROOT))
@@ -259,6 +280,11 @@ def capture_source(source, directory):
                 if not all(counts.get(f) for f in ["stops.txt", "trips.txt", "stop_times.txt"]):
                     raise ValueError("Incomplete GTFS feed")
                 report["tableRows"] = counts
+        elif source == "thsr-fares":
+            if not re.search(rb"(?i)<table\b", raw) or b"1,490" not in raw:
+                raise ValueError("THSR fare table not found; review page before accepting")
+            page["role"] = "published-fares"
+            report["fareBasis"] = "Published table, not a dated quote; class and adult/concession axes require interpretation."
         elif source == "vietnam":
             text = raw.decode("utf-8-sig")
             if not all(f"GridView{n}" in text for n in [1, 2]):
@@ -281,7 +307,7 @@ def capture_source(source, directory):
             failures = []
             for i, (label, link) in enumerate(links):
                 try:
-                    _, asset = cap.fetch(link, f"document-{i + 1}.download", "timetable", expected="document")
+                    _, asset = cap.fetch(link, f"document-{i + 1}.download", "published-fares" if source.endswith("-fares") else "timetable", expected="document")
                     asset["label"] = label
                     asset["discoveredOn"] = page["url"]
                 except Exception as error:

@@ -43,6 +43,14 @@ async function writeBooking(roomId: string, legId: string, booking: LegBooking |
     leg.set("booking", booking);
     if (notice !== undefined) leg.set("bookingNotice", notice);
   });
+  await trackActive(roomId, legId, booking);
+}
+
+/** Keeps the sweep's list of in-progress bookings in step with the leg. Never fails the caller. */
+async function trackActive(roomId: string, legId: string, booking: LegBooking | null) {
+  const store = bookingStore();
+  const active = !!booking && booking.status !== "booked";
+  await (active ? store.markActive(roomId, legId) : store.clearActive(roomId, legId)).catch((e) => console.warn("[booking] track active failed", e));
 }
 
 async function updateSeat(roomId: string, legId: string, riderId: string, patch: Partial<BookingSeat>): Promise<LegBooking | null> {
@@ -499,6 +507,7 @@ async function buySeat(roomId: string, legId: string, riderId: string) {
       l.set("booking", { ...b, seats, total, status: allPaid(seats) ? "booked" : b.status });
       if (!charged) l.set("bookingNotice", `${who} has a ticket, but the card couldn't be charged, so their share is still owed.`);
     });
+    await trackActive(roomId, legId, (await readLeg(roomId, legId)).leg?.booking ?? null);
   } finally {
     await store.release(key);
   }
@@ -517,6 +526,38 @@ export async function expireBookings(roomId: string, now = Date.now()) {
     if (!b || b.status === "booked" || !b.deadline || Date.parse(b.deadline) > now) continue;
     await rollback(roomId, legId, b, b.status === "details" ? "The settle lapsed before everyone entered their details." : "The deadline passed before everyone paid. Nobody was charged.");
   }
+}
+
+/**
+ * The scheduled sweep: every leg with a booking in progress, whether or not anyone has the trip open. Expires what
+ * is past its deadline and drops legs that are booked or gone from the list. Returns what it looked at.
+ */
+export async function sweepBookings(now = Date.now()): Promise<{ rooms: number; legs: number; expired: number }> {
+  const store = bookingStore();
+  const active = await store.listActive();
+  const byRoom = new Map<string, string[]>();
+  for (const { roomId, legId } of active) byRoom.set(roomId, [...(byRoom.get(roomId) ?? []), legId]);
+  let expired = 0;
+  for (const [roomId, legIds] of byRoom) {
+    let plan: PlanJson | null = null;
+    try {
+      plan = (await liveblocks().getStorageDocument(roomId, "json")) as PlanJson;
+    } catch (error) {
+      // Only a confirmed missing room is safe to forget. Retry transient failures on the next sweep.
+      if (!(error instanceof Error && "status" in error && error.status === 404)) continue;
+    }
+    for (const legId of legIds) {
+      const b = plan?.legs?.[legId]?.booking;
+      if (!b || b.status === "booked") {
+        await store.clearActive(roomId, legId).catch(() => {});
+        continue;
+      }
+      if (!b.deadline || Date.parse(b.deadline) > now) continue;
+      await rollback(roomId, legId, b, b.status === "details" ? "The settle lapsed before everyone entered their details." : "The deadline passed before everyone paid. Nobody was charged.");
+      expired++;
+    }
+  }
+  return { rooms: byRoom.size, legs: active.length, expired };
 }
 
 /** Clears the message a stopped booking left on the leg. */

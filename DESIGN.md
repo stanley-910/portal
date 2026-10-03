@@ -1,8 +1,8 @@
-# Paper Atlas: the Trip Globe design system
+# Paper Atlas: the Portal design system
 
 <!-- Source: https://claude.ai/artifact/8jz9oTWn1hxuQ1C2GScXPm (project/README.md). Keep the brand book below in sync with it. -->
 
-Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper, with paper stickers for the things you move around on it. It has two themes. **Day** is coloured ink on cream paper. **Night** is light ink on blue-black paper.
+Paper Atlas is the look of Portal: a globe printed in halftone ink on paper, with paper stickers for the things you move around on it. It has two themes. **Day** is coloured ink on cream paper. **Night** is light ink on blue-black paper.
 
 ## Content
 

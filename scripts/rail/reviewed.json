@@ -1,0 +1,827 @@
+{
+  "a5b7dd7cf4743ed2054aca6ca1d7b2fcf46bf7b9b81625c20b72688154f04084": {
+    "description": "MTR sleeper pages 1–3, visually checked 2026-10-04",
+    "trips": [
+      {
+        "number": "G898",
+        "country": "CN",
+        "page": 1,
+        "operator": "MTR / China Railway",
+        "calendar": {
+          "kind": "published",
+          "start": "2026-07-01",
+          "days": [
+            0,
+            1,
+            5,
+            6
+          ]
+        },
+        "stops": [
+          [
+            "Hong Kong West Kowloon",
+            "20:25",
+            "d"
+          ],
+          [
+            "Changshanan",
+            "23:32",
+            "a"
+          ],
+          [
+            "Shijiazhuang",
+            "29:28",
+            "a"
+          ],
+          [
+            "Beijingxi",
+            "30:53",
+            "a"
+          ]
+        ],
+        "notes": "Sleeper. Short-haul HK–Shenzhen/Guangzhou tickets excluded; only source-supported boarding/alighting events retained."
+      },
+      {
+        "number": "G897",
+        "country": "CN",
+        "page": 1,
+        "operator": "MTR / China Railway",
+        "calendar": {
+          "kind": "published",
+          "start": "2026-07-01",
+          "days": [
+            0,
+            1,
+            5,
+            6
+          ]
+        },
+        "stops": [
+          [
+            "Beijingxi",
+            "21:01",
+            "d"
+          ],
+          [
+            "Shijiazhuang",
+            "22:07",
+            "d"
+          ],
+          [
+            "Zhengzhoudong",
+            "23:50",
+            "d"
+          ],
+          [
+            "Hong Kong West Kowloon",
+            "31:19",
+            "a"
+          ]
+        ],
+        "notes": "Sleeper. Short-haul HK–Shenzhen/Guangzhou tickets excluded; only source-supported boarding/alighting events retained."
+      },
+      {
+        "number": "G900",
+        "country": "CN",
+        "page": 2,
+        "operator": "MTR / China Railway",
+        "calendar": {
+          "kind": "published",
+          "start": "2026-07-01",
+          "days": [
+            0,
+            1,
+            5,
+            6
+          ]
+        },
+        "stops": [
+          [
+            "Hong Kong West Kowloon",
+            "20:00",
+            "d"
+          ],
+          [
+            "Chaoshan",
+            "22:11",
+            "a"
+          ],
+          [
+            "Xiamenbei",
+            "23:29",
+            "a"
+          ],
+          [
+            "Ningbo",
+            "28:07",
+            "a"
+          ],
+          [
+            "Hangzhoudong",
+            "30:06",
+            "a"
+          ],
+          [
+            "Shanghai Hongqiao",
+            "30:58",
+            "a"
+          ]
+        ],
+        "notes": "Sleeper. Short-haul HK–Shenzhen/Guangzhou tickets excluded; only source-supported boarding/alighting events retained."
+      },
+      {
+        "number": "G899",
+        "country": "CN",
+        "page": 2,
+        "operator": "MTR / China Railway",
+        "calendar": {
+          "kind": "published",
+          "start": "2026-07-01",
+          "days": [
+            0,
+            1,
+            5,
+            6
+          ]
+        },
+        "stops": [
+          [
+            "Shanghai Hongqiao",
+            "20:15",
+            "d"
+          ],
+          [
+            "Hangzhoudong",
+            "21:15",
+            "d"
+          ],
+          [
+            "Hong Kong West Kowloon",
+            "31:25",
+            "a"
+          ]
+        ],
+        "notes": "Sleeper. Short-haul HK–Shenzhen/Guangzhou tickets excluded; only source-supported boarding/alighting events retained."
+      },
+      {
+        "number": "G896",
+        "country": "CN",
+        "page": 3,
+        "operator": "MTR / China Railway",
+        "calendar": {
+          "kind": "published",
+          "start": "2026-07-01",
+          "days": [
+            2,
+            3,
+            4
+          ]
+        },
+        "stops": [
+          [
+            "Hong Kong West Kowloon",
+            "20:00",
+            "d"
+          ],
+          [
+            "Ganzhouxi",
+            "22:07",
+            "a"
+          ],
+          [
+            "Nanchangdong",
+            "23:42",
+            "a"
+          ],
+          [
+            "Yiwu",
+            "29:32",
+            "a"
+          ],
+          [
+            "Hangzhoudong",
+            "30:06",
+            "a"
+          ],
+          [
+            "Shanghai Hongqiao",
+            "30:58",
+            "a"
+          ]
+        ],
+        "notes": "Sleeper. Short-haul HK–Shenzhen/Guangzhou tickets excluded; only source-supported boarding/alighting events retained."
+      },
+      {
+        "number": "G895",
+        "country": "CN",
+        "page": 3,
+        "operator": "MTR / China Railway",
+        "calendar": {
+          "kind": "published",
+          "start": "2026-07-01",
+          "days": [
+            2,
+            3,
+            4
+          ]
+        },
+        "stops": [
+          [
+            "Shanghai Hongqiao",
+            "20:15",
+            "d"
+          ],
+          [
+            "Hangzhoudong",
+            "21:15",
+            "d"
+          ],
+          [
+            "Yiwu",
+            "21:48",
+            "d"
+          ],
+          [
+            "Nanchangdong",
+            "23:44",
+            "d"
+          ],
+          [
+            "Ganzhouxi",
+            "29:21",
+            "d"
+          ],
+          [
+            "Hong Kong West Kowloon",
+            "31:25",
+            "a"
+          ]
+        ],
+        "notes": "Sleeper. Short-haul HK–Shenzhen/Guangzhou tickets excluded; only source-supported boarding/alighting events retained."
+      }
+    ]
+  },
+  "1bb5c55dd417e53ef2755d3be7e4deff773200fb48cb809dfe9b382123683105": {
+    "description": "Shuttle Selatan page 2, visually checked 2026-10-04",
+    "trips": [
+      {
+        "number": "8001",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Paloh",
+            "03:55",
+            "both"
+          ],
+          [
+            "Kluang",
+            "04:21",
+            "both"
+          ],
+          [
+            "Rengam",
+            "04:37",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "04:50",
+            "both"
+          ],
+          [
+            "Kulai",
+            "05:13",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "05:37",
+            "both"
+          ],
+          [
+            "JB Sentral",
+            "05:52",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8011",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Paloh",
+            "05:40",
+            "both"
+          ],
+          [
+            "Kluang",
+            "06:03",
+            "both"
+          ],
+          [
+            "Rengam",
+            "06:22",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "06:35",
+            "both"
+          ],
+          [
+            "Kulai",
+            "06:59",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "07:22",
+            "both"
+          ],
+          [
+            "JB Sentral",
+            "07:37",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8025",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Paloh",
+            "10:10",
+            "both"
+          ],
+          [
+            "Kluang",
+            "10:33",
+            "both"
+          ],
+          [
+            "Rengam",
+            "10:52",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "11:05",
+            "both"
+          ],
+          [
+            "Kulai",
+            "11:28",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "11:52",
+            "both"
+          ],
+          [
+            "JB Sentral",
+            "12:07",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8035",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Paloh",
+            "15:25",
+            "both"
+          ],
+          [
+            "Kluang",
+            "15:48",
+            "both"
+          ],
+          [
+            "Rengam",
+            "16:07",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "16:20",
+            "both"
+          ],
+          [
+            "Kulai",
+            "16:43",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "17:07",
+            "both"
+          ],
+          [
+            "JB Sentral",
+            "17:22",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8043",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Paloh",
+            "17:45",
+            "both"
+          ],
+          [
+            "Kluang",
+            "18:08",
+            "both"
+          ],
+          [
+            "Rengam",
+            "18:27",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "18:40",
+            "both"
+          ],
+          [
+            "Kulai",
+            "19:18",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "19:42",
+            "both"
+          ],
+          [
+            "JB Sentral",
+            "19:57",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8004",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "JB Sentral",
+            "06:25",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "06:40",
+            "both"
+          ],
+          [
+            "Kulai",
+            "07:04",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "07:27",
+            "both"
+          ],
+          [
+            "Rengam",
+            "07:40",
+            "both"
+          ],
+          [
+            "Kluang",
+            "08:04",
+            "both"
+          ],
+          [
+            "Paloh",
+            "08:27",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8016",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "JB Sentral",
+            "09:20",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "09:35",
+            "both"
+          ],
+          [
+            "Kulai",
+            "09:59",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "10:32",
+            "both"
+          ],
+          [
+            "Rengam",
+            "10:45",
+            "both"
+          ],
+          [
+            "Kluang",
+            "11:04",
+            "both"
+          ],
+          [
+            "Paloh",
+            "11:27",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8028",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "JB Sentral",
+            "13:00",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "13:15",
+            "both"
+          ],
+          [
+            "Kulai",
+            "13:39",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "14:02",
+            "both"
+          ],
+          [
+            "Rengam",
+            "14:15",
+            "both"
+          ],
+          [
+            "Kluang",
+            "14:34",
+            "both"
+          ],
+          [
+            "Paloh",
+            "14:57",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8040",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "JB Sentral",
+            "18:15",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "18:30",
+            "both"
+          ],
+          [
+            "Kulai",
+            "18:54",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "19:17",
+            "both"
+          ],
+          [
+            "Rengam",
+            "19:30",
+            "both"
+          ],
+          [
+            "Kluang",
+            "19:49",
+            "both"
+          ],
+          [
+            "Paloh",
+            "20:12",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8046",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "JB Sentral",
+            "20:30",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "20:45",
+            "both"
+          ],
+          [
+            "Kulai",
+            "21:09",
+            "both"
+          ],
+          [
+            "Layang-Layang",
+            "21:32",
+            "both"
+          ],
+          [
+            "Rengam",
+            "21:45",
+            "both"
+          ],
+          [
+            "Kluang",
+            "22:04",
+            "both"
+          ],
+          [
+            "Paloh",
+            "22:27",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8101",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Kempas Baru",
+            "05:20",
+            "both"
+          ],
+          [
+            "Pasir Gudang",
+            "06:00",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8147",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Kempas Baru",
+            "18:40",
+            "both"
+          ],
+          [
+            "Pasir Gudang",
+            "19:20",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8104",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Pasir Gudang",
+            "06:30",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "07:10",
+            "both"
+          ]
+        ]
+      },
+      {
+        "number": "8150",
+        "country": "MY",
+        "page": 2,
+        "operator": "KTMB",
+        "calendar": {
+          "kind": "typical",
+          "start": "2026-08-08"
+        },
+        "stops": [
+          [
+            "Pasir Gudang",
+            "19:50",
+            "both"
+          ],
+          [
+            "Kempas Baru",
+            "20:30",
+            "both"
+          ]
+        ]
+      }
+    ]
+  }
+}

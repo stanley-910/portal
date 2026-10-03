@@ -103,7 +103,7 @@ export async function listMyTrips(userId: string): Promise<TripSummary[]> {
 
 // ---- Solo save from `/` ----
 
-const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel", "vietnam-rail", "official-ferries"] as const satisfies readonly ProviderId[];
+const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel", "vietnam-rail", "official-ferries", "rail-cache"] as const satisfies readonly ProviderId[];
 const MODES = ["flight", "train", "bus", "ferry"] as const;
 const MAX_SEGMENTS = 8;
 /** All options together, after unknown fields are stripped. Twenty real offers are a few KB. */

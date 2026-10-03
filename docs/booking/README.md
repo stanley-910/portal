@@ -131,8 +131,7 @@ Only the server writes `booking`: clients can't mark themselves paid.
   is the webhook (`checkout.session.completed`, `payment_intent.canceled`), verified by hand against
   `STRIPE_WEBHOOK_SECRET`. Either path marks the seat; the purchase runs under a lease and asks Duffel whether the
   order is already paid, so a retry can't buy twice.
-- **Expiry**: `expireBookings` runs after the trip page renders and before every booking action. A scheduled job
-  for rooms nobody opens is still to do.
+- **Expiry**: `expireBookings` runs after a trip page renders and before every booking action. Rooms nobody opens are covered by the scheduled sweep: `vercel.json` runs `/api/booking/expire` every ten minutes, which calls `sweepBookings` over every leg in the store's active list (`booking_active`, kept in step by the flow whenever a leg is settled, booked or rolled back). Vercel authenticates the call with `CRON_SECRET`; without it the route refuses everything. Locally: `curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/booking/expire`.
 - **Duffel webhook** for schedule changes and airline cancellations on booked legs: still to do.
 - Duffel balance: we pay Duffel from a prepaid balance and collect from riders through Stripe. Keep enough in it for
   the largest group order we expect, and set Duffel's low-balance alert.
@@ -165,8 +164,9 @@ Keys in `.env.local` (all optional; see `.env.example`):
 | --- | --- |
 | `DUFFEL_ACCESS_TOKEN` | No Duffel offers, so nothing to settle. A test token sells the fake Duffel Airways, which holds every fare. |
 | `STRIPE_SECRET_KEY` | "Pay my share" is a no-charge test checkout: the seat is held at once and nobody's card is touched. Only with a Duffel test token; with a live one, paying is refused until Stripe is set. |
-| `STRIPE_WEBHOOK_SECRET` | The webhook refuses everything; the return route alone confirms holds. Locally: `stripe listen --forward-to localhost:3000/api/booking/stripe`. |
+| `STRIPE_WEBHOOK_SECRET` | The webhook refuses everything; the return route alone confirms holds. Locally: `stripe listen --forward-to localhost:3000/api/booking/stripe --events checkout.session.completed,checkout.session.async_payment_succeeded,payment_intent.canceled`. |
 | `SUPABASE_SECRET_KEY` + `BOOKING_ENCRYPTION_KEY` | Details, payments and leases stay in memory. Run `pnpm db:migrate` once the key is set. |
+| `CRON_SECRET` | The scheduled sweep refuses every call, so only trip visits and booking actions expire bookings. Set this secret in the deployment configuration. |
 
 Stripe test cards: `4242 4242 4242 4242` authorises; `4000 0000 0000 9995` is declined.
 
@@ -194,10 +194,9 @@ the settled share in the cost split, and Pip seeing who still owes.
 Not yet:
 
 1. **Pip staging.** Settle on request and reminders. Pip already reads the booking from the plan.
-2. **A scheduled expiry** for rooms nobody opens before the deadline.
-3. **Duffel's order webhook** for schedule changes and cancellations.
-4. **Changing or cancelling a booked ticket** from the app.
-5. **Hotels.** The same group checkout for stays, once Duffel enables Stays on our account.
+2. **Duffel's order webhook** for schedule changes and cancellations.
+3. **Changing or cancelling a booked ticket** from the app.
+4. **Hotels.** The same group checkout for stays, once Duffel enables Stays on our account.
 
 ## Open questions
 

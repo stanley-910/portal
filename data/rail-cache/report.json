@@ -1,0 +1,603 @@
+{
+  "tripCount": 4476,
+  "stopCount": 38330,
+  "stationCount": 950,
+  "bySource": {
+    "mtr": 299,
+    "thsr": 668,
+    "jr-central": 276,
+    "korail": 1073,
+    "sr": 621,
+    "ktmb": 134,
+    "vietnam": 10,
+    "thailand": 139,
+    "jr-kyushu": 419,
+    "ktmb-published": 462,
+    "china-12306-sample": 24,
+    "japan-route-samples": 351
+  },
+  "reviewCount": 127,
+  "documents": [
+    {
+      "group": "mtr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-1.pdf",
+      "sha256": "046a4dc403e810956ef9d43675e5d8c937b54c3b1d5172674b890c69fdf02232",
+      "role": "timetable",
+      "cachedTrips": 141
+    },
+    {
+      "group": "mtr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-2.pdf",
+      "sha256": "a260454c121646477169fb624b8b3234b0a2722af686d1e5c8cdd38d5b756e35",
+      "role": "timetable",
+      "cachedTrips": 135
+    },
+    {
+      "group": "mtr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-3.pdf",
+      "sha256": "f0badd817e932d971e076d517ccd4eedd6291fc4c82b10c54fc60f632dbc7b93",
+      "role": "timetable",
+      "cachedTrips": 10
+    },
+    {
+      "group": "mtr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-4.pdf",
+      "sha256": "c2886d499b82397d7201cd13428c35db9023d4356d18bf3fe8a6ca7ddfe7fd65",
+      "role": "timetable",
+      "cachedTrips": 7
+    },
+    {
+      "group": "mtr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/mtr/document-5.pdf",
+      "sha256": "a5b7dd7cf4743ed2054aca6ca1d7b2fcf46bf7b9b81625c20b72688154f04084",
+      "role": "timetable",
+      "cachedTrips": 6
+    },
+    {
+      "group": "thsr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-1.pdf",
+      "sha256": "fd42fa83f003b282f1dc35e35a40bc2aebb7b1a1daf8f2e2c6ad7e45f8d4336a",
+      "role": "timetable",
+      "cachedTrips": 225
+    },
+    {
+      "group": "thsr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-2.pdf",
+      "sha256": "5616910ad629fd39cca6ee6b0611b1ca81a6e80e7ece70b300b72ef25d09d5a3",
+      "role": "timetable",
+      "cachedTrips": 214
+    },
+    {
+      "group": "thsr",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thsr/document-3.pdf",
+      "sha256": "7e25168afc97cc64c0f71e5eee66d26c7e56ae655e5a923a3cdb5bb3ec128c89",
+      "role": "timetable",
+      "cachedTrips": 229
+    },
+    {
+      "group": "jr-central",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/jr-central/document-1.pdf",
+      "sha256": "381636ad36d767b474a764a55b5e6e9c5debcd608a4c2d1eea6463602d6186c9",
+      "role": "timetable",
+      "cachedTrips": 114
+    },
+    {
+      "group": "jr-central",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/jr-central/document-2.pdf",
+      "sha256": "250b61662096eca48103ebf47baf716819ff824b315b64c66543a9dc5a034782",
+      "role": "timetable",
+      "cachedTrips": 162
+    },
+    {
+      "group": "korail",
+      "path": "data/rail-capture/runs/20261003T142704490007Z/korail/document-1.xlsx",
+      "sha256": "eaadc99d90aa9fb4e009ca74d812cc4aa4885a7aee98950adc715dca6c0ad623",
+      "role": "timetable",
+      "cachedTrips": 620
+    },
+    {
+      "group": "korail",
+      "path": "data/rail-capture/runs/20261003T142704490007Z/korail/document-2.xlsx",
+      "sha256": "f8d30c98b684d5a68dfd7cd3aa19b1f8c6acc704a36f6ec3eb7ec666d3b399c0",
+      "role": "timetable",
+      "cachedTrips": 453
+    },
+    {
+      "group": "sr",
+      "path": "data/rail-capture/runs/20261003T142704490007Z/sr/document-1.xlsx",
+      "sha256": "cf69ea35e0b6ad9fb82c0e0b44f60833e34eadab55ea610eaf6784622351e9d0",
+      "role": "timetable",
+      "cachedTrips": 621
+    },
+    {
+      "group": "ktmb",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/ktmb/feed.zip",
+      "sha256": "eba00dd8a2a9a736d3e03353fa2d5af07f935639060c36f97d2444a6a79d17fc",
+      "role": "feed",
+      "cachedTrips": 134
+    },
+    {
+      "group": "vietnam",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/vietnam/index.html",
+      "sha256": "92137b80254d29b8af6a2b5e8a3f115edef3b85e4da0a9881f11e96f937a711f",
+      "role": "index",
+      "cachedTrips": 10
+    },
+    {
+      "group": "thailand",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/index.html",
+      "sha256": "86bdfe19d2b2cd307f58c25c886b0ebc7b1e0cca6415257958df133f9c086b8a",
+      "role": "index",
+      "cachedTrips": 21
+    },
+    {
+      "group": "thailand",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-1-2.html",
+      "sha256": "f964d253d9bf0488fe43fd4a19e0557e92f3611af902420ffe68b89f174c1864",
+      "role": "timetable",
+      "cachedTrips": 21
+    },
+    {
+      "group": "thailand",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-2-1.html",
+      "sha256": "d575f442b30a25af446456c97fb3841cd74b85af3ff010159a51c0df9a44a383",
+      "role": "timetable",
+      "cachedTrips": 24
+    },
+    {
+      "group": "thailand",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-2-2.html",
+      "sha256": "07c285a94dffa8eb65315c493d5db1a24bed4a94be84edfde24eaa3b5e018c4d",
+      "role": "timetable",
+      "cachedTrips": 25
+    },
+    {
+      "group": "thailand",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-4-1.html",
+      "sha256": "0dcc9f5e98c76af888d9601ceb230f7d788193cf97cc82b1c7da331ea4f24aaf",
+      "role": "timetable",
+      "cachedTrips": 24
+    },
+    {
+      "group": "thailand",
+      "path": "data/rail-capture/runs/20261003T142346427504Z/thailand/line-4-2.html",
+      "sha256": "da8c5eaf37ee352a04e12c7b49e446c633dbcea3b22e052d474d24a90a383b5e",
+      "role": "timetable",
+      "cachedTrips": 24
+    },
+    {
+      "group": "jr-kyushu",
+      "path": "data/rail-capture/runs/20261003T142704490007Z/jr-kyushu/document-1.pdf",
+      "sha256": "208a0a10946b7c2b4ddbe9b3eeb19cb1dd8a1425e64d89f91ece743b67405faa",
+      "role": "timetable",
+      "cachedTrips": 419
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-1.pdf",
+      "sha256": "593279a3aa34c2e6ff2aeb97c63486298bce206c7d5c568bfe0b028dc03ecfc7",
+      "role": "timetable",
+      "cachedTrips": 45
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-2.pdf",
+      "sha256": "1f0247354c917493bf6695af22ef4325e90a915081df2f0e6820532cc3427e00",
+      "role": "timetable",
+      "cachedTrips": 44
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-3.pdf",
+      "sha256": "99cd3e941cf836c248eec4d2ecdabf9f40530d6c080d8d5a4acc98a17dbc98b0",
+      "role": "timetable",
+      "cachedTrips": 39
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-4.pdf",
+      "sha256": "4e6743099a72c877436bdc3967931d676d7359511b1b3129575da07eece10e31",
+      "role": "timetable",
+      "cachedTrips": 35
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-5.pdf",
+      "sha256": "7dbdedc4b8e3f2fa18548d3a01c084124e478ec1724eb10d3a6f3e89a430741a",
+      "role": "timetable",
+      "cachedTrips": 35
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-6.pdf",
+      "sha256": "db3740e84226929d9cb366e13b38664456114adffba3fcb5a4b459f8619eee33",
+      "role": "timetable",
+      "cachedTrips": 39
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-7.pdf",
+      "sha256": "41403fa47ec93590a01125024fbdf9435eb8731ce282fc3c02ac5c81246cbe8d",
+      "role": "timetable",
+      "cachedTrips": 62
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-8.pdf",
+      "sha256": "1bb5c55dd417e53ef2755d3be7e4deff773200fb48cb809dfe9b382123683105",
+      "role": "timetable",
+      "cachedTrips": 14
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-9.pdf",
+      "sha256": "28eb422225fbffdfafbe15182774bb622d38ab0fa30950bb26db292a4ad9677f",
+      "role": "timetable",
+      "cachedTrips": 44
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-10.pdf",
+      "sha256": "8fa8adf600e848cc353051edde0f612d2d87dab5b9302278751a0f3abcd180af",
+      "role": "timetable",
+      "cachedTrips": 44
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-11.pdf",
+      "sha256": "74789df489ff5e7ee3ee823176f9f85e3644bc7fe32c37919a057e2c664d4a3c",
+      "role": "timetable",
+      "cachedTrips": 1
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-12.pdf",
+      "sha256": "dccb7d2d916efbd32ae0400e4902a886164cbcf67f3fd30291aac0c3403f5e88",
+      "role": "timetable",
+      "cachedTrips": 13
+    },
+    {
+      "group": "ktmb-published",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/ktmb-published/document-13.pdf",
+      "sha256": "0763caae2f0bfa73553f31dd1060325cf3b15bd095f088450c6f2802f79460d7",
+      "role": "timetable",
+      "cachedTrips": 47
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-1.pdf",
+      "sha256": "108d1ebbdad1c94dab09fbd352dfe4ab78ce19f4cf0969c9896feef4b6cce894",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-2.pdf",
+      "sha256": "126f39949f0c90c95b85f1d8fcf3e778f930045989de988151259538c22f64de",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-3.pdf",
+      "sha256": "e9ead7cf85d3ec20efb6a19b740a3a99391cb440b317e1df20610de9e550191f",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-4.pdf",
+      "sha256": "9e2eb2867fe2cfedce6b7828fe9e1e12932ecd034ae30f8fb8b962d396d2cf4b",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-5.pdf",
+      "sha256": "c50db3aa9997871a1c7e45ae296b9ab244eba3c67393a5b5f79ed8b17be964ca",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-6.pdf",
+      "sha256": "fda540c883aad9d256d45e95d53e722faa42b2b98ddfd885713c285adb365441",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "mtr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/mtr-fares/document-7.pdf",
+      "sha256": "a5b7dd7cf4743ed2054aca6ca1d7b2fcf46bf7b9b81625c20b72688154f04084",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "korail-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/document-1.xls",
+      "sha256": "17da4e097143ba0c6adee310e5f456496542f52ab0ab9fb04d73c0cb7b2f62f2",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "korail-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/korail-fares/document-2.xlsx",
+      "sha256": "287423a7bb3d504bccf708252dd52c3854800999dd95b15fd08952b997c7848f",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "sr-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/sr-fares/document-1.xls",
+      "sha256": "bc18040242a6186637e71044bd85f18791e7efaad9b921390137cd3ef3db12e5",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "smartex-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-1.pdf",
+      "sha256": "b6b5313b86ba3485044369ab7dfad13c22435379ca80b6ab2cdfbfaa3131a84e",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "smartex-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-2.pdf",
+      "sha256": "6c251d14dc93ddca237b353ada4c47dd4f2a5b14c38e79f7a31e6cd6b0cbef92",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "smartex-fares",
+      "path": "data/rail-capture/runs/20261003T155950207080Z/smartex-fares/document-3.pdf",
+      "sha256": "c9d3622b24049340e3dca6fcb60945957a1d04619986c55ff73dc8dc0ded43ac",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "thsr-fares",
+      "path": "data/rail-capture/runs/20261003T160341569696Z/thsr-fares/index.html",
+      "sha256": "1a9942220a17cd353904cb6a86f3531a833a074ca8cd9e2855411cd734f8a9a6",
+      "role": "published-fares",
+      "cachedTrips": 0
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G1.json",
+      "sha256": "fc5d581c3f51a1eef3d2e2df82a7869185af3ae2225303ad8050d5b9d24beac7",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G2.json",
+      "sha256": "39999723b41af1dd0c508eca9674224f82175450f905ed3cc7e374d61ec23f0c",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G3.json",
+      "sha256": "153394640c588a8cf44491e9f14430a43379690651da6af4e12d96cbe41c730c",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G4.json",
+      "sha256": "59a10ae711a4a1a10da41d8da2f820b1e1a24026a51e0d1d095d6b9e5b397c4c",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G5.json",
+      "sha256": "6693e08c62662c01c79862a7d3edffb3093c05ceb353b6f3f44a2d1e5add3cec",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G6.json",
+      "sha256": "2cc09e1ec01e8f60812920f7776d7409579e8503d189f15dfc434d4a90fd82ce",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G28.json",
+      "sha256": "d570beaeaf925bc544306bda34b6fcd82ccb211227cb137fcd29f8383ffdf8fb",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G37.json",
+      "sha256": "8c8f925e8d60499f259750cc4fb522c0980f2bb97941a06efed46810bbce3138",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G38.json",
+      "sha256": "7872a26b566b7db6803184b59289433f4006dd0b95bef623f5e34eec8d9d3b58",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G41.json",
+      "sha256": "1819cab8d74e7d726e649387e3407fb62891a806c191a46f7fe51f54f96fdc8b",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G45.json",
+      "sha256": "de3979952006dbb78f8572f6199d0ca9923e8f1e8f26f48e89e9bce72ff412fb",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G46.json",
+      "sha256": "358d1d67a6cf0afa2d8b07bd5b87d96e8d7ef49be689e6b42cda41a7374547b1",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G47.json",
+      "sha256": "e9de91ede98da13eba42dc980ff3b41e24ec9e3ff16a65758cf46f54c8d6a397",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G48.json",
+      "sha256": "2e1f67a9745c0e9f0cd88b1b32cf0f79641b28dbe365f843f18eb1a14dd1766d",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G50.json",
+      "sha256": "c63cd4e6fa0937c28dc8a0471fb566638fa524de41580b3f0e62489e2a41d439",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G51.json",
+      "sha256": "deaeb0b77086630a711d9a4b8d270485403aa4a6421514d529793b596564d8fb",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G52.json",
+      "sha256": "abd42a48a8d66b05dfd68509c61537038f2cfedeade4d7198141f59b3cbf9cd0",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G53.json",
+      "sha256": "2e9db386114e2dbc9777a2c05364739dd0aca53ce9e8db0e213ef76921c180d0",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G55.json",
+      "sha256": "fc7eed41d76b8f71663148f70e5e024f869320b344d87c1bc07fce24a512d428",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G58.json",
+      "sha256": "13b09beeb99e0116ac2c0fe08b40fefdaa0ba6861bd7ffb86d68ca3cec01af36",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G65.json",
+      "sha256": "351b575614e6d2457906c0c1b107ca700d9931778c0a8a3f08213a25dba873d3",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G66.json",
+      "sha256": "30c1ebcb28167a81b2d0228d11265c85c24b6439ccb7c4f919db6fe02c388b6a",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G68.json",
+      "sha256": "4930c636362af7c02432f994ba8b3c59e96b40922f0ba564eef39015bb5f41cf",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "china-12306-sample",
+      "path": "data/rail-capture/runs/20261003T161135512654Z/china-12306-sample/G69.json",
+      "sha256": "16bd05f7f03bc6476195a8028c229ca5efb5bff2c4c81e05d805bbbadcb9c940",
+      "role": "dated-stop-times",
+      "cachedTrips": 1
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-niigata.rows.json",
+      "sha256": "18bf326fc2462a490e6843b39261b94618477442bb9fc4b6fd5942ba7d3e9470",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/niigata-to-tokyo.rows.json",
+      "sha256": "671e604561b4aa0448cb1b587dfae6e6870cc7148bcacd98d19809dc75610bf5",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-sendai-miyagi.rows.json",
+      "sha256": "c3c52744ad9831e2f966fe4fa89cb49d200e5cb6b66fbec1bf3b0f9301e8f7dd",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/sendai-miyagi-to-tokyo.rows.json",
+      "sha256": "0f78df8f9781f68ba0c53f1ba5b7bfaff99ceb179884bc96f09a575beb430e41",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-shin-hakodate-hokuto.rows.json",
+      "sha256": "6b10460a06fcef1307e8212784bb08a02074a8ab6a30370998883fd792614bf3",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/shin-hakodate-hokuto-to-tokyo.rows.json",
+      "sha256": "ecd2736c4e0303749b542660b6bac5177efaeac74a90763c3fa2394e06ce83df",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-kanazawa.rows.json",
+      "sha256": "59787edede3bc3216ed563dffc785f22f86630cb2f11846404ca056b3403cab3",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/kanazawa-to-tokyo.rows.json",
+      "sha256": "ca8b42edcaf0d2fdbececf8da79bfc4e325bed4dd7afb7bbea6428945781242f",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/tokyo-to-nagano.rows.json",
+      "sha256": "eb4c773b3c763915b69b75f313b54907ee36b8277a3b5a61168cdeb0bbd90d59",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    },
+    {
+      "group": "japan-route-samples",
+      "path": "data/rail-capture/runs/20261003T161320412645Z/japan-route-samples/nagano-to-tokyo.rows.json",
+      "sha256": "673c0ede910ef23013c389e3b956d8c3fca2e036f7f822eda9955813b01f3a3a",
+      "role": "derived-evidence",
+      "cachedTrips": 0
+    }
+  ]
+}
