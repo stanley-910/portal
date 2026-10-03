@@ -5,6 +5,7 @@ import { shallow, useMutation, useRoom, useSelf, useStorage } from "@liveblocks/
 import { useCallback, useEffect } from "react";
 
 import { searchLeg } from "@/app/t/actions";
+import { refreshTripTitle } from "@/app/t/title-actions";
 import type { LandedTrip } from "@/components/trip-globe";
 import type { LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
 import { sameStop, stopFromPoint } from "@/lib/trip/stops";
@@ -105,6 +106,16 @@ export function usePlanActions() {
     [tripId],
   );
 
+  /**
+   * Re-derives the trip's title for "My trips" once the edit has had a moment to reach the server's copy of Storage.
+   * Fire and forget: a failed refresh only leaves the old title.
+   */
+  const retitle = useCallback(() => {
+    setTimeout(() => {
+      refreshTripTitle(tripId).catch(() => {});
+    }, 1500);
+  }, [tripId]);
+
   /** Stores a landed trip at its exact clicks, sharing only identical stops (M8). */
   const addLegMutation = useMutation(({ storage, self }, trip: LandedTrip) => {
     const stops = storage.get("stops");
@@ -179,11 +190,13 @@ export function usePlanActions() {
     addLeg: (trip: LandedTrip) => {
       const { id, searchId } = addLegMutation(trip);
       search(id, searchId);
+      retitle();
       return id;
     },
     setDate: (legId: string, date: string) => {
       const searchId = resetMutation(legId, { date });
       if (searchId) search(legId, searchId);
+      retitle();
     },
     retrySearch: (legId: string) => {
       const searchId = resetMutation(legId, {});
@@ -192,7 +205,10 @@ export function usePlanActions() {
     vote: voteMutation,
     choose: chooseMutation,
     toggleRider: toggleRiderMutation,
-    removeLeg: removeLegMutation,
+    removeLeg: (legId: string) => {
+      removeLegMutation(legId);
+      retitle();
+    },
   };
 }
 

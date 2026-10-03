@@ -5,15 +5,17 @@ import { useEffect, useRef, useState } from "react";
 
 import { AccountChip } from "@/components/account-chip";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
+import { MyTrips } from "@/components/trip-plan/my-trips";
 import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySelector } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { CurrentUser } from "@/lib/supabase/server";
+import type { TripSummary } from "@/lib/trip/server";
 
 import { createTrip } from "./t/actions";
 
-export function GlobeScreen({ user }: { user: CurrentUser | null }) {
+export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; trips?: TripSummary[] }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
@@ -57,6 +59,9 @@ export function GlobeScreen({ user }: { user: CurrentUser | null }) {
       </form>
       <AccountChip user={user} />
     </NavBar>
+    <div className="absolute top-20 left-(--space-4) z-[5]">
+      <MyTrips trips={trips} />
+    </div>
     {trip ? (
       <TicketSearch
         key={`${trip.origin.lat},${trip.origin.lng}-${trip.destination.lat},${trip.destination.lng}`}
