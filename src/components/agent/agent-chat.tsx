@@ -22,7 +22,6 @@ const NUDGE_DELAY_MS = 900;
 const NUDGE_HOLD_MS = 5000;
 const nudged = new Set<string>();
 const TYPE_MS = 34;
-const NUDGE_VISIBLE_MS = 2_000;
 
 export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
   const [open, setOpen] = useState(initialOpen);
@@ -88,26 +87,17 @@ function useTyping(text: string | null): string | null {
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let i = 0;
     let timer: number;
-    let hide: number;
-    const finish = () => {
-      setN(text.length);
-      hide = window.setTimeout(() => setN(null), NUDGE_VISIBLE_MS);
-    };
     const start = window.setTimeout(() => {
-      if (still) return finish();
+      if (still) return setN(text.length);
       timer = window.setInterval(() => {
         i++;
         setN(i);
-        if (i >= text.length) {
-          window.clearInterval(timer);
-          hide = window.setTimeout(() => setN(null), NUDGE_VISIBLE_MS);
-        }
+        if (i >= text.length) window.clearInterval(timer);
       }, TYPE_MS);
     }, still ? 0 : NUDGE_DELAY_MS);
     return () => {
       window.clearTimeout(start);
       window.clearInterval(timer);
-      window.clearTimeout(hide);
     };
   }, [text]);
   return n === null || text === null ? null : text.slice(0, n);
@@ -359,3 +349,4 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
 
 const hours = (min: number) => `${Math.floor(min / 60)}h ${String(Math.round(min % 60)).padStart(2, "0")}m`;
 const money = (amount: number, currency: string) => `${currency} ${Math.round(amount).toLocaleString("en-GB")}`;
+

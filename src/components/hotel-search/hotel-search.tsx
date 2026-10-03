@@ -6,8 +6,6 @@ import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelFilter, HotelResult } from "@/lib/hotels/types";
 import { convertCurrency } from "@/lib/currency";
 
-import "./hotel-search.css";
-
 const filters: Array<{ value: HotelFilter; label: string }> = [
   { value: 2, label: "2★" }, { value: 3, label: "3★" }, { value: 4, label: "4★" },
   { value: 5, label: "5★" }, { value: "hostel", label: "Hostel" },
@@ -18,11 +16,13 @@ const formatPrice = (amount: number, currency: Currency, rates: ExchangeRates | 
   return converted === null ? "—" : new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(converted);
 };
 
+/** Estimated stays at the landed city. Picking one saves it as the trip's stay there; picking it again unpicks it. */
 export function HotelSearch({
-  city, lat, lng, checkIn, checkOut, currency, rates,
+  city, lat, lng, checkIn, checkOut, currency, rates, picked, onPick,
 }: {
   city: string; lat: number; lng: number; checkIn: string; checkOut: string;
   currency: Currency; rates: ExchangeRates | null;
+  picked: HotelResult | null; onPick: (hotel: HotelResult | null) => void;
 }) {
   const [filter, setFilter] = useState<HotelFilter>(4);
   const [occupants, setOccupants] = useState(1);
@@ -46,27 +46,42 @@ export function HotelSearch({
     return () => controller.abort();
   }, [city, lat, lng, checkIn, checkOut, occupants, filter]);
 
+  // a pick made for another filter, head count or dates no longer matches what's listed
+  const refine = <T,>(set: (value: T) => void) => (value: T) => {
+    set(value);
+    onPick(null);
+  };
+
   return (
-    <section className="hotel-search" aria-label={`Hotels in ${city}`}>
+    <section className="hotel-search" role="tabpanel" aria-label={`Hotels in ${city}`}>
       <div className="hotel-heading">
         <div><h2>Stay in {city}</h2><span>Estimated nightly rates</span></div>
         <label className="hotel-occupants">Occupants
-          <select value={occupants} onChange={(event) => setOccupants(Number(event.target.value))}>
+          <select value={occupants} onChange={(event) => refine(setOccupants)(Number(event.target.value))}>
             {[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count}</option>)}
           </select>
         </label>
       </div>
       <div className="hotel-filters" role="group" aria-label="Hotel type">
-        {filters.map((option) => <button key={String(option.value)} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)}>{option.label}</button>)}
+        {filters.map((option) => <button key={String(option.value)} type="button" aria-pressed={filter === option.value} onClick={() => refine(setFilter)(option.value)}>{option.label}</button>)}
       </div>
       <div className="hotel-rows">
         {status === "failed" ? <p className="ts-empty" role="alert">Hotel search failed. Try again.</p> : null}
         {status === "done" && hotels.length === 0 ? <p className="ts-empty">No stays match that filter.</p> : null}
         {hotels.map((hotel) => (
-          <article className="hotel-row" key={hotel.id}>
-            <div><strong>{hotel.name}</strong><span>{hotel.kind === "hostel" ? "Hostel" : `${hotel.stars}★ hotel`} · {hotel.distanceKm.toFixed(1)} km from centre</span></div>
+          <button
+            type="button"
+            className="hotel-row"
+            key={hotel.id}
+            aria-pressed={picked?.id === hotel.id}
+            onClick={() => onPick(picked?.id === hotel.id ? null : hotel)}
+          >
+            <div>
+              <strong>{hotel.name}</strong>
+              <span>{hotel.distanceKm.toFixed(1)} km from centre <span className="ts-badge ts-badge-quiet">Estimated</span></span>
+            </div>
             <div className="hotel-price"><strong>{formatPrice(hotel.pricePerNight.amount, currency, rates)}</strong><span>per night · {hotel.rooms} {hotel.rooms === 1 ? "room" : "rooms"}</span><small>{formatPrice(hotel.totalPrice.amount, currency, rates)} total · {hotel.bedsPerRoom} beds/room</small></div>
-          </article>
+          </button>
         ))}
       </div>
     </section>

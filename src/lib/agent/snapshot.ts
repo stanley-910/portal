@@ -72,7 +72,7 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
     lines.push("Stops:");
     for (const [id, s] of stops) {
       const stay = plan.stays?.[id];
-      const cost = stay?.nightly ? ` · stay ${stay.nightly.currency} ${stay.nightly.amount} a night${stay.label ? ` (${stay.label})` : ""}` : "";
+      const cost = stay?.nightly ? ` · stay ${stay.nightly.currency} ${stay.nightly.amount} a night${stay.estimated ? " estimated" : ""}${stay.label ? ` (${stay.label})` : ""}` : "";
       lines.push(`  ${h.stop.get(id)} ${s.name}${s.code ? ` (${s.code})` : ""}${cost}`);
     }
   }

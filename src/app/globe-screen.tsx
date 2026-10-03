@@ -118,13 +118,14 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
         rates={rates}
         saving={saving}
         error={saveFailed ? "Couldn't save the trip. Please try again." : null}
-        onAdd={({ offer, offers, depart }) => {
+        onAdd={({ offer, offers, depart, stay }) => {
           const input = {
             from: stopFromPoint(trip.origin, trip.from),
             to: stopFromPoint(trip.destination, trip.to),
             date: depart,
             offers: savedOptions(offer, offers),
             chosen: offer.id,
+            ...(stay ? { stay } : {}),
           };
           if (account) return save(input);
           setPendingAction({ type: "save", input });

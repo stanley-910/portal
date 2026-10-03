@@ -33,4 +33,15 @@ describe("hotel search", () => {
     expect(hotel.city).toBe("Beijing");
     expect(hotel.freshness).toBe("estimated");
   });
+
+  it("measures distance from the city centre, not the searched point", () => {
+    // Pudong airport, about 30 km out
+    const [hotel] = searchHotels({ ...query(4), lat: 31.14, lng: 121.8 });
+    expect(hotel.distanceKm).toBeLessThan(5);
+  });
+
+  it("names fallback stays by kind, not as made-up properties", () => {
+    const [hotel] = searchHotels({ ...query(3), city: "Beijing", lat: 39.93, lng: 116.39 });
+    expect(hotel.name).toBe("3★ hotel near the centre");
+  });
 });
