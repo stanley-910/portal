@@ -11,6 +11,8 @@ export const AUTH_PARAM = "auth";
 /** The current page with the sign-in panel open, or closed when `mode` is null. Keeps the page's other params. */
 export function authHref(pathname: string, search: URLSearchParams | string, mode: AuthMode | null): string {
   const params = new URLSearchParams(search);
+  // a failed round trip's reason only shows on the panel it reopened
+  params.delete("auth_error");
   if (mode) params.set(AUTH_PARAM, mode);
   else params.delete(AUTH_PARAM);
   const query = params.toString();

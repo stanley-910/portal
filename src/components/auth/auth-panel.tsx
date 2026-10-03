@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useId, useRef } from "react";
 
-import { signIn, signUp, type AuthState } from "@/app/(auth)/actions";
+import { signIn, signInWithGoogle, signUp, type AuthState } from "@/app/(auth)/actions";
 import { Button, RoundButton } from "@/components/paper-atlas";
 import { MAX_NAME } from "@/lib/guest-name";
 
@@ -13,17 +13,34 @@ import "./auth.css";
 /** Sign in and create account, as a panel over whatever screen you're on, so the globe or trip stays put behind it.
  * Mounted once in the root layout; `?auth=signin` or `?auth=signup` opens it. */
 export function AuthPanel() {
-  const raw = useSearchParams().get(AUTH_PARAM);
+  const search = useSearchParams();
+  const raw = search.get(AUTH_PARAM);
   const mode: AuthMode | null = raw === "signin" || raw === "signup" ? raw : null;
-  return mode ? <Panel mode={mode} /> : null;
+  const failed = search.get("auth_error");
+  const notice = failed === "google" ? ROUND_TRIP.google : failed === "email" ? ROUND_TRIP.email : undefined;
+  return mode ? <Panel mode={mode} notice={notice} /> : null;
 }
+
+/** Shown when Google or a confirmation link came back without a session. */
+const ROUND_TRIP = {
+  google: "Google sign-in didn't finish. Try again.",
+  // the link confirms the email before it gets here, so most often only the sign-in part is left
+  email: "That link couldn't sign you in here. If your email is confirmed, sign in below.",
+};
+
+/** The page to come back to: this one, panel closed. Read when the form is sent. */
+const withNext =
+  (action: (prev: AuthState, formData: FormData) => Promise<AuthState>) => (prev: AuthState, formData: FormData) => {
+    formData.set("next", hereWithAuth(null));
+    return action(prev, formData);
+  };
 
 const MODES: { value: AuthMode; label: string }[] = [
   { value: "signin", label: "Sign in" },
   { value: "signup", label: "Create account" },
 ];
 
-function Panel({ mode }: { mode: AuthMode }) {
+function Panel({ mode, notice }: { mode: AuthMode; notice?: string }) {
   const open = useOpenAuth();
   const titleId = useId();
   const close = () => {
@@ -51,6 +68,10 @@ function Panel({ mode }: { mode: AuthMode }) {
           </div>
           <RoundButton label="Close" onClick={close} className="au-close" />
         </header>
+        <GoogleButton />
+        <div className="au-or" aria-hidden>
+          <span>or with email</span>
+        </div>
         <div className="au-tabs" role="tablist" aria-label="Account">
           {MODES.map((m) => (
             <button
@@ -66,15 +87,32 @@ function Panel({ mode }: { mode: AuthMode }) {
           ))}
         </div>
         {/* keyed so switching tabs starts the form fresh */}
-        <AuthForm key={mode} mode={mode} />
+        <AuthForm key={mode} mode={mode} notice={notice} />
       </section>
     </div>
   );
 }
 
-function AuthForm({ mode }: { mode: AuthMode }) {
+/** Leaves for Google and comes back through /auth/callback to this page. */
+function GoogleButton() {
+  const [state, action, pending] = useActionState<AuthState, FormData>(withNext(signInWithGoogle), {});
+  return (
+    <form action={action} className="au-form">
+      <Button type="submit" variant="secondary" block disabled={pending} aria-busy={pending || undefined}>
+        {pending ? "Opening Google…" : "Continue with Google"}
+      </Button>
+      {state.error ? (
+        <p role="status" className="au-message" data-kind="error">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+function AuthForm({ mode, notice }: { mode: AuthMode; notice?: string }) {
   const signup = mode === "signup";
-  const [state, action, pending] = useActionState<AuthState, FormData>(signup ? signUp : signIn, {});
+  const [state, action, pending] = useActionState<AuthState, FormData>(withNext(signup ? signUp : signIn), { notice });
   const first = useRef<HTMLInputElement>(null);
 
   useEffect(() => first.current?.focus(), []);

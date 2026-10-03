@@ -14,3 +14,9 @@ describe("panelUrl", () => {
     expect(panelUrl(undefined, "signin")).toBe("/?auth=signin");
   });
 });
+
+describe("panelUrl after a failed round trip", () => {
+  it("says why", () => {
+    expect(panelUrl("/t/abcdefghijklmnop", "signin", "google")).toBe("/t/abcdefghijklmnop?auth=signin&auth_error=google");
+  });
+});
