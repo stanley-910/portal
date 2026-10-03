@@ -11,7 +11,7 @@ import { AGENT_NAME } from "@/lib/agent/types";
 // Pip on the home globe, before there's a trip: the first message starts a solo trip with it, and Pip answers
 // there. Friends join from the trip's URL afterwards.
 
-const NUDGE = "Tell me where you're going, or where your friends are. I'll plan the trip.";
+const NUDGE = `Hi, I'm ${AGENT_NAME}. Tell me where you're going and I'll plan the trip.`;
 const CHIPS = [
   "Train from Hong Kong to Shanghai on Friday",
   "I'm in Hong Kong, my friend's in Seoul. Where should we meet?",
