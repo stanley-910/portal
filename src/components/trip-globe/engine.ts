@@ -2761,6 +2761,12 @@ export class GlobeEngine {
     this.strokePts(ctx, ground);
     ctx.setLineDash([7, 6]); // dash-route; marches while the search runs
     ctx.lineDashOffset = marching ? -t * 22 : 0;
+    // a paper halo under each dash, as country names get, so the route holds up over green land and blue sea alike
+    ctx.lineWidth = 5;
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = P.paper;
+    this.strokePts(ctx, air);
+    ctx.globalAlpha = 1;
     ctx.lineWidth = 2; // line-route
     ctx.strokeStyle = stroke;
     this.strokePts(ctx, air);

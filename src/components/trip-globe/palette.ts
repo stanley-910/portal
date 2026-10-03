@@ -64,7 +64,7 @@ export interface Palette {
 const SHADE: Record<ThemeId, RGB> = { light: [0.87, 0.86, 0.8], dark: [0.55, 0.55, 0.62] };
 const SKY_INK: Record<ThemeId, number> = { light: 0.7, dark: 0.95 };
 // How far a member's route is mixed toward ink. The pastels need more on light paper to hold a 2px line.
-const ROUTE_INK: Record<ThemeId, number> = { light: 0.45, dark: 0.2 };
+const ROUTE_INK: Record<ThemeId, number> = { light: 0.45, dark: 0.25 };
 const MEMBER_TOKENS = tokens.color.tokens.map((t) => t.name).filter((n) => /^member-\d+$/.test(n));
 
 /** a mixed toward b by k, as "#rrggbb". */
