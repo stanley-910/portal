@@ -86,6 +86,41 @@ describe("editPlan", () => {
   });
 });
 
+describe("editPlan, members", () => {
+  it("refuses a handle the run kept for someone who has since left", async () => {
+    const h = handlesFor(plan);
+    const gone: PlanJson = { ...plan, members: {} };
+    const result = await editPlan("room", gone, handlesFor(gone, h), [
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { stop: h.stop.get("bt")! }, date: "2026-10-05", riders: ["M1"] },
+    ], "agent:pip");
+    expect(result.refused[0]).toMatchObject({ code: "UNKNOWN_HANDLE" });
+    expect(result.applied).toEqual([]);
+  });
+
+  it("refuses a rider who left between the run's read and its write", async () => {
+    const h = handlesFor(plan);
+    (root.get("members") as LiveMap<string, Lson>).delete("u1");
+    const result = await editPlan("room", plan, h, [
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { stop: h.stop.get("bt")! }, date: "2026-10-05", riders: ["M1"] },
+      { op: "set_riders", leg: h.leg.get("a")!, riders: ["M1"] },
+    ], "agent:pip");
+    expect(result.refused.map((r) => [r.op, r.code])).toEqual([[0, "UNKNOWN_HANDLE"], [1, "UNKNOWN_HANDLE"]]);
+    expect(result.changesetId).toBeNull();
+    expect(Object.keys(json().legs ?? {})).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("editPlan, out of time", () => {
+  it("changes nothing once the run's turn is over", async () => {
+    const h = handlesFor(plan);
+    const result = await editPlan("room", plan, h, [{ op: "remove_leg", leg: h.leg.get("c")! }], "agent:pip", Date.now() - 1);
+    expect(result.refused).toMatchObject([{ op: 0, code: "OUT_OF_TIME" }]);
+    expect(result.changesetId).toBeNull();
+    expect(json().legs?.c).toBeDefined();
+    expect(root.get("changesets")).toBeUndefined();
+  });
+});
+
 describe("handlesFor", () => {
   it("keeps handles the run already gave out, and never reuses a removed one", () => {
     const first = handlesFor(plan);

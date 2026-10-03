@@ -721,7 +721,8 @@ export class GlobeEngine {
       const stops = [...this.via.map((s) => s.v), origin, pl.n];
       for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? pl.alt : 0]);
     }
-    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.pl.n, 0]);
+    // landed routes end at their stop, as drawn
+    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.target, 0]);
     for (const [from, to, alt] of legs) {
       for (const lift of [1, 0]) {
         const pts = this.arc(from, to, lift, lift ? alt : 0, this.hitArc);
@@ -2750,7 +2751,8 @@ export class GlobeEngine {
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
-      this.route(ctx, r.o, r.pl.n, r.pl, stroke, false);
+      // a landed route ends at its stop, not where the plane is easing to it
+      this.route(ctx, r.o, r.landed ? r.target : r.pl.n, r.pl, stroke, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
         if (!this.pinned(r.o)) this.startMark(ctx, r.o, op.x, op.y, stroke);

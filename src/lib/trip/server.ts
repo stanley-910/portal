@@ -1,6 +1,6 @@
 import "server-only";
 
-import { LiveMap, LiveObject, toPlainLson } from "@liveblocks/client";
+import { LiveList, LiveMap, LiveObject, toPlainLson } from "@liveblocks/client";
 import type { PlainLsonObject, RoomData } from "@liveblocks/node";
 import { z } from "zod";
 
@@ -250,6 +250,8 @@ export function toStorageLson(json: SoloStorageJson): PlainLsonObject {
       Object.entries(json.legs).map(([id, l]) => [id, new LiveObject<Leg>({ ...l, votes: new LiveMap(Object.entries(l.votes)) })]),
     ),
     ...(json.stays ? { stays: new LiveMap(Object.entries(json.stays).map(([id, s]) => [id, new LiveObject(s)])) } : {}),
+    // made with the room, so posts to Pip never race to create it (lib/agent/run.ts)
+    thread: new LiveList([]),
   });
   return toPlainLson(root) as PlainLsonObject;
 }

@@ -60,6 +60,10 @@ export type ThreadMessage = {
    * broadcast until then. Replies take their turn in thread order (run.ts).
    */
   state: "queued" | "streaming" | "done" | "failed";
+  /** When Pip started on it (it may have queued first); a run that started over LEASE_MS ago has died. */
+  startedAt?: number;
+  /** When the request waiting on a queued reply last said it's still there (queue.ts). */
+  seenAt?: number;
   cards: ThreadCard[];
 };
 

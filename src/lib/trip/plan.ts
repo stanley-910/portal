@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveMap, LiveObject } from "@liveblocks/client";
+import { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 import { shallow, useMutation, useRoom, useSelf, useStorage } from "@liveblocks/react";
 import { useCallback, useEffect } from "react";
 
@@ -19,6 +19,8 @@ export const initialTripStorage = (): TripStorage => ({
   members: new LiveMap(),
   stops: new LiveMap(),
   legs: new LiveMap(),
+  // made with the room, so posts never race to create it (lib/agent/run.ts)
+  thread: new LiveList([]),
 });
 
 const newId = () => crypto.randomUUID().slice(0, 8);

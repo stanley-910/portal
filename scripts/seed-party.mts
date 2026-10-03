@@ -4,7 +4,7 @@
 //
 // Open http://localhost:3000/t/partyTestRoom001 (or the port next dev prints) and join as a guest.
 
-import { LiveMap, LiveObject, toPlainLson } from "@liveblocks/client";
+import { LiveList, LiveMap, LiveObject, toPlainLson } from "@liveblocks/client";
 import { Liveblocks } from "@liveblocks/node";
 
 const TRIP_ID = "partyTestRoom001";
@@ -148,6 +148,8 @@ const root = new LiveObject({
     ["sha", new LiveObject({ label: "Jing'an apartment", nightly: { amount: 980, currency: "CNY" }, estimated: true })],
     ["tyo", new LiveObject({ label: "Asakusa guesthouse", nightly: { amount: 32000, currency: "JPY" }, estimated: true })],
   ]),
+  // made with the room, so posts to Pip never race to create it (src/lib/agent/run.ts)
+  thread: new LiveList([]),
 });
 
 // a fresh party every run: drop what an earlier run left in a persisted dev server

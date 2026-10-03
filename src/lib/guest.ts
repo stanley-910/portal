@@ -52,6 +52,8 @@ export async function forgetGuest() {
   const jar = await cookies();
   jar.delete(ID_COOKIE);
   jar.delete(NAME_COOKIE);
+  // the account has its own; left here, they'd attach to the next guest made on this browser
+  jar.delete(PASSPORTS_COOKIE);
 }
 
 /** Saves the guest's display name. Only in Server Functions and Route Handlers. */
