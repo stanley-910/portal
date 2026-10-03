@@ -7,7 +7,7 @@
 .pip-dither { background-image: repeating-conic-gradient(var(--pip-dither) 0 25%, transparent 0 50%); background-size: 4px 4px; }
 
 /* Launcher. On page load it arrives by saucer (pip-arrival.tsx), drawn over where its sprite sits. */
-.pip-launcher { position: absolute; right: var(--space-6); bottom: var(--space-6); z-index: 30; display: flex; align-items: flex-end; gap: 18px; transform-origin: 100% 100%; animation: pip-pop 240ms steps(5) both; }
+.pip-launcher { position: absolute; right: var(--space-6); bottom: var(--space-6); z-index: 30; display: flex; align-items: flex-end; gap: 8px; transform-origin: 100% 100%; animation: pip-pop 240ms steps(5) both; }
 .pip-porthole { position: relative; display: grid; place-items: center; padding: 2px; border: 0; background: none; cursor: pointer; }
 .pip-porthole:focus-visible, .pip-nudge:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .pip-launcher-arriving { animation: none; }
@@ -19,7 +19,7 @@
 .pip-hidden { visibility: hidden; }
 .pip-unread { position: absolute; top: 0; right: 0; width: 8px; height: 8px; background: var(--star-light); border: 1px solid var(--sticker-ink); box-shadow: var(--shadow-pixel); }
 
-.pip-nudge { position: relative; margin-bottom: 30px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; filter: drop-shadow(3px 3px 0 var(--sticker-shadow)); }
+.pip-nudge { position: relative; margin-bottom: 44px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; filter: drop-shadow(3px 3px 0 var(--sticker-shadow)); }
 /* a sticker speech bubble with pixel-stepped round corners: an ink layer, and the paper layer 2px inside it */
 .pip-nudge-inner { --pip-px-round: polygon(0px 8px, 2px 8px, 2px 4px, 4px 4px, 4px 2px, 8px 2px, 8px 0px, calc(100% - 8px) 0px, calc(100% - 8px) 2px, calc(100% - 4px) 2px, calc(100% - 4px) 4px, calc(100% - 2px) 4px, calc(100% - 2px) 8px, calc(100% - 0px) 8px, calc(100% - 0px) calc(100% - 8px), calc(100% - 2px) calc(100% - 8px), calc(100% - 2px) calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) calc(100% - 2px), calc(100% - 8px) calc(100% - 2px), calc(100% - 8px) calc(100% - 0px), 8px calc(100% - 0px), 8px calc(100% - 2px), 4px calc(100% - 2px), 4px calc(100% - 4px), 2px calc(100% - 4px), 2px calc(100% - 8px), 0px calc(100% - 8px)); display: block; width: max-content; max-width: 156px; padding: 2px; background: var(--sticker-ink); clip-path: var(--pip-px-round); }
 .pip-nudge-text { display: grid; padding: 5px 10px; background: var(--star-light); color: var(--sticker-ink); clip-path: var(--pip-px-round); font-family: var(--font-sans); font-size: 13px; line-height: 17px; font-weight: 600; }
@@ -27,8 +27,8 @@
 .pip-nudge-ghost { visibility: hidden; }
 .pip-caret { animation: pip-blink 450ms steps(1) infinite; }
 /* the tail starts under the box's right end, its top row over the box's 2px border, and points out at Pip */
-/* a short pixel tail curling from under the bubble's right end toward Pip; its top row covers the bubble's border */
-.pip-nudge-tail { position: absolute; top: calc(100% - 2px); left: calc(100% - 26px); }
+/* a short pixel tail from under the bubble's right end to Pip's antenna; its top row covers the bubble's border */
+.pip-nudge-tail { position: absolute; top: calc(100% - 2px); left: calc(100% - 14px); }
 .pip-nudge-tail-light { fill: var(--star-light); }
 .pip-nudge-tail-ink { fill: var(--sticker-ink); }
 
