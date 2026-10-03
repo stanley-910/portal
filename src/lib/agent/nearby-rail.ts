@@ -9,7 +9,7 @@ export const railPreferences = {
   max_fare: z.number().nonnegative().optional().describe("Rail fare ceiling per person, excluding transfers; omit if no budget given"),
   currency: z.string().regex(/^[A-Z]{3}$/).default("USD"),
 };
-export const NEARBY_RAIL_INSTRUCTION = "For cheaper travel, a budget, or missing train options, call search_nearby_trains as well as the usual route/options tool. Suggest the returned nearby stations, including the access distance at each end. Unknown fares are not cheaper or within budget. Transfer costs and driving times are unknown; never claim a door-to-door saving or a one-hour drive from straight-line distance. Keep the original endpoints unless the user asks to change the trip.";
+export const NEARBY_RAIL_INSTRUCTION = "When a leg shows no train options at all, call search_nearby_trains; the route optimizer already compares nearby stations for price. Suggest the returned nearby stations, including the access distance at each end. Unknown fares are not cheaper or within budget. Transfer costs and driving times are unknown; never claim a door-to-door saving or a one-hour drive from straight-line distance. Keep the original endpoints unless the user asks to change the trip.";
 
 type Preferences = { radius_km: number; max_fare?: number; currency: string };
 /** Search all rail providers independently of the mixed-mode result list, which can bury unpriced trains. */

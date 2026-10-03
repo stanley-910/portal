@@ -1,6 +1,8 @@
 import type { ThreadMessage } from "@/lib/agent/types";
 import type { LegBooking, Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
 import { staysOf, type SplitInput } from "@/lib/trip/split";
+import { approx } from "@/lib/transport/fx";
+import { KIND } from "@/lib/agent/kind";
 
 // The plan as the model sees it: short handles (M1, S1, L1, H1) instead of Liveblocks ids, rebuilt from Storage every
 // turn so the agent never trusts what it said earlier (harness: "Context: rebuilt every turn").
@@ -82,10 +84,14 @@ export const showDate = (iso: string) => DAY.format(new Date(`${iso}T00:00:00Z`)
 export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy: string | null): string {
   const lines = [`Today ${today} (${showDate(today)}).`];
   const members = Object.entries(plan.members ?? {});
+  const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.createdAt - b.createdAt);
   lines.push(members.length ? "Members:" : "Members: none yet.");
   for (const [id, m] of members) {
     const passports = m.nationalities?.length ? ` · passports ${m.nationalities.join(", ")}` : " · passports not provided";
-    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${passports}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
+    // where someone starts is where their first leg leaves from; with no legs, nobody knows yet
+    const first = legs.filter(([, l]) => l.riders.includes(id)).sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt)[0]?.[1];
+    const start = first ? ` · starts at ${h.stop.get(first.from)} ${plan.stops?.[first.from]?.name ?? "?"}` : " · start unknown";
+    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${start}${passports}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
   }
 
   const stops = Object.entries(plan.stops ?? {});
@@ -94,7 +100,6 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
     for (const [id, s] of stops) lines.push(`  ${h.stop.get(id)} ${s.name}${s.code ? ` (${s.code})` : ""}`);
   }
 
-  const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.createdAt - b.createdAt);
   lines.push(legs.length ? "Legs:" : "Legs: none yet.");
   for (const [id, leg] of legs) {
     const riders = leg.riders.map((r) => h.member.get(r) ?? "?").join(" ") || "nobody";
@@ -104,7 +109,7 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
         ? "searching"
         : leg.search.status === "failed"
           ? "search failed"
-          : `${leg.search.offers.length} options${chosen ? `, chosen ${chosen.mode} ${chosen.carrier ?? ""}`.trimEnd() : ""}`;
+          : `${leg.search.offers.length} options${cheapestOf(leg.search.offers)}${chosen ? `, chosen ${`${chosen.mode} ${chosen.carrier ?? ""}`.trimEnd()}${chosen.kind === "estimated" ? "" : ` arriving ${chosen.arrive.slice(0, 16).replace("T", " ")}`}` : ""}`;
     lines.push(
       `  ${h.leg.get(id)} ${h.stop.get(leg.from)}→${h.stop.get(leg.to)} ${leg.date} (${showDate(leg.date)}) · riders ${riders} · ${search}${describeBooking(leg.booking, h)}`,
     );
@@ -121,6 +126,16 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
     );
   }
   return lines.join("\n");
+}
+
+/** ", cheapest CNY 973 (timetable fare)": enough to judge a fare question before calling a tool. */
+function cheapestOf(offers: readonly StoredOffer[]): string {
+  let best: StoredOffer | null = null, bestUsd = Infinity;
+  for (const o of offers) {
+    const usd = o.price ? approx(o.price.amount, o.price.currency, "USD") : null;
+    if (usd !== null && usd < bestUsd) { best = o; bestUsd = usd; }
+  }
+  return best?.price ? `, cheapest ${best.price.currency} ${Math.round(best.price.amount)} (${KIND[best.kind]})` : ", no prices yet";
 }
 
 /** " · booking: group, 2 of 4 paid, deadline Sat 5 Oct" or "", so Pip can say who still owes without touching money. */

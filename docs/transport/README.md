@@ -131,13 +131,25 @@ curl --get 'http://localhost:3000/api/transport/search' \
   city catalogue or deterministic local fallback, marked estimated. Hostels keep their own estimate fallback.
   Results can be filtered to 2–5 stars or hostels, support 1–4 occupants, calculate the required rooms, and rank
   by a weighted nightly price and distance-to-city-centre score.
-- Duffel production flight offers are live quotes from the airline, per passenger, shown without the Estimated badge. Test-mode inventory is marked Estimated and explicitly attributed as test data. Production offers
+- Duffel production flight offers are live quotes from the airline, per passenger, shown without the Estimated badge. Test-mode inventory is flagged `sandbox` and attributed as test data. Production offers
   expire within minutes, so they're for showing and later booking, not for storing as a price. Without a token,
   Travelpayouts covers every flight leg on its own.
+- Duffel allows few searches a minute per account (10 live, 30 test, unless Duffel raises it), and one landing
+  searches up to four airport pairs. So Duffel searches city to city with metro codes (TYO is Haneda and Narita,
+  `providers/duffel/cities.ts`), and only for the best-ranked pair's two cities; nearby other cities' airports, like
+  Shenzhen for Hong Kong, keep Travelpayouts and estimates. An answer is reused for 5 minutes per cities, day and
+  party, searches already running are shared, and after a 429 nothing goes to Duffel for a minute while answers up
+  to 20 minutes old stand in. Settling a booking always prices the flight afresh.
 - Travelpayouts fares are cached, per passenger, and not confirmed seats. Connecting summaries say intermediate legs
   are unknown rather than inventing airports.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical
   departure times with a cited source. A row without a cited time or fare isn't seeded.
+- China rail seed trains can carry a published second-class fare (`fare` in the seed; the low end where the source gives a range). Priced rows show the
+  fare with the Estimated badge, because real fares vary by train and date; rows without a source stay unpriced.
+  A Hong Kong search also returns trains from Shenzhen North and Futian, a border crossing away.
+- `cross-border` models frequent ground links no timetable covers: Hong Kong (Admiralty) ↔ Shenzhen North by MTR
+  East Rail, the Lo Wu checkpoint and Shenzhen Metro. Typical fare and times, always **estimated**, with the
+  crossing time stated. `CONNECTORS` is also what Pip's route composer uses to reach a cheaper gateway.
 - `official-ferries` adds cited typical operator timetables for Singapore–Batam (HarbourFront and Tanah Merah),
   Singapore–Bintan and Busan–Hakata, with independent directions, weekday restrictions and local arrival offsets.
   It is an offline **timetable** subset: no live seats or prices, no date-specific cancellation calendar. Every result

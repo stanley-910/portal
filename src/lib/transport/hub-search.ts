@@ -1,4 +1,6 @@
 import { resolveHubs } from "./hubs/resolve";
+import { duffelCity } from "./providers/duffel/cities";
+import { providers } from "./registry";
 import type { HubResolution } from "./hubs/types";
 import { rankOffers, searchTransport, type SearchResult } from "./search";
 import type { ProviderError, SearchQuery } from "./types";
@@ -15,16 +17,21 @@ export interface HubSearchResult extends SearchResult {
 export async function searchFromCoordinates(query: SearchQuery, signal: AbortSignal, onProgress?: (result: HubSearchResult) => void): Promise<HubSearchResult> {
   const started = Date.now();
   const hubs = resolveHubs(query.from, query.to, query.modes);
+  // Duffel's few requests a minute go to the best-placed pair's two cities (one request covers every airport in
+  // them); airports in other cities, like Shenzhen for Hong Kong, keep cached fares and estimates.
+  const best = hubs.pairs.find((pair) => pair.mode === "flight");
+  const cities = (pair: HubResolution["pairs"][number]) => `${duffelCity(pair.from.hub.iata ?? "")}-${duffelCity(pair.to.hub.iata ?? "")}`;
   const searches = hubs.pairs.map((pair) => ({
     pairId: pair.id,
     query: { ...query, from: pair.from.hub, to: pair.to.hub, modes: [pair.mode] } as SearchQuery,
+    only: pair.mode === "flight" && best && cities(pair) !== cities(best) ? providers.filter((p) => p.id !== "duffel") : undefined,
   }));
   // Surface adapters have their own broader station/route seeds. Keep a raw
   // coordinate search too: our curated hub graph must not suppress those routes.
   // Airports still use only the bounded, exact-IATA pair shortlist.
   const surfaceModes = (query.modes.length ? query.modes : ["train", "bus", "ferry"] as const)
     .filter((mode) => mode !== "flight");
-  if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, modes: surfaceModes } });
+  if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, modes: surfaceModes }, only: undefined });
   const partial = new Map<number, SearchResult>();
   const snapshot = () => mergeResults(query, hubs, started, searches.flatMap((search, i) => {
     const result = partial.get(i);
@@ -35,7 +42,9 @@ export async function searchFromCoordinates(query: SearchQuery, signal: AbortSig
       partial.set(i, result);
       if (!signal.aborted) onProgress(snapshot());
     } : undefined;
-    const result = await (progress ? searchTransport(search.query, signal, progress) : searchTransport(search.query, signal));
+    const result = await (search.only
+      ? searchTransport(search.query, signal, progress, search.only)
+      : progress ? searchTransport(search.query, signal, progress) : searchTransport(search.query, signal));
     partial.set(i, result);
   }));
   return snapshot();

@@ -4,6 +4,7 @@ import { createInFlight } from "@/lib/in-flight";
 import { createLimiter } from "@/lib/concurrency";
 
 import { providers } from "./registry";
+import { createSearchCache } from "./search-cache";
 import {
   ProviderFailure,
   transfersOf,
@@ -239,9 +240,19 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
   return { offers: rankOffers(offers, query.currency), errors, tookMs };
 }
 
-/** Coordinate/hub searches use best-option ranking and retain their error contract. */
-export function searchTransport(query: SearchQuery, signal: AbortSignal, onProgress?: (result: SearchResult) => void): Promise<SearchResult> {
-  return runSearch(query, { signal, onProgress }, false);
+const cachedSearch = createSearchCache(
+  (query: SearchQuery, signal: AbortSignal) => runSearch(query, { signal }, false),
+  { ttlMs: 5 * 60_000, errorTtlMs: 30_000, max: 500 },
+);
+
+/**
+ * Coordinate/hub searches use best-option ranking and retain their error contract. A plain search is cached briefly
+ * (see search-cache); one that reports progress or names its providers always runs.
+ */
+export function searchTransport(query: SearchQuery, signal: AbortSignal, onProgress?: (result: SearchResult) => void, only?: readonly TransportProvider[]): Promise<SearchResult> {
+  // Tests swap providers between cases, so a shared cache would leak results across them.
+  if (onProgress || only || process.env.VITEST) return runSearch(query, { signal, onProgress, providers: only }, false);
+  return cachedSearch(query, signal);
 }
 
 // No retries here yet: retryable failures go back to the client in `errors[]`.

@@ -49,6 +49,39 @@ beforeEach(() => {
 });
 
 describe("editPlan", () => {
+  it("changes nothing in an all-or-nothing edit when a rider started booking since the snapshot", async () => {
+    const h = handlesFor(plan);
+    (root.get("legs") as LiveMap<string, LiveObject<LsonObject>>).get("a")!.set("booking", { status: "paying" } as unknown as Lson);
+    const before = JSON.stringify(json());
+    const result = await editPlan("room", plan, h, [
+      { op: "remove_leg", leg: "L1" },
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { place: "Shenzhen" }, date: "2026-10-04", riders: ["M1"], createdAt: 1.1 },
+      { op: "add_leg", from: { place: "Shenzhen" }, to: { stop: h.stop.get("tc")! }, date: "2026-10-04", riders: ["M1"], createdAt: 1.2 },
+    ], "agent:pip", undefined, undefined, true);
+    expect(result).toMatchObject({ applied: [], changesetId: null, refused: [{ op: 0, code: "LOCKED" }] });
+    expect(JSON.stringify(json())).toBe(before);
+  });
+
+  it("won't move dates as part of an all-or-nothing edit", async () => {
+    const before = JSON.stringify(json());
+    const result = await editPlan("room", plan, handlesFor(plan), [
+      { op: "remove_leg", leg: "L3" },
+      { op: "set_date", leg: "L1", date: "2026-10-06" },
+    ], "agent:pip", undefined, undefined, true);
+    expect(result.changesetId).toBeNull();
+    expect(JSON.stringify(json())).toBe(before);
+  });
+
+  it("puts split legs where the old one was among the day's legs", async () => {
+    const h = handlesFor(plan);
+    await editPlan("room", plan, h, [
+      { op: "remove_leg", leg: "L1" },
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { place: "Shenzhen" }, date: "2026-10-04", riders: ["M1"], createdAt: 1.1 },
+    ], "agent:pip", undefined, undefined, true);
+    const added = Object.values(json().legs ?? {}).find((l) => l.createdAt === 1.1);
+    expect(added).toBeDefined();
+  });
+
   it("keeps the stops that later ops in the same change add legs to", async () => {
     const h = handlesFor(plan);
     const result = await editPlan("room", plan, h, [

@@ -36,6 +36,25 @@ describe("Duffel search reuse", () => {
     expect(requestOffers).toHaveBeenCalledTimes(2);
   });
 
+  it("searches city to city, so a trip's airport pairs between the same cities share one request", async () => {
+    requestOffers.mockResolvedValue(["a"]);
+    const shanghai = (iata: string) => ({ ...query, from: { ...query.to, iata: "HKG" }, to: { name: "Shanghai", lat: 31.2, lng: 121.5, iata } });
+    await Promise.all([duffel.search(shanghai("PVG"), signal()), duffel.search(shanghai("SHA"), signal())]);
+    expect(requestOffers).toHaveBeenCalledTimes(1);
+    expect(requestOffers.mock.calls[0].slice(1, 3)).toEqual(["HKG", "SHA"]);
+  });
+
+  it("stops asking for a minute once Duffel says to slow down", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    requestOffers.mockRejectedValueOnce(new ProviderFailure("RATE_LIMITED", true));
+    await expect(duffel.search(query, signal())).rejects.toThrow();
+    await expect(duffel.search({ ...query, date: "2026-11-16" }, signal())).rejects.toThrow("RATE_LIMITED");
+    expect(requestOffers).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(Date.now() + 61_000);
+    requestOffers.mockResolvedValueOnce(["b"]);
+    expect(await duffel.search({ ...query, date: "2026-11-16" }, signal())).toEqual(["b"]);
+  });
+
   it("falls back to an older answer when Duffel refuses, and asks again once it's old", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     requestOffers.mockResolvedValueOnce(["old"]);

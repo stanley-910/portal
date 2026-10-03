@@ -1,8 +1,9 @@
 import { NEARBY_RAIL_INSTRUCTION, railPreferences, searchNearbyRail } from "./nearby-rail";
+import { describeRoutes, optimize, OPTIMIZE_INSTRUCTION } from "./optimize";
 import "server-only";
 
-import { deepseek, type DeepSeekLanguageModelChatOptions } from "@ai-sdk/deepseek";
-import { isStepCount, streamText, tool } from "ai";
+import { deepseek } from "@ai-sdk/deepseek";
+import { isStepCount, streamText, tool, type TextStreamPart, type ToolSet } from "ai";
 import { z } from "zod";
 
 import { dateIn } from "@/lib/agent/dates";
@@ -10,7 +11,8 @@ import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 import { legMarks, midpoint, type AgentMark } from "@/lib/agent/marks";
 import { findMeetup, MAX_MEETUP_GROUPS, type MeetupGroup } from "@/lib/agent/meetup";
-import { citiesIn, MODEL, REASONING_EFFORT } from "@/lib/agent/run";
+import { citiesIn, MODEL } from "@/lib/agent/run";
+import { prepareEffort } from "@/lib/agent/effort";
 import { showDate } from "@/lib/agent/snapshot";
 import { stepLabel } from "@/lib/agent/steps";
 import { fmt, KIND } from "@/lib/agent/tools";
@@ -45,7 +47,7 @@ const MAX_STEPS = 6;
 /** Per model call, hidden reasoning included: see MAX_OUTPUT_TOKENS in run.ts for the sizing. */
 const MAX_OUTPUT_TOKENS = 6_000;
 /**
- * The whole reply. Most finish in under 15 s at REASONING_EFFORT "high"; this leaves room for a slow multi-step one,
+ * The whole reply. Most finish in under 15 s with reasoning effort "high"; this leaves room for a slow multi-step one,
  * and the no-model fallback still fits inside the route's maxDuration (app/api/pip/route.ts) after it.
  */
 export const TIMEOUT_MS = 80_000;
@@ -62,8 +64,9 @@ You can't book, pay or pick an option for them.
 How to work:
 - Whenever a message names where they're going and it isn't on their globe yet, call plan_trip first, straight away, with the stops in order and a date per leg: it puts the legs on their globe and each leg's card searches fares. Never ask whether to put it on the globe. If they give no date, use tomorrow and say so.
 - A return or round trip is just one more leg back to where they started. Call plan_trip with the trip's stops (the ones on their globe, or the ones they name) and the first stop again at the end, the return date as that last leg's date. "How do I get back?" means the same: keep the legs they have and add the one home.
-- Then, if they asked about fares, times or the cheapest way, call search_routes for it in the same turn.
+- Then, in the same turn: for the cheapest way, a budget or something cheaper, call optimize_route; for plain fares or times, call search_routes.
 - To talk about fares or times, call search_routes and quote it exactly; say when a price is estimated. Never estimate fares, distances or durations yourself.
+- ${OPTIMIZE_INSTRUCTION} Here that's optimize_route. If they say yes to a via route, call plan_trip with the via station added as a stop between the two.
 - ${NEARBY_RAIL_INSTRUCTION}
 - For visa, passport or entry questions, call check_entry for each leg it's about (by its number on their globe), or for a place they name. It covers every passport they've saved. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When their passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. If they've saved no passport, say so: they add them under Passports in the profile menu. Mention estimated rules as estimates, and end with the official-source reminder.
 - For "where should we meet", call find_meetup. Its card has a button that puts their own leg on the globe.
@@ -145,6 +148,39 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
             return `${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${cost} (${KIND[o.kind]})`;
           }),
         };
+      },
+    }),
+
+    optimize_route: tool({
+      description:
+        "Finds cheaper or better-timed ways to make one leg: the direct options, and routes that first get to a nearby station or airport (by metro and a border crossing, a short train, or an estimated ground transfer) and go on from there, overnight if need be, with connections chained and totals added up. Use it whenever a leg is too expensive, they give a budget, want it cheaper, or want to arrive when someone else does.",
+      inputSchema: z.object({
+        leg: z.number().int().min(1).optional().describe("The leg's number on their globe"),
+        from: z.string().optional().describe("Or where from, with to and date"),
+        to: z.string().optional(),
+        date: date.optional(),
+        max_fare: z.number().positive().optional().describe("Per-person ceiling in `currency`, only if they gave a number"),
+        currency: z.string().regex(/^[A-Z]{3}$/).default("USD").describe("The currency they talk in, e.g. CNY or HKD"),
+        arrive_near: z.string().optional().describe("A time to arrive close to, e.g. when a friend gets in: 2026-10-20T19:30 local where they arrive"),
+      }),
+      execute: async (input) => {
+        const onGlobe = input.leg ? state.trip[input.leg - 1] : undefined;
+        if (input.leg && !onGlobe) return { refused: "UNKNOWN_LEG", next: `They have ${state.trip.length} legs; use one of those numbers.` };
+        const a = onGlobe?.from ?? (input.from ? place(input.from) : undefined);
+        const b = onGlobe?.to ?? (input.to ? place(input.to) : undefined);
+        const day = onGlobe?.date ?? input.date;
+        if (!a || !b || !day) return { refused: "MISSING", next: "Give a leg number, or from, to and date." };
+        if ("refused" in a) return a;
+        if ("refused" in b) return b;
+        emit({ t: "activity", label: "looking for a cheaper way", at: { lat: a.lat, lng: a.lng } });
+        try {
+          const composed = await optimize({ from: stopToPlace(a), to: stopToPlace(b), date: day, currency: input.currency,
+            maxFare: input.max_fare, arriveNear: input.arrive_near }, AbortSignal.timeout(20_000));
+          const out = describeRoutes(composed);
+          return { ...out, note: `${out.note} To take a via route, call plan_trip with the via station added as a stop.` };
+        } catch {
+          return { refused: "SEARCH_FAILED", next: "Say the search failed; don't guess fares." };
+        } finally { emit({ t: "activity", label: null }); }
       },
     }),
 
@@ -245,8 +281,13 @@ export type SoloInput = {
   nationalities: string[];
 };
 
-/** Runs one reply, calling `emit` for each event as it happens. Never throws: a failure ends in a "failed" event. */
-export async function runSolo({ messages, trip, name, nationalities }: SoloInput, emit: Emit, signal: AbortSignal) {
+/**
+ * Runs one reply, calling `emit` for each event as it happens. Never throws: a failure ends in a "failed" event.
+ * `observe` sees every raw model stream part, for evals.
+ */
+export async function runSolo(
+  { messages, trip, name, nationalities }: SoloInput, emit: Emit, signal: AbortSignal, observe?: (part: TextStreamPart<ToolSet>) => void,
+) {
   const today = new Date().toISOString().slice(0, 10);
   let text = "";
   const state: SoloState = { trip, nationalities, meetups: new Map() };
@@ -275,10 +316,11 @@ export async function runSolo({ messages, trip, name, nationalities }: SoloInput
         tools,
         stopWhen: isStepCount(MAX_STEPS),
         maxOutputTokens: MAX_OUTPUT_TOKENS,
-        providerOptions: { deepseek: { reasoningEffort: REASONING_EFFORT } satisfies DeepSeekLanguageModelChatOptions },
+        prepareStep: prepareEffort,
         abortSignal: deadline,
       });
       for await (const part of result.stream) {
+        observe?.(part);
         if (part.type === "text-delta") {
           started = true;
           write(part.text);

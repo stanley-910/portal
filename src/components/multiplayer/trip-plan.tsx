@@ -46,11 +46,15 @@ const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
   replaced: "A new search replaced these options. Pick again.",
 };
 
-/** "W4 flight, 1 stop". Its times ride on the timeline; a modelled option has no schedule, so it says "any time". */
+/**
+ * "W4 flight, 1 stop", or "train, from Shenzhen North". Its times ride on the timeline; a modelled option has no
+ * schedule, so it says "any time".
+ */
 const describe = (o: StoredOffer) =>
   [
     carrierLabel(o.carrier, o.mode),
     clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated") ? null : "any time",
+    o.departs ? `from ${o.departs}` : null,
     o.stops ? `${o.stops} stop${o.stops > 1 ? "s" : ""}` : null,
   ]
     .filter(Boolean)

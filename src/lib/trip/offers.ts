@@ -72,6 +72,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     arrive: last.arrive,
     durationMin: Number.isFinite(span) && span > 0 ? Math.round(span) : offer.segments.reduce((sum, s) => sum + s.durationMin, 0),
     stops: transfersOf(offer),
+    ...(offer.mode !== "flight" ? { departs: first.from.name, arrives: last.to.name } : {}),
     bookingUrl: webUrlOrNull(offer.bookingUrl),
     attribution: offer.attribution ?? null,
     ...flightsOf(offer),

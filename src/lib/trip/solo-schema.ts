@@ -3,7 +3,7 @@ import type { ProviderId } from "@/lib/transport/types";
 import { MAX_OFFERS, webUrlOrNull } from "./offers";
 import { sameStop } from "./stops";
 
-const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel", "vietnam-rail", "official-ferries", "rail-cache"] as const satisfies readonly ProviderId[];
+const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel", "vietnam-rail", "official-ferries", "rail-cache", "cross-border"] as const satisfies readonly ProviderId[];
 const MODES = ["flight", "train", "bus", "ferry"] as const;
 const MAX_SEGMENTS = 8;
 /** All options together, after unknown fields are stripped. Twenty real offers are a few KB. */

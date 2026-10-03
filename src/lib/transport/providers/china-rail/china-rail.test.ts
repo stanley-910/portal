@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Place, SearchQuery } from "../../types";
+import type { Offer, Place, SearchQuery } from "../../types";
 import provider, { createChinaRailProvider } from "./index";
 import { tripComTrainUrl } from "./links";
 import type { Seed } from "./schema";
@@ -34,11 +34,29 @@ describe("china-rail seed", () => {
 
 describe("china-rail provider", () => {
   it("Hong Kong West Kowloon ↔ Shanghai Hongqiao both ways, from MTR's long-haul timetable", async () => {
-    const out = await provider.search(q(HONG_KONG, SHANGHAI), signal());
+    const fromKowloon = (offers: Offer[]) => offers.filter((o) => o.segments[0].from.name === "Hong Kong West Kowloon");
+    const toKowloon = (offers: Offer[]) => offers.filter((o) => o.segments[0].to.name === "Hong Kong West Kowloon");
+    const out = fromKowloon(await provider.search(q(HONG_KONG, SHANGHAI), signal()));
     expect(out.map((o) => o.segments[0].number)).toEqual(["G902", "G386"]);
     expect(out[0].segments[0]).toMatchObject({ depart: "2026-10-20T11:35:00+08:00", durationMin: 488 });
-    const back = await provider.search(q(SHANGHAI, HONG_KONG), signal());
+    expect(out[0].price).toEqual({ amount: 973, currency: "CNY", asOf: seed.checked });
+    const back = toKowloon(await provider.search(q(SHANGHAI, HONG_KONG), signal()));
     expect(back.map((o) => o.segments[0].number)).toEqual(["G384", "G901"]);
+  });
+
+  it("Hong Kong → Shanghai also offers the cheaper trains from Shenzhen, a border crossing away", async () => {
+    const out = await provider.search(q(HONG_KONG, SHANGHAI), signal());
+    const shenzhen = out.filter((o) => o.segments[0].from.name === "Shenzhen North");
+    expect(shenzhen.map((o) => o.segments[0].number)).toEqual(["G700", "G270", "G902", "G100", "G386"]);
+    expect(shenzhen[0].price).toMatchObject({ amount: 878.5, currency: "CNY" });
+    expect(shenzhen[0].attribution).toMatch(/Second-class fare as published/);
+  });
+
+  it("leaves a train without a sourced fare unpriced", async () => {
+    const out = await provider.search(q(SHANGHAI, SHENZHEN), signal());
+    const g99 = out.find((o) => o.segments[0].number === "G99");
+    expect(g99?.price).toBeUndefined();
+    expect(g99?.attribution).toMatch(/fare and seats not checked/);
   });
 
   it("Shanghai → Beijing returns seeded G trains as timetable offers at +08:00", async () => {
