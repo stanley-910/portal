@@ -61,6 +61,8 @@ export interface CursorProps {
   name?: string;
   /** How high it flies, 0 (touching the map) to 1. Sets how far off and soft its shadow falls; feed it terrain height to hug mountains. Default 0.5. */
   altitude?: number;
+  /** Casts its own shadow. Off where the surface draws one, as the globe does. Default true. */
+  cast?: boolean;
   /** Position of the tip in px, relative to the positioned parent. */
   x?: number;
   y?: number;
@@ -69,12 +71,12 @@ export interface CursorProps {
 }
 
 /** Another trip member's pointer: a sticker in their colour, with their name on a label. */
-export function Cursor({ shape = "arrow", color, name, altitude = 0.5, x = 0, y = 0, className, style }: CursorProps) {
+export function Cursor({ shape = "arrow", color, name, altitude = 0.5, cast = true, x = 0, y = 0, className, style }: CursorProps) {
   const clipId = "pa-cursor-" + useId().replace(/[^A-Za-z0-9_-]/g, "");
   const def = SHAPES[shape];
   return (
     <div
-      className={cn("pa-cursor pa-cast", className)}
+      className={cn("pa-cursor", cast && "pa-cast", className)}
       style={{ "--member": `var(--${color})`, "--alt": altitude, transform: `translate(${x}px, ${y}px)`, ...style } as CSSProperties}
       aria-hidden
     >

@@ -20,8 +20,12 @@ export interface TripGlobeHandle {
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
-  /** Draws other members' planes and routes. Replaces the previous list; planes ease toward new positions. */
+  /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
   setRemoteFlights(flights: RemoteFlight[]): void;
+  /** Other members' pointers, by id; null `at` hides one. Replaces the previous list. Their shadows are drawn here. */
+  setRemoteCursors(cursors: { id: string; at: LatLng | null }[]): void;
+  /** Where another member's pointer is on screen and the matrix [a, b, c, d] that lays it on the ground there. */
+  remoteCursor(id: string): { x: number; y: number; lie: [number, number, number, number] } | null;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
@@ -218,6 +222,8 @@ export function TripGlobe({
       cancel: () => engineRef.current?.cancel(),
       project: (ll) => engineRef.current?.project(ll) ?? null,
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      setRemoteCursors: (cursors) => engineRef.current?.setRemoteCursors(cursors),
+      remoteCursor: (id) => engineRef.current?.remoteCursor(id) ?? null,
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
         const listeners = frameListeners.current;

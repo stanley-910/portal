@@ -85,7 +85,7 @@
 
 /* Cursor: another member's pointer. --member is set per cursor from a member-* token. */
 .pa-cursor { position: absolute; top: 0; left: 0; pointer-events: none; transition: transform 90ms linear, filter 200ms ease-out; will-change: transform; }
-.pa-cursor-sticker { position: absolute; top: -2px; left: -2px; overflow: visible; }
+.pa-cursor-sticker { position: absolute; top: -2px; left: -2px; overflow: visible; /* the tip, so a cursor laid on the globe squashes about it */ transform-origin: 2px 2px; }
 .pa-cursor-member { fill: var(--member); }
 .pa-cursor-face { fill: var(--sticker-fill); }
 .pa-cursor-shade { fill: var(--sticker-ink); fill-opacity: 0.16; }
