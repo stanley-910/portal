@@ -14,8 +14,8 @@ reviewed source and code findings, merged changes and fixed cross-feature date/f
 
 ## Validation
 
-- `pnpm test`: 789 passed, one opt-in live booking test skipped; 81 files passed.
-- `pnpm lint`: passed, one existing LogoReveal warning.
+- `pnpm test`: 806 passed, one opt-in live booking test skipped; 82 files passed after integration with main.
+- `pnpm lint`: passed, no errors; warnings in existing LogoReveal/globe-screen code and an ignored local browser-review script.
 - Next route type generation and `pnpm exec tsc --noEmit`: passed.
 - Eight real app-route searches passed (HK–Shanghai, Hanoi–Saigon, Singapore–Batam both ways,
   Tanah Merah–Bintan, Busan–Hakata, Taipei–Zuoying, HK–London). No fabricated train/ferry fares.
@@ -32,6 +32,6 @@ No account creation, personal identity submission, payment, contract or provider
 ## Integration
 
 The first portion was included in main by concurrent commit `3571fdc`. The remaining reviewed transport changes
-and the [new demo cache TODO](../briefs/demo-listing-cache.md) are being committed on
+and the [new demo cache TODO](../briefs/demo-listing-cache.md) are committed on
 `transport/review-2026-10-03` for integration with the current main. Ticket worktrees are preserved.
 No provider signup, payment, outreach or PR publication was performed. The cache expansion is queued, not completed.
