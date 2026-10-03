@@ -12,6 +12,7 @@ import { agentTools, type ToolContext } from "@/lib/agent/tools";
 import { PERSONA, STYLE } from "@/lib/agent/voice";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { liveblocks } from "@/lib/liveblocks/server";
+import type { Currency } from "@/lib/currency";
 
 // One run of Pip in one trip room (harness G9): every message in the thread is to Pip. Posting it puts Pip's empty
 // reply under it in the same write; the run waits for that reply's turn, answers, writes the reply and its cards into
@@ -56,6 +57,7 @@ How to work:
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
+- For visa, passport or entry questions, call check_entry for the relevant leg. Compare every party member with a passport recorded in the trip, say who has no passport recorded, and end with the official-source reminder.
 - For who pays what, call get_split and quote it. Never add up costs yourself.
 - Stays: you never estimate or look up what a stay costs. When someone says one ("our Shanghai flat is HKD 900 a night"), record it with set_stay_cost.
 - Someone leaving early ("Mei leaves after Shanghai"): set_leaves to the day they go, and take them off the legs after it with set_riders. If they say how they get home, add that leg too.
@@ -68,8 +70,11 @@ How to work:
 const today = () => new Date().toISOString().slice(0, 10);
 const newId = () => crypto.randomUUID().slice(0, 8);
 
+/** Who asked, for their own entry and currency questions. Their passports aren't assumed to be anyone else's. */
+export type AgentRequester = { nationalities: string[]; currency: Currency };
+
 /** The reply a posted message is owed. */
-export type Claim = { messageId: string; replyId: string };
+export type Claim = { messageId: string; replyId: string; requester: AgentRequester };
 
 /** Replies Pip still owes, in thread order: the first one is the one Pip is on. */
 const owed = (thread: readonly ThreadMessage[], now: number) =>
@@ -81,7 +86,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Appends a member's message and, in the same write, Pip's empty reply, so people see Pip pick it up as their message
  * lands. The reply starts now, or waits as "queued" behind replies Pip still owes.
  */
-export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim }> {
+export async function postToPip(
+  roomId: string,
+  authorId: string,
+  text: string,
+  requester: AgentRequester,
+): Promise<{ messageId: string; claim: Claim }> {
   const messageId = newId();
   const replyId = newId();
   await liveblocks().mutateStorage(roomId, ({ root }) => {
@@ -93,11 +103,11 @@ export async function postToPip(roomId: string, authorId: string, text: string):
     const ahead = owed(thread.map((m) => m.toJSON()), now).length > 0;
     thread.push(new LiveObject<ThreadMessage>({ id: replyId, at: now, author: { kind: "agent" }, text: "", state: ahead ? "queued" : "streaming", cards: [] }));
   });
-  return { messageId, claim: { messageId, replyId } };
+  return { messageId, claim: { messageId, replyId, requester } };
 }
 
 /** Answers the message a claim was made for, after any asked before it. Resolves when the reply is written. */
-export async function runAgent(roomId: string, { messageId, replyId }: Claim, askedBy: string) {
+export async function runAgent(roomId: string, { messageId, replyId, requester }: Claim, askedBy: string) {
   const lb = liveblocks();
   const runId = newId();
 
@@ -216,7 +226,7 @@ export async function runAgent(roomId: string, { messageId, replyId }: Claim, as
         const asked = plan.thread?.find((m) => m.id === messageId);
         const result = streamText({
           model: deepseek(MODEL),
-          system: `${SYSTEM}\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
+          system: `${SYSTEM}\n\nThe member asking this question holds these passport(s): ${requester.nationalities.length ? requester.nationalities.join(", ") : "none recorded"}.\nTheir selected display currency is ${requester.currency}.\nUse this information only for this member's question and do not assume it applies to other members.\n\nThe trip now:\n${describePlan(plan, handles, ctx.today, askedBy)}`,
           prompt: `Recent thread:\n${describeThread(plan, handles)}\n\nAnswer this message from ${plan.members?.[askedBy]?.name ?? "a member"} (${handles.member.get(askedBy) ?? "?"}):\n${asked?.text ?? ""}`,
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
@@ -370,4 +380,3 @@ export function citiesIn(text: string): string[] {
 
 /** A week from today, YYYY-MM-DD: a date to compare fares on when nobody gave one. */
 const nextWeek = () => new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
-

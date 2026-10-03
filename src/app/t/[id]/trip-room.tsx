@@ -74,7 +74,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   }, [landedLegs, landedOnTrip]);
   // the plan panel; folded away, each leg's ticket stub on its route opens it again
   const [planOpen, setPlanOpen] = useState(true);
-  useRecordMember();
+  useRecordMember(nationalities);
 
   useErrorListener((error) => {
     if (error.context.type === "ROOM_CONNECTION_ERROR" && error.context.code === 4005) setFull(true);
@@ -129,7 +129,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {/* below the navbar */}
       {planOpen ? (
         <div className="absolute top-40 right-(--space-4)">
-          <TripPlan hostId={hostId} onMinimise={() => setPlanOpen(false)} />
+          <TripPlan hostId={hostId} email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
         </div>
       ) : null}
       <AgentChat initialOpen={pipOpen} />

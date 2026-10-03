@@ -36,7 +36,7 @@ type Before = {
   ends?: { value: string | null };
 };
 
-export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE"; reason: string; next: string };
+export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE" | "LOCKED"; reason: string; next: string };
 
 export type EditResult = { applied: string[]; refused: Refusal[]; changesetId: string | null };
 
@@ -86,6 +86,13 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   ops.forEach((op, i) => {
     const refuse = (r: Omit<Refusal, "op">) => refused.push({ op: i, ...r });
     const unknown = (handle: string) => refuse({ code: "UNKNOWN_HANDLE", reason: `${handle} isn't in the trip.`, next: "Call get_trip and use its handles." });
+    // a leg being bought keeps its date, riders and place in the trip until a rider cancels the settle
+    const locked = (handle: string) => {
+      const id = legId(handle);
+      if (!id || !plan.legs?.[id]?.booking) return false;
+      refuse({ code: "LOCKED", reason: `${handle} is being booked, so it can't change.`, next: "Ask a rider to cancel the settle first." });
+      return true;
+    };
     const ref = (p: PlaceRef): string | Stop | null => {
       if ("at" in p) return p.at;
       if ("stop" in p) {
@@ -116,12 +123,14 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         return;
       }
       case "set_date": {
+        if (locked(op.leg)) return;
         const leg = legId(op.leg);
         if (!leg) return unknown(op.leg);
         planned.push({ kind: "date", leg, date: op.date });
         return;
       }
       case "set_riders": {
+        if (locked(op.leg)) return;
         const leg = legId(op.leg);
         const who = riders(op.riders);
         if (!leg) return unknown(op.leg);
@@ -129,6 +138,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         return;
       }
       case "remove_leg": {
+        if (locked(op.leg)) return;
         const leg = legId(op.leg);
         if (!leg) return unknown(op.leg);
         planned.push({ kind: "remove", leg });

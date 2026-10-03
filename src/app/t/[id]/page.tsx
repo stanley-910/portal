@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 
 import "@/components/auth/auth.css";
 import { Button } from "@/components/paper-atlas";
 import { MAX_NAME } from "@/lib/guest";
+import { expireBookings } from "@/lib/booking/flow";
 import { currentPerson } from "@/lib/identity";
 import { joinTrip, liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
@@ -23,6 +25,8 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   // the owner: whoever made the trip, until they leave and it passes on
   const hostId = tripOwner(room.metadata);
   if ((await joinTrip(tripRoomId(id), person.id)) === null) notFound();
+  // a group booking past its deadline goes back to planning before anyone acts on it
+  after(() => expireBookings(tripRoomId(id)));
   return <TripRoom tripId={id} hostId={hostId} name={person.name} email={person.email} account={person.account} nationalities={person.nationalities} />;
 }
 

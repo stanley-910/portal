@@ -30,6 +30,8 @@ export type MemberInfo = {
 
 /** A member as the trip stores them: what others see, plus their plan. */
 export type TripMember = MemberInfo & {
+  /** ISO-3 passport countries the member may travel on. Shared so Pip can compare entry rules per person. */
+  nationalities?: string[];
   /** YYYY-MM-DD they leave the trip; the last night they pay for is the one before. Unset means they stay to the end. */
   leaves?: string | null;
 };
@@ -82,6 +84,49 @@ export type LegSearch = {
   offers: StoredOffer[];
 };
 
+export type Money = { amount: number; currency: string };
+
+/** One rider's seat in a leg's booking. Status only: names and passports never enter the room. */
+export type BookingSeat = {
+  /** What this rider pays: the order total split evenly, with the rounding remainder on whoever settled. */
+  share: Money;
+  /** Traveller details submitted. */
+  details: boolean;
+  /** Group: their card is held. Separate: their ticket is bought. */
+  paid: boolean;
+  /** Separate tickets: this rider's own order and airline reference. */
+  orderId?: string | null;
+  reference?: string | null;
+};
+
+/**
+ * A leg being bought through Duffel (docs/booking/README.md). Absent means the leg is still being planned. Only the
+ * server writes it, so a client can't mark itself paid.
+ */
+export type LegBooking = {
+  /** group: all or nothing on one held order. separate: each rider buys their own seat straight away. */
+  mode: "group" | "separate";
+  status: "details" | "paying" | "booked";
+  /** The Duffel offer settled on: one seat per rider, matched to the chosen option by flight numbers. */
+  offerId: string;
+  /** The airport pair and date the offer was searched for, so the server can search again when it expires. */
+  route: { origin: string; destination: string; date: string };
+  /** Group: the hold order, once every rider's details are in. */
+  orderId?: string | null;
+  /** ISO 8601. Group: when the hold and the card holds lapse. Null for separate tickets. */
+  deadline?: string | null;
+  /** The whole order, per the airline. */
+  total: Money;
+  /** Whether the airline wants a passport for this flight. */
+  documents: boolean;
+  /** Rider id → their seat. */
+  seats: Record<string, BookingSeat>;
+  /** Group: the airline booking reference, once bought. */
+  reference?: string | null;
+  settledBy: string;
+  settledAt: number;
+};
+
 export type Leg = {
   from: string;
   to: string;
@@ -96,6 +141,10 @@ export type Leg = {
   votes: LiveMap<string, string>;
   chosen: string | null;
   createdAt: number;
+  /** Set while the leg is being bought and once it is. Missing or null while planning. */
+  booking?: LegBooking | null;
+  /** Why the last booking stopped, e.g. the deadline passed. Cleared on the next settle or when dismissed. */
+  bookingNotice?: string | null;
 };
 
 export type TripStorage = {
