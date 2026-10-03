@@ -12,6 +12,8 @@ import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
 import { RemotePlanes } from "@/components/multiplayer/remote-planes";
+import { useCursorPref } from "@/lib/cursor-pref";
+import { LegTags } from "@/components/multiplayer/leg-tags";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
@@ -39,6 +41,8 @@ export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
 function TripScreen({ name, email, account, nationalities }: Me) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
+  // your cursor's shape is yours; its colour is the one the room gave you
+  const cursorShape = useCursorPref().shape;
   const updateMyPresence = useUpdateMyPresence();
   // the room numbers colours from 1; the design system's slots count from 0
   const color = useSelf((me) => me.info.color - 1) ?? 0;
@@ -50,6 +54,8 @@ function TripScreen({ name, email, account, nationalities }: Me) {
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLegs, setLandedLegs] = useState<string[]>([]);
+  // the plan panel; folded away, each leg's ticket stub on its route opens it again
+  const [planOpen, setPlanOpen] = useState(true);
   // your own vehicle still stands in for the last of those legs, so it parks as that leg's chosen offer
   const planLegs = usePlanLegs();
   const landedMode = planLegs?.find((leg) => leg.id === landedLegs.at(-1))?.chosen?.mode ?? "flight";
@@ -73,12 +79,14 @@ function TripScreen({ name, email, account, nationalities }: Me) {
       <TripGlobe
         ref={globe}
         color={color}
+        cursorShape={cursorShape}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
         onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
         onTakeoff={() => setLandedLegs([])}
         onCancel={() => setLandedLegs([])}
+        onRouteClick={() => setPlanOpen(true)}
       />
       <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
@@ -88,10 +96,13 @@ function TripScreen({ name, email, account, nationalities }: Me) {
         <AvatarStack />
         <InviteButton />
       </NavBar>
-      {/* below the navbar and the globe's cancel button */}
-      <div className="absolute top-40 right-(--space-4)">
-        <TripPlan />
-      </div>
+      <LegTags globe={globe} onOpen={() => setPlanOpen(true)} />
+      {/* below the navbar */}
+      {planOpen ? (
+        <div className="absolute top-40 right-(--space-4)">
+          <TripPlan onMinimise={() => setPlanOpen(false)} />
+        </div>
+      ) : null}
       <AgentChat initialOpen={pipOpen} />
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">

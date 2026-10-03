@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 
-import { Button } from "@/components/paper-atlas";
+import { Button, Cursor, MEMBER_COLORS, type CursorShape } from "@/components/paper-atlas";
+import { setCursorPref, useCursorPref } from "@/lib/cursor-pref";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
 import { saveNationalities } from "@/app/profile-actions";
-import { countries, countryName, flagEmoji, MAX_NATIONALITIES } from "@/lib/nationality";
+import { PassportPicker } from "./passport-picker";
 import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
 import { initials, MAX_NAME } from "@/lib/guest-name";
@@ -72,6 +73,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
           <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
           <PassportSetting saved={nationalities} />
           {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
+          <CursorSetting />
           <ThemeSetting />
           {children}
         </div>
@@ -191,40 +193,32 @@ function PassportSetting({ saved }: { saved: string[] }) {
   };
   return (
     <MenuSection title="Passports">
-      {list.length ? (
-        <ul className="pn-passports">
-          {list.map((code) => (
-            <li key={code} className="pn-passport">
-              <span aria-hidden>{flagEmoji(code)}</span>
-              <span className="min-w-0 flex-1 truncate">{countryName(code)}</span>
-              <button type="button" className="pn-passport-remove" aria-label={`Remove ${countryName(code)}`} onClick={() => save(list.filter((c) => c !== code))}>
-                <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
-                  <path d="M3 3l6 6M9 3l-6 6" />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="type-meta text-ink-muted">Add yours to see what each border needs.</p>
-      )}
-      {list.length < MAX_NATIONALITIES ? (
-        <select
-          className="pn-select"
-          aria-label="Add a passport"
-          value=""
-          onChange={(e) => e.target.value && save([...list, e.target.value])}
-        >
-          <option value="">{list.length ? "Add another passport" : "Add a passport"}</option>
-          {countries()
-            .filter((c) => !list.includes(c.code))
-            .map((c) => (
-              <option key={c.code} value={c.code}>
-                {flagEmoji(c.code)} {c.name}
-              </option>
-            ))}
-        </select>
-      ) : null}
+      <PassportPicker value={list} onChange={save} />
+      {list.length ? null : <p className="type-meta text-ink-muted">Add yours to see what each border needs.</p>}
+    </MenuSection>
+  );
+}
+
+const CURSOR_SHAPES: readonly MenuChoice<CursorShape>[] = [
+  { value: "arrow", label: "Arrow" },
+  { value: "compass", label: "Compass" },
+  { value: "map", label: "Map" },
+];
+
+/** Your own cursor: its shape, and its colour wherever a trip hasn't given you one. */
+function CursorSetting() {
+  const pref = useCursorPref();
+  return (
+    <MenuSection title="Cursor">
+      <MenuChoices name="cursor-shape" label="Cursor shape" value={pref.shape} options={CURSOR_SHAPES} onChange={(shape) => setCursorPref({ shape })} />
+      <div role="radiogroup" aria-label="Cursor colour" className="pn-swatches">
+        {MEMBER_COLORS.map((color, i) => (
+          <label key={color} className="pn-swatch" title={`Colour ${i + 1}`}>
+            <input type="radio" name="cursor-color" checked={pref.color === i} onChange={() => setCursorPref({ color: i })} aria-label={`Colour ${i + 1}`} />
+            <Cursor shape={pref.shape} color={color} altitude={0} className="pn-swatch-cursor" />
+          </label>
+        ))}
+      </div>
     </MenuSection>
   );
 }

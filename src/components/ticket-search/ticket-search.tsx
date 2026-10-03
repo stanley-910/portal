@@ -13,7 +13,7 @@ import type { Mode, Offer } from "@/lib/transport/types";
 import { credits, formatPrice, rowPrice, rowsFor, TABS, visibleTabs, type Tab } from "./options";
 import { Glyph } from "./glyphs";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "./parts";
-import { TripTag } from "./trip-tag";
+import { TripTag, useTagOnRoute } from "./trip-tag";
 import { useOffers } from "./use-offers";
 
 // The ticket search popover (design handoff "Ticket search popover", turn 3): the route, depart and return dates,
@@ -109,37 +109,6 @@ function useAnchor(globe: RefObject<TripGlobeHandle | null>, trip: LandedTrip, o
   return root;
 }
 
-/** The great-circle midpoint of two places. */
-function midpoint(a: LatLng, b: LatLng): LatLng {
-  const r = Math.PI / 180;
-  const v = (p: LatLng) => [Math.cos(p.lat * r) * Math.cos(p.lng * r), Math.cos(p.lat * r) * Math.sin(p.lng * r), Math.sin(p.lat * r)];
-  const [x1, y1, z1] = v(a);
-  const [x2, y2, z2] = v(b);
-  const x = x1 + x2, y = y1 + y2, z = z1 + z2;
-  return { lat: Math.atan2(z, Math.hypot(x, y)) / r, lng: Math.atan2(y, x) / r };
-}
-
-/** Keeps the minimised chip centred on the route's midpoint, hidden while the globe hides that point. */
-function useChipAnchor(globe: RefObject<TripGlobeHandle | null>, trip: LandedTrip, on: boolean) {
-  const root = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const g = globe.current;
-    if (!g || !on) return;
-    const mid = midpoint(trip.origin, trip.destination);
-    const place = () => {
-      const el = root.current;
-      const p = g.project(mid);
-      if (!el) return;
-      el.style.visibility = p?.visible ? "visible" : "hidden";
-      // tilted like the ticket
-      if (p) el.style.transform = `translate(${Math.round(p.x - el.offsetWidth / 2)}px, ${Math.round(p.y - el.offsetHeight / 2)}px) rotate(-1.2deg)`;
-    };
-    place();
-    return g.onFrame(place);
-  }, [globe, trip, on]);
-  return root;
-}
-
 /** Clip-reveal from the top plus an 8 px drop. Skipped under reduced motion. */
 function reveal(card: HTMLElement | null) {
   if (!card || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -207,7 +176,7 @@ export interface TicketSearchProps {
    * and there is no return date. `onBack` goes back to the leg before.
    */
   step?: { index: number; count: number; onBack?: () => void };
-  /** Minimised to a tag on the route. Clicking the tag, or the route itself, calls `onExpand`. */
+  /** Folded away, leaving only the ticket stub on the route. Clicking the stub, or the route itself, calls `onExpand`. */
   collapsed?: boolean;
   onCollapse?: () => void;
   onExpand?: () => void;
@@ -235,7 +204,7 @@ export function TicketSearch({
   const ends = endpoints(trip, outbound.result);
 
   const root = useAnchor(globe, trip, () => reveal(card.current));
-  const chip = useChipAnchor(globe, trip, collapsed);
+  const chip = useTagOnRoute(globe, trip.origin, trip.destination);
   // opening it again replays the reveal
   const wasCollapsed = useRef(collapsed);
   useEffect(() => {
@@ -288,19 +257,19 @@ export function TicketSearch({
 
   return (
     <>
-    {collapsed ? (
-      <TripTag
-        ref={chip}
-        mode={choice?.offer.mode ?? "flight"}
-        from={short(ends.from)}
-        to={short(ends.to)}
-        price={chipPrice ? formatPrice(chipPrice, currency) : null}
-        className="pa-cast"
-        style={{ "--alt": 0.3, visibility: "hidden" } as CSSProperties}
-        aria-label={`Show trip from ${ends.from.name} to ${ends.to.name}`}
-        onClick={onExpand}
-      />
-    ) : null}
+    {/* the trip's ticket stub always rides on its route; it opens and folds the card */}
+    <TripTag
+      ref={chip}
+      mode={choice?.offer.mode ?? "flight"}
+      from={short(ends.from)}
+      to={short(ends.to)}
+      price={chipPrice ? formatPrice(chipPrice, currency) : null}
+      className="pa-cast"
+      style={{ "--alt": 0.3, visibility: "hidden" } as CSSProperties}
+      aria-label={`${collapsed ? "Show" : "Fold"} trip from ${ends.from.name} to ${ends.to.name}`}
+      aria-expanded={!collapsed}
+      onClick={collapsed ? onExpand : onCollapse}
+    />
     <div ref={root} data-globe-follow className="ts-anchor pa-cast" style={{ "--alt": 0.8, visibility: "hidden" } as CSSProperties} hidden={collapsed}>
       <section ref={card} className="ts" aria-label={`Trip from ${ends.from.name} to ${ends.to.name}`}>
         <div className="ts-top">

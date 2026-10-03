@@ -1,6 +1,7 @@
 /* Trip plan: the shared legs, built from the ticket search popover's pieces (ticket-search.css). */
 
 .tp { max-height: calc(100dvh - 12rem); overflow-y: auto; }
+.tp-bar { padding: 8px 12px 0; }
 .tp-leg { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .tp-total { padding: 10px 12px; border-bottom: var(--line-control) solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600; }
 .tp-end { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; color: var(--ink-muted); font-size: 11px; }

@@ -1,6 +1,6 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
-import { CURSOR_ARROW_PATH, cursorLieMatrix, type CursorLie } from "@/components/paper-atlas/cursor";
+import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
 import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { CITY_LABELS } from "./cities";
@@ -104,6 +104,7 @@ const CURSOR_CHASE = 0.035; // s for the shadow to close most of the gap when th
 const CURSOR_PEEL = 0.32; // s
 const CURSOR_PULL = 8;
 const CURSOR_FLOAT = { x: 6, y: 8 };
+const FIT = 0.9; // share of the view a framed route spans
 const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
@@ -403,7 +404,9 @@ export class GlobeEngine {
   private peel: { t0: number; lie: CursorLie; from: { x: number; y: number }; back: [number, number] } | null = null;
   // where the pointer's shadow is drawn, easing after the pointer; null when the overlay isn't drawing it
   private shadowAt: { x: number; y: number } | null = null;
-  private arrowPath: Path2D | null = null;
+  // the viewer's cursor shape, whose outline the shadow is cut from
+  private cursorShape: CursorShape = "arrow";
+  private shadowPath: { shape: CursorShape; path: Path2D; rotate: number } | null = null;
   private down: { x: number; y: number; lx: number; ly: number; lt: number; drag: boolean; grab: Vec3 | null } | null = null;
   // touch pointers, for pinch
   private touches = new Map<number, [number, number]>();
@@ -625,7 +628,7 @@ export class GlobeEngine {
       return;
     }
     const [x, y] = this.pos(e);
-    if (this.mode === "landed" && this.onRoute(x, y)) {
+    if (this.onRoute(x, y)) {
       this.events.onRouteClick?.();
       return;
     }
@@ -634,16 +637,22 @@ export class GlobeEngine {
     else if (this.mode === "landed") this.cancel();
   }
 
-  /** Whether a screen point is within ROUTE_HIT px of the landed trip's arcs or their ground tracks. */
+  /**
+   * Whether a screen point is within ROUTE_HIT px of a landed route: this viewer's landed trip, or anyone's stored
+   * or landed leg. Arcs and their ground tracks both count.
+   */
   private onRoute(x: number, y: number) {
+    const legs: [Vec3, Vec3, number][] = [];
     const origin = this.origin;
     const pl = this.pl;
-    if (!origin || !pl) return false;
-    const stops = [...this.via.map((s) => s.v), origin, pl.n];
-    for (let i = 0; i < stops.length - 1; i++) {
-      const alt = i === stops.length - 2 ? pl.alt : 0;
+    if (this.mode === "landed" && origin && pl) {
+      const stops = [...this.via.map((s) => s.v), origin, pl.n];
+      for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? pl.alt : 0]);
+    }
+    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.pl.n, 0]);
+    for (const [from, to, alt] of legs) {
       for (const lift of [1, 0]) {
-        const pts = this.arc(stops[i], stops[i + 1], lift, lift ? alt : 0, this.hitArc);
+        const pts = this.arc(from, to, lift, lift ? alt : 0, this.hitArc);
         for (let j = 1; j < pts.length; j++) {
           const a = pts[j - 1];
           const b = pts[j];
@@ -765,7 +774,8 @@ export class GlobeEngine {
   private fitRange(w: number, area?: FreeArea) {
     const fx = area ? area.w / this.W : 1;
     const fy = area ? area.h / this.H : 1;
-    const half = Math.atan(this.tan0 * Math.min(this.asp * fx, fy)) * 0.6;
+    // the route spans FIT of the view's half-angle: close enough to read, with room for its end tags
+    const half = Math.atan(this.tan0 * Math.min(this.asp * fx, fy)) * FIT;
     const a = w / 2 + 0.03;
     return clamp(Math.sin(a) / Math.tan(half) + Math.cos(a) - 1, RANGE_MIN, RANGE_MAX);
   }
@@ -1198,15 +1208,20 @@ export class GlobeEngine {
     const ctx = this.hud;
     const dpr = this.hudEl.width / this.W;
     const [a, b, c, d] = cursorLieMatrix(this.cursorLie);
-    this.arrowPath ??= new Path2D(CURSOR_ARROW_PATH);
+    if (this.shadowPath?.shape !== this.cursorShape) {
+      const { d: outline, rotate } = cursorOutline(this.cursorShape);
+      this.shadowPath = { shape: this.cursorShape, path: new Path2D(outline), rotate };
+    }
+    const shape = this.shadowPath;
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.translate(s.x + this.cursorOffset[0], s.y + this.cursorOffset[1]);
     ctx.transform(a, b, c, d, 0, 0);
+    ctx.rotate(shape.rotate * D2R);
     ctx.filter = "blur(1.2px)";
     ctx.globalAlpha = this.shadowAlpha;
     ctx.fillStyle = this.P.cursorShadow;
-    ctx.fill(this.arrowPath);
+    ctx.fill(shape.path);
     ctx.restore();
   }
 
@@ -1239,6 +1254,13 @@ export class GlobeEngine {
   /** What this viewer's landed trip parks as: the mode of the offer they picked. Ignored unless landed. */
   setVehicle(v: Vehicle) {
     if (this.mode === "landed" && this.pl) retarget(this.pl, v);
+  }
+
+  /** The viewer's cursor shape, so the shadow the globe draws for it matches. */
+  setCursorShape(shape: CursorShape) {
+    if (shape === this.cursorShape) return;
+    this.cursorShape = shape;
+    this.hudDirty = true;
   }
 
   /** Sets the member colour slot this viewer's own route is drawn in; null for ink. */
@@ -1294,6 +1316,20 @@ export class GlobeEngine {
   }
 
   /** Where a place is on screen, in CSS px, and whether the globe hides it. Null before the first frame. */
+  /**
+   * Where a route's arc is on screen at fraction `t` from `from` to `to` (0.5 is its peak): the same lifted curve
+   * the globe draws, so a tag placed here sits on the line.
+   */
+  routePoint(from: LatLng, to: LatLng, t = 0.5): { x: number; y: number; visible: boolean } | null {
+    if (!this.cam) return null;
+    const a = vecOf(from.lat * D2R, from.lng * D2R);
+    const b = vecOf(to.lat * D2R, to.lng * D2R);
+    const w = angle(a, b);
+    const h = Math.min(0.32, 0.03 * this.zoomScale + w * 0.11);
+    const p = this.proj(mul(slerp(a, b, t), 1 + h * Math.sin(Math.PI * t)));
+    return p ? { x: p.x, y: p.y, visible: p.vis } : null;
+  }
+
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null {
     if (!this.cam) return null;
     const p = this.proj(vecOf(ll.lat * D2R, ll.lng * D2R));
@@ -1370,8 +1406,11 @@ export class GlobeEngine {
     if (!f || this.mode !== "landed" || this.turn?.frame) return;
     const area = this.events.freeArea?.() ?? null;
     const was = this.frameArea;
-    const near = (a: number, b: number) => Math.abs(a - b) < 24;
-    if (area === was || (area && was && near(area.x, was.x) && near(area.y, was.y) && near(area.w, was.w) && near(area.h, was.h))) return;
+    // only a real change in the open space, a tenth of the screen or more, moves the globe again
+    const near = (a: number, b: number, size: number) => Math.abs(a - b) < size * 0.1;
+    const same = area && was && near(area.x, was.x, this.W) && near(area.w, was.w, this.W) && near(area.y, was.y, this.H) &&
+      near(area.h, was.h, this.H);
+    if (area === was || same) return;
     const dur = this.reduceMotion ? 0.001 : 0.8;
     const here = { lon: this.lon0, lat: this.lat0, range: this.range };
     this.zoomAnchor = null;
