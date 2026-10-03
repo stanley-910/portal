@@ -60,11 +60,11 @@ export function computeSplit(plan: SplitInput): Split {
   const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
   const members = plan.members ?? {};
 
-  const latest = [...legs.map(([, l]) => l.date), ...Object.values(members).map((m) => m.leaves)]
-    .filter((d): d is string => !!d)
-    .sort()
-    .at(-1);
-  const ends = plan.ends ?? latest ?? null;
+  const latestLeg = legs.map(([, l]) => l.date).sort().at(-1);
+  const latestLeave = Object.values(members).map((m) => m.leaves).filter((d): d is string => !!d).sort().at(-1);
+  // A final leg arrives on its travel date, so the default trip end is the following morning.
+  // An explicit leave date still wins and excludes that member's leave-day night.
+  const ends = plan.ends ?? latestLeave ?? (latestLeg ? nextDay(latestLeg) : null);
 
   const ids = new Set(Object.keys(members));
   for (const [, leg] of legs) for (const r of leg.riders) ids.add(r);

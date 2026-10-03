@@ -15,3 +15,4 @@
 .hotel-row strong { display: block; font-size: 13px; line-height: 16px; }
 .hotel-price { text-align: right; white-space: nowrap; }
 .hotel-price small { font-size: 10px; }
+.hotel-book { display: inline-block; margin-top: 2px; color: var(--ink); font-size: 11px; text-decoration: underline; }

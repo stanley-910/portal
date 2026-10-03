@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { HomePip, startTrip } from "@/components/agent/home-pip";
 import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
-import { MyTrips } from "@/components/trip-plan/my-trips";
 import { TicketSearch, type PickedStay } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
@@ -14,7 +13,6 @@ import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
 import { MAX_OFFERS } from "@/lib/trip/offers";
-import type { TripSummary } from "@/lib/trip/server";
 import { stopFromPoint } from "@/lib/trip/stops";
 
 import { createTrip } from "./t/actions";
@@ -27,7 +25,7 @@ function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
   return kept;
 }
 
-type LegPick = { offer: Offer; offers: Offer[]; depart: string; stay: PickedStay | null };
+type LegPick = { offer: Offer | null; offers: Offer[]; depart: string; stay: PickedStay | null };
 
 /** The day after an ISO date, as a local Date: the earliest the next leg can leave. */
 function dayAfter(iso: string) {
@@ -36,7 +34,7 @@ function dayAfter(iso: string) {
   return d;
 }
 
-export function GlobeScreen({ person, trips = [] }: { person: Person | null; trips?: TripSummary[] }) {
+export function GlobeScreen({ person }: { person: Person | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   // the landed trip's legs, the one the popover shows, and what was picked on the legs before it
@@ -126,9 +124,6 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
         <NavButton type="submit" icon={NAV_ICONS.friends} label="Plan with friends" />
       </form>
     </NavBar>
-    <div className="absolute top-20 left-(--space-4) z-[5]">
-      <MyTrips trips={trips} />
-    </div>
     {trip ? (
       <TicketSearch
         key={`${active}:${trip.origin.lat},${trip.origin.lng}-${trip.destination.lat},${trip.destination.lng}@${trip.departDate.getTime()}`}
@@ -153,8 +148,8 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
               from: stopFromPoint(l.origin, l.from),
               to: stopFromPoint(l.destination, l.to),
               date: done[i].depart,
-              offers: savedOptions(done[i].offer, done[i].offers),
-              chosen: done[i].offer.id,
+              offers: done[i].offer ? savedOptions(done[i].offer!, done[i].offers) : [],
+              chosen: done[i].offer?.id ?? null,
               ...(done[i].stay ? { stay: done[i].stay } : {}),
             })),
           };
@@ -172,4 +167,3 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
     <HomePip account={account} />
   </main>;
 }
-

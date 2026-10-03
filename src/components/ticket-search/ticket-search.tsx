@@ -24,6 +24,13 @@ const EDGE = 24;
 /** Clearance between the popover and the route's ends, wide enough to clear the hub tags. */
 const GAP = 56;
 
+const SAVE_LABEL: Record<Mode, string> = {
+  flight: "Save flight",
+  train: "Save train",
+  bus: "Save bus",
+  ferry: "Save ferry",
+};
+
 type Side = "right" | "left" | "under" | "pinned";
 
 /**
@@ -184,7 +191,7 @@ export interface TicketSearchProps {
   rates: ExchangeRates | null;
   /** Called with the selected option, every outbound option shown, and the dates when someone presses Save trip. */
   /** `stay` is the hotel picked in the Hotels tab, as the group's nightly cost there. */
-  onAdd: (choice: { offer: Offer; offers: Offer[]; depart: string; return: string | null; stay: PickedStay | null }) => void;
+  onAdd: (choice: { offer: Offer | null; offers: Offer[]; depart: string; return: string | null; stay: PickedStay | null }) => void;
   /** The offer already added, which turns the button into a done state. */
   addedId?: string | null;
   /** A save is in flight: the button waits and says so. */
@@ -488,9 +495,9 @@ export function TicketSearch({
           <Button
             block
             className="ts-save"
-            disabled={!choice || choice.offer.id === addedId || saving}
+            disabled={(!choice && !hotel) || (!!choice && choice.offer.id === addedId) || saving}
             aria-busy={saving || undefined}
-            onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null })}
+            onClick={() => onAdd({ offer: choice?.offer ?? null, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null })}
           >
             {saving
               ? "Saving trip…"
@@ -498,7 +505,13 @@ export function TicketSearch({
                 ? "Saved"
                 : next
                   ? hotel ? "Next leg with stay" : "Next leg"
-                  : hotel ? "Save trip with stay" : "Save trip"}
+                  : hotel && choice
+                    ? "Save trip with stay"
+                    : hotel
+                      ? "Save hotel"
+                      : choice
+                        ? SAVE_LABEL[choice.offer.mode]
+                        : "Save trip"}
           </Button>
           {error && !saving ? (
             <p className="ts-empty" role="alert">

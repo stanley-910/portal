@@ -8,6 +8,11 @@ import type { HotelFilter, HotelResult, HotelSearchQuery } from "./types";
  */
 type CatalogStay = Omit<HotelResult, "distanceKm" | "score" | "rooms" | "totalPrice" | "nights">;
 
+const bookingUrl = (hotel: Pick<CatalogStay, "name" | "city">, checkIn: string, checkOut: string) => {
+  const params = new URLSearchParams({ ss: `${hotel.name}, ${hotel.city}`, checkin: checkIn, checkout: checkOut });
+  return `https://www.booking.com/searchresults.html?${params}`;
+};
+
 const CATALOG: CatalogStay[] = [
   { id: "hk-4-tst", name: "4★ hotel, Tsim Sha Tsui", city: "Hong Kong", lat: 22.298, lng: 114.172, kind: "hotel", stars: 4, bedsPerRoom: 2, pricePerNight: { amount: 148, currency: "USD" }, freshness: "estimated" },
   { id: "hk-hostel-mk", name: "Hostel, Mong Kok", city: "Hong Kong", lat: 22.319, lng: 114.169, kind: "hostel", bedsPerRoom: 4, pricePerNight: { amount: 38, currency: "USD" }, freshness: "estimated" },
@@ -97,6 +102,7 @@ export function searchHotels(query: HotelSearchQuery): HotelResult[] {
         rooms,
         totalPrice: { amount: hotel.pricePerNight.amount * rooms * nights, currency: "USD" as const },
         nights,
+        bookingUrl: bookingUrl(hotel, query.checkIn, query.checkOut),
       };
     })
     .sort((a, b) => a.score - b.score || a.pricePerNight.amount - b.pricePerNight.amount || a.id.localeCompare(b.id));

@@ -97,6 +97,8 @@
 .pn-select { min-height: 40px; padding: 0 var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 14px; cursor: pointer; }
 .pn-select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-profile-section { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); margin-top: var(--space-2); border-top: var(--line-hair) solid var(--line); }
+.pn-profile-trips { display: block; padding: var(--space-2); color: var(--ink); border-top: var(--line-hair) solid var(--line); font-size: 14px; font-weight: 600; text-decoration: none; }
+.pn-profile-trips:hover { color: var(--ink-hover); }
 .pn-choices { display: flex; padding: 2px; gap: 2px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
 .pn-choice { position: relative; flex: 1; display: grid; place-items: center; min-height: 40px; border-radius: calc(var(--radius-control) - 2px); font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease; }
 .pn-choice input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: inherit; }

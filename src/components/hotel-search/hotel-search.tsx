@@ -79,6 +79,7 @@ export function HotelSearch({
             <div>
               <strong>{hotel.name}</strong>
               <span>{hotel.distanceKm.toFixed(1)} km from centre <span className="ts-badge ts-badge-quiet">Estimated</span></span>
+              <a className="hotel-book" href={hotel.bookingUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>Book on Booking.com</a>
             </div>
             <div className="hotel-price"><strong>{formatPrice(hotel.pricePerNight.amount, currency, rates)}</strong><span>per night · {hotel.rooms} {hotel.rooms === 1 ? "room" : "rooms"}</span><small>{formatPrice(hotel.totalPrice.amount, currency, rates)} total · {hotel.bedsPerRoom} beds/room</small></div>
           </button>
