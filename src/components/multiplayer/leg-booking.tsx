@@ -10,7 +10,7 @@ import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
 import { countries } from "@/lib/nationality";
 import { isBookable, webUrlOrNull } from "@/lib/trip/offers";
-import { usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
+import { usePlanActions, usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
 
 // Buying a leg from the plan panel (docs/booking/README.md). Everything here is status the server wrote; the
 // buttons call its actions. Names, birthdays and passports go straight to the server and never into the room.
@@ -38,6 +38,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
   const tripId = room.id.slice("trip:".length);
   const me = useSelf((s) => s.id);
   const members = usePlanMembers();
+  const { retrySearch } = usePlanActions();
   const [busy, start] = useTransition();
   const [error, setError] = useState<Failure | null>(null);
   const [price, setPrice] = useState<PriceChange | null>(null);
@@ -95,6 +96,12 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
   const problem = error ? (
     <p className="tp-notice" role="alert">
       <span>{error.message}</span>
+      {/* an offer the airline no longer sells, as after a day away: a fresh search brings today's fares */}
+      {error.code === "OFFER_GONE" && !leg.booking ? (
+        <button type="button" className="ts-oneway" onClick={() => { setError(null); retrySearch(leg.id); }}>
+          Search again
+        </button>
+      ) : null}
     </p>
   ) : null;
 

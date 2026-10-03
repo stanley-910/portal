@@ -6,6 +6,7 @@ import type { Handles, PlanJson } from "@/lib/agent/snapshot";
 import { showDate } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegSearch, Stay, Stop } from "@/lib/liveblocks/types";
+import { sharesStop } from "@/lib/trip/stops";
 import { searchPlaces } from "@/lib/places/search";
 import { clampLeave, legBefore, moveLeg, setEnds, settle, type DateChanges, type DatePlan } from "@/lib/trip/dates";
 import { runLegSearch } from "@/lib/trip/search-leg";
@@ -198,11 +199,8 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         }
         return s;
       }
-      // snap onto a stop already at this hub or point, else make one
-      for (const [id, existing] of stops) {
-        const e = existing.toJSON();
-        if ((s.hub && e.hub === s.hub) || (e.lat === s.lat && e.lng === s.lng)) return id;
-      }
+      // snap onto a stop already at this place (the same hub, or close by), else make one
+      for (const [id, existing] of stops) if (sharesStop(existing.toJSON(), s)) return id;
       const id = newId();
       stops.set(id, new LiveObject(s));
       created[id] = s;

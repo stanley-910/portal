@@ -7,7 +7,7 @@ A trip is one Liveblocks room (`trip:<id>`). Its Storage is the plan, shared by 
 The plan is flat maps keyed by id. Nothing is nested per member, so a leg several people ride is one leg with one set of options and votes.
 
 - **members**: everyone who has joined, by account or guest id. Each has a name, a colour, and optionally `leaves`, the date they leave the trip. The colour is the one they picked in the profile menu (saved on their account or guest cookie), else one handed out in join order. Picking one inside a trip writes it here, so everyone's cursors, planes, pins, routes and avatars show it at once; two people may share a colour, and their names tell them apart.
-- **stops**: the exact points legs start and end at.
+- **stops**: the points legs start and end at. A leg landing at a hub the trip already has, or within 25 km of an existing stop, reuses that stop (`sharesStop`), so friends arriving in the same city share one place, one stay and its nights; the first click's exact point stands.
 - **legs**: a trip between two stops on a date. A leg has riders, the search's options, votes, and the chosen option.
   It keeps up to 20 options in the search's order: the pick, each provider's best three, then the rest by rank, so
   one provider's dozens of fares can't push out the trains or the bookable flights.

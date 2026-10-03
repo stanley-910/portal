@@ -10,7 +10,7 @@ import type { Offer, ProviderId } from "@/lib/transport/types";
 
 import { tripOwner } from "./leave";
 import { MAX_OFFERS, toStoredOffer, webUrlOrNull } from "./offers";
-import { sameStop } from "./stops";
+import { sameStop, sharesStop } from "./stops";
 import { computeSplit, type SplitInput } from "./split";
 
 export type TripCostBreakdown = {
@@ -217,7 +217,7 @@ export function buildSoloStorage(
   const legs: SoloStorageJson["legs"] = {};
   const stays: Record<string, Stay> = {};
   const stopAt = (stop: Stop) => {
-    const found = Object.entries(stops).find(([, s]) => sameStop(s, stop));
+    const found = Object.entries(stops).find(([, s]) => sharesStop(s, stop));
     if (found) return found[0];
     const id = newId();
     stops[id] = stop;

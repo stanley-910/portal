@@ -242,7 +242,7 @@ interface RouteEnd {
 const screenPoint = (): ScreenPoint => ({ x: 0, y: 0, z: 0, vis: false });
 
 /** How much bigger than the `country` token a name grows as its country fills the screen. */
-const NAME_MAX = 1.25;
+const NAME_MAX = 1.8;
 // province and state borders print in between these zoom levels (0 whole globe, 1 closest)
 const PROVINCES_FROM = 0.3;
 const PROVINCES_FULL = 0.6;
@@ -256,7 +256,7 @@ const CITY_FADE = 0.05; // zoom over which a rank prints in
  * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
  * and ink carry the difference.
  */
-const CITY_SIZE = [19, 19, 15, 15, 13, 13, 12, 12];
+const CITY_SIZE = [17, 17, 14, 14, 13, 13, 12, 12];
 /** From this rank down, names print in `ink-muted` rather than `ink`. */
 const CITY_MUTED_FROM = 4;
 

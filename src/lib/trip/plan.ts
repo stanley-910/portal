@@ -11,7 +11,7 @@ import type { LandedTrip } from "@/components/trip-globe";
 import type { LegBooking, LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
 import * as dates from "./dates";
 import { computeSplit, type MemberSplit, type Split, type SplitInput } from "./split";
-import { sameStop, stopFromPoint } from "@/lib/trip/stops";
+import { sharesStop, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared trip plan: stops, the legs between them, and each leg's options, votes and pick. Presentation
 // lives in components; these hooks are the only place that writes the plan, so every edit follows M12.
@@ -233,7 +233,7 @@ export function usePlanActions() {
     const stops = storage.get("stops");
     const stopAt = (stop: Stop) => {
       for (const [id, s] of stops) {
-        if (sameStop({ lat: s.get("lat"), lng: s.get("lng"), hub: s.get("hub") }, stop)) return id;
+        if (sharesStop({ lat: s.get("lat"), lng: s.get("lng"), hub: s.get("hub") }, stop)) return id;
       }
       const id = newId();
       stops.set(id, new LiveObject(stop));
