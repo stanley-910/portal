@@ -32,7 +32,8 @@ export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHa
       // a landed trip is stored as a leg straight away, so only trips still in the air come from presence
       for (const o of room.getOthers()) {
         const f = o.presence.flight;
-        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f });
+        // the room numbers colours from 1; the design system's slots count from 0
+        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f, color: o.info.color - 1 });
       }
       handle.setRemoteFlights(flights);
     };
@@ -83,11 +84,12 @@ function PlaneLabel({ connectionId, ref }: { connectionId: number; ref: (el: HTM
 }
 
 type Plan = {
-  readonly legs: { readonly [id: string]: { readonly from: string; readonly to: string } };
+  readonly legs: { readonly [id: string]: { readonly from: string; readonly to: string; readonly createdBy: string } };
   readonly stops: { readonly [id: string]: LatLng };
+  readonly members: { readonly [id: string]: { readonly color: number } };
 };
 
-/** Each stored leg as a landed flight: the plane parked at its end, facing along the route. */
+/** Each stored leg as a landed flight: the plane parked at its end, facing along the route, in its drawer's colour. */
 function storedFlights(root: Plan): RemoteFlight[] {
   const flights: RemoteFlight[] = [];
   for (const [id, leg] of Object.entries(root.legs)) {
@@ -98,7 +100,8 @@ function storedFlights(root: Plan): RemoteFlight[] {
     const at = { lat: to.lat, lng: to.lng };
     // a hair past the end gives the heading; near enough on a great circle for a parked plane
     const ahead = { lat: at.lat + (at.lat - o.lat) * 0.01, lng: at.lng + (at.lng - o.lng) * 0.01 };
-    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true });
+    const drawer = root.members[leg.createdBy];
+    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true, color: drawer ? drawer.color - 1 : null });
   }
   return flights;
 }

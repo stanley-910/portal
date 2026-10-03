@@ -48,6 +48,8 @@ export interface TripGlobeProps {
   onPointerLatLng?: (ll: LatLng | null) => void;
   /** Called when this viewer's trip changes: takeoff, every move of the plane, landing, cancel (null). Rounded. */
   onFlightChange?: (flight: FlightState | null) => void;
+  /** This viewer's member colour slot (0 for `member-1`): their cursor and route. Default 0. */
+  color?: number;
   /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
   skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
@@ -99,6 +101,7 @@ export function TripGlobe({
   bordersUrl = "/textures/borders.png",
   provincesUrl = "/textures/provinces.png",
   skySeed,
+  color = 0,
   className,
   ref,
 }: TripGlobeProps) {
@@ -169,11 +172,15 @@ export function TripGlobe({
     if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
   }, [skySeed, earthUrl, bordersUrl, provincesUrl]);
 
+  useEffect(() => {
+    engineRef.current?.setColor(color);
+  }, [color, earthUrl, bordersUrl, provincesUrl]);
+
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
     if (rootRef.current)
-      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(0), resolved, { ...cursor, noShadow: true });
-  }, [mode, resolved, cursor]);
+      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(color), resolved, { ...cursor, noShadow: true });
+  }, [mode, resolved, cursor, color]);
 
   useImperativeHandle(
     ref,
