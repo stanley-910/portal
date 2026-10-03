@@ -19,6 +19,8 @@ export function timestamp(originDate: string, seconds: number, offset: string): 
 }
 export interface CachedJourney {
   trip: CachedTrip;
+  /** Dated China evidence projected forward for demo searches, not a verified operating date. */
+  demoReuse: boolean;
   from: string;
   to: string;
   depart: string;
@@ -45,7 +47,13 @@ export function createScheduleSearch(cache: ScheduleCache) {
         const departure = trip.stops[index].departure!;
         // Query date is the passenger's boarding date, not necessarily train-origin date.
         const originDate = addDays(date, -Math.floor(departure / 86400));
-        if (!runsOn(trip.calendar, originDate)) continue;
+        const onPublishedDate = runsOn(trip.calendar, originDate);
+        const observedDates = trip.calendar.dates ?? [];
+        const demoReuse = !onPublishedDate && trip.calendar.kind === "dated" &&
+          cache.sources[trip.source].group === "china-12306-sample" && observedDates.length > 0 &&
+          observedDates.every((observed) => originDate > observed) &&
+          !trip.calendar.excludeDates?.includes(originDate);
+        if (!onPublishedDate && !demoReuse) continue;
         for (const stop of trip.stops.slice(index + 1)) {
           if (!to.has(stop.station) || stop.arrival === undefined || stop.arrival <= departure) continue;
           const depart = timestamp(originDate, departure, trip.offset);
@@ -53,7 +61,7 @@ export function createScheduleSearch(cache: ScheduleCache) {
           const key = [trip.source, trip.number, station, stop.station, depart, arrive].join("|");
           if (seen.has(key)) continue;
           seen.add(key);
-          result.push({ trip, from: station, to: stop.station, depart, arrive, durationMin: (stop.arrival - departure) / 60 });
+          result.push({ trip, demoReuse, from: station, to: stop.station, depart, arrive, durationMin: (stop.arrival - departure) / 60 });
         }
       }
     }

@@ -18,10 +18,12 @@ import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { formatMoney, inCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import { useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
-import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
+import { memberColor, type Stop, type StoredOffer } from "@/lib/liveblocks/types";
 import type { PlanStay } from "@/lib/trip/split";
 import { legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
+import { HUBS } from "@/lib/transport/hubs/catalog";
+import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
@@ -31,6 +33,10 @@ import { isBookable, shownOffers } from "@/lib/trip/offers";
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
 
 const SHOWN = 3;
+
+const HUB_COUNTRY = new Map(HUBS.map((hub) => [hub.id, hub.country]));
+/** A stop's country for its flag: its hub's, else the nearest hub's, for stops saved without one. */
+const stopCountry = (stop: Stop) => (stop.hub && HUB_COUNTRY.get(stop.hub)) || nearestPreviewHub(stop)?.country || null;
 
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
@@ -240,7 +246,11 @@ function LegCard({
   return (
     <article className="tp-leg">
       <button type="button" className="tp-leg-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <RouteHeader from={{ code: leg.from.code, name: leg.from.name }} to={{ code: leg.to.code, name: leg.to.name }} mode={lead?.mode ?? null} />
+        <RouteHeader
+          from={{ code: leg.from.code, name: leg.from.name, country: stopCountry(leg.from) }}
+          to={{ code: leg.to.code, name: leg.to.name, country: stopCountry(leg.to) }}
+          mode={lead?.mode ?? null}
+        />
         <span className="tp-leg-summary">
           <span>
             {lead ? <AirlineLogo code={lead.carrierCode} className="mr-1" /> : null}

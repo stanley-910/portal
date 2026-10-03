@@ -34,10 +34,10 @@ export function createRailCacheProvider(cache: ScheduleCache): TransportProvider
       return found.map((j): Offer => {
         const source = cache.sources[j.trip.source];
         return {
-          id: `rail-cache:${j.trip.id}:${j.from}:${j.to}:${j.depart}`, provider: "rail-cache", mode: "train", kind: "timetable",
+          id: `rail-cache:${j.trip.id}:${j.from}:${j.to}:${j.depart}`, provider: "rail-cache", mode: "train", kind: j.demoReuse ? "estimated" : "timetable",
           segments: [{ mode: "train", carrier: j.trip.operator, number: j.trip.number || undefined,
             from: place(j.from), to: place(j.to), depart: j.depart, arrive: j.arrive, durationMin: j.durationMin }],
-          attribution: `${j.trip.calendar.kind === "typical" ? "Typical timetable; confirm operating day" : "Cached published schedule"} — ${source.group}; captured ${source.retrievedAt?.slice(0, 10) ?? "date unrecorded"}; ${source.url ?? source.path}. Fares and seats not checked.${j.trip.notes ? ` ${j.trip.notes}` : ""}`,
+          attribution: `${j.demoReuse ? `Demo schedule reused from ${j.trip.calendar.dates?.join(", ")}; operating date unverified` : j.trip.calendar.kind === "typical" ? "Typical timetable; confirm operating day" : "Cached published schedule"} — ${source.group}; captured ${source.retrievedAt?.slice(0, 10) ?? "date unrecorded"}; ${source.url ?? source.path}. Fares and seats not checked.${j.trip.notes ? ` ${j.trip.notes}` : ""}`,
         };
       });
     },
