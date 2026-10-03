@@ -2,12 +2,15 @@
 
 import { randomBytes } from "node:crypto";
 
+import { LiveMap, LiveObject } from "@liveblocks/node";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import { ensureGuest, MAX_NAME, readGuest, setGuestName } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";
 import { TRIP_ID, tripRoomId } from "@/lib/liveblocks/types";
 import { editPlan, undoChangeset } from "@/lib/agent/edit";
+import { postMessage, runAgent } from "@/lib/agent/run";
 import { handlesFor, type PlanJson } from "@/lib/agent/snapshot";
 import { meetupOps } from "@/lib/agent/tools";
 import type { ThreadCard } from "@/lib/agent/types";
@@ -23,6 +26,38 @@ export async function createTrip() {
     metadata: { members: [guest.id] },
   });
   redirect(`/t/${id}`);
+}
+
+/** The name a guest who starts a trip by talking to Pip gets until they pick one. */
+const DEFAULT_NAME = "Traveller";
+const MAX_TEXT = 2_000;
+
+/**
+ * Starts a solo trip from the home globe with a first message to Pip, so you can plan before there's a trip
+ * (harness: solo planners). Pip answers every message in a solo trip, so it wakes without an @mention; friends
+ * join later from the trip's URL as usual.
+ */
+export async function startTripWithPip(text: string) {
+  const message = text.trim().slice(0, MAX_TEXT);
+  if (!message) return;
+  const guest = await ensureGuest();
+  if (!guest.name) await setGuestName(DEFAULT_NAME);
+  const id = randomBytes(12).toString("base64url");
+  const roomId = tripRoomId(id);
+  await liveblocks().createRoom(roomId, {
+    defaultAccesses: [],
+    usersAccesses: { [guest.id]: ["room:write"] },
+    metadata: { members: [guest.id] },
+  });
+  await liveblocks().mutateStorage(roomId, ({ root }) => {
+    // a new room's Storage is empty until a client loads it; lay out the trip so the server can write to it
+    if (!root.get("members")) root.set("members", new LiveMap([[guest.id, new LiveObject({ name: guest.name ?? DEFAULT_NAME, color: 1 })]]));
+    if (!root.get("stops")) root.set("stops", new LiveMap());
+    if (!root.get("legs")) root.set("legs", new LiveMap());
+  });
+  const messageId = await postMessage(roomId, guest.id, message);
+  after(() => runAgent(roomId, messageId, guest.id));
+  redirect(`/t/${id}?pip=open`);
 }
 
 /** Saves the name others see on your cursor and avatar. */

@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
+import { HomePip } from "@/components/agent/home-pip";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
 import { CurrencySetting } from "@/components/transport/currency-selector";
@@ -69,6 +70,7 @@ export function GlobeScreen({ guestName }: { guestName: string | null }) {
         onDismiss={() => globe.current?.cancel()}
       />
     ) : null}
+    <HomePip />
   </main>;
 }
 

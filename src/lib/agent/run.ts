@@ -4,6 +4,7 @@ import { deepseek } from "@ai-sdk/deepseek";
 import { LiveList, LiveObject } from "@liveblocks/node";
 import { isStepCount, streamText } from "ai";
 
+import { bigCities } from "@/lib/agent/meetup";
 import { describePlan, describeThread, handlesFor, showDate, type PlanJson } from "@/lib/agent/snapshot";
 import { agentTools, type ToolContext } from "@/lib/agent/tools";
 import { AGENT_ID, AGENT_NAME, type MeetupOption, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
@@ -182,17 +183,27 @@ async function fallbackReply(plan: PlanJson, handles: ReturnType<typeof handlesF
   }
   const byStop = new Map<string, string[]>();
   for (const [member, { stop }] of firstFrom) byStop.set(stop, [...(byStop.get(stop) ?? []), member]);
-  if (byStop.size < 2) return "Draw where each of you is starting from, then ask me again and I'll find where to meet.";
+  type Group = { members: string[]; from: { stop: string } | { place: string } };
+  let groups: Group[] = [...byStop].map(([stop, members]) => ({
+    members: members.map((m) => handles.member.get(m)!),
+    from: { stop: handles.stop.get(stop)! },
+  }));
+  let date = [...firstFrom.values()].map((f) => f.date).sort()[0];
+  if (groups.length < 2) {
+    // a trip started from the home globe has no legs yet: take the cities named in the message, the first for the
+    // person asking ("I'm in Hong Kong, my friend's in Seoul")
+    const named = citiesIn(asked);
+    if (named.length < 2) return "Tell me which cities everyone's starting from, and I'll find where to meet.";
+    const asker = handles.member.get(ctx.askedBy);
+    groups = named.map((place, i) => ({ members: i === 0 && asker ? [asker] : [], from: { place } }));
+    date = date ?? nextWeek();
+  }
 
-  const date = [...firstFrom.values()].map((f) => f.date).sort()[0];
   const fairest = /\b(fair|middle|halfway|even)/i.test(asked);
   const tools = agentTools(ctx);
   await tools.find_meetup.execute!(
     {
-      groups: [...byStop].map(([stop, members]) => ({
-        members: members.map((m) => handles.member.get(m)!),
-        from: { stop: handles.stop.get(stop)! },
-      })),
+      groups: groups.map((g) => ({ ...g, people: Math.max(1, g.members.length) })),
       date,
       minimize: "price",
       fairest,
@@ -204,3 +215,18 @@ async function fallbackReply(plan: PlanJson, handles: ReturnType<typeof handlesF
   if (!best) return "I couldn't find a city with routes for everyone on that date. Try another day.";
   return `${best.place.name} looks ${fairest ? "fairest" : "cheapest"} for everyone on ${showDate(date)}. Add one to the trip and everyone's legs appear.`;
 }
+
+/** Big cities named in a message, in the order they appear; longer names first so "Hong Kong" beats "Kong". */
+function citiesIn(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found: { name: string; at: number }[] = [];
+  for (const city of [...bigCities()].sort((a, b) => b.name.length - a.name.length)) {
+    const at = lower.search(new RegExp(`\\b${city.name.toLowerCase().replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\b`));
+    if (at < 0 || found.some((f) => at >= f.at && at < f.at + f.name.length)) continue;
+    found.push({ name: city.name, at });
+  }
+  return found.sort((a, b) => a.at - b.at).map((f) => f.name);
+}
+
+/** A week from today, YYYY-MM-DD: a date to compare fares on when nobody gave one. */
+const nextWeek = () => new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);

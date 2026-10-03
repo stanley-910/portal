@@ -1,6 +1,7 @@
 "use client";
 
 import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdateMyPresence } from "@liveblocks/react";
+import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 
@@ -38,6 +39,8 @@ function TripScreen({ guestName }: { guestName: string }) {
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
   const status = useStatus();
+  // a trip started by talking to Pip on the home globe opens with the chat showing
+  const pipOpen = useSearchParams().get("pip") === "open";
   const [full, setFull] = useState(false);
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
@@ -80,7 +83,7 @@ function TripScreen({ guestName }: { guestName: string }) {
       <div className="absolute top-40 right-(--space-4)">
         <TripPlan />
       </div>
-      <AgentChat />
+      <AgentChat initialOpen={pipOpen} />
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">
           {status === "connecting" ? "Connecting" : "Reconnecting"}
