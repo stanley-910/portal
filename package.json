@@ -6,6 +6,8 @@
     "tokens": "node scripts/tokens.mts",
     "entry": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts",
     "borders": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-borders.mts",
+    "cities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-cities.mts",
+    "provinces": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-provinces.mts",
     "dev": "node scripts/tokens.mts && next dev",
     "build": "node scripts/tokens.mts --check && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts --check && next build",
     "start": "next start",

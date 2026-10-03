@@ -7,7 +7,7 @@ function engine() {
   const onModeChange = vi.fn();
   const onPreviewChange = vi.fn();
   const globe = new GlobeEngine({} as HTMLElement, {} as HTMLCanvasElement,
-    { getContext: () => ({}) } as unknown as HTMLCanvasElement, "", "", { onLand, onModeChange, onPreviewChange });
+    { getContext: () => ({}) } as unknown as HTMLCanvasElement, "", "", "", { onLand, onModeChange, onPreviewChange });
   return { globe, onLand, onModeChange, onPreviewChange };
 }
 const point = (lat: number, lng: number) => vecOf(lat * D2R, lng * D2R);
@@ -40,8 +40,9 @@ describe("globe hub preview lifecycle", () => {
     globe["updatePreview"](hkg, 100);
     expect(onPreviewChange).toHaveBeenCalledTimes(1);
     expect(onPreviewChange.mock.calls[0][0].iata).toBe("HKG");
+    expect(onPreviewChange.mock.calls[0][1]).toBe("Hong Kong");
     globe.pointerLeave();
-    expect(onPreviewChange).toHaveBeenLastCalledWith(null);
+    expect(onPreviewChange).toHaveBeenLastCalledWith(null, null);
   });
   it("clears moving preview on landing and cancellation", () => {
     const { globe, onPreviewChange } = engine();
@@ -49,10 +50,11 @@ describe("globe hub preview lifecycle", () => {
     globe["takeoff"](hkg);
     globe["updatePreview"](hkg, 0);
     globe["land"](point(31.23, 121.47));
-    expect(onPreviewChange).toHaveBeenLastCalledWith(null);
+    expect(onPreviewChange).toHaveBeenLastCalledWith(null, null);
+    expect(globe["destinationName"]).toBe("Shanghai");
     globe["updatePreview"](hkg, 100);
     globe.cancel();
-    expect(onPreviewChange).toHaveBeenLastCalledWith(null);
+    expect(onPreviewChange).toHaveBeenLastCalledWith(null, null);
     expect(globe.getMode()).toBe("idle");
   });
 });
@@ -104,7 +106,7 @@ function setup(width = 2560, height = 1440) {
   vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
   const gl = canvas(), hud = canvas();
   const onFrame = vi.fn();
-  const engine = new GlobeEngine(root as unknown as HTMLElement, gl, hud, "", "", { onFrame });
+  const engine = new GlobeEngine(root as unknown as HTMLElement, gl, hud, "", "", "", { onFrame });
   const state = engine as unknown as Internals;
   state.gl = {} as WebGL2RenderingContext;
   state.resize();

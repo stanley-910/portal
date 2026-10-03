@@ -1,9 +1,11 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
-import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
+import { CITY_LABELS } from "./cities";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
+import { placeName } from "./place-name";
 import { buildPlane } from "./plane-model";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
@@ -51,7 +53,8 @@ export interface RemoteFlight extends FlightState {
 export interface GlobeEvents {
   onModeChange?: (mode: GlobeMode, from: Hub | null) => void;
   /** Only when the local hover hub changes. Never triggers a provider search. */
-  onPreviewChange?: (hub: Hub | null) => void;
+  /** The hub in range of the pointer, and the city the label names. */
+  onPreviewChange?: (hub: Hub | null, name: string | null) => void;
   onLand?: (trip: LandedTrip) => void;
   onCancel?: () => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
@@ -116,6 +119,16 @@ const screenPoint = (): ScreenPoint => ({ x: 0, y: 0, z: 0, vis: false });
 
 /** How much bigger than the `country` token a name grows as its country fills the screen. */
 const NAME_MAX = 1.25;
+// province and state borders print in between these zoom levels (0 whole globe, 1 closest)
+const PROVINCES_FROM = 0.3;
+const PROVINCES_FULL = 0.6;
+// the zoom level each city rank starts to print at: world cities first, towns only close in
+const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
+/** At most this many city names on screen at once, biggest first, so the map never fills up. */
+const CITY_MAX = 40;
+const CITY_FADE = 0.05; // zoom over which a rank prints in
+/** City names in px by rank: the `city` token for world cities, a little smaller for towns. */
+const CITY_SIZE = [15, 15, 14, 14, 13, 13, 12, 12];
 
 const toLatLng = (v: Vec3): LatLng => {
   const { lat, lon } = llOf(v);
@@ -164,6 +177,8 @@ const NAMES = COUNTRY_LABELS.map((l) => {
   };
 });
 
+const CITIES = CITY_LABELS.map(([name, lat, lng, rank, capital]) => ({ name, v: vecOf(lat * D2R, lng * D2R), rank, capital }));
+
 export class GlobeEngine {
   private gl: WebGL2RenderingContext | null = null;
   private hud: CanvasRenderingContext2D;
@@ -175,6 +190,7 @@ export class GlobeEngine {
   private planeCount = 0;
   private texEarth: WebGLTexture | null = null;
   private texBorders: WebGLTexture | null = null;
+  private texProvinces: WebGLTexture | null = null;
   private sky: Sky | null = null;
   private skySeed: string | number = randomSeed();
   private cam: Camera | null = null;
@@ -200,6 +216,23 @@ export class GlobeEngine {
     p: screenPoint(), q: screenPoint(),
   }));
   private visibleNames: NameSpot[] = [];
+  private cityFamily = '"IM Fell English", Georgia, serif';
+  /** Each city name's width at a 1px font size, and its sprite per size. Cleared with the country names'. */
+  private cityWidths = new Map<string, number>();
+  private citySprites = new Map<string, HTMLCanvasElement>();
+  /** Per city: how far it has faded in, whether it held a place last frame, which side its name sat, and its box. */
+  private cityFade = new Float32Array(CITIES.length);
+  private cityPlaced = new Uint8Array(CITIES.length);
+  private cityLeft = new Uint8Array(CITIES.length);
+  private cityHold = new Float64Array(CITIES.length);
+  private cityX = new Float32Array(CITIES.length);
+  private cityY = new Float32Array(CITIES.length);
+  private cityFacing = new Float32Array(CITIES.length);
+  private cityShown = false;
+  private cityT = 0;
+  private cityCandidates: number[] = [];
+  private cityBoxes: number[][] = [];
+  private cityPoint = screenPoint();
   private placedNames: number[][] = [];
   private nameWon = new Uint8Array(NAMES.length);
   private namesMoving = true;
@@ -246,6 +279,11 @@ export class GlobeEngine {
   private dest: Vec3 | null = null;
   private originHub: Hub | null = null;
   private destinationHub: Hub | null = null;
+  /** The cities the labels name: where the trip starts, where it landed, and what's under the pointer or plane. */
+  private originName: string | null = null;
+  private destinationName: string | null = null;
+  private hoverName: string | null = null;
+  private hoverNameAt = -Infinity;
   private hoverHub: Hub | null = null;
   private hoverResolver = new HoverHubResolver();
   /** How lit up the landed country's outline is (0–1), and where it was landed, kept while it fades out. */
@@ -256,6 +294,7 @@ export class GlobeEngine {
   private remotes = new Map<string, {
     o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane;
     originHub: Hub | null; destinationHub: Hub | null;
+    originName: string | null; destinationName: string | null;
   }>();
 
   // input and time
@@ -280,6 +319,7 @@ export class GlobeEngine {
     private hudEl: HTMLCanvasElement,
     private earthUrl: string,
     private bordersUrl: string,
+    private provincesUrl: string,
     private events: GlobeEvents = {},
   ) {
     this.hud = hudEl.getContext("2d")!;
@@ -314,6 +354,8 @@ export class GlobeEngine {
     this.texEarth = this.dataTexture(gl, this.earthUrl, [0, 255, 255, 255]);
     // one country, so no borders, until the texture arrives
     this.texBorders = this.dataTexture(gl, this.bordersUrl, [0, 0, 0, 255]);
+    // one province, so no lines, until it arrives
+    this.texProvinces = this.dataTexture(gl, this.provincesUrl, [0, 0, 0, 255]);
 
     this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     this.reduceMotion = this.motionQuery.matches;
@@ -346,6 +388,13 @@ export class GlobeEngine {
     this.P = PALETTES[theme];
     this.glDirty = this.hudDirty = true;
     this.nameSprites.clear();
+    this.citySprites.clear();
+    const fell = getComputedStyle(this.root).getPropertyValue("--font-fell").trim();
+    if (fell && fell !== this.cityFamily) {
+      this.cityFamily = fell;
+      this.onFontsLoaded();
+      document.fonts?.load(`italic 400 15px ${fell}`).catch(() => {});
+    }
     const stack = getComputedStyle(this.root).getPropertyValue("--font-typewriter").trim();
     if (stack) this.tagFont = `700 12px ${stack}`;
     if (stack && stack !== this.nameFamily) {
@@ -359,6 +408,8 @@ export class GlobeEngine {
   private onFontsLoaded = () => {
     this.nameWidths.clear();
     this.nameSprites.clear();
+    this.cityWidths.clear();
+    this.citySprites.clear();
     this.hudDirty = true;
   };
 
@@ -595,6 +646,7 @@ export class GlobeEngine {
     this.pl = null;
     this.turn = null;
     this.originHub = this.destinationHub = null;
+    this.originName = this.destinationName = null;
     this.updatePreview(null, this.t * 1000);
     this.lastInteract = this.t;
     this.events.onModeChange?.("idle", null);
@@ -608,6 +660,7 @@ export class GlobeEngine {
     this.dest = null;
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
+    this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0 };
     this.tTake = this.t;
     this.vlon = 0;
@@ -625,6 +678,7 @@ export class GlobeEngine {
     pl.n = v;
     pl.f = tangent(pl.f, v);
     this.destinationHub = nearestPreviewHub(toLatLng(v));
+    this.destinationName = this.destinationHub && placeName(toLatLng(v), this.destinationHub);
     this.updatePreview(null, this.t * 1000);
     // light up the destination hub's country, or where the plane landed when no hub resolves
     const hub = this.destinationHub;
@@ -880,9 +934,12 @@ export class GlobeEngine {
       const destinationHub = !f.landed ? null
         : r?.landed && target.every((v, i) => v === r.target[i])
           ? r.destinationHub : nearestPreviewHub(f.at);
-      if (r) Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub });
+      const originName = originHub && (r?.originHub === originHub ? r.originName : placeName(f.origin, originHub));
+      const destinationName = destinationHub &&
+        (r?.destinationHub === destinationHub ? r.destinationName : placeName(f.at, destinationHub));
+      if (r) Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName });
       else this.remotes.set(f.id, {
-        o, target, ft, landed: f.landed, originHub, destinationHub,
+        o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName,
         pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 },
       });
     }
@@ -1067,11 +1124,28 @@ export class GlobeEngine {
   };
 
   private updatePreview(point: Vec3 | null, nowMs: number) {
-    const next = this.hoverResolver.resolve(point ? toLatLng(point) : null, nowMs);
-    if (next?.id === this.hoverHub?.id) return;
+    const ll = point ? toLatLng(point) : null;
+    const next = this.hoverResolver.resolve(ll, nowMs);
+    // the label names the city, not the hub, so it can change while the hub stays; look it up as often as the hub
+    let name = this.hoverName;
+    if (!ll || !next) name = null;
+    else if (next.id !== this.hoverHub?.id || nowMs - this.hoverNameAt >= 80) {
+      name = placeName(ll, next);
+      this.hoverNameAt = nowMs;
+    }
+    if (next?.id === this.hoverHub?.id && name === this.hoverName) return;
     this.hoverHub = next;
+    this.hoverName = name;
     this.hudDirty = true;
-    this.events.onPreviewChange?.(next);
+    this.events.onPreviewChange?.(next, name);
+  }
+
+  /** Where a label under a plane goes: centred below it, clear of its wings whichever way it points. */
+  private underPlane(pl: Plane, p: ScreenPoint): { x: number; y: number } {
+    const nose = this.proj(mul(norm(add(pl.n, mul(pl.f, S_PLANE * this.planeScale * 0.5))), 1 + pl.alt));
+    const half = nose ? Math.hypot(nose.x - p.x, nose.y - p.y) : 20;
+    // half the plane, its shadow falling down and to the right, a gap, then half the tag
+    return { x: p.x, y: p.y + half + 8 + 6 + 12 };
   }
 
   private planeBasis(pl: Plane, S: number) {
@@ -1162,6 +1236,10 @@ export class GlobeEngine {
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, this.texBorders);
     gl.uniform1i(u.uBorders, 2);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, this.texProvinces);
+    gl.uniform1i(u.uProvinces, 3);
+    gl.uniform1f(u.uProv, smooth(PROVINCES_FROM, PROVINCES_FULL, this.zoom()));
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.sky?.texture ?? null);
     gl.uniform1i(u.uSky, 1);
@@ -1357,6 +1435,7 @@ export class GlobeEngine {
     if (zoomInk <= 0) {
       this.nameFade.fill(0);
       this.namePlaced.fill(0);
+      this.placedNames.length = 0;
       return;
     }
 
@@ -1469,6 +1548,165 @@ export class GlobeEngine {
       ctx.setTransform(dpr * c, dpr * si, -dpr * si, dpr * c, dpr * sp.x, dpr * sp.y);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
     }
+    ctx.restore();
+  }
+
+  /** A city name's width at a 1px font size, in the italic `city` face. */
+  private cityWidth(ctx: CanvasRenderingContext2D, name: string): number {
+    let w = this.cityWidths.get(name);
+    if (w === undefined) {
+      ctx.font = `italic 400 100px ${this.cityFamily}`;
+      ctx.letterSpacing = "0px";
+      w = ctx.measureText(name).width / 100;
+      this.cityWidths.set(name, w);
+    }
+    return w;
+  }
+
+  /** A city name drawn at `size` and the screen's pixel ratio with a paper halo, its left edge at x = pad. */
+  private citySprite(name: string, size: number, dpr: number) {
+    const key = `${size}|${name}`;
+    let c = this.citySprites.get(key);
+    if (c) return c;
+    const P = this.P;
+    const px = size * dpr;
+    const pad = Math.ceil(px * 0.3);
+    c = document.createElement("canvas");
+    c.width = Math.ceil(this.cityWidth(this.hud, name) * px) + pad * 2;
+    c.height = Math.ceil(px * 1.3) + pad * 2;
+    const g = c.getContext("2d")!;
+    g.font = `italic 400 ${px}px ${this.cityFamily}`;
+    g.textBaseline = "middle";
+    g.lineJoin = "round";
+    g.strokeStyle = P.paper;
+    g.globalAlpha = 0.75;
+    g.lineWidth = px * 0.24;
+    g.strokeText(name, pad, c.height / 2);
+    g.globalAlpha = 1;
+    g.fillStyle = P.ink;
+    g.fillText(name, pad, c.height / 2);
+    this.citySprites.set(key, c);
+    return c;
+  }
+
+  /**
+   * City names in the italic `city` face, each beside a small ink dot (a ring for a capital). Bigger cities print in
+   * first as you zoom in. A city gives way to country names, planes and bigger cities, and tries its name on the left
+   * when the right is taken.
+   */
+  private cityNames(ctx: CanvasRenderingContext2D, keepClear: { x: number; y: number }[], t: number) {
+    const zoom = this.zoom();
+    if (zoom < CITY_FROM[0]) {
+      if (this.cityShown) {
+        this.cityFade.fill(0);
+        this.cityPlaced.fill(0);
+        this.cityShown = false;
+      }
+      return;
+    }
+    this.cityShown = true;
+    const C = this.cam!.C;
+    const dpr = this.hudEl.width / this.W;
+    const dt = this.cityT ? clamp(t - this.cityT, 0, 0.1) : 0;
+    this.cityT = t;
+    const ease = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 14);
+
+    // 1. cities big enough for this zoom, facing us and on screen
+    const cands = this.cityCandidates;
+    cands.length = 0;
+    for (let i = 0; i < CITIES.length; i++) {
+      const c = CITIES[i];
+      if (zoom < CITY_FROM[c.rank]) {
+        // the list is biggest first, so every city after this one is too small as well
+        for (let j = i; j < CITIES.length; j++) this.cityFade[j] = this.cityPlaced[j] = 0;
+        break;
+      }
+      const x = C[0] - c.v[0], y = C[1] - c.v[1], z = C[2] - c.v[2];
+      const facing = (c.v[0] * x + c.v[1] * y + c.v[2] * z) / Math.hypot(x, y, z);
+      const p = facing > 0.22 ? this.proj(c.v, this.cityPoint) : null;
+      if (!p || !p.vis || p.x < -40 || p.y < -20 || p.x > this.W + 40 || p.y > this.H + 20) {
+        this.cityFade[i] = this.cityPlaced[i] = 0;
+        continue;
+      }
+      this.cityX[i] = p.x;
+      this.cityY[i] = p.y;
+      this.cityFacing[i] = facing;
+      cands.push(i);
+    }
+
+    // 2. place them biggest first, so a city always outranks a smaller neighbour that got there first; each against
+    // country names, planes and the cities already placed
+    const boxes = this.cityBoxes;
+    boxes.length = 0;
+    const countries = this.placedNames;
+    const hits = (b: number[], gap: number) =>
+      countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
+      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap < o[3] && b[3] + gap > o[1]) ||
+      keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
+    const won = new Uint8Array(cands.length);
+    cands.forEach((i, k) => {
+      if (boxes.length >= CITY_MAX) return;
+      const showing = this.cityPlaced[i];
+      // a name that just lost its place waits a moment before trying again, so two names don't flicker
+      if (!showing && t < this.cityHold[i]) return;
+      const c = CITIES[i];
+      const size = CITY_SIZE[c.rank];
+      const w = this.cityWidth(ctx, c.name) * size;
+      const x = this.cityX[i];
+      const y = this.cityY[i];
+      const hh = size * 0.6;
+      // a little air between city names; a name already showing may sit a touch closer before it gives way
+      const gap = showing ? 8 : 14;
+      for (const left of this.cityLeft[i] ? [1, 0] : [0, 1]) {
+        const b = left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh];
+        if (hits(b, gap)) continue;
+        boxes.push(b);
+        this.cityLeft[i] = left;
+        won[k] = 1;
+        break;
+      }
+    });
+
+    // 3. fade toward the outcome and draw: dot first, then the name beside it
+    const P = this.P;
+    ctx.save();
+    ctx.imageSmoothingQuality = "high";
+    cands.forEach((i, k) => {
+      const on = !!won[k];
+      if (!on && this.cityPlaced[i]) this.cityHold[i] = t + 0.6;
+      this.cityPlaced[i] = on ? 1 : 0;
+      const prev = this.cityFade[i];
+      const f = (this.cityFade[i] += ((on ? 1 : 0) - prev) * ease);
+      if (t < this.cityHold[i] || (!dt && f !== Number(on)) || (f !== prev && Math.max(prev, f) >= 0.01)) this.namesMoving = true;
+      const c = CITIES[i];
+      const alpha = f * smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], CITY_FROM[c.rank] + CITY_FADE, zoom) * this.nameInk;
+      if (alpha < 0.01) return;
+      const x = this.cityX[i];
+      const y = this.cityY[i];
+      ctx.globalAlpha = alpha;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.beginPath();
+      ctx.arc(x, y, c.capital ? 3.4 : 2.4, 0, Math.PI * 2);
+      ctx.fillStyle = P.paper;
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = P.ink;
+      ctx.stroke();
+      if (c.capital) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1.3, 0, Math.PI * 2);
+        ctx.fillStyle = P.ink;
+        ctx.fill();
+      }
+      const size = CITY_SIZE[c.rank];
+      const img = this.citySprite(c.name, size, dpr);
+      const pad = Math.ceil(size * dpr * 0.3);
+      const left = this.cityLeft[i];
+      const tx = left ? x - 7 - (img.width - pad) / dpr : x + 7 - pad / dpr;
+      // the sprite is in device px
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(img, Math.round(tx * dpr), Math.round(y * dpr - img.height / 2));
+    });
     ctx.restore();
   }
 
@@ -1590,10 +1828,11 @@ export class GlobeEngine {
       mark(mul(this.pl.n, 1 + this.pl.alt));
     }
     this.countryNames(ctx, clear, t);
+    this.cityNames(ctx, clear, t);
 
     if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
 
-    if (this.mode === "idle" && this.hoverHub) this.tag(ctx, this.mx, this.my + 30, hubPreviewLabel(this.hoverHub));
+    if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
@@ -1601,10 +1840,13 @@ export class GlobeEngine {
       const op = this.proj(r.o);
       if (op && op.vis) {
         this.startMark(ctx, op.x, op.y);
-        if (r.originHub) this.tag(ctx, op.x, op.y - 30, hubPreviewLabel(r.originHub));
+        if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
-      if (rp && rp.vis && r.destinationHub) this.tag(ctx, rp.x + 24, rp.y + 20, hubPreviewLabel(r.destinationHub));
+      if (rp && rp.vis && r.destinationName) {
+        const at = this.underPlane(r.pl, rp);
+        this.tag(ctx, at.x, at.y, r.destinationName);
+      }
     }
 
     const pl = this.pl;
@@ -1629,15 +1871,21 @@ export class GlobeEngine {
       this.startMark(ctx, op.x, op.y);
       // Keep the origin label above its pin; the moving/landing preview is below
       // the plane, so short hops do not immediately stack the longer hub names.
-      if (this.originHub) this.tag(ctx, op.x, op.y - 30, hubPreviewLabel(this.originHub));
+      if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName);
     }
 
     const pp = this.proj(mul(pl.n, 1 + pl.alt));
     if (this.mode === "flying") {
-      if (pp && pp.vis && this.hoverHub) this.tag(ctx, pp.x + 24, pp.y + 20, hubPreviewLabel(this.hoverHub));
+      if (pp && pp.vis && this.hoverName) {
+        const at = this.underPlane(pl, pp);
+        this.tag(ctx, at.x, at.y, this.hoverName);
+      }
     } else if (this.mode === "landed") {
       ripple(pp, this.tLand);
-      if (pp && pp.vis && this.destinationHub) this.tag(ctx, pp.x + 24, pp.y + 20, hubPreviewLabel(this.destinationHub));
+      if (pp && pp.vis && this.destinationName) {
+        const at = this.underPlane(pl, pp);
+        this.tag(ctx, at.x, at.y, this.destinationName);
+      }
     }
   }
 }

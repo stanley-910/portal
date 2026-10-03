@@ -56,6 +56,8 @@ uniform vec3 uL;
 uniform float uPer;
 uniform sampler2D uEarth;
 uniform sampler2D uBorders;
+uniform sampler2D uProvinces;
+uniform float uProv;
 uniform bool uSurface;
 uniform vec3 uHiP;
 uniform float uHi;
@@ -148,6 +150,13 @@ void main() {
     float onLand = smoothstep(0.5 + lfw, 0.5 + 2.5 * lfw + 1e-3, lf);
     float bLimb = smoothstep(0.08, 0.3, max(dot(n, -d), 0.0));
     g = mix(g, ink, max(b3.r, max(b3.g, b3.b)) * onLand * bLimb * mix(0.55, 0.75, uDark));
+
+    // province and state borders: coded the same way, finer and fainter still, printing in only as you zoom in
+    if (uProv > 0.0) {
+      vec3 pc = texture(uProvinces, uv).rgb;
+      vec3 p3 = 1.0 - smoothstep(vec3(0.0), (fwidth(pc) + 1e-5) * 1.1, abs(pc - 0.5));
+      g = mix(g, ink, max(p3.r, max(p3.g, p3.b)) * onLand * bLimb * uProv * mix(0.38, 0.5, uDark));
+    }
 
     // the country a trip lands in: its borders and coast lit up, in full ink a little wider, over a soft halo of
     // whichever of paper and ink is lighter. The country is read from the borders texture's alpha at the airport.

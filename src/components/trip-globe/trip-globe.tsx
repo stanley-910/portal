@@ -5,7 +5,6 @@ import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore,
 import { cursorUrl, memberColor, RoundButton } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
-import { hubPreviewLabel } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import type { ThemeId } from "./palette";
@@ -51,6 +50,8 @@ export interface TripGlobeProps {
   earthUrl?: string;
   /** The country borders data texture, from `pnpm borders`. */
   bordersUrl?: string;
+  /** The province and state borders data texture, from `pnpm provinces`. */
+  provincesUrl?: string;
   className?: string;
   ref?: Ref<TripGlobeHandle>;
 }
@@ -90,6 +91,7 @@ export function TripGlobe({
   onFlightChange,
   earthUrl = "/textures/earth.png",
   bordersUrl = "/textures/borders.png",
+  provincesUrl = "/textures/provinces.png",
   skySeed,
   className,
   ref,
@@ -100,7 +102,7 @@ export function TripGlobe({
   const engineRef = useRef<GlobeEngine | null>(null);
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
-  const [preview, setPreview] = useState<Hub | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [landed, setLanded] = useState<LandedTrip | null>(null);
   const [unsupported, setUnsupported] = useState(false);
   const resolved = useResolvedTheme(theme);
@@ -115,14 +117,14 @@ export function TripGlobe({
   useEffect(() => {
     let lastPointer: LatLng | null = null;
     let lastFlight = "null";
-    const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, bordersUrl, {
+    const engine = new GlobeEngine(rootRef.current!, glRef.current!, hudRef.current!, earthUrl, bordersUrl, provincesUrl, {
       onModeChange: (m, a) => {
         setMode(m);
         setFrom(a);
         if (m !== "landed") setLanded(null);
         if (m === "flying") handlers.current.onTakeoff?.(a);
       },
-      onPreviewChange: setPreview,
+      onPreviewChange: (_hub, name) => setPreview(name),
       onLand: (trip) => {
         setLanded(trip);
         handlers.current.onLand?.(trip);
@@ -149,15 +151,15 @@ export function TripGlobe({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [earthUrl, bordersUrl]);
+  }, [earthUrl, bordersUrl, provincesUrl]);
 
   useEffect(() => {
     engineRef.current?.setTheme(resolved);
-  }, [resolved, earthUrl, bordersUrl]);
+  }, [resolved, earthUrl, bordersUrl, provincesUrl]);
 
   useEffect(() => {
     if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
-  }, [skySeed, earthUrl, bordersUrl]);
+  }, [skySeed, earthUrl, bordersUrl, provincesUrl]);
 
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
@@ -204,8 +206,8 @@ export function TripGlobe({
     >
       <canvas ref={glRef} role="img" aria-label={label} className="absolute inset-0 block size-full" />
       <canvas ref={hudRef} aria-hidden className="pointer-events-none absolute inset-0 block size-full" />
-      <output aria-label="Nearby transport hub" aria-live="polite" className="sr-only">
-        {preview ? hubPreviewLabel(preview) : ""}
+      <output aria-label="Nearby place" aria-live="polite" className="sr-only">
+        {preview ?? ""}
       </output>
       <a
         href="https://www.openstreetmap.org/copyright"
