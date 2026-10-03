@@ -6,7 +6,7 @@ import { CITY_LABELS } from "./cities";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
-import { buildPlane } from "./plane-model";
+import { buildVehicle, VEHICLE_LENGTH, VEHICLES, type Vehicle } from "./vehicle-models";
 import { FS_GLOBE, FS_PLANE, VS_PLANE, VS_QUAD } from "./shaders";
 import { randomSeed, Sky, type Program } from "./sky";
 import {
@@ -48,6 +48,8 @@ export interface FlightState {
 /** Another member's flight. `id` is stable while they stay in the room. */
 export interface RemoteFlight extends FlightState {
   id: string;
+  /** What a landed trip parks as. Leave it out for the plane. Ignored in the air. */
+  vehicle?: Vehicle;
 }
 
 export interface GlobeEvents {
@@ -64,6 +66,7 @@ export interface GlobeEvents {
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
 const ALT = 0.03; // flying altitude, fully zoomed out
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
+const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
 const CENTRE_Y = 0.455; // globe centre, as a fraction of the screen height
 const LAT_MAX = 1.25; // how far the view can turn toward a pole
 
@@ -95,6 +98,19 @@ interface Plane {
   alt: number;
   bank: number;
   pitch: number;
+  /** What's drawn, what it's turning into, and how far through that pop it is (0 to 1; 0.5 is the vanishing point). */
+  vehicle: Vehicle;
+  next: Vehicle;
+  swap: number;
+}
+
+const parked = (v: Vehicle): Pick<Plane, "vehicle" | "next" | "swap"> => ({ vehicle: v, next: v, swap: 0 });
+
+// a change mid-pop that is already growing back turns it round at the same size, so it never jumps
+function retarget(pl: Plane, v: Vehicle) {
+  if (v === pl.next) return;
+  pl.next = v;
+  if (pl.swap > 0.5) pl.swap = 1 - pl.swap;
 }
 interface NameSpot {
   i: number;
@@ -186,8 +202,7 @@ export class GlobeEngine {
   private pGlobe!: Program;
   private pPlane!: Program;
   private vaoQuad: WebGLVertexArrayObject | null = null;
-  private vaoPlane: WebGLVertexArrayObject | null = null;
-  private planeCount = 0;
+  private vaoVehicle = new Map<Vehicle, { vao: WebGLVertexArrayObject; count: number }>();
   private texEarth: WebGLTexture | null = null;
   private texBorders: WebGLTexture | null = null;
   private texProvinces: WebGLTexture | null = null;
@@ -339,14 +354,16 @@ export class GlobeEngine {
     this.sky = new Sky(gl, (vs, fs, attrs) => this.program(gl, vs, fs, attrs));
     this.sky.setSeed(this.skySeed, this.vaoQuad);
 
-    const m = buildPlane();
-    this.planeCount = m.count;
-    this.vaoPlane = gl.createVertexArray();
-    gl.bindVertexArray(this.vaoPlane);
-    this.attrib(gl, 0, m.pos, 3);
-    this.attrib(gl, 1, m.nrm, 3);
-    this.attrib(gl, 2, m.sm, 3);
-    this.attrib(gl, 3, m.part, 1);
+    for (const v of VEHICLES) {
+      const m = buildVehicle(v);
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      this.attrib(gl, 0, m.pos, 3);
+      this.attrib(gl, 1, m.nrm, 3);
+      this.attrib(gl, 2, m.sm, 3);
+      this.attrib(gl, 3, m.part, 1);
+      this.vaoVehicle.set(v, { vao, count: m.count });
+    }
     gl.bindVertexArray(null);
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -661,7 +678,7 @@ export class GlobeEngine {
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
-    this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0 };
+    this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0, ...parked("flight") };
     this.tTake = this.t;
     this.vlon = 0;
     this.vlat = 0;
@@ -917,10 +934,16 @@ export class GlobeEngine {
     };
   }
 
+  /** What this viewer's landed trip parks as: the mode of the offer they picked. Ignored unless landed. */
+  setVehicle(v: Vehicle) {
+    if (this.mode === "landed" && this.pl) retarget(this.pl, v);
+  }
+
   /** Replaces the other members' flights. Planes ease toward each update rather than jumping. */
   setRemoteFlights(flights: RemoteFlight[]) {
     const seen = new Set<string>();
     for (const f of flights) {
+      const vehicle = f.landed ? f.vehicle ?? "flight" : "flight";
       seen.add(f.id);
       const target = vecOf(f.at.lat * D2R, f.at.lng * D2R);
       const ahead = vecOf(f.ahead.lat * D2R, f.ahead.lng * D2R);
@@ -937,10 +960,12 @@ export class GlobeEngine {
       const originName = originHub && (r?.originHub === originHub ? r.originName : placeName(f.origin, originHub));
       const destinationName = destinationHub &&
         (r?.destinationHub === destinationHub ? r.destinationName : placeName(f.at, destinationHub));
-      if (r) Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName });
-      else this.remotes.set(f.id, {
+      if (r) {
+        Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName });
+        retarget(r.pl, vehicle);
+      } else this.remotes.set(f.id, {
         o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName,
-        pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0 },
+        pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
       });
     }
     for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
@@ -997,6 +1022,7 @@ export class GlobeEngine {
       pl.n = norm(slerp(pl.n, r.target, a));
       pl.f = tangent(lerp(pl.f, r.ft, a), pl.n);
       pl.alt += ((r.landed ? 0 : ALT * this.planeScale) - pl.alt) * k(8);
+      this.stepSwap(pl, dt);
     }
     if (this.turn) {
       // fly the view to frame a finished route
@@ -1046,6 +1072,7 @@ export class GlobeEngine {
     this.lon0 = wrapPi(this.lon0);
     const pl = this.pl;
     if (!pl || this.mode === "idle") return;
+    this.stepSwap(pl, dt);
 
     if (this.mode === "flying") {
       // the plane sits under the cursor and points along the great circle from the origin
@@ -1074,7 +1101,7 @@ export class GlobeEngine {
     const state = this.scene;
     state.length = 0;
     state.push(this.lon0, this.lat0, this.range, this.mode === "idle" ? 0 : this.mode === "flying" ? 1 : 2, this.hi);
-    const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch);
+    const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch, VEHICLES.indexOf(pl.vehicle), pl.swap);
     if (this.pl) plane(this.pl);
     if (this.origin) state.push(...this.origin);
     for (const r of this.remotes.values()) {
@@ -1142,10 +1169,21 @@ export class GlobeEngine {
 
   /** Where a label under a plane goes: centred below it, clear of its wings whichever way it points. */
   private underPlane(pl: Plane, p: ScreenPoint): { x: number; y: number } {
-    const nose = this.proj(mul(norm(add(pl.n, mul(pl.f, S_PLANE * this.planeScale * 0.5))), 1 + pl.alt));
+    const nose = this.proj(mul(norm(add(pl.n, mul(pl.f, S_PLANE * this.planeScale * VEHICLE_LENGTH[pl.vehicle] * 0.5))), 1 + pl.alt));
     const half = nose ? Math.hypot(nose.x - p.x, nose.y - p.y) : 20;
     // half the plane, its shadow falling down and to the right, a gap, then half the tag
     return { x: p.x, y: p.y + half + 8 + 6 + 12 };
+  }
+
+  private stepSwap(pl: Plane, dt: number) {
+    if (pl.vehicle === pl.next && pl.swap === 0) return;
+    if (this.reduceMotion) {
+      Object.assign(pl, parked(pl.next));
+      return;
+    }
+    pl.swap = Math.min(1, pl.swap + dt / SWAP);
+    if (pl.swap >= 0.5) pl.vehicle = pl.next;
+    if (pl.swap >= 1) pl.swap = 0;
   }
 
   private planeBasis(pl: Plane, S: number) {
@@ -1286,7 +1324,6 @@ export class GlobeEngine {
     P = this.pPlane;
     u = P.u;
     gl.useProgram(P.p);
-    gl.bindVertexArray(this.vaoPlane);
     setCam(u);
     gl.uniform2f(u.uRes, cw, ch);
     gl.uniform3fv(u.uFill, th.stickerGL.fill);
@@ -1297,21 +1334,26 @@ export class GlobeEngine {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     for (const { pl, pp } of shown) {
-      const B = this.planeBasis(pl, S);
+      const mesh = this.vaoVehicle.get(pl.vehicle);
+      const s = S * (1 - Math.sin(Math.PI * pl.swap));
+      if (!mesh || s < 1e-4) continue;
+      const B = this.planeBasis(pl, s);
+      gl.bindVertexArray(mesh.vao);
+      gl.uniform1i(u.uVehicle, VEHICLES.indexOf(pl.vehicle));
       gl.uniform3fv(u.uPP, pp);
       gl.uniform3fv(u.uPX, B.X);
       gl.uniform3fv(u.uPY, B.Y);
       gl.uniform3fv(u.uPZ, B.Z);
-      // each plane is its own sticker: a later one covers an earlier one wholly
+      // each vehicle is its own sticker: a later one covers an earlier one wholly
       gl.clear(gl.DEPTH_BUFFER_BIT);
       // 1: the ink outline, which also draws inner edges
       gl.uniform1f(u.uMode, 2);
       gl.uniform1f(u.uHull, 1.1 * dpr);
-      gl.drawArrays(gl.TRIANGLES, 0, this.planeCount);
+      gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
       // 2: the paper body
       gl.uniform1f(u.uMode, 0);
       gl.uniform1f(u.uHull, 0);
-      gl.drawArrays(gl.TRIANGLES, 0, this.planeCount);
+      gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
     }
     gl.disable(gl.DEPTH_TEST);
     gl.bindVertexArray(null);

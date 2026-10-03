@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import type { Vehicle } from "./vehicle-models";
 import type { ThemeId } from "./palette";
 import { GlobeInfo } from "./globe-info";
 
@@ -21,6 +22,8 @@ export interface TripGlobeHandle {
   onFrame(cb: () => void): () => void;
   /** Draws other members' planes and routes. Replaces the previous list; planes ease toward new positions. */
   setRemoteFlights(flights: RemoteFlight[]): void;
+  /** What your landed trip parks as: the mode of the offer you picked. Ignored while flying. */
+  setVehicle(v: Vehicle): void;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
@@ -174,6 +177,7 @@ export function TripGlobe({
       cancel: () => engineRef.current?.cancel(),
       project: (ll) => engineRef.current?.project(ll) ?? null,
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      setVehicle: (v) => engineRef.current?.setVehicle(v),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
         const listeners = frameListeners.current;

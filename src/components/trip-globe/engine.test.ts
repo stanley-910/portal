@@ -321,3 +321,77 @@ it("reuses route buffers without changing near, distant, antipodal or hidden arc
   expect(buffer.pool[0]).toBe(point);
   expect(buffer.pool[0].w).toBe(world);
 });
+
+describe("vehicles", () => {
+  type Drawn = { vehicle: string; next: string; swap: number };
+  const own = (engine: unknown) => (engine as { pl: Drawn | null }).pl;
+  const remote = (engine: unknown, id: string) => (engine as { remotes: Map<string, { pl: Drawn }> }).remotes.get(id)!.pl;
+
+  it("parks the picked vehicle once landed, keeps the plane in the air, and resets on takeoff", () => {
+    const { engine, frames } = setup();
+    engine["takeoff"](point(22.3, 114.17));
+    engine.setVehicle("train");
+    frames(1);
+    expect(own(engine)!.vehicle).toBe("flight");
+    engine["land"](point(31.23, 121.47));
+    engine.setVehicle("train");
+    frames(1);
+    expect(own(engine)!.vehicle).toBe("train");
+    engine.setVehicle("flight");
+    frames(1);
+    expect(own(engine)!.vehicle).toBe("flight");
+    engine.setVehicle("ferry");
+    engine.cancel();
+    engine["takeoff"](point(22.3, 114.17));
+    expect(own(engine)!.vehicle).toBe("flight");
+  });
+
+  it("pops between vehicles over a quarter second, redrawing as it goes", () => {
+    const { engine, state, frames, drawGL } = setup();
+    state.reduceMotion = false;
+    engine["takeoff"](point(22.3, 114.17));
+    engine["land"](point(31.23, 121.47));
+    frames(120);
+    drawGL.mockClear();
+    engine.setVehicle("bus");
+    frames(3);
+    expect(own(engine)!.vehicle).toBe("flight");
+    expect(own(engine)!.swap).toBeGreaterThan(0);
+    frames(17);
+    expect(own(engine)!.vehicle).toBe("bus");
+    expect(own(engine)!.swap).toBe(0);
+    expect(drawGL.mock.calls.length).toBeGreaterThanOrEqual(15);
+  });
+
+  it("turns back mid-pop without jumping to full size", () => {
+    const { engine, state, frames } = setup();
+    state.reduceMotion = false;
+    engine["takeoff"](point(22.3, 114.17));
+    engine["land"](point(31.23, 121.47));
+    engine.setVehicle("train");
+    frames(10);
+    const before = own(engine)!.swap;
+    expect(before).toBeGreaterThan(0.5);
+    engine.setVehicle("bus");
+    expect(own(engine)!.swap).toBeCloseTo(1 - before);
+    frames(30);
+    expect(own(engine)!.vehicle).toBe("bus");
+  });
+
+  it("parks other members' landed trips as their vehicle, planes otherwise", () => {
+    const { engine, frames } = setup();
+    const base = { origin: { lat: 22, lng: 114 }, at: { lat: 31, lng: 121 }, ahead: { lat: 31.1, lng: 121.1 } };
+    engine.setRemoteFlights([
+      { id: "a", ...base, landed: true, vehicle: "ferry" },
+      { id: "b", ...base, landed: true },
+      { id: "c", ...base, landed: false, vehicle: "train" },
+    ]);
+    frames(1);
+    expect(remote(engine, "a").vehicle).toBe("ferry");
+    expect(remote(engine, "b").vehicle).toBe("flight");
+    expect(remote(engine, "c").vehicle).toBe("flight");
+    engine.setRemoteFlights([{ id: "a", ...base, landed: true, vehicle: "train" }]);
+    frames(1);
+    expect(remote(engine, "a").vehicle).toBe("train");
+  });
+});
