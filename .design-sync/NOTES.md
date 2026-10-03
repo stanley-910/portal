@@ -1,6 +1,6 @@
 # design-sync notes: Paper Atlas
 
-- **Source is `design-system/paper-atlas/`, not `src/`.** The app's `src/components/paper-atlas` runs an older token set (no Instrument Sans interface register, no Button/Panel/PlaceHeader). Sync from the bundle folder.
+- **Source is `design-system/paper-atlas/`, not `src/`.** The app's `src/components/paper-atlas` runs an older token set (no sans interface register, no Button/Panel/PlaceHeader). Sync from the bundle folder.
 - The package is a thin wrapper: `components/bundle.js` is a classic ES5 script that reads `window.React` and assigns `window.PaperAtlas`; `index.mjs` loads it (after `react-global.mjs`) and re-exports each component. Add a new component in all three places: `bundle.js`, `index.mjs`, `components/index.d.ts`.
 - Run `node design-system/paper-atlas/build.mjs` (cfg.buildCmd) before the converter: it regenerates `tokens.css` from `tokens.json` and writes `dist/paper-atlas.css` (tokens + `components/bundle.css`), which is `cfg.cssEntry`. There is no separate tokens package, so `tokens/` stays empty in the upload; tokens ship inside `_ds_bundle.css`.
 - Component docs are each `components/<Name>/README.md` with `category:` frontmatter (sets the group). Discovery can't match README.md by name, hence the `docsMap` entries.

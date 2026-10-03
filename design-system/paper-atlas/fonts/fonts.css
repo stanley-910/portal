@@ -1,6 +1,8 @@
 /* Paper Atlas faces, self-hosted (SIL Open Font License, see OFL-*.txt). */
-@font-face { font-family: "Instrument Sans"; src: url("./InstrumentSans-Variable.ttf") format("truetype"); font-weight: 400 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Instrument Sans"; src: url("./InstrumentSans-Italic-Variable.ttf") format("truetype"); font-weight: 400 700; font-style: italic; font-display: swap; }
+@font-face { font-family: "Barlow Semi Condensed"; src: url("./BarlowSemiCondensed-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow Semi Condensed"; src: url("./BarlowSemiCondensed-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow Semi Condensed"; src: url("./BarlowSemiCondensed-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow Semi Condensed"; src: url("./BarlowSemiCondensed-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: "IM Fell English SC"; src: url("./IMFellEnglishSC-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "IM Fell English"; src: url("./IMFellEnglish-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "IM Fell English"; src: url("./IMFellEnglish-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }

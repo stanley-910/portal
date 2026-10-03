@@ -6,7 +6,7 @@ Paper Atlas is ink printed on paper. Lay every screen on `var(--paper)`; put rai
 
 - No provider or wrapper. Components read CSS custom properties from `styles.css`, so they work anywhere that stylesheet is loaded.
 - **Themes:** Day is the default. Night applies to everything under an element with `data-theme="dark"` (or class `dark`); put it on `<html>` for a whole screen.
-- Fonts ship in the bundle: `--font-sans` (Instrument Sans), `--font-fell-sc`, `--font-fell` (IM Fell English), `--font-typewriter` (Courier Prime).
+- Fonts ship in the bundle: `--font-sans` (Barlow Semi Condensed), `--font-fell-sc`, `--font-fell` (IM Fell English), `--font-typewriter` (Courier Prime).
 
 ## Two registers
 
