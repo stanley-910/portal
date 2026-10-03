@@ -87,8 +87,16 @@
 .pip-stamp-corner { position: absolute; top: -9px; right: 12px; background: var(--paper); }
 
 /* What a run changed */
-.pip-changes { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 8px 8px 8px 14px; border: var(--line-control) solid var(--line); border-radius: var(--radius-control); background-image: repeating-conic-gradient(var(--pip-dither) 0 25%, transparent 0 50%); background-size: 4px 4px; }
-.pip-changes ul { display: flex; flex-direction: column; gap: 2px; font-size: 14px; line-height: 20px; }
+/* a quiet receipt of what changed: a ruled line on the left, the changes, and a small Undo */
+.pip-changes { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: 2px 0 2px 10px; border-left: 2px solid var(--pip-shade); }
+.pip-changes ul { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+.pip-changes-note { font-size: 12px; line-height: 18px; color: var(--ink-muted); }
+/* Undo: a small text button that keeps a 44px tap area */
+.pip-undo { position: relative; flex: none; padding: 0; border: 0; background: none; color: var(--ink); font-size: 12px; line-height: 18px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.pip-undo::before { content: ""; position: absolute; inset: -13px -10px; }
+.pip-undo:hover:not(:disabled) { color: var(--ink-muted); }
+.pip-undo:disabled { opacity: 0.5; cursor: default; }
+.pip-undo:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pip-changes-undone ul { text-decoration: line-through; color: var(--ink-muted); }
 
 /* Composer */
@@ -102,10 +110,10 @@
 .pip-input-row { display: flex; gap: 6px; padding: 4px 0; margin: -4px 0; cursor: text; }
 .pip-input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border-radius: var(--radius-control); border: var(--line-control) solid var(--control-border); background: var(--paper); color: var(--ink); font-size: 14px; }
 .pip-input::placeholder { color: var(--ink-muted); }
-.pip-send { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); border: 0; cursor: pointer; }
-.pip-send::before { content: ""; position: absolute; inset: -4px; }
+.pip-send { position: relative; align-self: center; display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: var(--radius-control); background: var(--ink); color: var(--on-ink); border: 0; cursor: pointer; }
+.pip-send::before { content: ""; position: absolute; inset: -7px; }
 .pip-send:disabled { opacity: 0.45; cursor: not-allowed; }
-.pip-send svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.pip-send svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
 .pip-chip:focus-visible, .pip-send:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* a text box shows focus on every click, not just from the keyboard; its own border carries it instead of a ring */
 .pip-input:focus { outline: none; border-color: var(--ink-muted); }

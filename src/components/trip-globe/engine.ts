@@ -857,6 +857,20 @@ export class GlobeEngine {
     this.magnetT = this.t;
   }
 
+  /**
+   * Lands a whole trip at once, as if it had been flown: the stops in order, at least two. Replaces any trip on the
+   * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
+   */
+  showTrip(points: LatLng[]) {
+    if (points.length < 2) return;
+    const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
+    if (this.mode !== "idle") this.cancel();
+    this.takeoff(vs[0]);
+    for (const v of vs.slice(1, -1)) this.addStop(v);
+    this.magnet = false;
+    this.land(vs[vs.length - 1]);
+  }
+
   /** Lands the trip at the last stop, which ends the leg flown into it. */
   private finish() {
     const end = this.origin!;

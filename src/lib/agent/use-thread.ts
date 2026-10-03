@@ -57,6 +57,7 @@ export function useSendMessage() {
       // asking Pip needs an account; guests get this instead of a reply
       if (res.status === 401) throw new Error(SIGN_IN_TO_ASK);
       if (!res.ok) throw new Error(`message failed: ${res.status}`);
+      return ((await res.json()) as { messageId: string }).messageId;
     },
     [tripId],
   );

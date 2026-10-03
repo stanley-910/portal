@@ -21,6 +21,8 @@ export interface TripGlobeHandle {
   project(ll: LatLng): { x: number; y: number; visible: boolean } | null;
   /** Where a route's drawn arc is on screen, `t` of the way along (0.5, its peak, by default). */
   routePoint(from: LatLng, to: LatLng, t?: number): { x: number; y: number; visible: boolean } | null;
+  /** Lands a whole trip at once, stops in order, as if it had been flown; onLand reports it. */
+  showTrip(points: LatLng[]): void;
   /** Calls `cb` after every frame, for overlays that track places. Returns an unsubscribe function. */
   onFrame(cb: () => void): () => void;
   /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
@@ -255,6 +257,7 @@ export function TripGlobe({
       },
       zoom: () => engineRef.current?.zoom() ?? 0,
       flyTo: (ll, spanDeg) => engineRef.current?.flyTo(ll, spanDeg),
+      showTrip: (points) => engineRef.current?.showTrip(points),
     }),
     [],
   );
