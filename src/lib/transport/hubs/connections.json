@@ -30,5 +30,9 @@
   {"from":"ferry:SG-HARBOURFRONT","to":"ferry:BATAM-CENTRE","mode":"ferry","durationMin":60,"source":"https://www.batamfast.com/"},
   {"from":"ferry:BATAM-CENTRE","to":"ferry:SG-HARBOURFRONT","mode":"ferry","durationMin":60,"source":"https://www.batamfast.com/"},
   {"from":"ferry:SG-TANAH-MERAH","to":"ferry:BATAM-CENTRE","mode":"ferry","durationMin":60,"source":"https://www.batamfast.com/"},
-  {"from":"ferry:BATAM-CENTRE","to":"ferry:SG-TANAH-MERAH","mode":"ferry","durationMin":60,"source":"https://www.batamfast.com/"}
+  {"from":"ferry:BATAM-CENTRE","to":"ferry:SG-TANAH-MERAH","mode":"ferry","durationMin":60,"source":"https://www.batamfast.com/"},
+  {"to":"ferry:BINTAN-BBT","mode":"ferry","durationMin":70,"source":"https://www.brf.com.sg/","from":"ferry:SG-TANAH-MERAH"},
+  {"to":"ferry:SG-TANAH-MERAH","mode":"ferry","durationMin":70,"source":"https://www.brf.com.sg/","from":"ferry:BINTAN-BBT"},
+  {"to":"ferry:BUSAN-INTERNATIONAL","mode":"ferry","durationMin":360,"source":"https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf","from":"ferry:HAKATA-INTERNATIONAL"},
+  {"to":"ferry:HAKATA-INTERNATIONAL","mode":"ferry","durationMin":540,"source":"https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf","from":"ferry:BUSAN-INTERNATIONAL"}
 ]

@@ -33,3 +33,7 @@ Implementation results, measurements and smoke evidence will be appended below. 
 - Added checks for disconnected or backwards Duffel connections; tests retain known offset/UTC durations.
 - `scripts/smoke-long-haul.mts` runs production adapters through the installed Vitest/Vite loader and writes
   only sanitized diagnostics to `.cache/long-haul-check.json`. It does not place orders. No new runtime dependency.
+
+Final integration also uses known local arrival dates for hotel check-in and destination-night splits. Old stored
+offers without arrival data and estimates retain the travel-date fallback. An offline regression covers late-arriving
+members, an early departure, and a previous-day date-line arrival. Server booking settlement rejects non-live offers.

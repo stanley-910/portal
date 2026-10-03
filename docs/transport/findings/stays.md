@@ -33,3 +33,13 @@ Owner must request Duffel Stays enablement, or authorize and complete LiteAPI on
 - Offline fixture is **synthetic, documentation-shaped**, assembled from the public rate-structure and hotel-detail examples, with fictional IDs and amounts. It is not a recorded production response. Live account/inventory smoke verification remains blocked on an owner-provided API key. `scripts/stays-smoke.mts` checks all four demo cities through the running app without creating bookings.
 
 Validation: `pnpm test --maxWorkers=2` passed 711 tests (72 files, 1 skipped) before the final two guard/deadline tests; the final targeted hotel suite passed all 29 tests. Plain `pnpm test` encountered an unrelated 5-second globe engine test timeout during concurrent agent test execution. `pnpm lint` passed with the existing LogoReveal unused-expression warning; targeted lint passed. `pnpm exec tsc --noEmit` reached only missing generated Next `LayoutProps` / `PageProps` globals in the fresh worktree, not errors in changed files. Final integrated checks remain the coordinator's responsibility.
+
+## Review fixes and app verification
+
+Hotel UI results are keyed to the whole query so changed nationality, dates or occupants immediately hide earlier
+quotes. Saved nightly budgets are always planning estimates until the storage model can preserve quote scope.
+Known transport arrival dates drive hotel check-in; no night before an overnight arrival is charged in the shared split.
+The four-city app smoke with current credentials returned only estimates, confirming fallback rather than live access.
+A real browser run rendered the hotel panel and optional nationality selector without page errors.
+
+Browser regression: changing nationality with the next request deliberately delayed immediately removed all earlier selectable rows; no page errors.

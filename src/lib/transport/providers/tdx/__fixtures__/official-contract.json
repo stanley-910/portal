@@ -1,0 +1,428 @@
+{
+  "source": "https://tdx.transportdata.tw/webapi/File/Swagger/V3/268fc230-2e04-471b-a728-a726167c1cfc",
+  "retrieved": "2026-10-03",
+  "note": "Unmodified official OpenAPI contract excerpts, not an observed timetable response.",
+  "servers": [
+    {
+      "url": "https://tdx.transportdata.tw/api/basic"
+    }
+  ],
+  "path": {
+    "get": {
+      "tags": [
+        "THSR"
+      ],
+      "summary": "取得指定[日期]所有車次的時刻表資料",
+      "description": "提供車次代碼、行駛方向、起訖站與停靠站資訊、各站到離時間、跑法站序、行駛日期及資料版本編號。",
+      "operationId": "THSRApi_DailyTimetable_2124_3",
+      "parameters": [
+        {
+          "name": "TrainDate",
+          "in": "path",
+          "description": "欲查詢的日期(格式: yyyy-MM-dd)",
+          "required": true,
+          "schema": {
+            "title": "DateTime",
+            "pattern": "\\d\\d\\d\\d\\-\\d\\d\\-\\d\\d",
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        {
+          "name": "$select",
+          "in": "query",
+          "description": "挑選",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "$filter",
+          "in": "query",
+          "description": "過濾",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "$orderby",
+          "in": "query",
+          "description": "排序",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "$top",
+          "in": "query",
+          "description": "取前幾筆",
+          "schema": {
+            "type": "integer",
+            "default": 30
+          }
+        },
+        {
+          "name": "$skip",
+          "in": "query",
+          "description": "跳過前幾筆",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "health",
+          "in": "query",
+          "description": "加入參數'?health=true'即可查詢此API服務的健康狀態",
+          "schema": {
+            "enum": [
+              "true",
+              "false"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "$format",
+          "in": "query",
+          "description": "指定來源格式",
+          "required": true,
+          "schema": {
+            "enum": [
+              "JSON",
+              "XML"
+            ],
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Array",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PTX.Service.DTO.Rail.Specification.V2.THSR.RailDailyTimetable"
+                }
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "title": "Array",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PTX.Service.DTO.Rail.Specification.V2.THSR.RailDailyTimetable"
+                },
+                "xml": {
+                  "name": "ArrayOfRailDailyTimetable",
+                  "namespace": "https://ptx.transportdata.tw/standard/schema/",
+                  "wrapped": true
+                }
+              }
+            }
+          }
+        },
+        "304": {
+          "description": "服務端會在 Response 加上 Last-Modified header，表示最近的更新時間。客戶端能利用此時間，於 Request 加上 If-Modified-Since header，若沒有更新，服務端會回應 304 StatusCode 且空值 Content"
+        },
+        "299": {
+          "description": "加入參數'?health=true'即可查詢此API服務的健康狀態",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PTX.Service.DTO.Shared.Specification.V3.Base.DisplayHealth"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/PTX.Service.DTO.Shared.Specification.V3.Base.DisplayHealth"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "PTX.Service.DTO.Rail.Specification.V2.THSR.RailDailyTimetable": {
+      "title": "RailDailyTimetable",
+      "required": [
+        "DailyTrainInfo",
+        "StopTimes",
+        "TrainDate",
+        "UpdateTime",
+        "VersionID"
+      ],
+      "type": "object",
+      "properties": {
+        "TrainDate": {
+          "title": "String",
+          "minLength": 1,
+          "type": "string",
+          "description": "行駛日期(格式: yyyy:MM:dd)",
+          "xml": {
+            "name": "TrainDate"
+          }
+        },
+        "DailyTrainInfo": {
+          "title": "RailDailyTrainInfo",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/PTX.Service.DTO.Rail.Specification.V2.THSR.TimeInfo.RailDailyTrainInfo"
+            }
+          ],
+          "description": "車次資料",
+          "xml": {
+            "name": "RailDailyTrainInfo"
+          }
+        },
+        "StopTimes": {
+          "title": "Array",
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/PTX.Service.DTO.Rail.Specification.V2.THSR.RailStopTime"
+          },
+          "description": "停靠時間資料",
+          "xml": {
+            "name": "StopTime"
+          }
+        },
+        "UpdateTime": {
+          "title": "DateTime",
+          "type": "string",
+          "description": "資料更新日期時間(ISO8601格式:yyyy-MM-ddTHH:mm:sszzz)",
+          "format": "date-time"
+        },
+        "VersionID": {
+          "title": "Int32",
+          "type": "integer",
+          "description": "資料版本編號",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false,
+      "description": "高鐵到離站時刻資料型別",
+      "xml": {
+        "name": "RailDailyTimetable"
+      }
+    },
+    "PTX.Service.DTO.Rail.Specification.V2.THSR.TimeInfo.RailDailyTrainInfo": {
+      "title": "RailDailyTrainInfo",
+      "required": [
+        "Direction",
+        "TrainNo"
+      ],
+      "type": "object",
+      "properties": {
+        "TrainNo": {
+          "title": "String",
+          "minLength": 1,
+          "type": "string",
+          "description": "車次代碼",
+          "xml": {
+            "name": "TrainNo"
+          }
+        },
+        "Direction": {
+          "title": "Int32",
+          "type": "integer",
+          "description": "行駛方向 : [0:'南下',1:'北上',2:'雙向']",
+          "format": "int32"
+        },
+        "StartingStationID": {
+          "title": "String",
+          "type": "string",
+          "description": "列車起點車站代號",
+          "nullable": true,
+          "xml": {
+            "name": "StartingStationID"
+          }
+        },
+        "StartingStationName": {
+          "title": "NameType",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/PTX.Service.DTO.Shared.Specification.V2.Base.NameType"
+            }
+          ],
+          "description": "列車起點車站名稱",
+          "nullable": true,
+          "xml": {
+            "name": "NameType"
+          }
+        },
+        "EndingStationID": {
+          "title": "String",
+          "type": "string",
+          "description": "列車終點車站代號",
+          "nullable": true,
+          "xml": {
+            "name": "EndingStationID"
+          }
+        },
+        "EndingStationName": {
+          "title": "NameType",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/PTX.Service.DTO.Shared.Specification.V2.Base.NameType"
+            }
+          ],
+          "description": "列車終點車站名稱",
+          "nullable": true,
+          "xml": {
+            "name": "NameType"
+          }
+        },
+        "Note": {
+          "title": "NameType",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/PTX.Service.DTO.Shared.Specification.V2.Base.NameType"
+            }
+          ],
+          "description": "附註說明",
+          "nullable": true,
+          "xml": {
+            "name": "NameType"
+          }
+        },
+        "Overnight": {
+          "title": "Boolean",
+          "type": "boolean",
+          "description": "是否為跨夜車次"
+        }
+      },
+      "additionalProperties": false,
+      "description": "高鐵車次資料型別(時刻表用)",
+      "xml": {
+        "name": "RailDailyTrainInfo"
+      }
+    },
+    "PTX.Service.DTO.Rail.Specification.V2.THSR.RailStopTime": {
+      "title": "RailStopTime",
+      "required": [
+        "DepartureTime",
+        "StationID",
+        "StationName",
+        "StopSequence"
+      ],
+      "type": "object",
+      "properties": {
+        "StopSequence": {
+          "title": "Int32",
+          "type": "integer",
+          "description": "跑法站序(由1開始)",
+          "format": "int32"
+        },
+        "StationID": {
+          "title": "String",
+          "minLength": 1,
+          "type": "string",
+          "description": "車站代碼",
+          "xml": {
+            "name": "StationID"
+          }
+        },
+        "StationName": {
+          "title": "NameType",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/PTX.Service.DTO.Shared.Specification.V2.Base.NameType"
+            }
+          ],
+          "description": "車站名稱",
+          "xml": {
+            "name": "NameType"
+          }
+        },
+        "ArrivalTime": {
+          "title": "String",
+          "type": "string",
+          "description": "到站時間(格式: HH:mm:ss)",
+          "nullable": true,
+          "xml": {
+            "name": "ArrivalTime"
+          }
+        },
+        "DepartureTime": {
+          "title": "String",
+          "minLength": 1,
+          "type": "string",
+          "description": "離站時間(格式: HH:mm:ss)",
+          "xml": {
+            "name": "DepartureTime"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "高鐵停靠時間資料",
+      "xml": {
+        "name": "RailStopTime"
+      }
+    },
+    "PTX.Service.DTO.Shared.Specification.V2.Base.NameType": {
+      "title": "NameType",
+      "required": [
+        "Zh_tw"
+      ],
+      "type": "object",
+      "properties": {
+        "Zh_tw": {
+          "title": "String",
+          "minLength": 1,
+          "type": "string",
+          "description": "中文繁體名稱",
+          "xml": {
+            "name": "Zh_tw"
+          }
+        },
+        "En": {
+          "title": "String",
+          "type": "string",
+          "description": "英文名稱",
+          "nullable": true,
+          "xml": {
+            "name": "En"
+          }
+        },
+        "Ja": {
+          "title": "String",
+          "type": "string",
+          "description": "日文名稱",
+          "nullable": true,
+          "xml": {
+            "name": "Ja"
+          }
+        },
+        "Ko": {
+          "title": "String",
+          "type": "string",
+          "description": "韓文名稱",
+          "nullable": true,
+          "xml": {
+            "name": "Ko"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "名稱資料型別",
+      "xml": {
+        "name": "NameType"
+      }
+    }
+  },
+  "securitySchemes": {
+    "TDX": {
+      "type": "oauth2",
+      "description": "TDX會員可至【會員專區-資料服務-服務金鑰】功能頁面，從預設金鑰(或建立新的金鑰)取得Client Id和Client Secret資訊，分別輸入至下方client_id和client_secret欄位、按下Authorize按鈕，即可開始於Swagger介面呼叫TDX API。",
+      "flows": {
+        "clientCredentials": {
+          "tokenUrl": "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token",
+          "scopes": {}
+        }
+      }
+    }
+  }
+}

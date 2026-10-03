@@ -24,19 +24,20 @@ export function editorChoice(draft: string | null | undefined, stored: string | 
  */
 export function stayDates(
   plan: { nights: Pick<SplitNight, "stop" | "date" | "present">[]; ends: string | null; legs: { from: string; date: string }[] },
-  leg: { to: string; date: string; riders: string[] },
+  leg: { to: string; date: string; arrival?: string; riders: string[] },
 ): { checkIn: string; checkOut: string; people: number } {
+  const arrival = leg.arrival ?? leg.date;
   const here = new Map(plan.nights.filter((n) => n.stop === leg.to && n.present.length).map((n) => [n.date, n.present.length]));
-  if (here.has(leg.date)) {
-    let first = leg.date;
-    let last = leg.date;
+  if (here.has(arrival)) {
+    let first = arrival;
+    let last = arrival;
     while (here.has(shift(first, -1))) first = shift(first, -1);
     while (here.has(shift(last, 1))) last = shift(last, 1);
     let people = 0;
     for (let d = first; d <= last; d = shift(d, 1)) people = Math.max(people, here.get(d) ?? 0);
     return { checkIn: first, checkOut: shift(last, 1), people };
   }
-  const next = plan.legs.filter((l) => l.from === leg.to && l.date > leg.date).map((l) => l.date).sort()[0];
-  const until = [next, plan.ends].filter((d): d is string => !!d && d > leg.date).sort()[0];
-  return { checkIn: leg.date, checkOut: until ?? shift(leg.date, 1), people: Math.max(1, leg.riders.length) };
+  const next = plan.legs.filter((l) => l.from === leg.to && l.date > arrival).map((l) => l.date).sort()[0];
+  const until = [next, plan.ends].filter((d): d is string => !!d && d > arrival).sort()[0];
+  return { checkIn: arrival, checkOut: until ?? shift(arrival, 1), people: Math.max(1, leg.riders.length) };
 }

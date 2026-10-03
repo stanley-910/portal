@@ -1,0 +1,280 @@
+{
+  "checked": "2026-10-03",
+  "routes": [
+    {
+      "id": "batamfast-hf-bc",
+      "to": "ferry:BATAM-CENTRE",
+      "carrier": "Batamfast",
+      "departures": [
+        "07:40",
+        "08:40",
+        "09:30",
+        "10:50",
+        "12:30",
+        "14:20"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 70,
+      "source": "https://www.batamfast.com/home/index.ashx",
+      "note": "Singapore is one hour ahead of Batam. Be at the pre-immigration gate at least 30 minutes before departure.",
+      "noteSource": "https://www.batamfast.com/faq/index.ashx",
+      "effectiveFrom": "2026-09-17",
+      "durationSource": "https://www.directferries.com/harbourfront_centre_batam_centre_ferry.htm",
+      "from": "ferry:SG-HARBOURFRONT"
+    },
+    {
+      "id": "batamfast-tm-bc",
+      "to": "ferry:BATAM-CENTRE",
+      "carrier": "Batamfast",
+      "departures": [
+        "12:30"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 60,
+      "source": "https://www.batamfast.com/home/index.ashx",
+      "note": "Singapore is one hour ahead of Batam. Be at the pre-immigration gate at least 30 minutes before departure.",
+      "noteSource": "https://www.batamfast.com/faq/index.ashx",
+      "effectiveFrom": "2026-09-17",
+      "durationSource": "https://www.directferries.com/tanah_merah_batam_centre_ferry.htm",
+      "from": "ferry:SG-TANAH-MERAH"
+    },
+    {
+      "id": "brf-tm-bbt",
+      "to": "ferry:BINTAN-BBT",
+      "carrier": "Bintan Resort Ferries",
+      "departures": [
+        "08:10",
+        "11:10",
+        "14:00",
+        "17:00"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 70,
+      "source": "https://www.brf.com.sg/",
+      "note": "Bintan is one hour behind Singapore. International immigration clearance and passport/visa checks apply; confirm requirements with the operator.",
+      "noteSource": "https://www.brf.com.sg/",
+      "from": "ferry:SG-TANAH-MERAH"
+    },
+    {
+      "id": "brf-tm-bbt-fri-sat",
+      "to": "ferry:BINTAN-BBT",
+      "carrier": "Bintan Resort Ferries",
+      "departures": [
+        "09:10"
+      ],
+      "weekdays": [
+        5,
+        6
+      ],
+      "durationMin": 70,
+      "source": "https://www.brf.com.sg/",
+      "note": "Bintan is one hour behind Singapore. International immigration clearance and passport/visa checks apply; confirm requirements with the operator.",
+      "noteSource": "https://www.brf.com.sg/",
+      "from": "ferry:SG-TANAH-MERAH"
+    },
+    {
+      "id": "brf-bbt-tm",
+      "to": "ferry:SG-TANAH-MERAH",
+      "carrier": "Bintan Resort Ferries",
+      "departures": [
+        "08:35",
+        "11:35",
+        "14:35",
+        "18:35"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 70,
+      "source": "https://www.brf.com.sg/",
+      "note": "Bintan is one hour behind Singapore. International immigration clearance and passport/visa checks apply; confirm requirements with the operator.",
+      "noteSource": "https://www.brf.com.sg/",
+      "from": "ferry:BINTAN-BBT"
+    },
+    {
+      "id": "brf-bbt-tm-fri-sun",
+      "to": "ferry:SG-TANAH-MERAH",
+      "carrier": "Bintan Resort Ferries",
+      "departures": [
+        "16:35"
+      ],
+      "weekdays": [
+        0,
+        5
+      ],
+      "durationMin": 70,
+      "source": "https://www.brf.com.sg/",
+      "note": "Bintan is one hour behind Singapore. International immigration clearance and passport/visa checks apply; confirm requirements with the operator.",
+      "noteSource": "https://www.brf.com.sg/",
+      "effectiveFrom": "2026-04-01",
+      "from": "ferry:BINTAN-BBT"
+    },
+    {
+      "id": "brf-bbt-tm-sun",
+      "to": "ferry:SG-TANAH-MERAH",
+      "carrier": "Bintan Resort Ferries",
+      "departures": [
+        "13:35"
+      ],
+      "weekdays": [
+        0
+      ],
+      "durationMin": 70,
+      "source": "https://www.brf.com.sg/",
+      "note": "Bintan is one hour behind Singapore. International immigration clearance and passport/visa checks apply; confirm requirements with the operator.",
+      "noteSource": "https://www.brf.com.sg/",
+      "from": "ferry:BINTAN-BBT"
+    },
+    {
+      "id": "camellia-hakata-busan",
+      "to": "ferry:BUSAN-INTERNATIONAL",
+      "carrier": "New Camellia",
+      "departures": [
+        "12:30"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 360,
+      "source": "https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf",
+      "note": "Finish Hakata check-in at least 60 minutes before sailing. Typical schedule; irregular cancellations are not included.",
+      "noteSource": "https://www.camellia-line.co.jp/boarding/",
+      "from": "ferry:HAKATA-INTERNATIONAL"
+    },
+    {
+      "id": "camellia-busan-hakata",
+      "to": "ferry:HAKATA-INTERNATIONAL",
+      "carrier": "New Camellia",
+      "departures": [
+        "22:30"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 540,
+      "source": "https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf",
+      "note": "07:30 next day is the disembarkation start, not docking time. Immigration/boarding closes well before sailing; confirm the Busan check-in deadline. Irregular cancellations are not included.",
+      "noteSource": "https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf",
+      "from": "ferry:BUSAN-INTERNATIONAL"
+    },
+    {
+      "id": "batamfast-bc-hf",
+      "to": "ferry:SG-HARBOURFRONT",
+      "carrier": "Batamfast",
+      "departures": [
+        "06:00",
+        "07:00",
+        "08:20",
+        "09:50",
+        "11:10",
+        "12:50",
+        "14:10",
+        "15:20"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 70,
+      "source": "https://www.batamfast.com/home/index.ashx",
+      "note": "Singapore is one hour ahead of Batam. Be at the pre-immigration gate at least 30 minutes before departure.",
+      "noteSource": "https://www.batamfast.com/faq/index.ashx",
+      "effectiveFrom": "2026-09-17",
+      "durationSource": "https://www.directferries.com/batam_centre_harbourfront_centre_ferry.htm",
+      "from": "ferry:BATAM-CENTRE"
+    },
+    {
+      "id": "batamfast-bc-tm",
+      "to": "ferry:SG-TANAH-MERAH",
+      "carrier": "Batamfast",
+      "departures": [
+        "09:20",
+        "13:20"
+      ],
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 60,
+      "source": "https://www.batamfast.com/home/index.ashx",
+      "note": "Singapore is one hour ahead of Batam. Be at the pre-immigration gate at least 30 minutes before departure.",
+      "noteSource": "https://www.batamfast.com/faq/index.ashx",
+      "effectiveFrom": "2026-09-17",
+      "durationSource": "https://www.directferries.com/batam_centre_tanah_merah_ferry.htm",
+      "from": "ferry:BATAM-CENTRE"
+    },
+    {
+      "id": "batamfast-bc-tm-thu-sun",
+      "to": "ferry:SG-TANAH-MERAH",
+      "carrier": "Batamfast",
+      "departures": [
+        "07:45"
+      ],
+      "weekdays": [
+        0,
+        4,
+        5,
+        6
+      ],
+      "durationMin": 60,
+      "source": "https://www.batamfast.com/home/index.ashx",
+      "note": "Singapore is one hour ahead of Batam. Be at the pre-immigration gate at least 30 minutes before departure.",
+      "noteSource": "https://www.batamfast.com/faq/index.ashx",
+      "effectiveFrom": "2026-09-17",
+      "durationSource": "https://www.directferries.com/batam_centre_tanah_merah_ferry.htm",
+      "from": "ferry:BATAM-CENTRE"
+    }
+  ]
+}

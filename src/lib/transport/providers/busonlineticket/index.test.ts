@@ -68,6 +68,8 @@ describe("busonlineticket provider", () => {
     expect(provider.covers(q(KL, SINGAPORE))).toBe(true);
     const offers = await provider.search(q(KL, SINGAPORE), signal());
     expect(offers.length).toBeGreaterThanOrEqual(5);
+    expect(offers.every((o) => o.attribution?.includes("busonlineticket.com/booking/"))).toBe(true);
+    expect(offers.every((o) => o.attribution?.includes("Singapore arrival: alight"))).toBe(true);
     const kkkl = offers.find((o) => o.segments[0].carrier === "KKKL Express (Terus Nanti)");
     expect(kkkl).toMatchObject({
       id: `busonlineticket:kuala-lumpur:singapore:kkkl-express-terus-nanti:${DATE}T08:00`,

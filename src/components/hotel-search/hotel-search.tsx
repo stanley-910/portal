@@ -8,6 +8,8 @@ import { countries } from "@/lib/nationality";
 import { iso2 } from "@/lib/entry/iso";
 import { convertCurrency } from "@/lib/currency";
 
+import { hotelQueryKey, resultForHotelQuery, type HotelSearchResult } from "./query";
+
 const nationalityOptions = countries().flatMap((country) => {
   const code = iso2(country.code);
   return code ? [{ code, name: country.name }] : [];
@@ -35,27 +37,23 @@ export function HotelSearch({
   const [filter, setFilter] = useState<HotelFilter>(4);
   const [occupants, setOccupants] = useState(() => Math.min(4, Math.max(1, defaultOccupants)));
   const [guestNationality, setGuestNationality] = useState("");
-  const [hotels, setHotels] = useState<HotelResult[]>([]);
-  const [status, setStatus] = useState<"idle" | "done" | "failed">("idle");
+  const [result, setResult] = useState<HotelSearchResult | null>(null);
+  const queryKey = hotelQueryKey({ city, lat, lng, checkIn, checkOut, occupants, filter, guestNationality });
+  const { hotels, status } = resultForHotelQuery(queryKey, result);
 
   useEffect(() => {
-    if (!checkIn || !checkOut || checkOut <= checkIn) return;
+    if (!queryKey) return;
     const controller = new AbortController();
-    const params = new URLSearchParams({
-      city, lat: String(lat), lng: String(lng), checkIn, checkOut, occupants: String(occupants), filter: String(filter),
-    });
-    if (guestNationality) params.set("guestNationality", guestNationality);
-    fetch(`/api/hotels/search?${params}`, { signal: controller.signal })
+    fetch(`/api/hotels/search?${queryKey}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("hotel search failed");
         const data = await response.json() as { hotels: HotelResult[] };
         if (controller.signal.aborted) return;
-        setHotels(data.hotels);
-        setStatus("done");
+        setResult({ queryKey, hotels: data.hotels, status: "done" });
       })
-      .catch(() => { if (!controller.signal.aborted) setStatus("failed"); });
+      .catch(() => { if (!controller.signal.aborted) setResult({ queryKey, hotels: [], status: "failed" }); });
     return () => controller.abort();
-  }, [city, lat, lng, checkIn, checkOut, occupants, filter, guestNationality]);
+  }, [queryKey]);
 
   // a pick made for another filter, head count or dates no longer matches what's listed
   const refine = <T,>(set: (value: T) => void) => (value: T) => {
@@ -73,9 +71,9 @@ export function HotelSearch({
           </select>
         </label>
       </div>
-      <label className="hotel-occupants">Guest nationality (optional)
-        <select value={guestNationality} onChange={(event) => refine(setGuestNationality)(event.target.value)}>
-          <option value="">For nationality-specific hotel rates</option>
+      <label className="hotel-occupants">Nationality
+        <select aria-label="Guest nationality (optional)" value={guestNationality} onChange={(event) => refine(setGuestNationality)(event.target.value)}>
+          <option value="">Optional</option>
           {nationalityOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
         </select>
       </label>

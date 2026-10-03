@@ -1,3 +1,4 @@
+import { arrivalDate } from "@/lib/transport/arrival";
 import type { Stay, StoredOffer, TripMember } from "@/lib/liveblocks/types";
 
 // Who pays for what. Pure: takes the room's Storage as JSON, so the UI and Pip read the same numbers.
@@ -15,7 +16,7 @@ export type SplitInput = {
       to: string;
       date: string;
       riders: string[];
-      search: { offers: Pick<StoredOffer, "id" | "price" | "kind">[] };
+      search: { offers: (Pick<StoredOffer, "id" | "price" | "kind"> & Partial<Pick<StoredOffer, "arrive" | "depart">>)[] };
       chosen: string | null;
       createdAt: number;
       /** Once a leg is being bought, each rider's share is their fare, whatever the chosen option quoted. */
@@ -62,9 +63,11 @@ export function computeSplit(plan: SplitInput): Split {
   const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
   const members = plan.members ?? {};
 
-  const latestLeg = legs.map(([, l]) => l.date).sort().at(-1);
+  const destinationDate = (leg: NonNullable<SplitInput["legs"]>[string]) =>
+    arrivalDate(leg.date, leg.search.offers.find((offer) => offer.id === leg.chosen));
+  const latestLeg = legs.map(([, l]) => destinationDate(l)).sort().at(-1);
   const latestLeave = Object.values(members).map((m) => m.leaves).filter((d): d is string => !!d).sort().at(-1);
-  // A final leg arrives on its travel date, so the default trip end is the following morning.
+  // Default trip end is the morning after the latest known local arrival.
   // An explicit leave date still wins and excludes that member's leave-day night.
   const ends = plan.ends ?? latestLeave ?? (latestLeg ? nextDay(latestLeg) : null);
 
@@ -92,7 +95,7 @@ export function computeSplit(plan: SplitInput): Split {
     mine.forEach(([, leg], i) => {
       if (leg.to === home) return;
       const until = minDate(mine[i + 1]?.[1].date, members[id]?.leaves, ends);
-      for (let d = leg.date; until && d < until; d = nextDay(d)) {
+      for (let d = destinationDate(leg); until && d < until; d = nextDay(d)) {
         const key = `${leg.to}|${d}`;
         let night = nights.get(key);
         if (!night) {

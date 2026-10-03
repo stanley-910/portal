@@ -63,15 +63,6 @@
     "source": "https://www.turbojet.com.hk/"
   },
   {
-    "from": { "name": "Hong Kong SkyPier", "lat": 22.315, "lng": 113.936, "country": "Hong Kong", "slug": "hong-kong-airport" },
-    "to": { "name": "Macau Taipa", "lat": 22.161, "lng": 113.56, "country": "Macau", "slug": "macau-taipa" },
-    "operators": ["Cotai Water Jet"],
-    "departures": ["10:00", "12:00", "14:00", "16:00"],
-    "tz": "Asia/Hong_Kong",
-    "durationMin": 60,
-    "source": "https://www.cotaiwaterjet.com/"
-  },
-  {
     "from": { "name": "Sanur", "lat": -8.71, "lng": 115.263, "country": "Indonesia", "slug": "sanur" },
     "to": { "name": "Nusa Penida", "lat": -8.727, "lng": 115.544, "country": "Indonesia", "slug": "nusa-penida" },
     "operators": ["Maruti Express", "Sanur Port"],

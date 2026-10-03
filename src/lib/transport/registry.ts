@@ -8,6 +8,7 @@ import koreaTago from "./providers/korea-tago";
 import srt from "./providers/srt";
 import tdx from "./providers/tdx";
 import travelpayouts from "./providers/travelpayouts";
+import officialFerries from "./providers/official-ferries";
 import twelveGo from "./providers/12go";
 import vietnamRail from "./providers/vietnam-rail";
 
@@ -16,6 +17,7 @@ export const providers: readonly TransportProvider[] = [
   duffel,
   travelpayouts,
   twelveGo,
+  officialFerries,
   tdx,
   koreaTago,
   chinaRail,

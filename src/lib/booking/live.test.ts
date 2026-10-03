@@ -29,7 +29,9 @@ describe("booking flow live (Liveblocks + Duffel test mode)", () => {
       { from: { name: "Hong Kong", lat: 22.308, lng: 113.918, iata: "HKG" }, to: { name: "Shanghai", lat: 31.143, lng: 121.805, iata: "PVG" }, date, modes: ["flight"], passengers: 1, currency: "USD" },
       new AbortController().signal,
     );
-    const stored = offers.slice(0, 3).map(toStoredOffer);
+    // This opt-in sandbox harness exercises purchase states with a synthetic live-choice fixture.
+    // Ordinary search results stay Estimated and cannot enter booking.
+    const stored = offers.slice(0, 3).map((offer) => toStoredOffer({ ...offer, kind: "live" }));
     const id = "livetest" + Math.random().toString(36).slice(2, 10);
     const roomId = `trip:${id}`;
     await lb.createRoom(roomId, { defaultAccesses: [], usersAccesses: { [ann.id]: ["room:write"], [bo.id]: ["room:write"] }, metadata: { members: [ann.id, bo.id], title: "Live test" } });

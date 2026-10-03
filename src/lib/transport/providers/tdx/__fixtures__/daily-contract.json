@@ -1,0 +1,12 @@
+[
+  {
+    "TrainDate": "2026-10-14",
+    "DailyTrainInfo": { "TrainNo": "0803", "Direction": 0, "Overnight": false },
+    "StopTimes": [
+      { "StopSequence": 1, "StationID": "1000", "StationName": { "Zh_tw": "台北" }, "DepartureTime": "08:00:00", "ArrivalTime": null },
+      { "StopSequence": 2, "StationID": "1070", "StationName": { "Zh_tw": "左營" }, "DepartureTime": "09:35:00", "ArrivalTime": "09:30:00" }
+    ],
+    "UpdateTime": "2026-10-03T08:00:00+08:00",
+    "VersionID": 1
+  }
+]

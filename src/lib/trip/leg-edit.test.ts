@@ -97,3 +97,12 @@ describe("stayDates", () => {
     expect(datesFor(input, "c")).toEqual({ checkIn: "2026-10-14", checkOut: "2026-10-16", people: 1 });
   });
 });
+
+it("anchors the shared hotel run on known arrival instead of the departure day", () => {
+  expect(stayDates({ nights: [
+    { stop: "lhr", date: "2026-11-16", present: ["ann"] },
+    { stop: "lhr", date: "2026-11-17", present: ["ann", "bo"] },
+  ], ends: "2026-11-18", legs: [] }, { to: "lhr", date: "2026-11-15", arrival: "2026-11-16", riders: ["ann"] }))
+    .toEqual({ checkIn: "2026-11-16", checkOut: "2026-11-18", people: 2 });
+  expect(stayDates({ nights: [], ends: null, legs: [] }, { to: "sfo", date: "2026-11-15", arrival: "2026-11-14", riders: [] }).checkIn).toBe("2026-11-14");
+});

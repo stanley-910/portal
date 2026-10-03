@@ -1,0 +1,21 @@
+Ferry Schedule
+Mon - Thu
+From Tanah Merah Ferry Terminal (Singapore Time) | From Bandar Bentan Telani Terminal (Bintan Time)
+08:10 | 08:35
+11:10 | 11:35
+14:00 | 14:35
+17:00 | 18:35
+Fri - Sat
+From Tanah Merah Ferry Terminal (Singapore Time) | From Bandar Bentan Telani Terminal (Bintan Time)
+08:10 | 08:35
+09:10 | 11:35
+11:10 | 14:35
+14:00 | 16:35 (Friday only; Effective 1 April 2026)
+17:00 | 18:35
+Sun
+From Tanah Merah Ferry Terminal (Singapore Time) | From Bandar Bentan Telani Terminal (Bintan Time)
+08:10 | 08:35
+11:10 | 11:35
+14:00 | 13:35, 14:35, 16:35
+17:00 | 18:35
+Journey approximately 1 hour and 10 minutes. Bintan is one hour behind Singapore.

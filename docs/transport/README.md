@@ -2,6 +2,11 @@
 
 How a click on the globe becomes flights, trains, buses and ferries.
 
+## Planned demo cache work
+
+[TODO: collect real transit listings and add a simulated booking path](briefs/demo-listing-cache.md)
+tracks rail across China, Taiwan, Japan, Korea and Southeast Asia, plus buses, ferries and flights.
+
 ## The pipeline
 
 1. The globe raycasts the pointer onto its sphere. `LandedTrip.origin` and `destination` are the exact clicked
@@ -33,8 +38,8 @@ A hub's country is metadata about the hub. It's not a claim that the pointer is 
 
 ## Coverage and provenance
 
-The snapshot has **4,008 airports worldwide** (233 country and territory codes), **34 train stations**, **22 ferry terminals**
-and **32 directed surface connections**. Surface coverage is a curated subset. No airport-to-airport service graph is
+The snapshot has **4,008 airports worldwide** (233 country and territory codes), **34 train stations**, **23 ferry terminals**
+and **36 directed surface connections**. Surface coverage is a curated subset. No airport-to-airport service graph is
 invented.
 
 [`src/lib/transport/hubs/DATA.md`](../../src/lib/transport/hubs/DATA.md) records the pinned OurAirports source,
@@ -99,9 +104,9 @@ curl --get 'http://localhost:3000/api/transport/search' \
 ## Being honest about data
 
 - Every offer says where it came from. Anything that isn't live shows an **Estimated** badge.
-- Hotel results use the same landed city as the transport search. With a Duffel token, `/api/hotels/search` asks
-  Duffel Stays for live rates within 5 km; with no token, a failed call or no match (hostels are never on Duffel),
-  it uses the bundled city catalogue or a deterministic local fallback, marked estimated.
+- Hotel results use the landed city and selected transport arrival date. `/api/hotels/search` asks optional
+  Duffel Stays and LiteAPI for date-specific rates; missing access, failed calls or no matches retain the bundled
+  city catalogue or deterministic local fallback, marked estimated. Hostels keep their own estimate fallback.
   Results can be filtered to 2–5 stars or hostels, support 1–4 occupants, calculate the required rooms, and rank
   by a weighted nightly price and distance-to-city-centre score.
 - Duffel production flight offers are live quotes from the airline, per passenger, shown without the Estimated badge. Test-mode inventory is marked Estimated and explicitly attributed as test data. Production offers
@@ -111,6 +116,17 @@ curl --get 'http://localhost:3000/api/transport/search' \
   are unknown rather than inventing airports.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical
   departure times with a cited source. A row without a cited time or fare isn't seeded.
+- `official-ferries` adds cited typical operator timetables for Singapore–Batam (HarbourFront and Tanah Merah),
+  Singapore–Bintan and Busan–Hakata, with independent directions, weekday restrictions and local arrival offsets.
+  It is an offline **timetable** subset: no live seats or prices, no date-specific cancellation calendar. Every result
+  shows its checked date and source. Batam durations are separately attributed reseller estimates; Camellia's Hakata
+  arrival is the next-day disembarkation start. Check-in/border notes appear in the existing result source details.
+- SkyPier–Taipa was removed: HKIA currently lists it as temporarily unavailable, and SkyPier is restricted to airside
+  transfers. Old 12Go reverse routes still work but are explicitly **modelled estimates**, because the seed does not
+  independently cite reverse departure times. BusOnlineTicket now exposes its existing source and checked date.
+- [Boats and borders findings](findings/boats-and-borders.md) records all candidates and remaining gaps. Live ferry,
+  HK cross-border coach, China–Laos rail and additional international sea coverage require verified source access;
+  an affiliate ID does not unlock an undocumented booking API.
 - Ranking uses fixed FX estimates, duration, mode and transfers for ordering only. It never changes displayed fares,
   and unknown currencies never default to USD. The first row is a suggestion, not "cheapest".
 - The currency setting converts displayed amounts only. Original fares stay visible.
@@ -126,11 +142,12 @@ and the app still runs on seeds and estimates.
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Booking a leg | dashboard.stripe.com → Developers → API keys; the webhook secret from `stripe listen`. Without the key, paying is a no-charge test checkout. See `docs/booking/README.md`. |
 | `SUPABASE_SECRET_KEY`, `BOOKING_ENCRYPTION_KEY` | Booking a leg | Supabase → Project Settings → API keys; `openssl rand -base64 32`. Without them, booking rows live in memory. |
 | `TRAVELPAYOUTS_TOKEN`, `_MARKER`, `_TRS` | Flights, 12Go links | app.travelpayouts.com → Profile → API token. Marker is the partner ID on the dashboard; TRS is the project ID. |
-| `TWELVEGO_AFFILIATE_ID` | 12Go | agent.12go.asia (form review) |
+| `TWELVEGO_AFFILIATE_ID` | 12Go link attribution only | agent.12go.asia (form review); live API access is separate and not implemented. |
+| `LITEAPI_API_KEY` | Optional live hotel rates | Owner-approved LiteAPI production account; explicit guest nationality required. |
 | `TDX_CLIENT_ID`, `TDX_CLIENT_SECRET` | Taiwan | tdx.transportdata.tw/register → 會員中心 → API金鑰. Non-Taiwan phones need manual review. |
 | `DATA_GO_KR_SERVICE_KEY` | Korea | data.go.kr → each API's 활용신청. Store the **decoding** key. Signup needs Korean identity verification. |
 | `TRIPCOM_AFFILIATE_ID` | China rail link-out | Trip.com affiliate portal |
-| `BOT_REFERER_ID` | BusOnlineTicket | busonlineticket.com/affiliate-program (manual approval) |
+| `BOT_REFERER_ID` | BusOnlineTicket link attribution only | busonlineticket.com/affiliate-program (manual approval); XML API access requires separate documentation. |
 | `LTA_DATAMALL_ACCOUNT_KEY` | Singapore GTFS | datamall.lta.gov.sg → request for API |
 | `MOBILITYDB_REFRESH_TOKEN` | GTFS discovery (build time) | mobilitydatabase.org account |
 | `TRANSITLAND_API_KEY` | Live departures (optional) | transit.land, Explorer plan (non-commercial) |
@@ -144,8 +161,10 @@ Rome2rio no longer accepts API partners, and Amadeus Self-Service shut down on 2
 pnpm test
 pnpm lint
 python3 scripts/snapshot-hubs.py --check
+BASE_URL=http://localhost:3000 node scripts/smoke-transport-review.mts  # eight app-route checks
 node scripts/benchmark-hub-hover.mts  # offline hover scan and dataset size
 node --env-file-if-exists=.env.local scripts/smoke-long-haul.mts 2026-11-15  # Duffel + Travelpayouts adapters
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-ferry-sources.mts --check # monthly source review
 node --env-file-if-exists=.env.local scripts/smoke-flights.mts HKG PVG 2026-11-15  # real Travelpayouts call
 BASE_URL=http://localhost:3015 node scripts/smoke-globe.mjs                       # browser check against pnpm start
 ```
@@ -232,3 +251,37 @@ China rail, Korail, THSR and SRT offers carry their actual seed source and check
 Offline Vietnam snapshot verification: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-vietnam-trains.mts --check`.
 GTFS metadata distinguishes per-feed `refreshedAt` from the bundle's assembly `builtAt`; a KTMB refresh does not
 claim a new Thailand download.
+
+### Optional TDX dated THSR timetables
+
+With both `TDX_CLIENT_ID` and `TDX_CLIENT_SECRET`, the existing `tdx` provider now authenticates using the official
+OAuth client-credentials endpoint and loads `/v2/Rail/THSR/DailyTimetable/TrainDate/{TrainDate}`. It queries the
+requested and previous start dates to handle after-midnight boarding, uses destination **arrival** times, and keeps
+all responses `timetable` (Estimated): this API does not quote fares or reserve seats. A bounded five-minute cache
+reduces repeated requests; the supplied abort signal and an eight-second deadline cover authentication and both
+reads. Missing keys retain existing seed behavior. Upstream/auth/schema/timeout failures use the bundled seeds
+as `estimated` via the existing provider fallback, with an error in the search response. An authoritative empty
+schedule remains empty, rather than inventing dated services from typical timetables. Taiwan bus seed behavior
+continues as before; failure fallback also preserves those bus choices.
+
+The current [official rail-v2 OpenAPI document](https://tdx.transportdata.tw/webapi/File/Swagger/V3/268fc230-2e04-471b-a728-a726167c1cfc)
+was retrieved October 3. `tdx/__fixtures__/official-contract.json` records its relevant sections; the daily fixture
+is explicitly synthetic contract-test data, not observed service. No authenticated call was verified because no
+TDX credentials are configured. After authorized credentials are available, run:
+
+```sh
+node --env-file-if-exists=.env.local scripts/smoke-tdx.mts 2026-10-14
+```
+
+The report `.cache/tdx-smoke.json` contains only status/date/count, never credentials or access tokens. A successful
+schedule call does not prove booking access or seat availability.
+
+## Quote and arrival boundaries
+
+Known destination-local arrival dates drive hotel searches and shared-trip nights, including overnight and
+previous-day date-line arrivals. Estimated or unknown local schedules retain the departure-date fallback.
+Hotel results belong to their complete query, including dates, occupants and nationality; stale rows disappear
+while a replacement query runs. Saved stays are **planning estimates** because the current room model stores
+only a nightly budget, not a provider quote's date, occupancy and rate restrictions. New hotel picks do not imply
+live rates after a trip is retimed. Duffel test inventory is Estimated and the server rejects non-live choices at
+booking settlement; the explicit opt-in booking test harness uses synthetic live-choice fixtures.

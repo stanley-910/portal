@@ -14,6 +14,7 @@ import { useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
 import { memberColor, type Stay, type StoredOffer } from "@/lib/liveblocks/types";
 import { lastLegDate, leaveBounds, legBefore } from "@/lib/trip/dates";
+import { arrivalDate } from "@/lib/transport/arrival";
 import { editorChoice, stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, useSplit, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
@@ -147,7 +148,7 @@ export function TripPlan({ email = null, nationalities = [], onMinimise }: { ema
           <LegCard
             leg={leg}
             stay={stays?.[leg.to.id] ?? null}
-            hotelDates={stayDates({ nights: split?.nights ?? [], ends: split?.ends ?? end, legs: stopLegs }, { to: leg.to.id, date: leg.date, riders: leg.riders })}
+            hotelDatesFor={(offer) => stayDates({ nights: split?.nights ?? [], ends: split?.ends ?? end, legs: stopLegs }, { to: leg.to.id, date: leg.date, arrival: arrivalDate(leg.date, offer), riders: leg.riders })}
             currency={currency}
             rates={rates}
             email={email}
@@ -162,7 +163,7 @@ export function TripPlan({ email = null, nationalities = [], onMinimise }: { ema
 function LegCard({
   leg,
   stay,
-  hotelDates,
+  hotelDatesFor,
   currency,
   rates,
   email,
@@ -171,7 +172,7 @@ function LegCard({
   leg: PlanLeg;
   stay: Readonly<Stay> | null;
   /** The nights a hotel at this leg's destination is for (`stayDates`). */
-  hotelDates: { checkIn: string; checkOut: string; people: number };
+  hotelDatesFor: (offer: StoredOffer | null) => { checkIn: string; checkOut: string; people: number };
   currency: Currency;
   rates: ExchangeRates | null;
   email: string | null;
@@ -188,13 +189,17 @@ function LegCard({
   const [editing, setEditing] = useState(false);
   // the option this member clicked in the editor; undefined until they do, so the editor follows picks made by others
   const [draft, setDraft] = useState<string | null | undefined>(undefined);
-  const [pendingHotel, setPendingHotel] = useState<HotelResult | null>(null);
+  const [hotelSelection, setHotelSelection] = useState<{ hotel: HotelResult; scope: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const offers = leg.search.offers.slice(0, SHOWN);
 
   const stored = leg.chosen?.id ?? null;
   const choice = editorChoice(draft, stored, leg.search.offers.map((o) => o.id));
   const choiceChanged = !locked && choice !== stored;
+  const hotelDates = hotelDatesFor(leg.search.offers.find((offer) => offer.id === choice) ?? null);
+  const hotelScope = `${choice}/${hotelDates.checkIn}/${hotelDates.checkOut}/${hotelDates.people}`;
+  const pendingHotel = hotelSelection?.scope === hotelScope ? hotelSelection.hotel : null;
+  const setPendingHotel = (hotel: HotelResult | null) => setHotelSelection(hotel ? { hotel, scope: hotelScope } : null);
   const changed = choiceChanged || pendingHotel !== null;
 
   const toggleEditor = () => {
@@ -216,7 +221,8 @@ function LegCard({
             label: pendingHotel.name,
             // the stay is the whole group's cost a night: every room it needs
             nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
-            estimated: pendingHotel.freshness !== "live",
+            // Stored nightly budgets cannot retain the quote's date/party restrictions.
+            estimated: true,
           })
         : "ok";
       if (stayed === "ok") setPendingHotel(null);
@@ -318,6 +324,7 @@ function LegCard({
             </div>
           )}
           <HotelSearch
+            key={hotelScope}
             city={leg.to.name}
             lat={leg.to.lat}
             lng={leg.to.lng}

@@ -106,8 +106,8 @@ describe("12Go ferry adapter", () => {
     });
   });
 
-  it("ships at least ten curated ferry routes", () => {
-    expect(routesFor("ferry")).toHaveLength(10);
+  it("excludes the suspended airside SkyPier service", () => {
+    expect(routesFor("ferry").some((route) => route.from.slug === "hong-kong-airport")).toBe(false);
     expect(routesFor("ferry").every((route) => route.source && route.source.includes("://"))).toBe(true);
   });
 });
@@ -151,6 +151,8 @@ describe("12Go bus seed", () => {
   it("serves the reverse direction with the reverse 12Go link", async () => {
     const offers = await twelveGo.search(busQuery(phnomPenh, hcmc), new AbortController().signal);
     expect(offers[0].bookingUrl).toBe("https://12go.asia/en/travel/phnom-penh/ho-chi-minh-city");
+    expect(offers[0].kind).toBe("estimated");
+    expect(offers[0].attribution).toContain("Modelled reverse-direction");
   });
 
   it("leaves ferry searches unaffected", async () => {

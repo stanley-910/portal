@@ -115,3 +115,29 @@ describe("splitGaps", () => {
     expect(splitGaps(computeSplit(plan))).toEqual({ legs: ["icn"], stops: ["tyo"] });
   });
 });
+
+describe("overnight destination nights", () => {
+  it("starts on local arrival, excludes the return travel night, and defaults end after arrival", () => {
+    const plan: SplitInput = { members: { ann: {} }, legs: {
+      out: { from: "hk", to: "london", date: "2026-11-15", riders: ["ann"], createdAt: 1, chosen: "out",
+        search: { offers: [{ id: "out", kind: "live", price: null, depart: "2026-11-15T23:00:00+08:00", arrive: "2026-11-16T05:00:00+00:00" }] } },
+    } };
+    expect(computeSplit(plan).nights.map((n) => n.date)).toEqual(["2026-11-16"]);
+    expect(computeSplit(plan).ends).toBe("2026-11-17");
+    plan.legs!.back = { from: "london", to: "hk", date: "2026-11-18", riders: ["ann"], createdAt: 2, chosen: null, search: { offers: [] } };
+    expect(computeSplit(plan).nights.map((n) => n.date)).toEqual(["2026-11-16", "2026-11-17"]);
+    plan.members!.ann.leaves = "2026-11-17";
+    expect(computeSplit(plan).nights.map((n) => n.date)).toEqual(["2026-11-16"]);
+  });
+  it("keeps previous-day arrivals and does not allocate a night in flight to late riders", () => {
+    const plan: SplitInput = { members: { ann: {}, bo: {} }, ends: "2026-11-17", legs: {
+      ann: { from: "tokyo", to: "sf", date: "2026-11-15", riders: ["ann"], createdAt: 1, chosen: "a",
+        search: { offers: [{ id: "a", kind: "cached", price: null, arrive: "2026-11-14T17:30:00-08:00" }] } },
+      bo: { from: "hk", to: "sf", date: "2026-11-15", riders: ["bo"], createdAt: 2, chosen: "b",
+        search: { offers: [{ id: "b", kind: "live", price: null, arrive: "2026-11-16T05:00:00-08:00" }] } },
+    } };
+    expect(computeSplit(plan).nights.map((n) => [n.date, n.present])).toEqual([
+      ["2026-11-14", ["ann"]], ["2026-11-15", ["ann"]], ["2026-11-16", ["ann", "bo"]],
+    ]);
+  });
+});

@@ -86,6 +86,10 @@ export function createBusOnlineTicketProvider(seed: Seed, opts: { refererId?: st
                 },
               ],
               bookingUrl,
+              attribution: `Bundled timetable, checked ${seed.checked} · ${r.source}` +
+                (to.country === "SG" && seed.cities[r.from].country !== "SG"
+                  ? " · Singapore arrival: alight with all belongings and luggage for screening. https://ask.gov.sg/ica/questions/clos83fvv01l15k0whuldjjuw"
+                  : ""),
             };
           });
         })

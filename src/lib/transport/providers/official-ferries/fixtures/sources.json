@@ -1,0 +1,27 @@
+[
+  {
+    "id": "batamfast",
+    "url": "https://www.batamfast.com/home/index.ashx",
+    "checked": "2026-10-03",
+    "file": "batamfast.html",
+    "method": "html-table",
+    "sha256": "5a26d7d441d11fbf0377ecc8a29eef7d41a305fd0ce1810cf04aeb33743f1a6f"
+  },
+  {
+    "id": "brf",
+    "url": "https://www.brf.com.sg/",
+    "checked": "2026-10-03",
+    "file": "brf.txt",
+    "method": "text",
+    "sha256": "44a8844eb8b15363e36829866bd301db4eed5734b88d00185732f794296b483d"
+  },
+  {
+    "id": "camellia",
+    "url": "https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf",
+    "checked": "2026-10-03",
+    "file": "camellia.txt",
+    "method": "pdf",
+    "sha256": "86dc619cd3bd60d632b17461192d6e820e2b293b245b6d45e07eefbf22f4cd54",
+    "upstreamSha256": "7cdd94810a10296346b3d6fbaf930ab69c74ef42e5579b5cab5710f34865af22"
+  }
+]

@@ -9,10 +9,10 @@ seeds**, not a timetable, bookable inventory, or a guarantee of current service.
 | File | Coverage |
 | --- | --- |
 | `airports.json` | 4,008 scheduled-service, IATA-coded airports worldwide; 233 country/territory codes |
-| `surface-hubs.json` | 56 representative surface hubs: 34 train stations and 22 passenger ferry terminals/piers; 23 country/territory codes |
-| `connections.json` | 32 directed estimates (16 corridor pairs): 18 train edges and 14 ferry edges |
+| `surface-hubs.json` | 57 representative surface hubs: 34 train stations and 23 passenger ferry terminals/piers; 23 country/territory codes |
+| `connections.json` | 36 directed estimates (18 corridor pairs): 18 train edges and 18 ferry edges |
 
-The combined inventory has **4,064 unique hub IDs**. Airport coverage is broad;
+The combined inventory has **4,065 unique hub IDs**. Airport coverage is broad;
 surface coverage is deliberately incomplete. This is **not every Asian station
 or dock**, nor a complete route graph. Surface train examples span East,
 Southeast, South, Central and West Asia/the Caucasus. Ferry coverage is concentrated
@@ -163,3 +163,20 @@ Consumers must not turn absent graph data into fictional direct connections.
 - Connection numbers are hand-curated estimates. Linked operator/reseller sites
   retain rights to their content; no copyrighted timetable or page text is
   redistributed here, and no endorsement is implied.
+
+
+## Ferry additions reviewed 2026-10-03
+
+- Bandar Bentan Telani (`ferry:BINTAN-BBT`): exact coordinates 1.1605006, 104.3201677 from
+  [OpenStreetMap node 5250721798, version 4](https://www.openstreetmap.org/node/5250721798), checked through
+  `https://api.openstreetmap.org/api/0.6/node/5250721798.json`. ODbL, OpenStreetMap contributors.
+  This is the northern Bintan Resorts terminal, not Tanjung Pinang. The timezone is Asia/Jakarta (UTC+7).
+- Tanah Merah ↔ BBT connection: [Bintan Resort Ferries](https://www.brf.com.sg/) publishes the directional
+  timetable and approximate 70-minute crossing. These graph edges do not confirm seats.
+- Hakata ↔ Busan: [Camellia's currently linked English brochure](https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf),
+  visually checked, gives Hakata 12:30→Busan 18:30 (360 minutes), Busan 22:30→Hakata 07:30 next day (540 minutes).
+  The latter is **disembarkation start**, not ship docking. Irregular cancellations are not encoded.
+- No SkyPier connection was added. [HKIA](https://www.hongkongairport.com/en/transport/mainland-connection/ferry-transfer.page)
+  marks Taipa's airport ferry temporarily unavailable; SkyPier is exclusively for airside transfers, unavailable to
+  trips starting in Hong Kong. The old 12Go SkyPier–Taipa seed was removed. Existing Sheung Wan–Taipa graph edges
+  remain separate; a geographic terminal record does not promise an operating sailing.

@@ -82,8 +82,10 @@ function offer(route: SeedRoute, query: SearchQuery, mode: "ferry" | "bus", dire
       arrive,
       durationMin: route.durationMin,
     }],
-    kind: "timetable",
-    attribution: `Bundled estimated timetable · ${route.source}`,
+    kind: direction === "reverse" ? "estimated" : "timetable",
+    attribution: direction === "reverse"
+      ? `Modelled reverse-direction timing from the opposite-direction timetable; confirm with operator · ${route.source}`
+      : `Bundled estimated timetable · ${route.source}`,
     bookingUrl: tagged(twelveGoUrl(from.slug, to.slug)),
   };
 }

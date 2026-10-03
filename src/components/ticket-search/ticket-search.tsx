@@ -7,6 +7,7 @@ import { HotelSearch } from "@/components/hotel-search/hotel-search";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelResult } from "@/lib/hotels/types";
+import { arrivalDate } from "@/lib/transport/arrival";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { Mode, Offer } from "@/lib/transport/types";
@@ -153,7 +154,8 @@ export type { PickedStay };
 const stayFrom = (hotel: HotelResult): PickedStay => ({
   label: hotel.rooms > 1 ? `${hotel.name}, ${hotel.rooms} rooms` : hotel.name,
   nightly: { amount: hotel.pricePerNight.amount * hotel.rooms, currency: hotel.pricePerNight.currency },
-  estimated: hotel.freshness !== "live",
+  // Saved stays lack quote dates/party/source, so their nightly budget is always an estimate.
+  estimated: true,
 });
 
 /** "$905", or "No fare" when an option has none or there's no rate for it. */
@@ -310,7 +312,7 @@ export function TicketSearch({
   const [tab, setTab] = useState<Tab>("best");
   // the Hotels tab sits beside the route tabs; the route pick stays what Save trip saves
   const [hotelsOpen, setHotelsOpen] = useState(false);
-  const [hotel, setHotel] = useState<HotelResult | null>(null);
+  const [hotelSelection, setHotelSelection] = useState<{ hotel: HotelResult; scope: string } | null>(null);
   const [selected, setSelected] = useState(0);
   // a round trip picks the way out, then the way back from its own list
   const [leg, setLeg] = useState<"out" | "back">("out");
@@ -357,7 +359,12 @@ export function TicketSearch({
   const backRows = rowsFor(backOffers, activeBackTab, rates);
   const backChoice = roundTrip ? backRows[Math.min(backSelected, backRows.length - 1)] : undefined;
   const showBack = roundTrip && leg === "back";
-  const hotelCheckOut = returnDate ?? addDays(depart, 1);
+  const hotelCheckIn = arrivalDate(depart, choice ? { kind: choice.offer.kind,
+    depart: choice.offer.segments[0]?.depart, arrive: choice.offer.segments.at(-1)?.arrive } : null);
+  const hotelCheckOut = returnDate ?? addDays(hotelCheckIn, 1);
+  const hotelScope = `${hotelCheckIn}/${hotelCheckOut}`;
+  const hotel = hotelCheckOut > hotelCheckIn && hotelSelection?.scope === hotelScope ? hotelSelection.hotel : null;
+  const setHotel = (value: HotelResult | null) => setHotelSelection(value ? { hotel: value, scope: hotelScope } : null);
 
   const pickDay = (iso: string) => {
     if (openField === "return") {
@@ -530,11 +537,11 @@ export function TicketSearch({
           </div>
 
           {hotelsOpen && ends.to.known && !showBack ? (
-            <HotelSearch
+            hotelCheckOut <= hotelCheckIn ? <p className="ts-empty">No overnight stay before the return departure.</p> : <HotelSearch
               city={ends.to.name}
               lat={trip.destination.lat}
               lng={trip.destination.lng}
-              checkIn={depart}
+              checkIn={hotelCheckIn}
               checkOut={hotelCheckOut}
               currency={currency}
               rates={rates}

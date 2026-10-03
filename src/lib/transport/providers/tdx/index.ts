@@ -1,4 +1,6 @@
 import "server-only";
+import { env } from "../../../env.server";
+import { createDailyClient, mapDaily, type DailyClient } from "./daily";
 import { distanceKm } from "../gtfs/geo";
 import { matchRadiusKm } from "../match-radius";
 import { ProviderFailure, type Offer, type Place, type SearchQuery, type TransportProvider } from "../../types";
@@ -11,7 +13,7 @@ import { busSeedSchema, busTerminalsSchema, seedSchema, type Seed, type SeedTrai
 import seedJson from "./seed.json";
 import { at, runsOn, timeline } from "./time";
 
-// THSR seed + 國道客運 seed, no TDX calls at request time. Provider id stays `tdx`.
+// Optional dated THSR API plus bundled THSR/國道客運 fallback. Provider id stays `tdx`.
 const MODES = ["train", "bus"] as const;
 const MIN_MATCH_KM = 20;
 
@@ -95,16 +97,38 @@ function createThsrSearch(seed: Seed) {
   };
 }
 
-export function createTdxProvider(seed: Seed, bus?: BusSearch): TransportProvider {
+export function createTdxProvider(seed: Seed, bus?: BusSearch, daily?: DailyClient): TransportProvider {
   const thsr = createThsrSearch(seed);
   const wantsTrain = (q: SearchQuery) => servesModes(["train"], q);
   const busFor = (q: SearchQuery) => (bus && servesModes(["bus"], q) ? bus : undefined);
 
+  const seeded = (q: SearchQuery): Offer[] => [
+    ...(wantsTrain(q) ? thsr.search(q) ?? [] : []), ...(busFor(q)?.search(q) ?? []),
+  ];
   return {
     id: "tdx",
     modes: [...MODES],
     covers: (q) => (wantsTrain(q) && thsr.covers(q)) || (busFor(q)?.covers(q) ?? false),
-    async search(q) {
+    ...(daily ? { fallback: (q: SearchQuery) => seeded(q).map((offer): Offer => ({
+      ...offer, kind: "estimated", attribution: `${offer.attribution ?? "TDX"}; bundled fallback because dated timetable was unavailable`,
+    })) } : {}),
+    async search(q, signal) {
+      signal.throwIfAborted();
+      if (daily && wantsTrain(q) && thsr.covers(q)) {
+        const radius = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+        const a = nearest(seed, q.from.lat, q.from.lng, radius)!;
+        const b = nearest(seed, q.to.lat, q.to.lng, radius)!;
+        const from = seed.stations[a], to = seed.stations[b];
+        const abort = AbortSignal.any([signal, AbortSignal.timeout(8_000)]);
+        // Query previous start day too: q.date is the date at the passenger's origin stop.
+        const previousDate = new Date(Date.parse(`${q.date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+        const today = await daily(q.date, abort);
+        const previous = await daily(previousDate, abort);
+        const dated = mapDaily([...today, ...previous], q, from.id, to.id,
+          { name: from.name, lat: from.lat, lng: from.lng, country: "TW" },
+          { name: to.name, lat: to.lat, lng: to.lng, country: "TW" });
+        return [...dated, ...(busFor(q)?.search(q) ?? [])].sort((a, b) => Date.parse(a.segments[0].depart) - Date.parse(b.segments[0].depart));
+      }
       const train = wantsTrain(q) ? thsr.search(q) : undefined;
       const buses = busFor(q)?.search(q);
       if (!train && !buses) throw new ProviderFailure("UNSUPPORTED_ROUTE");
@@ -119,4 +143,6 @@ export function createTdxProvider(seed: Seed, bus?: BusSearch): TransportProvide
 export default createTdxProvider(
   seedSchema.parse(seedJson),
   createBusSearch(busSeedSchema.parse(busSeedJson), busTerminalsSchema.parse(busTerminalsJson)),
+  env.TDX_CLIENT_ID && env.TDX_CLIENT_SECRET
+    ? createDailyClient({ clientId: env.TDX_CLIENT_ID, clientSecret: env.TDX_CLIENT_SECRET }) : undefined,
 );

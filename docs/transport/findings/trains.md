@@ -22,7 +22,7 @@ Research completed before implementation. Unknown access/terms are not permissio
 2. KTMB: official data.gov.my GTFS, independent refresh plus calendar/horizon validation first. No fares or availability claims.
 3. Japan: NAVITIME is a documented routing seam, pending credentials/terms. JR PDF is an official fallback candidate, but complete date applicability and reuse terms need verification before bundling.
 4. Korea: retain existing Korail-derived snapshot; TAGO offers schedule data, not a booking backend. Access remains a blocker.
-5. Taiwan: TDX is the official schedule/standard-fare seam; retain snapshot until authorized API access is available. A runtime timetable would still be Estimated.
+5. Taiwan: optional official TDX dated timetable adapter is implemented against the current official contract; existing snapshot remains the no-key fallback. Authenticated service access is still unverified; all schedule results remain Estimated.
 6. Thailand: retain SRT seed and OTP official GTFS; approved 12Go access is the path to quotes.
 7. Vietnam: official DSVN timetable is the near-term source for an honest timetable-only provider; a booking API remains gated by 12Go/operator approval.
 
@@ -60,13 +60,27 @@ three registry expectation failures caused by adding a provider; these were fixe
 rerun successfully. Root integrator will perform the final combined full suite. TypeScript in the isolated tree
 requires Next's generated `LayoutProps`/`PageProps`; the one implementation type error was corrected.
 
-TDX optional runtime client is **unfinished, not impossible**: absent credentials alone would not prevent coding
-an adapter. The current official Swagger page exposed only a JavaScript shell in this research pass; the official
-dated THSR timetable endpoint returned HTTP 401 without credentials. No current official response fixture was
-obtained, so old PTX/third-party schemas were not used to invent a current contract. Next step is extract the
-current official Swagger JSON or obtain a sanitized authorized fixture, then implement OAuth and dated timetable
-mapping with seed fallback. This would improve schedule currency, not provide live bookable fares.
-
 KTMB `refreshedAt` is recorded per feed. Global `builtAt` is the bundle assembly timestamp and does not assert that
 Thailand was downloaded again. Vietnam `snapshot-vietnam-trains.mts --check` is offline and checks the bundled
 snapshot against recorded endpoint cells; the check date cannot be in the future.
+
+## Optional TDX dated timetable adapter
+
+Focused inspection of TDX's public frontend identified its official
+`/webapi/serviceCategory/ForSwagger` group list and `/webapi/File/Swagger/V3/{group}` loader. Rail v2 is group
+`268fc230-2e04-471b-a728-a726167c1cfc`; the previously checked group was rail v3. Downloaded the
+[current official document](https://tdx.transportdata.tw/webapi/File/Swagger/V3/268fc230-2e04-471b-a728-a726167c1cfc)
+(HTTP 200), including dated THSR endpoint, DTOs, OAuth token URL and client-credentials grant. The `V3` in this
+document URL is its OpenAPI format; its documented rail API is `/v2/Rail/THSR/...`.
+
+Implemented optional runtime dated timetable in existing `tdx` provider. Both optional existing credentials enable
+it. No-key seed behavior remains; errors fall back through the existing isolation pipeline, with Estimated seeds
+and reported provider error. Date-mismatched or malformed payloads fail closed. The deadline includes OAuth and
+current/previous service-day requests. Cache lasts five minutes and is bounded to twelve dates. It preserves
+explicit arrival times and after-midnight origin dates. Fares/seats remain unchecked; offers remain `timetable`.
+Official schema excerpt is recorded; timetable fixture is explicitly synthetic, not an invented production seed.
+
+Read-only `scripts/smoke-tdx.mts` provides a secret-free status/count report when credentials become available.
+Authenticated access remains unverified; no account creation or API purchase was performed. Initial offline TDX
+validation: 30 tests passing, including credentials, auth/rate/schema failures, cancellation, rollover, no-key seed
+behavior, empty dates, and provider-level fallback. No live fare or seat inventory is claimed.
