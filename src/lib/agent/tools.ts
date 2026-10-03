@@ -30,8 +30,8 @@ export type ToolContext = {
   markMeetup: (messageId: string, option: string, changesetId: string) => Promise<void>;
   /** Options from find_meetup this run, by handle, for apply_meetup. */
   meetups: Map<string, MeetupOption>;
-  /** True once the run is out of time: the next reply may have started, so the trip mustn't change any more. */
-  expired: () => boolean;
+  /** When the run's turn ends: past it the next reply may have started, so the trip mustn't change any more. */
+  until: number;
 };
 
 const placeRef = z
@@ -176,10 +176,10 @@ export function agentTools(ctx: ToolContext) {
         "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, set what a stay costs a night, when someone leaves, and when the trip ends. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
       inputSchema: z.object({ ops: z.array(editOp).min(1) }),
       execute: async ({ ops }) => {
-        if (ctx.expired()) return OUT_OF_TIME;
+        if (Date.now() > ctx.until) return OUT_OF_TIME;
         ctx.activity("editing the trip");
         const { plan, handles } = await ctx.load();
-        const result = await editPlan(ctx.roomId, plan, handles, ops as EditOp[], ctx.agentId);
+        const result = await editPlan(ctx.roomId, plan, handles, ops as EditOp[], ctx.agentId, ctx.until);
         if (result.changesetId) {
           await ctx.addCard({ type: "changes", changesetId: result.changesetId, lines: result.applied, undone: false });
         }
@@ -260,7 +260,7 @@ export function agentTools(ctx: ToolContext) {
         "Adds a find_meetup option to the trip: one leg per group to the meeting city, with that group's members as riders. Only when someone asked you to go ahead, or picked an option.",
       inputSchema: z.object({ option: z.string().describe("P1, P2 or P3 from the latest meet-up card in the thread") }),
       execute: async ({ option }) => {
-        if (ctx.expired()) return OUT_OF_TIME;
+        if (Date.now() > ctx.until) return OUT_OF_TIME;
         const { plan, handles } = await ctx.load();
         // the latest meet-up card with this option, from this run or an earlier one: no need to search again
         const message = [...(plan.thread ?? [])].reverse().find((m) => m.cards.some((c) => c.type === "meetup" && c.options.some((o) => o.id === option)));
@@ -268,7 +268,7 @@ export function agentTools(ctx: ToolContext) {
         const o = card?.options.find((x) => x.id === option) ?? ctx.meetups.get(option);
         if (!o) return { refused: "UNKNOWN_HANDLE", reason: `No meet-up card has ${option}.`, next: "Call find_meetup first." };
         if (card?.applied && !card.undone) return { refused: "ALREADY_APPLIED", reason: `${card.applied} from that card is already on the trip.`, next: "Tell them; Undo on the card takes it off." };
-        const result = await editPlan(ctx.roomId, plan, handles, meetupOps(o, handles), ctx.agentId);
+        const result = await editPlan(ctx.roomId, plan, handles, meetupOps(o, handles), ctx.agentId, ctx.until);
         if (result.changesetId && message) await ctx.markMeetup(message.id, option, result.changesetId);
         return { applied: result.applied, refused: result.refused, note: "The meet-up card now shows it on the trip, with Undo." };
       },

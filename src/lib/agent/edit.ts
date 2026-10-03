@@ -36,7 +36,7 @@ type Before = {
   ends?: { value: string | null };
 };
 
-export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE"; reason: string; next: string };
+export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE" | "OUT_OF_TIME"; reason: string; next: string };
 
 export type EditResult = { applied: string[]; refused: Refusal[]; changesetId: string | null };
 
@@ -62,8 +62,11 @@ export function resolvePlace(text: string): { stop: Stop } | { refusal: Omit<Ref
 
 type LegJson = NonNullable<PlanJson["legs"]>[string];
 
-/** Applies ops for the agent as one changeset, then starts the searches they need. */
-export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: EditOp[], agentId: string): Promise<EditResult> {
+/**
+ * Applies ops for the agent as one changeset, then starts the searches they need. A run passes `until`, when its
+ * turn ends: past it the write changes nothing, since the next reply may have started editing.
+ */
+export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: EditOp[], agentId: string, until?: number): Promise<EditResult> {
   const refused: Refusal[] = [];
   const applied: string[] = [];
   const before: Before = { legs: {}, stops: {} };
@@ -79,9 +82,9 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   };
   // Resolve everything before writing, so a refusal never leaves half an op behind.
   type Planned =
-    | { kind: "add"; from: string | Stop; to: string | Stop; date: string; riders: string[] }
+    | { kind: "add"; op: number; from: string | Stop; to: string | Stop; date: string; riders: string[] }
     | { kind: "date"; leg: string; date: string }
-    | { kind: "riders"; leg: string; riders: string[] }
+    | { kind: "riders"; op: number; leg: string; riders: string[] }
     | { kind: "remove"; leg: string }
     | { kind: "stay"; stop: string; stay: Stay | null }
     | { kind: "leaves"; member: string; date: string | null }
@@ -116,7 +119,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         const from = ref(op.from);
         const to = ref(op.to);
         const who = riders(op.riders);
-        if (from && to && who) planned.push({ kind: "add", from, to, date: op.date, riders: who });
+        if (from && to && who) planned.push({ kind: "add", op: i, from, to, date: op.date, riders: who });
         return;
       }
       case "set_date": {
@@ -129,7 +132,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         const leg = legId(op.leg);
         const who = riders(op.riders);
         if (!leg) return unknown(op.leg);
-        if (who) planned.push({ kind: "riders", leg, riders: who });
+        if (who) planned.push({ kind: "riders", op: i, leg, riders: who });
         return;
       }
       case "remove_leg": {
@@ -164,8 +167,13 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   if (!planned.length) return { applied, refused, changesetId: null };
   const changesetId = newId();
   const created: Record<string, Stop> = {};
+  let late = false;
 
   await liveblocks().mutateStorage(roomId, ({ root }) => {
+    // checked against what's stored as it's written, not the run's snapshot
+    if (until !== undefined && Date.now() > until) return void (late = true);
+    const members = root.get("members");
+    const gone = (riders: string[]) => riders.filter((r) => !members.get(r)).map((r) => h.member.get(r) ?? r);
     const stops = root.get("stops");
     const legs = root.get("legs");
     const stopName = (id: string) => created[id]?.name ?? stops.get(id)?.get("name") ?? plan.stops?.[id]?.name ?? "?";
@@ -215,7 +223,7 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         continue;
       }
       if (p.kind === "leaves") {
-        const m = root.get("members").get(p.member);
+        const m = members.get(p.member);
         if (!m) continue;
         before.leaves ??= {};
         if (!(p.member in before.leaves)) before.leaves[p.member] = { value: m.get("leaves") ?? null };
@@ -229,6 +237,14 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         root.set("ends", p.date);
         applied.push(p.date ? `Trip ends the morning of ${showDate(p.date)}` : "Trip ends after its last leg");
         continue;
+      }
+      if (p.kind === "add" || p.kind === "riders") {
+        // someone left the trip since the snapshot
+        const left = gone(p.riders);
+        if (left.length) {
+          refused.push({ op: p.op, code: "UNKNOWN_HANDLE", reason: `${left.join(", ")} isn't in the trip any more.`, next: "Call get_trip and use its handles." });
+          continue;
+        }
       }
       if (p.kind === "add") {
         const id = newId();
@@ -284,14 +300,19 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       stops.delete(stop);
     }
 
+    if (!applied.length) return;
     const changesets = root.get("changesets");
     if (changesets) changesets.set(changesetId, JSON.stringify(before));
     else root.set("changesets", new LiveMap([[changesetId, JSON.stringify(before)]]));
   });
 
+  if (late) {
+    const reason = "I ran out of time before making that change.";
+    return { applied: [], refused: ops.map((_, op) => ({ op, code: "OUT_OF_TIME" as const, reason, next: "Say nothing changed and ask them to send it again." })), changesetId: null };
+  }
   // searches run after the write lands, like a member's own edits; they finish on their own
   await Promise.all(searches.map((s) => runLegSearch(roomId, s.legId, s.searchId)));
-  return { applied, refused, changesetId };
+  return { applied, refused, changesetId: applied.length ? changesetId : null };
 }
 
 /** Puts back what one changeset changed. Edits people made since to the same legs are overwritten. */

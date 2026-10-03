@@ -111,6 +111,13 @@ const USD: Record<string, number> = {
 };
 const toUsd = (p: Money | null) => (p && USD[p.currency.toUpperCase()] !== undefined ? p.amount * USD[p.currency.toUpperCase()] : null);
 
+/** What an option costs everyone, in USD, or null when a leg has no price to compare. */
+export function meetupTotal(legs: readonly MeetupLeg[]): Money | null {
+  const usd = legs.map((leg) => toUsd(leg.price));
+  if (usd.some((u) => u === null)) return null;
+  return { amount: Math.round(usd.reduce((sum: number, u, j) => sum + u! * legs[j].people, 0)), currency: "USD" };
+}
+
 const durationOf = (o: Offer) => {
   const first = o.segments[0];
   const last = o.segments[o.segments.length - 1];
@@ -175,15 +182,12 @@ export async function findMeetup(q: MeetupQuery, search: Search, all?: readonly 
     .sort((a, b) => finalScore(a.legs) - finalScore(b.legs))
     .slice(0, VERIFY)
     .map(({ city, legs }, i): MeetupOption => {
-      const usd = legs.map((leg) => toUsd(leg.price));
       return {
         id: `P${i + 1}`,
         place: { name: city.name, code: city.code, lat: city.lat, lng: city.lng, hub: city.hub },
         date: q.date,
         legs,
-        total: usd.every((u) => u !== null)
-          ? { amount: Math.round(usd.reduce((s, u, j) => s! + u! * legs[j].people, 0)!), currency: "USD" }
-          : null,
+        total: meetupTotal(legs),
         estimated: legs.filter((leg) => leg.kind === "estimated").length,
       };
     });

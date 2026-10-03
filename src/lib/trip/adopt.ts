@@ -2,6 +2,8 @@ import "server-only";
 
 import { LiveObject } from "@liveblocks/node";
 
+import { meetupTotal } from "@/lib/agent/meetup";
+import type { PlanJson } from "@/lib/agent/snapshot";
 import { forgetGuest, readGuest } from "@/lib/guest";
 import { liveblocks } from "@/lib/liveblocks/server";
 
@@ -72,14 +74,16 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
     if (!cards.some((c) => c.type === "meetup" && c.options.some((o) => o.legs.some((l) => l.members.includes(guestId))))) continue;
     message.set("cards", cards.map((c) => c.type !== "meetup" ? c : {
       ...c,
-      options: c.options.map((o) => ({
-        ...o,
-        legs: o.legs.map((l) => {
+      options: c.options.map((o) => {
+        if (!o.legs.some((l) => l.members.includes(guestId))) return o;
+        const legs = o.legs.map((l) => {
           if (!l.members.includes(guestId)) return l;
           const members = swapIn(l.members, guestId, accountId);
           return { ...l, members, people: Math.max(1, l.people - (l.members.length - members.length)) };
-        }),
-      })),
+        });
+        // a head count that dropped changes what it costs everyone; the card keeps its order
+        return { ...o, legs, total: meetupTotal(legs) };
+      }),
     }));
   }
 
@@ -90,6 +94,12 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
   }
 }
 
+/** Whether a trip's stored plan still has the guest in it, as a member or a rider. */
+const guestIn = (plan: PlanJson, guestId: string) =>
+  !!plan.members?.[guestId] || Object.values(plan.legs ?? {}).some((l) => l.riders.includes(guestId));
+
+const membersOf = (raw: unknown) => (Array.isArray(raw) ? (raw as string[]) : typeof raw === "string" ? [raw] : []);
+
 /**
  * Hands every trip a guest joined to an account: room access, member list, riders, votes, legs they drew and their
  * messages. False if Liveblocks failed partway; running it again finishes the job.
@@ -97,24 +107,32 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
 export async function adoptTrips(guestId: string, accountId: string): Promise<boolean> {
   try {
     const lb = liveblocks();
-    for await (const room of lb.iterRooms({ userId: guestId })) {
-      if (!room.id.startsWith("trip:")) continue;
+    for await (const { id } of lb.iterRooms({ userId: guestId })) {
+      if (!id.startsWith("trip:")) continue;
       // Storage first, then access: the guest keeps access until their things have moved, so a failure in between
       // leaves this room where the next try finds it. Moving the Storage again does nothing new.
-      await lb.mutateStorage(room.id, ({ root }) => {
+      await lb.mutateStorage(id, ({ root }) => {
         if (root.get("members")) adoptInStorage(root, guestId, accountId);
       });
-      const raw = room.metadata.members;
-      const members = Array.isArray(raw) ? raw : raw ? [raw] : [];
-      // the account takes the guest's place in join order, so it keeps the guest's colour
-      await lb.updateRoom(room.id, {
-        usersAccesses: { [accountId]: ["room:write"], [guestId]: null },
-        metadata: {
-          members: [...new Set(members.map((m) => (m === guestId ? accountId : m)))],
-          // a trip passed on to the guest (trips/leave.ts) stays theirs
-          ...(room.metadata.owner === guestId ? { owner: accountId } : {}),
-        },
-      });
+      // mutateStorage resolves even when its write fails (@liveblocks/node 3.24), so check it landed
+      if (guestIn((await lb.getStorageDocument(id, "json")) as PlanJson, guestId)) throw new Error(`${id}: Storage didn't move`);
+      // The member list is read just before it's written, and checked after: someone joining, leaving or signing in
+      // at the same moment writes the whole list too, and Liveblocks keeps whichever lands last.
+      for (let tries = 0; ; tries++) {
+        const room = await lb.getRoom(id);
+        const members = membersOf(room.metadata.members);
+        if (!members.includes(guestId) && room.usersAccesses[guestId] === undefined) break;
+        if (tries === 3) throw new Error(`${id}: members kept changing`);
+        // the account takes the guest's place in join order, so it keeps the guest's colour
+        await lb.updateRoom(id, {
+          usersAccesses: { [accountId]: ["room:write"], [guestId]: null },
+          metadata: {
+            members: [...new Set(members.map((m) => (m === guestId ? accountId : m)))],
+            // a trip passed on to the guest (trips/leave.ts) stays theirs
+            ...(room.metadata.owner === guestId ? { owner: accountId } : {}),
+          },
+        });
+      }
     }
     return true;
   } catch (error) {

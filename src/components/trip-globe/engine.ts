@@ -170,6 +170,9 @@ interface Plane {
 
 const parked = (v: Vehicle): Pick<Plane, "vehicle" | "next" | "swap"> => ({ vehicle: v, next: v, swap: 0 });
 
+/** Vehicles parked at one stop, and where each goes round it (fanParked); null keeps one on the stop. */
+type ParkedGroup = { n: Vec3; e1: Vec3; e2: Vec3; pls: Plane[]; spots: (Vec3 | null)[]; own: boolean | null; spread: number };
+
 /** How high a vehicle flies, as a share of the plane's height: ground vehicles skim along low. */
 const lift = (pl: Plane) => (pl.next === "flight" ? 1 : GROUND_LIFT);
 
@@ -403,8 +406,13 @@ export class GlobeEngine {
   }>();
 
   // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
-  /** Parked vehicles grouped by stop (groupParked), so fanning them out doesn't regroup every frame. */
-  private parked: { n: Vec3; e1: Vec3; e2: Vec3; pls: Plane[] }[] = [];
+  /**
+   * Parked vehicles grouped by stop (groupParked), so fanning them out doesn't regroup every frame; each group keeps
+   * where its vehicles go until ours lands or leaves there, or vehicles change size.
+   */
+  private parked: ParkedGroup[] = [];
+  /** The landed flights `parked` was grouped from, so presence that only moves cursors doesn't regroup. */
+  private parkedKey = "";
   /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
   private tagBoxes: { text: string; at: { x: number; y: number }; l: number; t: number; r: number; b: number }[] = [];
   /** A place searched for: marked on the ground with its name until the next click on the globe. */
@@ -673,7 +681,8 @@ export class GlobeEngine {
       const stops = [...this.via.map((s) => s.v), origin, pl.n];
       for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? pl.alt : 0]);
     }
-    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.pl.n, 0]);
+    // landed routes end at the stop, as drawn, not at a vehicle fanned out beside it
+    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.target, 0]);
     for (const [from, to, alt] of legs) {
       for (const lift of [1, 0]) {
         const pts = this.arc(from, to, lift, lift ? alt : 0, this.hitArc);
@@ -1720,29 +1729,40 @@ export class GlobeEngine {
     const ownAt = this.mode === "landed" && this.pl ? this.pl.n : null;
     const spread = S_PLANE * this.planeScale * 0.9;
     for (const g of this.parked) {
-      // with no plane of ours there, the first keeps the stop and the rest ring it
       const own = !!ownAt && angle(ownAt, g.n) < PARK_SAME;
-      const ring = own ? g.pls.length : g.pls.length - 1;
-      if (ring < 1) continue;
+      if (own !== g.own || spread !== g.spread) {
+        // with no plane of ours there, the first keeps the stop and the rest ring it
+        const ring = own ? g.pls.length : g.pls.length - 1;
+        g.spots = g.pls.map((_, i) => {
+          const slot = own ? i : i - 1;
+          if (slot < 0 || ring < 1) return null;
+          const a = (2 * Math.PI * slot) / ring - Math.PI / 2;
+          return norm(add(g.n, add(mul(g.e1, Math.cos(a) * spread), mul(g.e2, Math.sin(a) * spread))));
+        });
+        g.own = own;
+        g.spread = spread;
+      }
+      // the sim moved them back onto their tracks this frame
       g.pls.forEach((pl, i) => {
-        const slot = own ? i : i - 1;
-        if (slot < 0) return;
-        const a = (2 * Math.PI * slot) / ring - Math.PI / 2;
-        pl.n = norm(add(g.n, add(mul(g.e1, Math.cos(a) * spread), mul(g.e2, Math.sin(a) * spread))));
+        const at = g.spots[i];
+        if (at) pl.n = at;
       });
     }
   }
 
   /** Parked vehicles grouped by the stop they share, in a stable order, for fanParked. */
   private groupParked() {
-    const groups: { n: Vec3; e1: Vec3; e2: Vec3; pls: Plane[] }[] = [];
-    for (const [, r] of [...this.remotes].sort(([a], [b]) => (a < b ? -1 : 1))) {
-      if (!r.landed) continue;
+    const landed = [...this.remotes].filter(([, r]) => r.landed).sort(([a], [b]) => (a < b ? -1 : 1));
+    const key = landed.map(([id, r]) => `${id}@${r.target.join()}`).join(";");
+    if (key === this.parkedKey) return;
+    this.parkedKey = key;
+    const groups: ParkedGroup[] = [];
+    for (const [, r] of landed) {
       const g = groups.find((x) => angle(x.n, r.target) < PARK_SAME);
       if (g) g.pls.push(r.pl);
       else {
         const e1 = tangent([0, 1, 0], r.target);
-        groups.push({ n: r.target, e1, e2: cross(r.target, e1), pls: [r.pl] });
+        groups.push({ n: r.target, e1, e2: cross(r.target, e1), pls: [r.pl], spots: [], own: null, spread: 0 });
       }
     }
     // a lone vehicle only matters if ours lands beside it, which fanParked checks each frame

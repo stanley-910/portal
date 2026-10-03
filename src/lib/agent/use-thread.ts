@@ -1,8 +1,9 @@
 "use client";
 
 import { shallow, useEventListener, useOthers, useRoom, useStorage } from "@liveblocks/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { abandoned, LOST_REPLY, QUEUE_BEAT_MS, QUEUED_STALE_MS, waiting } from "@/lib/agent/queue";
 import { AGENT_ID, type ThreadMessage } from "@/lib/agent/types";
 
 // The trip's thread as the chat panel reads it. Messages live in Storage; Pip's text streams by broadcast
@@ -16,9 +17,22 @@ export function useThread(): ThreadMessage[] {
     if (event.type !== "agent-text") return;
     setStreamed((s) => ((s[event.messageId]?.seq ?? -1) >= event.seq ? s : { ...s, [event.messageId]: { seq: event.seq, text: event.text } }));
   });
+  // a reply whose request died reads as failed, even if no later message comes along to mark it; judged a beat
+  // late, as this clock may not agree with the server's
+  const [now, setNow] = useState(() => Date.now());
+  const pending = thread?.some(waiting) ?? false;
+  useEffect(() => {
+    if (!pending) return;
+    const id = setInterval(() => setNow(Date.now()), QUEUE_BEAT_MS);
+    return () => clearInterval(id);
+  }, [pending]);
   return useMemo(
-    () => (thread ?? []).map((m) => (m.state === "streaming" && streamed[m.id] ? { ...m, text: streamed[m.id].text } : m)),
-    [thread, streamed],
+    () =>
+      (thread ?? []).map((m): ThreadMessage => {
+        if (waiting(m) && abandoned(m, now - QUEUED_STALE_MS)) return { ...m, text: m.text || LOST_REPLY, state: "failed" };
+        return m.state === "streaming" && streamed[m.id] ? { ...m, text: streamed[m.id].text } : m;
+      }),
+    [thread, streamed, now],
   );
 }
 
