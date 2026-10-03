@@ -13,15 +13,15 @@ const base = (riders: string[]) => ({ leg: "L1", riders, date: "2026-10-20", fro
 describe("routeOps", () => {
   it("replaces the leg when everyone takes the route", () => {
     expect(routeOps(base(["M1"]), via)).toEqual([
-      { op: "remove_leg", leg: "L1" },
       { op: "add_leg", from: { stop: "S1" }, to: via, date: "2026-10-20", riders: ["M1"], createdAt: 5.1 },
       { op: "add_leg", from: via, to: { stop: "S2" }, date: "2026-10-20", riders: ["M1"], createdAt: 5.2 },
+      { op: "remove_leg", leg: "L1" },
     ]);
   });
 
   it("leaves the others on the original leg", () => {
     const ops = routeOps(base(["M1", "M2"]), via, ["M2"]);
-    expect(Array.isArray(ops) && ops[0]).toEqual({ op: "set_riders", leg: "L1", riders: ["M1"] });
+    expect(Array.isArray(ops) && ops[2]).toEqual({ op: "set_riders", leg: "L1", riders: ["M1"] });
   });
 
   it("refuses riders who aren't on the leg", () => {

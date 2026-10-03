@@ -48,6 +48,14 @@ describe("composeRoutes", () => {
     }
   });
 
+  it("doesn't treat a provider's spelled-out country as another country", async () => {
+    const named = async (q: SearchQuery) => (await search(q)).map((o) => ({
+      ...o, segments: o.segments.map((s) => ({ ...s, from: { ...s.from, country: s.from.country === "HK" ? "Hong Kong" : s.from.country } })),
+    }));
+    const out = await composeRoutes(input, named);
+    expect(out.baseline?.parts[0].from.name).toBe("Hong Kong West Kowloon");
+  });
+
   it("never lists the baseline's service again as an alternative", async () => {
     const twice = async (q: SearchQuery) => { const o = await search(q); return [...o, ...o.map((x) => ({ ...x, id: `${x.id}:again` }))] };
     const out = await composeRoutes(input, twice);

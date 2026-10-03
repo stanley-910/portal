@@ -570,9 +570,10 @@ export function routeOps(
   const strangers = moving.filter((m) => !onLeg.includes(m));
   if (strangers.length) return { refused: "NOT_ON_LEG", reason: `${strangers.join(", ")} isn't on ${leg}.`, next: "Use the leg's own riders." };
   const staying = onLeg.filter((m) => !moving.includes(m));
+  // the new legs go first: should a write only half land, the trip has a leg too many, not one too few
   return [
-    staying.length ? { op: "set_riders", leg, riders: staying } : { op: "remove_leg", leg },
     { op: "add_leg", from: { stop: from }, to: via, date, riders: moving, createdAt: createdAt + 0.1 },
     { op: "add_leg", from: via, to: { stop: to }, date, riders: moving, createdAt: createdAt + 0.2 },
+    staying.length ? { op: "set_riders", leg, riders: staying } : { op: "remove_leg", leg },
   ];
 }

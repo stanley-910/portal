@@ -53,16 +53,34 @@ async function ask(text: string, trip: SoloLeg[] = []): Promise<Run> {
   return run;
 }
 
-/** Amounts of money in the reply that neither a tool nor the person gave: the model working out a fare itself. */
+const CURRENCY: Record<string, string> = {
+  "¥": "CNY", rmb: "CNY", yuan: "CNY", cny: "CNY", "hk$": "HKD", hkd: "HKD", "$": "USD", "us$": "USD", usd: "USD",
+  krw: "KRW", "₩": "KRW", jpy: "JPY",
+};
+const SYMBOL = String.raw`(¥|HK\$|US\$|\$|₩|CNY|HKD|USD|KRW|JPY|RMB)`;
+const AMOUNT = String.raw`(\d[\d,]*(?:\.\d+)?)`;
+
+/** "CNY 878.5"-style pairs: currency before or after the amount, or a {amount, currency} object. */
+function moneyIn(text: string): string[] {
+  const out: string[] = [];
+  const add = (cur: string, n: string) => out.push(`${CURRENCY[cur.toLowerCase()] ?? cur.toUpperCase()} ${Number(n.replace(/,/g, ""))}`);
+  for (const m of text.matchAll(new RegExp(`${SYMBOL}\\s?${AMOUNT}`, "gi"))) add(m[1], m[2]);
+  for (const m of text.matchAll(new RegExp(`${AMOUNT}\\s?(yuan|CNY|HKD|USD|RMB|KRW)\\b`, "gi"))) add(m[2], m[1]);
+  for (const m of text.matchAll(/"amount":\s*([\d.]+),\s*"currency":\s*"([A-Z]{3})"/g)) add(m[2], m[1]);
+  return out;
+}
+
+/**
+ * Money in the reply that neither a tool's result nor the person gave, compared as currency and amount together
+ * (rounded either way): the model working out a fare itself.
+ */
 function unsourcedMoney(run: Run): string[] {
-  const sources = JSON.stringify([run.asked, ...run.calls.map((c) => [c.input, c.output])]);
-  const amounts = [...run.text.matchAll(/(?:¥|HK\$|US\$|\$|CNY|HKD|USD|RMB)\s?(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)\s?(?:yuan|CNY|HKD|USD|RMB)/gi)]
-    .map((m) => (m[1] ?? m[2]).replace(/,/g, ""));
-  return amounts.filter((a) => {
-    const n = Number(a);
-    // a saving or total can be quoted rounded
-    return !sources.includes(a) && !sources.includes(String(Math.round(n))) && !sources.includes(n.toFixed(1));
-  });
+  const given = new Set<string>();
+  for (const pair of [...moneyIn(run.asked), ...run.calls.flatMap((c) => moneyIn(JSON.stringify(c.output ?? "")))]) {
+    const [cur, n] = pair.split(" ");
+    given.add(`${cur} ${Number(n)}`).add(`${cur} ${Math.round(Number(n))}`);
+  }
+  return moneyIn(run.text).filter((pair) => !given.has(pair));
 }
 
 const tools = (run: Run) => run.calls.map((c) => c.tool);
@@ -137,7 +155,9 @@ describe.runIf(live)("Pip on the home globe", () => {
   it("declines sightseeing without searching", async () => {
     const run = await ask("What sights should I see in Shanghai?");
     record("Out of scope", run);
+    expect(run.failed).toBe(false);
     expect(tools(run)).toEqual([]);
+    expect(run.text).toMatch(/not (my|something)|outside|don't do|aren't my|isn't my/i);
     expect(run.ms).toBeLessThan(20_000);
   });
 

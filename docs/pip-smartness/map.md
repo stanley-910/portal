@@ -72,13 +72,13 @@ Blocked by: T4.
 called (`find_meetup`, `optimize_leg`/`optimize_route`, `search_routes`, `search_nearby_trains`).
 Blocked by: T5.
 
-### T7 · Fewer Storage round-trips — `review`
+### T7 · Fewer Storage round-trips — `done`
 
 Tools reuse a loaded plan within a run until a write invalidates it, instead of a full
 `getStorageDocument` per tool call. The saucer animation waits stay; they are deliberate UX.
 Blocked by: none.
 
-### T8 · Pip eval suite — `review`
+### T8 · Pip eval suite — `done`
 
 A script that runs scripted scenarios against solo Pip with the real model and checks the tools it
 called, its plan, the numbers it quoted against tool output, and latency. The canonical Hong Kong →
@@ -94,9 +94,9 @@ Shanghai case is scenario one. Blocked by: T5, T6.
 ## Decisions so far
 
 - T1 — China rail seed trains carry published second-class fares (the low end of a sourced range; unsourced ones stay
-  unpriced). Shenzhen North, Futian and Guangzhou South connect to Shanghai Hongqiao. `china-rail` looks at most 60 km
-  from a point, so a Hong Kong leg no longer lists Guangzhou trains. Stored train, bus and ferry offers keep their
-  stations (`departs`/`arrives`), shown on the leg card and to Pip.
+  unpriced). Shenzhen North, Futian and Guangzhou South connect to Shanghai Hongqiao. A Hong Kong leg can list trains
+  from those stations (nearby-city matching is deliberate and nearby rail relies on it), so stored train, bus and
+  ferry offers now keep their stations (`departs`/`arrives`), shown on the leg card and to Pip.
 - T2 — `cross-border` models Hong Kong (anywhere within 30 km of Admiralty, airport included) ↔ Shenzhen North by MTR,
   Lo Wu and Shenzhen Metro: estimated HK$58, 105 min, two changes.
 - T3 — `searchTransport` caches 5 min (30 s with provider errors), shares in-flight searches, copies results per caller
@@ -106,12 +106,16 @@ Shanghai case is scenario one. Blocked by: T5, T6.
   Sandbox inventory and unscheduled estimates are never used. Waits are capped at 3 h. Arrival targets without an
   offset are local wall-clock time at the destination.
 - T5 — Room: `optimize_leg` (`arrive_with` another leg) and `apply_route`, which splits a leg all-or-nothing
-  (`editPlan(..., atomic)`) and keeps its place among the day's legs. Home globe: `optimize_route`, applied with
+  (`editPlan(..., atomic)`: checks every add, remove and rider change against Storage before writing; date moves
+  aren't allowed in it) and keeps its place among the day's legs. New legs are written before the old one goes, so
+  a write that only half lands leaves a leg too many (undoable), never one too few. Home globe: `optimize_route`, applied with
   `plan_trip`. The plan context names each member's start and each leg's cheapest fare.
 - T6 — Reasoning effort is per step (`src/lib/agent/effort.ts`): low until a planning tool returns, then high.
-- T7 — Room tools reading together share one Storage read for 2 s; tools that change the trip read fresh.
+- T7 — Room tools reading together share one Storage read for 2 s; once a tool reads to change the trip, every read
+  after it in the run is fresh.
 - T8 — `pnpm eval:pip` runs six scripted home-globe conversations against the real model and search, and writes
-  `docs/pip-smartness/eval-results.md`. All six pass (2026-10-04).
+  `docs/pip-smartness/eval-results.md`. Quoted money must match a tool result or the person by currency and amount.
+  All six pass (2026-10-04).
 
 ## Not yet specified
 
@@ -122,6 +126,12 @@ Shanghai case is scenario one. Blocked by: T5, T6.
   isn't found.
 - Getting to the first station and from the last: totals and times cover the services listed, and say so.
 - Room-trip evals: the suite drives home-globe Pip only; a room needs Liveblocks.
+- `liveblocks.mutateStorage` isn't a transaction: a long mutation can be sent in more than one batch. True atomicity
+  would need a single-op representation of a leg split.
+- Seed accuracy: research found G902 and G386 start in Shenzhen, but the older seed lists them from West Kowloon.
+  Check the West Kowloon long-haul timetable before the demo.
+- Country inference near a border is "unknown" (no point-in-polygon lookup on the server), so a click right by the
+  Hong Kong–Shenzhen border can treat Shenzhen North as local.
 - More connectors (Macau, Zhuhai, Lok Ma Chau Spur Line to Futian) and more corridors with sourced fares.
 
 ## Out of scope

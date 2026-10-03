@@ -62,6 +62,16 @@ describe("editPlan", () => {
     expect(JSON.stringify(json())).toBe(before);
   });
 
+  it("won't move dates as part of an all-or-nothing edit", async () => {
+    const before = JSON.stringify(json());
+    const result = await editPlan("room", plan, handlesFor(plan), [
+      { op: "remove_leg", leg: "L3" },
+      { op: "set_date", leg: "L1", date: "2026-10-06" },
+    ], "agent:pip", undefined, undefined, true);
+    expect(result.changesetId).toBeNull();
+    expect(JSON.stringify(json())).toBe(before);
+  });
+
   it("puts split legs where the old one was among the day's legs", async () => {
     const h = handlesFor(plan);
     await editPlan("room", plan, h, [

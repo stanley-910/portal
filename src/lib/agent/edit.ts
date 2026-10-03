@@ -261,6 +261,13 @@ export async function editPlan(
     }
   });
 
+  // all-or-nothing covers adding, removing and re-riding legs; a date move can cascade into refusals found only as
+  // it's written, so it isn't offered
+  if (atomic) planned.forEach((p) => {
+    if (p.kind !== "add" && p.kind !== "remove" && p.kind !== "riders") {
+      refused.push({ op: "op" in p ? p.op : -1, code: "BAD_DATE", reason: "That change can't be made all at once.", next: "Make it with edit_plan." });
+    }
+  });
   if (!planned.length || (atomic && refused.length)) return { applied, refused, changesetId: null, marks };
   const changesetId = changeset.id;
   const created: Record<string, Stop> = {};

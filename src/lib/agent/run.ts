@@ -258,11 +258,13 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
       held = handlesFor(plan, held);
       return { plan, handles: held };
     };
-    // Reads in the same moment (tools called together in one step) share one fetch. A tool about to change the trip
-    // reads fresh and drops the shared copy, so nothing after a change sees the trip from before it.
+    // Reads in the same moment (tools called together in one step) share one fetch. Once a tool reads to change the
+    // trip, every read after is fresh, so nothing after a change can see the trip from before it.
     let shared: { at: number; value: ReturnType<typeof read> } | null = null;
+    let wrote = false;
     const load: ToolContext["load"] = (opts) => {
-      if (opts?.fresh) {
+      if (opts?.fresh || wrote) {
+        wrote = true;
         shared = null;
         return read();
       }

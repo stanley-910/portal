@@ -82,16 +82,24 @@ type Search = (q: SearchQuery) => Promise<Offer[]>;
 
 const km = (a: Place, b: Place) => distanceKm(a, b);
 
-/** A place's country: its own, else the nearest hub's within 60 km. */
+/**
+ * A place's ISO country: its own when it's a code, else the nearest hub's, but only when that's clear. Near a border
+ * (another country's hub nearly as close) it's unknown, and an unknown country never makes a station elsewhere.
+ * Providers sometimes name the country ("Vietnam"), which isn't comparable, so that counts as unknown too.
+ */
 function countryOf(p: Place): string | null {
-  if (p.country) return p.country.toUpperCase();
-  let best: string | null = null, bestKm = 60;
+  if (p.country && /^[A-Za-z]{2}$/.test(p.country)) return p.country.toUpperCase();
+  const near: { country: string; d: number }[] = [];
   for (const h of HUBS) {
-    if (Math.abs(h.lat - p.lat) > 1 || Math.abs(h.lng - p.lng) > 1) continue;
+    if (!h.country || Math.abs(h.lat - p.lat) > 1 || Math.abs(h.lng - p.lng) > 1) continue;
     const d = km(p, h);
-    if (d < bestKm && h.country) { best = h.country.toUpperCase(); bestKm = d; }
+    if (d <= 60) near.push({ country: h.country.toUpperCase(), d });
   }
-  return best;
+  near.sort((a, b) => a.d - b.d);
+  const [first] = near;
+  if (!first) return null;
+  const rival = near.find((n) => n.country !== first.country);
+  return rival && rival.d - first.d < 15 ? null : first.country;
 }
 
 /** Is `station` somewhere you'd leave from when you asked to leave from `origin`? */

@@ -11,9 +11,6 @@ const MODES = ["train"] as const;
 // The globe snaps to airports, while China Rail stations are often outside the
 // airport's city-centre radius (PVG → Shanghai Hongqiao is about 45 km).
 const MIN_MATCH_KM = 60;
-// And never further: a station past this is another city's (Guangzhou South is about 80 km from Hong Kong airport),
-// and a leg listing its trains reads as if they left from here. Pip's route optimizer offers those as connections.
-const MAX_MATCH_KM = 60;
 // Both zones are fixed UTC+8, no DST.
 const OFFSET = { "Asia/Shanghai": "+08:00", "Asia/Hong_Kong": "+08:00" } as const;
 
@@ -32,7 +29,7 @@ function at(date: string, hhmm: string, offset: string, plusMin = 0): string {
 
 export function createChinaRailProvider(seed: Seed): TransportProvider {
   const trainsFor = (q: SearchQuery): SeedTrain[] => {
-    const radiusKm = Math.min(matchRadiusKm(q.from, q.to, MIN_MATCH_KM), MAX_MATCH_KM);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
     const from = stationsNear(seed, q.from.lat, q.from.lng, radiusKm);
     const to = stationsNear(seed, q.to.lat, q.to.lng, radiusKm);
     const km = (a: Place, b: Place) => distanceKm(a.lat, a.lng, b.lat, b.lng);
