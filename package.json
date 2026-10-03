@@ -2,6 +2,7 @@
   "name": "portal",
   "version": "0.1.0",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
     "tokens": "node scripts/tokens.mts",
     "entry": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/entry-requirements.mts",
