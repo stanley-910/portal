@@ -111,14 +111,16 @@ function Identity({ name, email, account, reloadOnRename }: { name: string | nul
           <span>{name}</span>
           {email ? <span className="pn-menu-detail">{email}</span> : null}
         </span>
-        <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
-          Rename
-        </Button>
-        <form action={signOut}>
-          <Button type="submit" variant="quiet" className="pn-profile-edit">
-            Sign out
+        <div className="pn-profile-row">
+          <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+            Rename
           </Button>
-        </form>
+          <form action={signOut}>
+            <Button type="submit" variant="quiet" className="pn-profile-edit">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </div>
     );
   }
