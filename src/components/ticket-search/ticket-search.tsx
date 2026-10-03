@@ -9,6 +9,7 @@ import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelResult } from "@/lib/hotels/types";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { Mode, Offer } from "@/lib/transport/types";
+import { isBookable } from "@/lib/trip/offers";
 
 import { credits, formatPrice, rowPrice, rowsFor, TABS, visibleTabs, type Tab } from "./options";
 import { Glyph } from "./glyphs";
@@ -170,6 +171,12 @@ export interface TicketSearchProps {
   error?: string | null;
   /** The saved trip's page, once saved: a link under the button opens it. */
   savedHref?: string;
+  /**
+   * Book: shown on the last leg when its pick, or an earlier leg's (`canBook`), can be bought in the app. Pressing it
+   * saves through `onAdd` first unless the pick is already saved; `saved` says which.
+   */
+  onBook?: (saved: boolean) => void;
+  canBook?: boolean;
   /** Esc, with no date strip open. A click outside is the globe's own cancel. */
   onDismiss: () => void;
   /**
@@ -185,7 +192,7 @@ export interface TicketSearchProps {
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, addedId, saving = false, error, savedHref, onDismiss, step, collapsed = false, onCollapse, onExpand,
+  trip, globe, currency, rates, onAdd, addedId, saving = false, error, savedHref, onBook, canBook = false, onDismiss, step, collapsed = false, onCollapse, onExpand,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -424,6 +431,7 @@ export function TicketSearch({
                       {row.headline}
                       {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
                       {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                      {isBookable(row.offer) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
                     </span>
                     <span className="ts-price" data-none={price === null || undefined}>
                       {price === undefined ? <span className="ts-ghost ts-ghost-price" /> : price === null ? "No fare" : formatPrice(price, currency)}
@@ -474,6 +482,21 @@ export function TicketSearch({
                         ? SAVE_LABEL[choice.offer.mode]
                         : "Save trip"}
           </Button>
+          {onBook && !next && (canBook || (choice && isBookable(choice.offer))) ? (
+            <Button
+              variant="secondary"
+              block
+              className="ts-save"
+              disabled={saving || (!choice && !hotel)}
+              onClick={() => {
+                const saved = !!choice && choice.offer.id === addedId;
+                if (!saved) onAdd({ offer: choice?.offer ?? null, offers, depart, return: returnDate, stay: hotel ? stayFrom(hotel) : null });
+                onBook(saved);
+              }}
+            >
+              Book
+            </Button>
+          ) : null}
           {error && !saving ? (
             <p className="ts-empty" role="alert">
               {error}

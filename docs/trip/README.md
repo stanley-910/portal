@@ -9,6 +9,8 @@ The plan is flat maps keyed by id. Nothing is nested per member, so a leg severa
 - **members**: everyone who has joined, by account or guest id. Each has a name, a colour, and optionally `leaves`, the date they leave the trip.
 - **stops**: the exact points legs start and end at.
 - **legs**: a trip between two stops on a date. A leg has riders, the search's options, votes, and the chosen option.
+  It keeps up to 20 options in the search's order: the pick, each provider's best three, then the rest by rank, so
+  one provider's dozens of fares can't push out the trains or the bookable flights.
 - **stays**: stop id → what lodging there costs the group per night, typed in by a member or Pip. Saving a trip from the globe can also carry the hotel picked in its Hotels tab; that price is an estimate and is marked so until someone gives a real one.
 - **ends**: the date the trip ends, the morning after its last night. Optional.
 

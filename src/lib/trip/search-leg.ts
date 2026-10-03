@@ -3,7 +3,7 @@ import "server-only";
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegSearch } from "@/lib/liveblocks/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
-import { MAX_OFFERS, toStoredOffer } from "@/lib/trip/offers";
+import { keepOffers, toStoredOffer } from "@/lib/trip/offers";
 import { stopToPlace } from "@/lib/trip/stops";
 
 /**
@@ -29,7 +29,7 @@ export async function runLegSearch(roomId: string, legId: string, searchId: stri
       passengers: 1,
       currency: "USD",
     }, new AbortController().signal);
-    search = { id: searchId, status: "done", offers: result.offers.slice(0, MAX_OFFERS).map(toStoredOffer) };
+    search = { id: searchId, status: "done", offers: keepOffers(result.offers).map(toStoredOffer) };
   } catch {
     search = { id: searchId, status: "failed", offers: [] };
   }

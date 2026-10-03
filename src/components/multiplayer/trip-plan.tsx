@@ -11,6 +11,7 @@ import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
 import { useMySplit, usePlanActions, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
+import { isBookable, shownOffers } from "@/lib/trip/offers";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
@@ -38,7 +39,8 @@ const describe = (o: StoredOffer) =>
     .join(", ");
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
-export function TripPlan({ hostId, email = null, nationalities = [], onMinimise }: { hostId: string | null; email?: string | null; nationalities?: string[]; onMinimise?: () => void }) {
+/** `bookLeg` is a leg to open at its booking, as Book on the home globe asks. */
+export function TripPlan({ hostId, email = null, nationalities = [], bookLeg = null, onMinimise }: { hostId: string | null; email?: string | null; nationalities?: string[]; bookLeg?: string | null; onMinimise?: () => void }) {
   const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useMySplit();
@@ -77,14 +79,14 @@ export function TripPlan({ hostId, email = null, nationalities = [], onMinimise 
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
-          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} email={email} nationalities={nationalities} />
+          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} email={email} nationalities={nationalities} focusBooking={leg.id === bookLeg} />
         </Fragment>
       ))}
     </section>
   );
 }
 
-function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number; email: string | null; nationalities: string[] }) {
+function LegCard({ leg, stay, isHost, memberCount, email, nationalities, focusBooking = false }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number; email: string | null; nationalities: string[]; focusBooking?: boolean }) {
   const me = useSelf((s) => s.id);
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
   const locked = !!leg.booking;
@@ -94,7 +96,8 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
   const [editing, setEditing] = useState(false);
   const [pendingChoice, setPendingChoice] = useState(leg.chosen?.id ?? null);
   const [pendingHotel, setPendingHotel] = useState<HotelResult | null>(null);
-  const offers = leg.search.offers.slice(0, SHOWN);
+  // the pick shows even when it's further down the options
+  const offers = shownOffers(leg.search.offers, leg.chosen?.id, SHOWN);
 
   const changed = pendingChoice !== (leg.chosen?.id ?? null) || pendingHotel !== null;
   const commit = () => {
@@ -231,6 +234,7 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
                   {duration(o.durationMin)}
                   {chosen ? <span className="ts-badge">Picked</span> : null}
                   {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                  {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
                 </span>
                 <span className="ts-price" data-none={!price || undefined}>
                   {price ?? "No fare"}
@@ -255,7 +259,7 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
         })}
       </div>
 
-      <LegBooking leg={leg} email={email} nationalities={nationalities} />
+      <LegBooking leg={leg} email={email} nationalities={nationalities} focus={focusBooking} />
 
       {locked ? null : (
         <button type="button" className="ts-oneway tp-remove" onClick={() => removeLeg(leg.id)}>

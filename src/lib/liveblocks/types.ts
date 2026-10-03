@@ -75,6 +75,8 @@ export type StoredOffer = {
   stops: number;
   bookingUrl: string | null;
   attribution: string | null;
+  /** Each flight's number, airports and local departure, when the provider gave them all. Settling matches on these. */
+  flights?: { number: string; from: string; to: string; depart: string }[];
 };
 
 export type LegSearch = {

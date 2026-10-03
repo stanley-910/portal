@@ -7,6 +7,7 @@ import type { BookingSeat, LegBooking, Money } from "@/lib/liveblocks/types";
 import { cancelOrder, createOrder, findOfferFor, getOffer, getOrder, payOrder } from "./duffel";
 import { BookingError, isBookingError, type BookingErrorCode } from "./errors";
 import { offerExpired, perSeat, travellerSchema, type BookableOffer, type TravellerDetails } from "./offer";
+import { settleReady, storedFlights } from "./ready";
 import { allDetailsIn, allPaid, anyonePaid, bookingDeadline, openSeats, priceRose, splitShares } from "./shares";
 import { bookingStore, type PaymentRow } from "./store";
 import { cancelPayment, capturePayment, captureBefore, createHoldCheckout, getCheckoutSession, getPaymentIntent, stripeConfigured, testCheckoutAllowed } from "./stripe";
@@ -98,13 +99,15 @@ async function currentOffer(booking: LegBooking, seats: number): Promise<Bookabl
  */
 export async function settleLeg(roomId: string, legId: string, actor: Actor, accept?: Money): Promise<{ ok: true; mode: LegBooking["mode"] } | PriceChange | Failure> {
   try {
-    const { leg } = await readLeg(roomId, legId);
-    if (!leg) throw new BookingError("NOT_FOUND", "That leg is gone.");
-    if (leg.booking) throw new BookingError("WRONG_STATE", "This leg is already settled.");
-    if (!leg.riders.includes(actor.id)) throw new BookingError("NOT_ALLOWED", "Only a rider can settle a leg.");
-    const chosen = leg.search.offers.find((o) => o.id === leg.chosen);
-    if (!chosen || chosen.provider !== "duffel") throw new BookingError("WRONG_STATE", "Pick a live flight first.");
-    const original = await getOffer(chosen.id.replace(/^duffel:/, ""));
+    const ready = settleReady((await readLeg(roomId, legId)).leg, actor.id);
+    if (!ready.ok) throw ready.error;
+    const { leg, chosen, offerId } = ready;
+    // an offer Duffel has dropped is searched for again by the flights the leg kept
+    const like = storedFlights(chosen);
+    const original = await getOffer(offerId).catch((e) => {
+      if (like && isBookingError(e) && (e.code === "NOT_FOUND" || e.code === "OFFER_GONE")) return like;
+      throw e;
+    });
     const fresh = await findOfferFor(original, leg.riders.length);
     if (!fresh) throw new BookingError("OFFER_GONE");
     const now = perSeat(fresh);

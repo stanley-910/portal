@@ -16,17 +16,16 @@ import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useCursorPref } from "@/lib/cursor-pref";
 import type { Person } from "@/lib/identity";
 import type { Offer } from "@/lib/transport/types";
-import { MAX_OFFERS } from "@/lib/trip/offers";
+import { isBookable, keepOffers, MAX_OFFERS } from "@/lib/trip/offers";
 import { stopFromPoint } from "@/lib/trip/stops";
 
 import { createTrip } from "./t/actions";
 import { saveSoloTrip } from "./t/save-actions";
+import { useBookAfterSave } from "./use-book-after-save";
 
-/** The options saved with the leg: the search's own order, cut to what a room keeps, always including the pick. */
+/** The options saved with the leg: what a room keeps of the search, in its order, always including the pick. */
 function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
-  const kept = offers.slice(0, MAX_OFFERS);
-  if (!kept.some((o) => o.id === offer.id)) kept[kept.length ? kept.length - 1 : 0] = offer;
-  return kept;
+  return offers.some((o) => o.id === offer.id) ? keepOffers(offers, offer.id) : [offer, ...keepOffers(offers, null, MAX_OFFERS - 1)];
 }
 
 type LegPick = { offer: Offer | null; offers: Offer[]; depart: string; stay: PickedStay | null };
@@ -76,12 +75,18 @@ export function GlobeScreen({ person }: { person: Person | null }) {
 
   const account = person?.account ?? false;
   const openAuth = useOpenAuth();
+  // Book saves like Save trip, then opens the saved trip at the leg to settle
+  const book = useBookAfterSave(account);
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
       const result = await saveSoloTrip(input).catch(() => ({ error: "failed" as const }));
-      if ("error" in result) return setSaveFailed(true);
+      if ("error" in result) {
+        book.cancel();
+        return setSaveFailed(true);
+      }
       const legs = (input as { legs?: { chosen?: string | null }[] }).legs;
       setSaved({ id: result.id, offer: legs?.at(-1)?.chosen ?? null });
+      if (book.after(result, input)) return;
       // the trips list and anything else that shows them
       router.refresh();
     });
@@ -201,6 +206,8 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           setPendingAction({ type: "save", input });
           openAuth("signup");
         }}
+        onBook={book.request}
+        canBook={picks.slice(0, active).some((p) => !!p.offer && isBookable(p.offer))}
         onDismiss={() => globe.current?.cancel()}
         collapsed={collapsed}
         onCollapse={() => setCollapsed(true)}

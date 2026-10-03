@@ -52,7 +52,10 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   const color = useSelf((me) => me.info.color - 1) ?? 0;
   const status = useStatus();
   // a trip started by talking to Pip on the home globe opens with the chat showing
-  const pipOpen = useSearchParams().get("pip") === "open";
+  const params = useSearchParams();
+  const pipOpen = params.get("pip") === "open";
+  // a trip saved from the home globe with Book opens at that leg's booking
+  const bookLeg = params.get("book");
   const [full, setFull] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const room = useRoom();
@@ -129,7 +132,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {/* below the navbar */}
       {planOpen ? (
         <div className="absolute top-40 right-(--space-4)">
-          <TripPlan hostId={hostId} email={email} nationalities={nationalities} onMinimise={() => setPlanOpen(false)} />
+          <TripPlan hostId={hostId} email={email} nationalities={nationalities} bookLeg={bookLeg} onMinimise={() => setPlanOpen(false)} />
         </div>
       ) : null}
       <AgentChat initialOpen={pipOpen} />

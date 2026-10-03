@@ -37,8 +37,11 @@ export function useOpenAuth() {
   );
 }
 
-/** What a guest was doing when they hit sign-in, so it carries on once they're signed in. */
-export type PendingAction = { type: "save"; input: unknown } | { type: "create" } | { type: "pip"; text: string };
+/**
+ * What a guest was doing when they hit sign-in, so it carries on once they're signed in. `book` on a save: once saved,
+ * open the trip at its booking instead of staying on the globe.
+ */
+export type PendingAction = { type: "save"; input: unknown; book?: boolean } | { type: "create" } | { type: "pip"; text: string };
 
 const PENDING_KEY = "portal:after-sign-in";
 
@@ -55,6 +58,16 @@ export function takePendingAction(): PendingAction | null {
   try {
     const raw = sessionStorage.getItem(PENDING_KEY);
     sessionStorage.removeItem(PENDING_KEY);
+    return raw ? (JSON.parse(raw) as PendingAction) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Reads the pending action without clearing it. */
+export function peekPendingAction(): PendingAction | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
     return raw ? (JSON.parse(raw) as PendingAction) : null;
   } catch {
     return null;

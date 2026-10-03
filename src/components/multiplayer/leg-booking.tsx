@@ -1,14 +1,15 @@
 "use client";
 
 import { useRoom, useSelf } from "@liveblocks/react";
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { cancelSettleAction, dismissBookingNoticeAction, payShareAction, settleLegAction, submitDetailsAction } from "@/app/t/booking-actions";
 import { Button } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import { iso2 } from "@/lib/entry/iso";
-import { memberColor, type Money } from "@/lib/liveblocks/types";
+import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
 import { countries } from "@/lib/nationality";
+import { isBookable, webUrlOrNull } from "@/lib/trip/offers";
 import { usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
 
 // Buying a leg from the plan panel (docs/booking/README.md). Everything here is status the server wrote; the
@@ -25,7 +26,14 @@ function timeLeft(deadline: string, now: number): string {
   return h >= 1 ? `${h} h left` : `${Math.max(1, Math.round(ms / 60_000))} min left`;
 }
 
-export function LegBooking({ leg, email, nationalities }: { leg: PlanLeg; email: string | null; nationalities: string[] }) {
+/** Where a pick that can't be bought in the app is booked: its provider's name, or the link's host. */
+function providerName(offer: StoredOffer, url: string): string {
+  const credit = offer.attribution?.split(" — ")[0].trim();
+  return credit || new URL(url).hostname.replace(/^www\./, "");
+}
+
+/** `focus` brings the leg's booking into view with its first control focused, once, e.g. after Book on the globe. */
+export function LegBooking({ leg, email, nationalities, focus = false }: { leg: PlanLeg; email: string | null; nationalities: string[]; focus?: boolean }) {
   const room = useRoom();
   const tripId = room.id.slice("trip:".length);
   const me = useSelf((s) => s.id);
@@ -38,6 +46,19 @@ export function LegBooking({ leg, email, nationalities }: { leg: PlanLeg; email:
   const booking = leg.booking;
   const rider = !!me && leg.riders.includes(me);
   const seat = me && booking ? booking.seats[me] : null;
+  const root = useRef<HTMLDivElement>(null);
+  const focused = useRef(false);
+
+  useEffect(() => {
+    const el = root.current;
+    if (!focus || focused.current || !el) return;
+    const control = el.querySelector<HTMLElement>("button, a[href]");
+    if (!control) return;
+    focused.current = true;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+    control.focus({ preventScroll: true });
+  });
 
   useEffect(() => {
     if (!booking?.deadline) return;
@@ -94,9 +115,11 @@ export function LegBooking({ leg, email, nationalities }: { leg: PlanLeg; email:
   ) : null;
 
   if (!booking) {
-    const bookable = leg.chosen?.provider === "duffel" && leg.chosen.kind === "live";
+    const bookable = !!leg.chosen && isBookable(leg.chosen);
+    // anything else is bought on its provider's site, by each rider
+    const outside = leg.chosen && !bookable ? webUrlOrNull(leg.chosen.bookingUrl ?? undefined) : null;
     return (
-      <div className="tp-book-row">
+      <div className="tp-book-row" ref={root}>
         {notice}
         {problem}
         {moved}
@@ -104,6 +127,11 @@ export function LegBooking({ leg, email, nationalities }: { leg: PlanLeg; email:
           <Button variant="secondary" block disabled={busy} onClick={() => settle()}>
             Settle and book
           </Button>
+        ) : null}
+        {outside && leg.chosen ? (
+          <a className="ts-oneway" href={outside} target="_blank" rel="noopener noreferrer">
+            Book on {providerName(leg.chosen, outside)}
+          </a>
         ) : null}
       </div>
     );
@@ -127,7 +155,7 @@ export function LegBooking({ leg, email, nationalities }: { leg: PlanLeg; email:
   const canPay = !!seat && seat.details && !seat.paid && booking.status === "paying";
 
   return (
-    <section className="tp-book" aria-label="Booking">
+    <section className="tp-book" aria-label="Booking" ref={root}>
       <div className="tp-book-head">
         <span>{booking.mode === "separate" ? "Separate tickets" : "Group booking"}</span>
         <span>
