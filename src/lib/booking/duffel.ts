@@ -6,7 +6,7 @@ import { env } from "@/lib/env.server";
 import type { Money } from "@/lib/liveblocks/types";
 
 import { BookingError } from "./errors";
-import { matchOffer, offerSchema, type BookableOffer, type TravellerDetails } from "./offer";
+import { matchOffer, offerSchema, type BookableOffer, type OfferLike, type TravellerDetails } from "./offer";
 
 // Duffel's booking calls: read an offer, search again for the same flight with more seats, hold or buy an order, pay
 // a held order from our balance, and cancel. Search results for the ticket come from the transport provider instead.
@@ -61,7 +61,7 @@ function codeFor(status: number, error: DuffelError | undefined): BookingError["
   return "ORDER_FAILED";
 }
 
-/** An offer by id. Duffel keeps expired ones, so this also recovers the flight numbers of a stale search result. */
+/** An offer by id. Once it expires Duffel refuses it (`offer_no_longer_available`, read as OFFER_GONE). */
 export async function getOffer(offerId: string): Promise<BookableOffer> {
   const raw = await duffel<unknown>("GET", `/air/offers/${encodeURIComponent(offerId)}`);
   const parsed = offerSchema.safeParse(raw);
@@ -73,7 +73,7 @@ export async function getOffer(offerId: string): Promise<BookableOffer> {
  * Searches the same airports and date again with `passengers` adults and returns the offer for the same flights,
  * or null when they're sold out or gone. Prices come back for the whole party, as Duffel quotes them.
  */
-export async function findOfferFor(like: BookableOffer, passengers: number): Promise<BookableOffer | null> {
+export async function findOfferFor(like: OfferLike, passengers: number): Promise<BookableOffer | null> {
   const params = new URLSearchParams({ return_offers: "true", supplier_timeout: String(SUPPLIER_TIMEOUT_MS) });
   const raw = await duffel<{ offers?: unknown[] }>("POST", `/air/offer_requests?${params}`, {
     data: {

@@ -1,7 +1,7 @@
 import type { Stop } from "@/lib/liveblocks/types";
 import type { Offer } from "@/lib/transport/types";
 
-import { MAX_OFFERS } from "./offers";
+import { keepOffers, MAX_OFFERS } from "./offers";
 
 // What Save trip on `/` sends (`soloSaveSchema` in server.ts checks it): the landed legs with what was picked on each,
 // and, for a round trip, one more leg from the last stop back to where the trip started. Pure, so it can be tested.
@@ -15,11 +15,9 @@ export type LegPick = { offer: Offer | null; offers: Offer[]; depart: string; st
 /** The option picked for the way back, with every return option the card showed and the return date. */
 export type ReturnPick = { offer: Offer; offers: Offer[]; date: string };
 
-/** The options saved with a leg: the search's own order, cut to what a room keeps, always including the pick. */
+/** The options saved with a leg: what a room keeps of the search, in its order, always including the pick. */
 export function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
-  const kept = offers.slice(0, MAX_OFFERS);
-  if (!kept.some((o) => o.id === offer.id)) kept[kept.length ? kept.length - 1 : 0] = offer;
-  return kept;
+  return offers.some((o) => o.id === offer.id) ? keepOffers(offers, offer.id) : [offer, ...keepOffers(offers, null, MAX_OFFERS - 1)];
 }
 
 /** A pick on the way back as the leg it adds: the last stop to the first, on the return date. */

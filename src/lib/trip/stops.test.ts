@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { sameStop, stopFromPoint, stopToPlace } from "./stops";
+import { sameStop, sharesStop, stopFromPoint, stopToPlace } from "./stops";
 
 const airport: Hub = {
   id: "airport:VHHH", code: "HKG", iata: "HKG", name: "Hong Kong International Airport",
@@ -36,7 +36,7 @@ describe("shared trip stops", () => {
     expect(sameStop(stop, stopFromPoint({ ...ocean, lat: 1 }, null))).toBe(false);
   });
 
-  it("shares identical points but never merges distinct clicks at the same hub", () => {
+  it("is only the same stop for the identical point and hub", () => {
     const stop = stopFromPoint(point, airport);
     expect(sameStop(stop, stopFromPoint({ ...point }, airport))).toBe(true);
     expect(sameStop(stop, stopFromPoint({ ...point, lat: point.lat + 0.000001 }, airport))).toBe(false);
@@ -46,5 +46,18 @@ describe("shared trip stops", () => {
   it("accepts old stored stops without treating their hub field as airport identity", () => {
     expect(stopToPlace({ ...point, hub: "HKG", name: "Hong Kong" }))
       .toEqual({ ...point, name: "Hong Kong" });
+  });
+
+  it("shares a stop with a click at the same hub or in the same city, but not one a city away", () => {
+    const stop = stopFromPoint(point, airport);
+    // the same airport from a different exact click
+    expect(sharesStop(stop, stopFromPoint({ ...point, lat: point.lat + 0.01 }, airport))).toBe(true);
+    // Keelung and Taipei: 23 km apart, one place for a trip
+    const taipei = stopFromPoint({ lat: 25.033, lng: 121.565 }, null);
+    const keelung = stopFromPoint({ lat: 25.128, lng: 121.741 }, null);
+    expect(sharesStop(taipei, keelung)).toBe(true);
+    // Hong Kong and Macau: 60 km apart, two stops
+    const macau = stopFromPoint({ lat: 22.199, lng: 113.545 }, null);
+    expect(sharesStop(stop, macau)).toBe(false);
   });
 });

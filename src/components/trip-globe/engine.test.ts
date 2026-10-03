@@ -609,3 +609,98 @@ describe("vehicles", () => {
     expect(remote(engine, "a").vehicle).toBe("train");
   });
 });
+
+describe("landed routes and stop tags", () => {
+  type XY = { x: number; y: number };
+  type Pin = { g: Vec3 };
+  const spies: { mockRestore(): void }[] = [];
+  const unspy = () => spies.splice(0).forEach((s) => s.mockRestore());
+  afterEach(unspy);
+  /** Each route stroke's last drawn point, ground track then arc for every leg, in drawing order. */
+  function strokes(state: Internals) {
+    const ends: (XY | null)[] = [];
+    spies.push(vi.spyOn(state as unknown as { strokePts(c: unknown, pts: (Point | null)[]): void }, "strokePts")
+      .mockImplementation((_c, pts) => {
+        const last = [...pts].reverse().find((p) => p && p.vis);
+        ends.push(last ? { x: last.x, y: last.y } : null);
+      }));
+    return ends;
+  }
+  function tags(state: Internals) {
+    const out = new Map<string, XY>();
+    spies.push(vi.spyOn(state as unknown as { tag(c: unknown, x: number, y: number, text: string): void }, "tag")
+      .mockImplementation((_c, x, y, text) => void out.set(text, { x, y })));
+    return out;
+  }
+  const pins = (engine: GlobeEngine) => [...(engine as unknown as { pins: Map<string, Pin> }).pins.values()];
+  const gap = (a: XY | null | undefined, b: XY | null | undefined) => Math.hypot(a!.x - b!.x, a!.y - b!.y);
+  const shanghai = { lat: 31.23, lng: 121.47 };
+
+  it("brings this viewer's landed leg down to its pins' needle base once the plane has gone", () => {
+    const { engine, state, frames } = setup();
+    state.reduceMotion = false;
+    const left = () => (engine as unknown as { planeLeft(t0: number): number }).planeLeft(state.tLand);
+    frames(1);
+    engine["takeoff"](point(22.3, 114.17));
+    frames(30);
+    engine["land"](point(shanghai.lat, shanghai.lng));
+    engine.setPins([{ key: "sha:me", stop: "sha", at: shanghai, color: 0 }]);
+    frames(30);
+    // still shrinking away: the dashes stop short of the plane, as they do in flight
+    expect(left()).toBeGreaterThan(0);
+    let ends = strokes(state);
+    state.drawHud(0);
+    expect(gap(ends[1], state.proj(pins(engine)[0].g))).toBeGreaterThan(2);
+    unspy();
+    frames(120);
+    expect(left()).toBe(0);
+    ends = strokes(state);
+    state.drawHud(0);
+    const base = state.proj(pins(engine)[0].g);
+    expect(base?.vis).toBe(true);
+    // ground track and arc both end at the needle's base
+    expect(gap(ends[0], base)).toBeLessThan(0.01);
+    expect(gap(ends[1], base)).toBeLessThan(0.01);
+  });
+
+  it("brings other members' landed legs down to their pins, with no gap for a plane that isn't there", () => {
+    const { engine, state, frames } = setup();
+    frames(1);
+    engine.setRemoteFlights([{ id: "leg:1", origin: { lat: 22.3, lng: 114.17 }, at: shanghai, ahead: shanghai, landed: true }]);
+    engine.setPins([{ key: "sha:ada", stop: "sha", at: shanghai, color: 1 }]);
+    frames(5);
+    const ends = strokes(state);
+    state.drawHud(0);
+    const base = state.proj(pins(engine)[0].g);
+    expect(gap(ends[0], base)).toBeLessThan(0.01);
+    expect(gap(ends[1], base)).toBeLessThan(0.01);
+  });
+
+  it("keeps a landed stop's tag just under its pins at every zoom", () => {
+    const { engine, state, frames } = setup();
+    frames(1);
+    engine.setRemoteFlights([{ id: "leg:1", origin: { lat: 22.3, lng: 114.17 }, at: shanghai, ahead: shanghai, landed: true }]);
+    engine.setPins([{ key: "sha:ada", stop: "sha", at: shanghai, color: 1 }]);
+    const name = (engine as unknown as { remotes: Map<string, { destinationName: string | null }> }).remotes.get("leg:1")!.destinationName!;
+    expect(name).toBeTruthy();
+    const offsets: number[] = [];
+    for (const span of [12, 90]) {
+      engine.flyTo(shanghai, span);
+      frames(200);
+      const placed = tags(state);
+      state.drawHud(0);
+      const base = state.proj(pins(engine)[0].g)!;
+      const at = placed.get(name)!;
+      // centred under the needle's base, its top edge a small gap below it
+      expect(Math.abs(at.x - base.x)).toBeLessThan(0.5);
+      const top = at.y - 21 / 2 - base.y;
+      const pin = (state as unknown as { pinPx(v: Vec3): number }).pinPx(pins(engine)[0].g);
+      expect(top).toBeGreaterThanOrEqual(6);
+      expect(top).toBeLessThanOrEqual(Math.max(6, pin * 0.25));
+      offsets.push(top);
+      unspy();
+    }
+    // the gap shrinks with the pins as you zoom out
+    expect(offsets[1]).toBeLessThanOrEqual(offsets[0]);
+  });
+});

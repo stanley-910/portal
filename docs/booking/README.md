@@ -33,8 +33,9 @@ stateDiagram-v2
 1. **Planning.** Today's leg: options, votes, a chosen offer.
 2. **Settle.** A rider presses Settle on a leg whose chosen offer came from Duffel. The server searches again for that
    flight with one passenger per rider and matches it by flight numbers and departure time. A price more than 2% above
-   what the leg showed comes back for everyone to see before going on; a lower one just goes through. Riders, the date
-   and the chosen option lock.
+   what the leg showed comes back for everyone to see before going on; a lower one just goes through. If Duffel no longer
+   has the offer, the flights the leg kept with it (numbers, airports, departure) are searched for instead. Riders, the
+   date and the chosen option lock.
 3. **Details.** Each rider enters their own traveller details: name, date of birth, gender, email, phone, and a
    passport only when the offer asks for one (`passenger_identity_documents_required`). Duffel needs every passenger's
    details to hold seats, so this comes before payment. When the last rider's details are in, the server creates a
@@ -73,6 +74,14 @@ For an offer that requires instant payment. Each rider presses Buy my seat, ente
 immediately searches again for one seat on that flight and creates a one-passenger Duffel order. The leg shows who has a
 ticket. If a later rider's price is higher or the flight is full, they see it before paying and the group decides
 whether to switch flights.
+
+## Where Book starts
+
+- **In a trip.** Options from Duffel carry a Bookable badge. A leg whose pick is one shows Settle and book to its
+  riders. Any other pick is bought on its provider's site, by each rider: the leg links to it ("Book on 12Go").
+- **On the home globe.** Booking needs a trip, so a Bookable pick on the ticket adds Book under Save. It saves the
+  trip like Save trip, then opens it at `/t/<id>?book=<leg>` with that leg's Settle in view and focused. The saved leg
+  keeps its pick and is ridden by the saver, so nothing is searched again. Guests sign in first and carry on after.
 
 ## Who can do what
 
@@ -113,6 +122,8 @@ Only the server writes `booking`: clients can't mark themselves paid.
 - `src/lib/booking/flow.ts` is the flow; only it writes `booking`. `duffel.ts` and `stripe.ts` are the two clients
   over plain fetch, `store.ts` the Supabase or memory store, `shares.ts` the arithmetic, `offer.ts` how a fresh
   search is matched to the chosen flight (flight numbers, airports and departure minute).
+- `src/lib/booking/ready.ts`: whether a leg can be settled (a rider, a live Duffel pick, not settled yet), and the
+  flights a stored pick was for. Pure, so the flow, the panel and Pip agree.
 - `src/app/t/booking-actions.ts`: the server actions the plan panel calls (settle, cancel settle, submit details,
   pay share, dismiss notice). Each checks the caller is a member of the room first.
 - **Stripe**: Checkout Sessions with `payment_intent_data[capture_method]=manual`. `/api/booking/return` is where
@@ -126,8 +137,9 @@ Only the server writes `booking`: clients can't mark themselves paid.
 - Duffel balance: we pay Duffel from a prepaid balance and collect from riders through Stripe. Keep enough in it for
   the largest group order we expect, and set Duffel's low-balance alert.
 
-Offers expire about half an hour after a search, so the settled offer is searched for again (same flights, one seat
-per rider) whenever it's needed later: when the hold is placed, and when a separate seat is bought. A higher price at
+Offers expire about half an hour after a search, and Duffel then refuses them by id (`offer_no_longer_available`). So
+the booking keeps the settled flights (numbers, airports, departure), and they're searched for again (one seat per
+rider) whenever the offer is needed later: when the hold is placed, and when a separate seat is bought. A higher price at
 that point stops the step and says so; a lower one is used.
 
 ## Failure handling
@@ -136,6 +148,7 @@ that point stops the step and says so; a lower one is used.
 | --- | --- |
 | Re-search can't find the chosen flight at settle | "That flight is gone"; back to the options |
 | Hold order fails (seats gone, price changed) | Back to Planning with the reason; details are deleted |
+| The airline refuses one rider's detail (a phone number, a passport) | Only that rider enters their details again; everyone else's stay in and the settle stands |
 | A card hold fails | That rider retries; others are unaffected |
 | Paying Duffel fails after every card is held | Retry, then cancel every card hold and return to Planning; nobody is charged |
 | A capture fails after Duffel was paid | The ticket stands; that rider's share becomes a debt in the split and we contact them. Rare, since holds are already approved. |
@@ -159,8 +172,8 @@ Stripe test cards: `4242 4242 4242 4242` authorises; `4000 0000 0000 9995` is de
 
 Testing:
 
-- `pnpm test` covers the arithmetic, the offer matching, the traveller validation, the Stripe signature check and the
-  sealing of traveller details.
+- `pnpm test` covers the arithmetic, the offer matching, the traveller validation, the Stripe signature check, the
+  sealing of traveller details, and that a leg saved from the home globe arrives ready to settle.
 - Duffel test mode plus the test checkout run the whole flow without money. `src/lib/booking/live.test.ts` does it
   against a real room and is opt-in, since it makes rooms and test-mode orders:
 

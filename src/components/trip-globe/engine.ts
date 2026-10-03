@@ -123,6 +123,13 @@ const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the h
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
 /** Two tags with the same name for places closer than this on screen, in px, name one place. */
 const TAG_SAME = 40;
+const TAG_H = 21; // a name tag's height, px
+// A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
+// TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
+const TAG_GAP = 0.2;
+const TAG_GAP_MIN = 6;
+const RING_R = 4.5; // the start ring's radius, px
+const ROUTE_CUT = 0.45; // how far short of a vehicle its route stops, in vehicle lengths
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
 // While you draw a leg, the vehicle follows a guess from its length, water and hubs (vehicle-choice.ts). A new guess
 // has to hold for VEHICLE_HOLD s before the vehicle changes, so sweeping past a coast doesn't flicker; it's checked
@@ -225,11 +232,17 @@ interface ArcBuffer {
   points: (ScreenPoint | null)[];
   pool: ScreenPoint[];
 }
+/** Where a route's arc ends: the point under it, the altitude it ends at, and how far short of that it stops. */
+interface RouteEnd {
+  v: Vec3;
+  alt: number;
+  cut: number;
+}
 
 const screenPoint = (): ScreenPoint => ({ x: 0, y: 0, z: 0, vis: false });
 
 /** How much bigger than the `country` token a name grows as its country fills the screen. */
-const NAME_MAX = 1.25;
+const NAME_MAX = 1.8;
 // province and state borders print in between these zoom levels (0 whole globe, 1 closest)
 const PROVINCES_FROM = 0.3;
 const PROVINCES_FULL = 0.6;
@@ -243,7 +256,7 @@ const CITY_FADE = 0.05; // zoom over which a rank prints in
  * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
  * and ink carry the difference.
  */
-const CITY_SIZE = [19, 19, 15, 15, 13, 13, 12, 12];
+const CITY_SIZE = [17, 17, 14, 14, 13, 13, 12, 12];
 /** From this rank down, names print in `ink-muted` rather than `ink`. */
 const CITY_MUTED_FROM = 4;
 
@@ -718,11 +731,12 @@ export class GlobeEngine {
     const origin = this.origin;
     const pl = this.pl;
     if (this.mode === "landed" && origin && pl) {
-      const stops = [...this.via.map((s) => s.v), origin, pl.n];
-      for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? pl.alt : 0]);
+      const end = this.ownEnd(pl);
+      const stops = [...this.via.map((s) => s.v), origin, end.v];
+      for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? end.alt : 0]);
     }
     // landed routes end at their stop, as drawn
-    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, r.target, 0]);
+    for (const r of this.remotes.values()) if (r.landed) legs.push([r.o, this.groundEnd(r.target), 0]);
     for (const [from, to, alt] of legs) {
       for (const lift of [1, 0]) {
         const pts = this.arc(from, to, lift, lift ? alt : 0, this.hitArc);
@@ -1702,8 +1716,8 @@ export class GlobeEngine {
         this.vlon *= damp;
         this.vlat *= damp;
       }
-      // drift slowly when left alone
-      if (this.mode === "idle" && !this.reduceMotion && t - this.lastInteract > 2) {
+      // drift slowly when left alone, but never away from a trip: once legs or pins are on the globe it stays put
+      if (this.mode === "idle" && !this.reduceMotion && t - this.lastInteract > 2 && this.pins.size === 0 && this.remotes.size === 0) {
         this.lon0 += 0.06 * this.zoomScale * dt * Math.min(1, (t - this.lastInteract - 2) / 2);
       }
       if (this.mode === "flying" && this.hasPointer && !this.dest) {
@@ -1845,18 +1859,62 @@ export class GlobeEngine {
     return false;
   }
 
-  /** How high above a stop at screen point (x, y) its tag goes: 30px, or clear above the heads of pins there. */
+  /** Where a route into stop v meets the ground: the base of the needles of the pins there, or v itself. */
+  private groundEnd(v: Vec3): Vec3 {
+    for (const p of this.pins.values()) if (angle(p.g, v) < 1e-4) return p.g;
+    return v;
+  }
+
+  /**
+   * Where this viewer's last leg ends: just short of the plane while it flies, lands and shrinks away (the gap
+   * shrinking with it), then down on the ground at its stop's pins once it has gone.
+   */
+  private ownEnd(pl: Plane): RouteEnd {
+    const left = this.mode === "landed" ? this.planeLeft(this.tLand) : 1;
+    if (left <= 0) return { v: this.groundEnd(pl.n), alt: 0, cut: 0 };
+    return { v: pl.n, alt: pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT * left };
+  }
+
+  /** How long a pin is on screen at v, in px: the size pins are drawn at, measured across the view there. */
+  private pinPx(v: Vec3) {
+    const q = this.proj(v);
+    const r = this.cam && this.proj(add(v, mul(this.cam.U, S_PLANE * this.planeScale * PIN_SCALE)));
+    return q && r ? Math.hypot(r.x - q.x, r.y - q.y) : 0;
+  }
+
+  /** The room a stop's tag leaves between itself and the stop's pins or ring, in px: it shrinks with the pins. */
+  private tagGap(v: Vec3) {
+    return Math.max(TAG_GAP_MIN, TAG_GAP * this.pinPx(v));
+  }
+
+  /** How high above a stop at screen point (x, y) its tag goes: clear above its start ring, or the heads of pins there. */
   private tagAbove(v: Vec3, y: number) {
-    let top = y - 30;
+    const gap = this.tagGap(v);
+    let top = y - RING_R - gap - TAG_H / 2;
     for (const p of this.pins.values()) {
       if (!p.head || angle(p.g, v) >= 1e-4) continue;
       const q = this.proj(p.head);
       if (!q || !q.vis || !this.cam) continue;
       // the head's radius on screen, then a gap
       const rim = this.proj(add(p.head, mul(this.cam.U, PIN_HEAD_R * S_PLANE * this.planeScale * PIN_SCALE)));
-      top = Math.min(top, q.y - (rim?.vis ? Math.hypot(rim.x - q.x, rim.y - q.y) : 8) - 16);
+      top = Math.min(top, q.y - (rim?.vis ? Math.hypot(rim.x - q.x, rim.y - q.y) : 8) - gap - TAG_H / 2);
     }
     return top;
+  }
+
+  /**
+   * Where a landed stop's tag goes: centred under the base of its pins, a gap that shrinks with them below. While a
+   * plane is still there (`left` of it, 1 to 0), it starts under the plane and rises to the pins as it shrinks away.
+   */
+  private tagBelow(v: Vec3, plane?: { pl: Plane; p: ScreenPoint; left: number }): { x: number; y: number } | null {
+    const g = this.groundEnd(v);
+    const q = this.proj(g);
+    if (!q || !q.vis) return null;
+    const at = { x: q.x, y: q.y + this.tagGap(g) + TAG_H / 2 };
+    if (!plane || plane.left <= 0) return at;
+    const under = this.underPlane(plane.pl, plane.p);
+    const k = plane.left;
+    return { x: at.x + (under.x - at.x) * k, y: at.y + (under.y - at.y) * k };
   }
 
   /** How much of a landing plane is left, 1 to 0: it touches down, then shrinks away. */
@@ -2217,7 +2275,7 @@ export class GlobeEngine {
       text += "…";
     }
     const w = Math.ceil(ctx.measureText(text).width) + 14;
-    const h = 21;
+    const h = TAG_H;
     const lx = clamp(x - w / 2, 8, Math.max(8, this.W - w - 8));
     const ly0 = clamp(y - h / 2, 8, Math.max(8, this.H - h - 8));
     // one tag per place: a stop where one leg ends and the next starts, or two friends' legs meet, is named once
@@ -2679,18 +2737,16 @@ export class GlobeEngine {
   }
 
   /**
-   * A leg's route: a great-circle arc that lifts off the surface, and its dotted ground track. With a plane at the
-   * end, the arc rises to its altitude and stops just short of it.
+   * A leg's route: a great-circle arc that lifts off the surface, and its dotted ground track. With a vehicle at the
+   * end, the arc rises to its altitude and stops `cut` short of it; a landed leg comes down to its stop.
    */
   private route(
-    ctx: CanvasRenderingContext2D, origin: Vec3, end: Vec3, pl: Plane | null, stroke: string, marching: boolean, t = 0,
+    ctx: CanvasRenderingContext2D, origin: Vec3, { v: end, alt, cut }: RouteEnd, stroke: string, marching: boolean, t = 0,
   ) {
     const P = this.P;
-    const alt = pl ? pl.alt : 0;
     const ground = this.arc(origin, end, 0, 0, this.groundArc);
     const air = this.arc(origin, end, 1, alt, this.airArc);
-    // stop the dashes just short of the plane
-    const cut = pl ? S_PLANE * this.planeScale * 0.45 : 0;
+    // stop the dashes just short of the vehicle
     const tip = mul(end, 1 + alt);
     for (let i = air.length - 1; i >= 0; i--) {
       const w = air[i]?.w;
@@ -2751,19 +2807,19 @@ export class GlobeEngine {
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
-      // a landed route ends at its stop, not where the plane is easing to it
-      this.route(ctx, r.o, r.landed ? r.target : r.pl.n, r.pl, stroke, false);
+      // a landed route parks no vehicle: it comes down at its stop's pins, not where the plane is easing to it
+      const end: RouteEnd = r.landed
+        ? { v: this.groundEnd(r.target), alt: 0, cut: 0 }
+        : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
+      this.route(ctx, r.o, end, stroke, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
         if (!this.pinned(r.o)) this.startMark(ctx, r.o, op.x, op.y, stroke);
         if (r.originName) this.tag(ctx, op.x, this.tagAbove(r.o, op.y), r.originName, op);
       }
-      const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
-      if (rp && rp.vis && r.destinationName) {
-        const at = this.underPlane(r.pl, rp);
-        // named for the stop, not the vehicle, which may be fanned out beside it
-        this.tag(ctx, at.x, at.y, r.destinationName, this.proj(r.target) ?? rp);
-      }
+      const at = r.landed && r.destinationName ? this.tagBelow(r.target) : null;
+      // named for the stop, under its pins
+      if (at && r.destinationName) this.tag(ctx, at.x, at.y, r.destinationName, this.proj(r.target) ?? at);
     }
 
     // a ring spreads on the ground from each pin as its point goes in
@@ -2788,8 +2844,11 @@ export class GlobeEngine {
     // legs already flown, each from a stop to the next, under the one ending at the plane
     const marching = this.mode === "landed" && !this.reduceMotion;
     const stroke = this.routeColor(this.color);
-    this.via.forEach((s, i) => this.route(ctx, s.v, this.via[i + 1]?.v ?? origin, null, stroke, marching, t));
-    this.route(ctx, origin, pl.n, pl, stroke, marching, t);
+    this.via.forEach((s, i) => {
+      const end = this.groundEnd(this.via[i + 1]?.v ?? origin);
+      this.route(ctx, s.v, { v: end, alt: 0, cut: 0 }, stroke, marching, t);
+    });
+    this.route(ctx, origin, this.ownEnd(pl), stroke, marching, t);
 
     const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;
@@ -2825,10 +2884,9 @@ export class GlobeEngine {
       }
     } else if (this.mode === "landed") {
       ripple(pl.n, pp, this.tLand);
-      if (pp && pp.vis && this.destinationName) {
-        const at = this.underPlane(pl, pp);
-        this.tag(ctx, at.x, at.y, this.destinationName, pp);
-      }
+      const left = this.planeLeft(this.tLand);
+      const at = this.destinationName && this.tagBelow(pl.n, pp && pp.vis ? { pl, p: pp, left } : undefined);
+      if (at && this.destinationName) this.tag(ctx, at.x, at.y, this.destinationName, this.proj(pl.n) ?? at);
     }
   }
 }
