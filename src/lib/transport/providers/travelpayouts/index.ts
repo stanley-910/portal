@@ -18,6 +18,12 @@ export const travelpayouts: TransportProvider = {
     return (query.modes.length === 0 || query.modes.includes("flight")) &&
       origin !== null && destination !== null && origin !== destination;
   },
+  // when the cache is slow past its deadline, the fan-out still shows this leg's estimate (search.ts)
+  fallback(query) {
+    const origin = toIata(query.from);
+    const destination = toIata(query.to);
+    return origin && destination ? estimateFlight(query, origin, destination, env.TRAVELPAYOUTS_MARKER) : [];
+  },
   async search(query, signal) {
     const origin = toIata(query.from);
     const destination = toIata(query.to);

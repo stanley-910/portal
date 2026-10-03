@@ -400,6 +400,12 @@ export function TicketSearch({
                     </div>
                   ))
                 : null}
+              {/* a slow provider is still a search, not a failure: the answer comes, with estimates if it must */}
+              {outbound.status === "searching" && outbound.slow ? (
+                <p className="ts-empty" role="status">
+                  Still looking.
+                </p>
+              ) : null}
               {outbound.status === "failed" ? (
                 <p className="ts-empty">
                   Search failed.{" "}

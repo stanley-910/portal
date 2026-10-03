@@ -53,6 +53,13 @@ export interface TransportProvider {
   modes: Mode[];
   covers(q: SearchQuery): boolean;              // cheap, sync, no network
   search(q: SearchQuery, signal: AbortSignal): Promise<Offer[]>; // throws ProviderFailure
+  /**
+   * Modelled offers (`kind: "estimated"`) for when `search` times out or fails, so a slow API never leaves the route
+   * empty. Local and sync: no network. The failure is still reported in `errors`.
+   */
+  fallback?(q: SearchQuery): Offer[];
+  /** Its own deadline when it's known to need longer than the default; see `PROVIDER_TIMEOUT_MS`. */
+  timeoutMs?: number;
 }
 
 export class ProviderFailure extends Error {

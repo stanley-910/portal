@@ -11,8 +11,10 @@ How a click on the globe becomes flights, trains, buses and ferries.
    airport codes: SHA never turns into a Shanghai city search or PVG.
 4. Offers are validated and sorted deterministically. Cached fares, typical timetables and fallback candidates are
    marked **Estimated** with their source. Missing credentials and API failures never remove the local shortlist.
-5. Cancelling or starting another trip aborts the old request, so late results can't restore a stale trip. Dates are
-   the displayed local calendar date, not a sliced UTC timestamp.
+5. Cancelling or starting another trip aborts the old request, so late results can't restore a stale trip, and a
+   cancelled search never reads as failed. A search that drops its connection is retried once before the card says
+   it failed, and one still running after 4 seconds says "Still looking." Dates are the displayed local calendar date,
+   not a sliced UTC timestamp.
 
 ## Hover preview
 
@@ -85,8 +87,13 @@ curl --get 'http://localhost:3000/api/transport/search' \
   Passengers are 1–9. Omitted `modes` means all. Bad input returns `400 {"code":"BAD_QUERY","fields":[...]}`.
 - The response is `{ offers, errors, tookMs }`. With `resolve=hubs` it adds `hubs` (clicked places, candidates, ranked
   pairs), `offerPairs` (offer ID → pair IDs) and `estimates` (shortlisted pairs with no offers).
-- Each provider has its own 8-second deadline. One failure doesn't discard the others. An empty cache is not a
-  failure or evidence that a route doesn't run.
+- Each provider has its own deadline: 8 seconds, or 10 for Duffel, which gives airlines 6 seconds and then needs about
+  2 more of its own. One failure doesn't discard the others. An empty cache is not a failure or evidence that a route
+  doesn't run.
+- A provider that times out or fails still gives its modelled estimates (`fallback` on the provider), with the failure
+  in `errors`. Travelpayouts' distance-based flight estimate is that fallback for flights, so a flight between
+  airports 300 km or more apart never comes back empty because Duffel or Travelpayouts was slow. Only `estimated`
+  offers pass as a fallback.
 - Provider calls happen only in route handlers on the Node runtime, so keys never reach the browser.
 
 ## Being honest about data

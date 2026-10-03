@@ -1,9 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/transport/search", () => ({ searchTransport: vi.fn() }));
+// Flight keys on, every other provider unconfigured, for the end-to-end timeout case below.
+const { env } = vi.hoisted(() => ({ env: { DUFFEL_ACCESS_TOKEN: "offline-duffel", TRAVELPAYOUTS_TOKEN: "offline-tp", TRAVELPAYOUTS_MARKET: "us" } }));
+vi.mock("@/lib/env.server", () => ({ env }));
+vi.mock("@/lib/transport/search", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/transport/search")>(), searchTransport: vi.fn(),
+}));
 vi.mock("@/lib/transport/hub-search", () => ({ searchFromCoordinates: vi.fn() }));
 import { searchTransport } from "@/lib/transport/search";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
+import type { HubSearchResult } from "@/lib/transport/hub-search";
 import { GET } from "./route";
 
 function request(extra: Record<string, string> = {}) {
@@ -46,5 +52,41 @@ describe("transport search route", () => {
   it("does not misclassify an internal SyntaxError as a client error", async () => {
     vi.mocked(searchTransport).mockRejectedValue(new SyntaxError("internal failure"));
     await expect(GET(request())).rejects.toThrow("internal failure");
+  });
+});
+
+describe("transport search route, when the live flight APIs never answer", () => {
+  beforeEach(async () => {
+    // the real search behind the route: hubs, every registered provider, deadlines and fallbacks
+    const search = await vi.importActual<typeof import("@/lib/transport/search")>("@/lib/transport/search");
+    const hubs = await vi.importActual<typeof import("@/lib/transport/hub-search")>("@/lib/transport/hub-search");
+    vi.mocked(searchTransport).mockImplementation(search.searchTransport);
+    vi.mocked(searchFromCoordinates).mockImplementation(hubs.searchFromCoordinates);
+    vi.stubGlobal("fetch", vi.fn((_url: string, init?: RequestInit) => new Promise((_, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+    })));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("answers with estimated flights, never an empty card, and names the providers that timed out", async () => {
+    vi.useFakeTimers();
+    const pending = GET(request({ resolve: "hubs", modes: "flight" }));
+    await vi.advanceTimersByTimeAsync(15_000);
+    const response = await pending;
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as HubSearchResult;
+    expect(fetch).toHaveBeenCalled();
+    expect(result.offers.length).toBeGreaterThan(0);
+    for (const offer of result.offers) expect(offer).toMatchObject({ mode: "flight", kind: "estimated", provider: "travelpayouts" });
+    expect(result.errors).toEqual(expect.arrayContaining([
+      { provider: "duffel", code: "TIMEOUT", retryable: true },
+      { provider: "travelpayouts", code: "TIMEOUT", retryable: true },
+    ]));
+    // every flight pair searched has something on it
+    expect(result.estimates.filter((id) => result.hubs.pairs.find((p) => p.id === id)?.mode === "flight")).toEqual([]);
   });
 });
