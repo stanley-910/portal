@@ -9,9 +9,7 @@ import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
-import { entry } from "@/lib/entry";
-
-const OFFICIAL_ENTRY_REMINDER = "Check official government sources before travelling.";
+import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
 // handles; the cards people see are written to the thread separately (harness: "two views").
@@ -142,36 +140,34 @@ export function agentTools(ctx: ToolContext) {
 
     check_entry: tool({
       description:
-        "Compare entry requirements for every member with a passport recorded in the trip for one leg. Use this for visa, entry or passport questions. Say when a member has no passport recorded, identify the passport used and quote sources and freshness exactly. Always remind the group to check official government sources.",
+        "Entry rules on one leg for every member, for every passport each one holds: what each passport needs (visa-free, e-visa, visa, permit), for how long, conditions, a transit option, official sources and how fresh it is, with the easiest passport marked. Use it for any visa, entry or passport question; never answer one from memory.",
       inputSchema: z.object({ leg: z.string().describe("Leg handle from get_trip, e.g. L2") }),
       execute: async ({ leg }) => {
         const { plan, handles } = await ctx.load();
         const legId = handles.id.get(leg);
         const selected = legId ? plan.legs?.[legId] : undefined;
-        if (!selected) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        if (!legId || !selected) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        const from = plan.stops?.[selected.from];
+        const to = plan.stops?.[selected.to];
+        if (!to) return { refused: "UNKNOWN_HANDLE", reason: `${leg} has no destination.`, next: "Call get_trip and use its handles." };
 
-        const members = Object.entries(plan.members ?? {});
-        const results = members.map(([id, member]) => {
+        const members = Object.entries(plan.members ?? {}).map(([id, member]) => {
+          const who = `${handles.member.get(id) ?? "?"} ${member.name}`;
           const passports = member.nationalities ?? [];
-          if (!passports.length) return { member: member.name, passports: [], status: "passport_not_provided" as const };
-          const rows = entry.getLegEntry(
-            { fromHub: plan.stops?.[selected.from]?.hub ?? undefined, toHub: plan.stops?.[selected.to]?.hub ?? undefined },
-            [{ id, name: member.name, passport: passports[0]!, passports: passports.slice(1) }],
-          );
-          const row = rows[0];
-          return {
-            member: member.name,
-            passports,
-            passportUsed: row?.passport ?? passports[0],
-            kind: row?.rule?.kind ?? "home",
-            allowedDays: row?.rule?.allowedDays ?? null,
-            conditions: row?.rule?.conditions ?? [],
-            links: row?.rule?.links ?? [],
-            verifiedAt: row?.rule?.verifiedAt ?? null,
-            freshness: row?.rule?.freshness ?? null,
-          };
+          if (!passports.length) return { member: who, rides: selected.riders.includes(id), status: "passport_not_provided" as const };
+          const onward = nextLeg(plan, id, legId);
+          const answer = legEntry(from, to, passports, onward ? plan.stops?.[onward.to] : undefined);
+          if (!answer.crossesBorder) return { member: who, rides: selected.riders.includes(id), ...answer };
+          const { passports: rows, easiest, passportsDiffer, summary } = answer;
+          return { member: who, rides: selected.riders.includes(id), easiest, passportsDiffer, summary, passports: rows };
         });
-        return { leg, from: plan.stops?.[selected.from]?.name ?? "unknown", to: plan.stops?.[selected.to]?.name ?? "unknown", members: results, note: OFFICIAL_ENTRY_REMINDER };
+        return {
+          leg,
+          from: from?.name ?? "unknown",
+          to: to.name,
+          members,
+          note: `Name the passport each requirement applies to. Where a member's passports differ, say which needs a visa or document and which doesn't. Say who has no passport recorded (they add one under Passports in the profile menu). Call only [estimated] rows estimates; the rest were checked against the official source linked. ${OFFICIAL_ENTRY_REMINDER}`,
+        };
       },
     }),
 
@@ -316,6 +312,15 @@ export function agentTools(ctx: ToolContext) {
       },
     }),
   };
+}
+
+/** The leg a member rides after this one, by date, which decides whether a transit exemption applies here. */
+export function nextLeg(plan: PlanJson, memberId: string, legId: string) {
+  const mine = Object.entries(plan.legs ?? {})
+    .filter(([, l]) => l.riders.includes(memberId))
+    .sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+  const at = mine.findIndex(([id]) => id === legId);
+  return at < 0 ? undefined : mine[at + 1]?.[1];
 }
 
 /** The edits that put a meet-up option on the trip. Shared with the card's Apply button. */

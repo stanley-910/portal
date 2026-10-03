@@ -137,6 +137,23 @@
         }
       ]
     },
+    "MYS": {
+      "code": "MYS",
+      "name": "Malaysia",
+      "govukSlug": "malaysia",
+      "links": [
+        {
+          "label": "Immigration Department of Malaysia",
+          "url": "https://www.imi.gov.my/index.php/en/main-services/visa/visa-requirement-by-country/",
+          "role": "info"
+        },
+        {
+          "label": "Malaysia Digital Arrival Card",
+          "url": "https://imigresen-online.imi.gov.my/mdac/main",
+          "role": "info"
+        }
+      ]
+    },
     "THA": {
       "code": "THA",
       "name": "Thailand",
@@ -157,9 +174,155 @@
           ]
         }
       ]
+    },
+    "VNM": {
+      "code": "VNM",
+      "name": "Vietnam",
+      "govukSlug": "vietnam",
+      "links": [
+        {
+          "label": "Vietnam Immigration Department e-visa",
+          "url": "https://evisa.gov.vn/",
+          "role": "apply",
+          "for": [
+            "e_visa",
+            "visa_required"
+          ]
+        }
+      ]
     }
   },
   "rules": [
+    {
+      "passport": "CAN",
+      "destination": "CHN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "until": "2026-12-31",
+      "conditions": [
+        "Tourism, business, family visits or transit only",
+        "Ordinary passport"
+      ],
+      "note": "Canada joined China's visa-free scheme on 17 February 2026, until 31 December 2026 (travel.gc.ca, updated 31 August 2026).",
+      "links": [
+        {
+          "label": "Government of Canada travel advice",
+          "url": "https://travel.gc.ca/destinations/china",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-03"
+    },
+    {
+      "passport": "CAN",
+      "destination": "HKG",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "JPN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "KOR",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 180,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "e_visa",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
     {
       "passport": "CHN",
       "destination": "HKG",
@@ -221,6 +384,18 @@
     },
     {
       "passport": "CHN",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
       "destination": "SGP",
       "context": "entry",
       "kind": "visa_free",
@@ -248,6 +423,17 @@
       "destination": "TWN",
       "context": "entry",
       "kind": "visa_required",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CHN",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "e_visa",
       "conditions": [],
       "links": [],
       "origin": "dataset",
@@ -355,6 +541,17 @@
     },
     {
       "passport": "GBR",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
       "destination": "SGP",
       "context": "entry",
       "kind": "visa_free",
@@ -407,6 +604,18 @@
       "origin": "dataset",
       "freshness": "estimated",
       "sourceUpdatedAt": "2026-08-28",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "GBR",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 45,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
       "datasetSnapshot": "2026-06-14"
     },
     {
@@ -470,6 +679,18 @@
     },
     {
       "passport": "HKG",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
       "destination": "SGP",
       "context": "entry",
       "kind": "visa_free",
@@ -497,6 +718,136 @@
       "destination": "TWN",
       "context": "entry",
       "kind": "visa_on_arrival",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "HKG",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "e_visa",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "CHN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "until": "2026-12-31",
+      "conditions": [
+        "Business, tourism, family visits, exchange or transit only",
+        "Ordinary passport"
+      ],
+      "note": "On China's unilateral visa-free list, extended to 31 December 2026 (Chinese consulate notice, 4 November 2025).",
+      "links": [
+        {
+          "label": "Consulate General of China in Los Angeles",
+          "url": "https://losangeles.china-consulate.gov.cn/eng/gdxw/202511/t20251104_11746357.htm",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-03"
+    },
+    {
+      "passport": "JPN",
+      "destination": "HKG",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "KOR",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "MAC",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "SGP",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 30,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "THA",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 60,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "TWN",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "JPN",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 45,
       "conditions": [],
       "links": [],
       "origin": "dataset",
@@ -562,6 +913,18 @@
     },
     {
       "passport": "KOR",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 90,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "KOR",
       "destination": "SGP",
       "context": "entry",
       "kind": "visa_free",
@@ -597,6 +960,18 @@
       "datasetSnapshot": "2026-06-14"
     },
     {
+      "passport": "KOR",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "visa_free",
+      "allowedDays": 45,
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
       "passport": "USA",
       "destination": "CHN",
       "context": "entry",
@@ -605,8 +980,13 @@
         "6 months passport validity",
         "2 blank pages"
       ],
-      "note": "Not on China's unilateral visa-free list. The dataset's e-visa entry is wrong.",
+      "note": "Not on China's unilateral visa-free list (Chinese consulate notice, 4 November 2025; Canada and the UK were added on 17 February 2026, the US wasn't). The dataset's e-visa entry is wrong. The 240-hour transit exemption still applies.",
       "links": [
+        {
+          "label": "Consulate General of China in Los Angeles",
+          "url": "https://losangeles.china-consulate.gov.cn/eng/gdxw/202511/t20251104_11746357.htm",
+          "role": "source"
+        },
         {
           "label": "National Immigration Administration",
           "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
@@ -620,7 +1000,7 @@
       ],
       "origin": "curated",
       "freshness": "cached",
-      "verifiedAt": "2026-10-02"
+      "verifiedAt": "2026-10-03"
     },
     {
       "passport": "USA",
@@ -672,6 +1052,17 @@
     },
     {
       "passport": "USA",
+      "destination": "MYS",
+      "context": "entry",
+      "kind": "visa_free",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "USA",
       "destination": "SGP",
       "context": "entry",
       "kind": "visa_free",
@@ -706,7 +1097,86 @@
       "datasetSnapshot": "2026-06-14"
     },
     {
+      "passport": "USA",
+      "destination": "VNM",
+      "context": "entry",
+      "kind": "e_visa",
+      "conditions": [],
+      "links": [],
+      "origin": "dataset",
+      "freshness": "estimated",
+      "datasetSnapshot": "2026-06-14"
+    },
+    {
+      "passport": "CAN",
+      "destination": "CHN",
+      "context": "transit",
+      "kind": "transit_exempt",
+      "allowedDays": 10,
+      "conditions": [
+        "Onward ticket to a third country or region within 240 hours",
+        "Ordinary passport",
+        "Enter and leave through an eligible port, including HK West Kowloon Station",
+        "Stay inside the permitted area"
+      ],
+      "ports": [
+        "PEK",
+        "PKX",
+        "PVG",
+        "SHA",
+        "CAN",
+        "SZX",
+        "CTU",
+        "TFU"
+      ],
+      "note": "240-hour visa-free transit. 57 nationalities, 65 ports.",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
       "passport": "GBR",
+      "destination": "CHN",
+      "context": "transit",
+      "kind": "transit_exempt",
+      "allowedDays": 10,
+      "conditions": [
+        "Onward ticket to a third country or region within 240 hours",
+        "Ordinary passport",
+        "Enter and leave through an eligible port, including HK West Kowloon Station",
+        "Stay inside the permitted area"
+      ],
+      "ports": [
+        "PEK",
+        "PKX",
+        "PVG",
+        "SHA",
+        "CAN",
+        "SZX",
+        "CTU",
+        "TFU"
+      ],
+      "note": "240-hour visa-free transit. 57 nationalities, 65 ports.",
+      "links": [
+        {
+          "label": "National Immigration Administration",
+          "url": "https://en.nia.gov.cn/n147418/n147463/c183412/content.html",
+          "role": "source"
+        }
+      ],
+      "origin": "curated",
+      "freshness": "cached",
+      "verifiedAt": "2026-10-02"
+    },
+    {
+      "passport": "JPN",
       "destination": "CHN",
       "context": "transit",
       "kind": "transit_exempt",

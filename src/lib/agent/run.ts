@@ -36,9 +36,19 @@ const THREAD_WAIT_MS = 5_000;
 export const TRIP_RUNS_PER_DAY = 40;
 /**
  * Output tokens per model call. Replies are one to three sentences and tool calls are small, but DeepSeek's hidden
- * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing.
+ * reasoning counts too: at 1,200 an unclear ask could spend it all thinking and write nothing. At REASONING_EFFORT
+ * "high" a hard step was measured at about 1,300 tokens (2026-10-03), so this leaves room for one several times that.
+ * Flash writes roughly 150 tokens a second, so even a call that uses it all (about 55 s) ends inside LEASE_MS; the
+ * run's deadline, not this, is what stops a slow run, and silentReply covers a reply cut off either way.
  */
-const MAX_OUTPUT_TOKENS = 4_000;
+const MAX_OUTPUT_TOKENS = 8_000;
+/**
+ * How hard DeepSeek thinks before each step. The API has three tiers, low, high and max; "medium" is an alias it
+ * (and @ai-sdk/deepseek, with a warning) maps to "high" (api-docs.deepseek.com/guides/thinking_mode, 2026-10-03).
+ * Raised from "low" for asks with several parts (plan, fares and visas at once); "high" is also the API default.
+ * Reasoning tokens are billed as output, so a hard ask costs more and takes longer; a simple one barely changes.
+ */
+export const REASONING_EFFORT = "high" satisfies DeepSeekLanguageModelChatOptions["reasoningEffort"];
 
 /** Logs each tool call and result. Off by default: tool inputs carry what people typed (harness: no content in logs). */
 const DEBUG = process.env.AGENT_DEBUG === "1";
@@ -60,7 +70,7 @@ How to work:
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
-- For visa, passport or entry questions, call check_entry for the relevant leg. Compare every party member with a passport recorded in the trip, say who has no passport recorded, and end with the official-source reminder.
+- For visa, passport or entry questions, call check_entry for each leg it's about; it covers every member and every passport each one holds. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When someone's passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. Say who has no passport recorded, mention estimated rules as estimates, and end with the official-source reminder.
 - For who pays what, call get_split and quote it. Never add up costs yourself.
 - Stays: you never estimate or look up what a stay costs. When someone says one ("our Shanghai flat is HKD 900 a night"), record it with set_stay_cost.
 - Someone leaving early ("Mei leaves after Shanghai"): set_leaves to the day they go, and take them off the legs after it with set_riders. If they say how they get home, add that leg too.
@@ -276,8 +286,7 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
           tools: agentTools(ctx),
           stopWhen: isStepCount(MAX_STEPS),
           maxOutputTokens: MAX_OUTPUT_TOKENS,
-          // the edits and lookups here don't need deep thought, and every reasoning token delays the reply
-          providerOptions: { deepseek: { reasoningEffort: "low" } satisfies DeepSeekLanguageModelChatOptions },
+          providerOptions: { deepseek: { reasoningEffort: REASONING_EFFORT } satisfies DeepSeekLanguageModelChatOptions },
           abortSignal: AbortSignal.timeout(Math.max(0, runEnds - Date.now())),
         });
         for await (const part of result.stream) {

@@ -1,4 +1,4 @@
 {
-  "passports": ["HKG", "CHN", "KOR", "USA", "GBR"],
-  "destinations": ["HKG", "MAC", "CHN", "KOR", "JPN", "TWN", "SGP", "THA"]
+  "passports": ["HKG", "CHN", "KOR", "JPN", "USA", "CAN", "GBR"],
+  "destinations": ["HKG", "MAC", "CHN", "KOR", "JPN", "TWN", "SGP", "MYS", "THA", "VNM"]
 }

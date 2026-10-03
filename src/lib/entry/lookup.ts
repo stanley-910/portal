@@ -41,9 +41,19 @@ export interface MemberLegEntry extends LegEntry {
   passport: string;
 }
 
+/** One passport's result on a leg. A list of these covers every passport someone holds. */
+export interface PassportLegEntry extends LegEntry {
+  /** ISO-3. */
+  passport: string;
+  /** True on exactly one entry: the passport that gets them in most easily, the first held on a tie. */
+  easiest: boolean;
+}
+
 export interface EntryLookup {
   getRule(passport: string, destination: string, context?: EntryContext): EntryRule;
   resolveLeg(leg: LegEntryInput, passport: string): LegEntry;
+  /** The leg for every passport held, in the order given, duplicates dropped, with the easiest one marked. */
+  resolvePassports(leg: LegEntryInput, passports: string[]): PassportLegEntry[];
   getLegEntry(leg: LegEntryInput, members: EntryMember[]): MemberLegEntry[];
   destinationName(code: string): string | undefined;
   data: EntryData;
@@ -96,19 +106,25 @@ export function createEntryLookup(data: EntryData): EntryLookup {
     return { rule: entry, usesTransit: false, transitOption: transit };
   };
 
+  const resolvePassports = (leg: LegEntryInput, passports: string[]): PassportLegEntry[] => {
+    const held = [...new Set(passports.map((p) => iso3(p) ?? p.toUpperCase()))];
+    const rows = held.map((passport) => ({ passport, easiest: false, ...resolveLeg(leg, passport) }));
+    let best: PassportLegEntry | undefined;
+    for (const row of rows) if (!best || ease(row) < ease(best)) best = row;
+    if (best) best.easiest = true;
+    return rows;
+  };
+
   return {
     data,
     getRule,
     resolveLeg,
+    resolvePassports,
     getLegEntry: (leg, members) =>
       members.map((member) => {
-        const held = [member.passport, ...(member.passports ?? [])].map((p) => iso3(p) ?? p.toUpperCase());
-        let best: { passport: string; leg: LegEntry } | null = null;
-        for (const passport of new Set(held)) {
-          const leg_ = resolveLeg(leg, passport);
-          if (!best || ease(leg_) < ease(best.leg)) best = { passport, leg: leg_ };
-        }
-        return { member, passport: best!.passport, ...best!.leg };
+        const rows = resolvePassports(leg, [member.passport, ...(member.passports ?? [])]);
+        const { passport, rule, usesTransit, transitOption } = rows.find((r) => r.easiest)!;
+        return { member, passport, rule, usesTransit, ...(transitOption && { transitOption }) };
       }),
     destinationName: (code) => data.destinations[iso3(code) ?? ""]?.name,
   };

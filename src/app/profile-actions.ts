@@ -10,6 +10,8 @@ export async function saveNationalities(codes: string[]) {
   if (await getCurrentUser()) {
     const supabase = await createSupabaseServer();
     await supabase?.auth.updateUser({ data: { nationalities } });
+    // a fresh token carries the new passports, so Pip on the home globe (which reads the token) sees them now
+    await supabase?.auth.refreshSession().catch(() => {});
     return;
   }
   await ensureGuest();

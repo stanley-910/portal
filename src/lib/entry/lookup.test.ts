@@ -173,3 +173,28 @@ describe("getLegEntry with several passports", () => {
     expect(mei.rule).toBeNull();
   });
 });
+
+describe("resolvePassports", () => {
+  it("returns every passport held, in order, and marks the easiest", () => {
+    const rows = entry.resolvePassports({ fromHub: "ICN", toHub: "PVG" }, ["US", "GBR", "usa"]);
+    expect(rows.map((r) => [r.passport, r.rule?.kind, r.easiest])).toEqual([
+      ["USA", "visa_required", false],
+      ["GBR", "visa_free", true],
+    ]);
+  });
+
+  it("keeps each passport's transit option, not just the easiest one's", () => {
+    const [usa] = entry.resolvePassports({ fromHub: "ICN", toHub: "PVG" }, ["USA", "GBR"]);
+    expect(usa.transitOption).toMatchObject({ kind: "transit_exempt", allowedDays: 10 });
+  });
+
+  it("marks the first passport on a tie", () => {
+    const rows = entry.resolvePassports({ toCountry: "JPN" }, ["USA", "USA"]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].easiest).toBe(true);
+  });
+
+  it("returns nothing for no passports", () => {
+    expect(entry.resolvePassports({ toCountry: "CHN" }, [])).toEqual([]);
+  });
+});

@@ -7,7 +7,8 @@ import { getAccountClaims } from "@/lib/supabase/server";
 // the browser holds the conversation and the legs on its globe. Asking Pip needs an account.
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+// a reply runs for up to TIMEOUT_MS (80 s, lib/agent/solo.ts); a model that fails late still gets the no-model answer
+export const maxDuration = 120;
 
 const MAX_TEXT = 2_000;
 const MAX_HISTORY = 16;
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
           // the reader went away
         }
       };
-      await runSolo({ ...body.data, name: person.name }, emit, request.signal);
+      await runSolo({ ...body.data, name: person.name, nationalities: person.nationalities }, emit, request.signal);
       try {
         controller.close();
       } catch {}

@@ -129,6 +129,23 @@
     ]
   },
   {
+    "code": "MYS",
+    "name": "Malaysia",
+    "govukSlug": "malaysia",
+    "links": [
+      {
+        "label": "Immigration Department of Malaysia",
+        "url": "https://www.imi.gov.my/index.php/en/main-services/visa/visa-requirement-by-country/",
+        "role": "info"
+      },
+      {
+        "label": "Malaysia Digital Arrival Card",
+        "url": "https://imigresen-online.imi.gov.my/mdac/main",
+        "role": "info"
+      }
+    ]
+  },
+  {
     "code": "THA",
     "name": "Thailand",
     "govukSlug": "thailand",
@@ -141,6 +158,22 @@
       {
         "label": "Thai e-Visa",
         "url": "https://www.thaievisa.go.th/",
+        "role": "apply",
+        "for": [
+          "e_visa",
+          "visa_required"
+        ]
+      }
+    ]
+  },
+  {
+    "code": "VNM",
+    "name": "Vietnam",
+    "govukSlug": "vietnam",
+    "links": [
+      {
+        "label": "Vietnam Immigration Department e-visa",
+        "url": "https://evisa.gov.vn/",
         "role": "apply",
         "for": [
           "e_visa",
