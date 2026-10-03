@@ -5,8 +5,11 @@ The `rail-cache` provider is registered with transport search and saved-trip val
 
 The current build contains **4,476 timetable records**, **38,330 stop events**, and
 **950 normalized station entries**. Counts include historical revisions, date-specific variants
-and overlapping operators; they are not unique trains or a coverage percentage. 232 station entries have
-coordinates from the existing station catalogues or downloaded GTFS and can participate in globe searches.
+and overlapping operators; they are not unique trains or a coverage percentage. 924 of 950 station entries have
+coordinates from repository catalogues, downloaded GTFS or the resolved Wikidata station table and can participate in globe searches.
+The coordinate-only integration from [PR #21](https://github.com/stanley-910/portal/pull/21) adds 692 locations without
+changing timetables or moving previously placed stations. [Geocoding report](../../../data/rail-cache/geocoding.json)
+lists the remaining 26 gaps. Name and neighbour matching is not a manual verification of every location.
 Every normalized station can be queried by name or cache ID using the offline CLI.
 
 | Source | Cached timetable records |

@@ -25,6 +25,8 @@ export function stepLabel(tool: string, output: unknown = null): { doing: string
       return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
     case "plan_trip":
       return { doing: "Putting it on the globe", done: failed ? "Couldn't place that" : "Put it on the globe" };
+    case "search_nearby_trains":
+      return { doing: "Checking nearby train stations", done: failed ? "Couldn't search nearby trains" : o.found ? "Found nearby train options" : "No nearby trains found in our data" };
     case "search_routes":
       return { doing: "Searching routes", done: failed ? "Couldn't search that" : o.found ? `Found ${n(o.found, "route", "routes")}` : "No routes found" };
     default:

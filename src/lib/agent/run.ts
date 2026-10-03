@@ -1,3 +1,4 @@
+import { NEARBY_RAIL_INSTRUCTION } from "./nearby-rail";
 import "server-only";
 
 import { deepseek, type DeepSeekLanguageModelChatOptions } from "@ai-sdk/deepseek";
@@ -70,6 +71,7 @@ How to work:
 - When someone asks you to change the trip, change it with edit_plan straight away. Every change you make can be undone, so don't ask for confirmation.
 - For "where should we meet", call find_meetup. To add a meet-up someone picked ("go with the top one"), call apply_meetup with its P handle; don't search again. The card's button is "Add to trip".
 - For fares or times on a leg, call get_leg_options.
+- ${NEARBY_RAIL_INSTRUCTION}
 - For visa, passport or entry questions, call check_entry for each leg it's about; it covers every member and every passport each one holds. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When someone's passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. Say who has no passport recorded, mention estimated rules as estimates, and end with the official-source reminder.
 - For who pays what, call get_split and quote it. Never add up costs yourself.
 - Stays are apart from legs: each has its own guests, nights and price, and riding a leg never puts anyone in one. Add or change one with set_stay ("we're in a Shanghai flat the 10th to the 13th, HKD 900 a night" is a stay at that stop for whoever says they're in it). You never estimate or look up what a stay costs; record only prices people say.

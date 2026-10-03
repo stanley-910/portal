@@ -64,11 +64,14 @@ function validFixture() {
 
 // Controlled mutations of the recorded provider fixture exercise timezone and connection failure cases.
 describe("long-haul offers", () => {
-  it("does not label Duffel test inventory as live", () => {
+  it("flags Duffel test inventory as a bookable sandbox fare", () => {
     const input = validFixture();
     const [out] = mapOffers([{ ...input, live_mode: false }], query, "HKG", "PVG");
-    expect(out.kind).toBe("estimated");
-    expect(out.attribution).toContain("test inventory");
+    expect(out.kind).toBe("live");
+    expect(out.sandbox).toBe(true);
+    expect(out.attribution).toContain("sandbox");
+    const [live] = mapOffers([{ ...input, live_mode: true }], query, "HKG", "PVG");
+    expect(live.sandbox).toBeUndefined();
   });
   it("keeps overnight local dates and measures duration in UTC", () => {
     const input = validFixture();
