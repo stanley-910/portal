@@ -1716,8 +1716,8 @@ export class GlobeEngine {
         this.vlon *= damp;
         this.vlat *= damp;
       }
-      // drift slowly when left alone
-      if (this.mode === "idle" && !this.reduceMotion && t - this.lastInteract > 2) {
+      // drift slowly when left alone, but never away from a trip: once legs or pins are on the globe it stays put
+      if (this.mode === "idle" && !this.reduceMotion && t - this.lastInteract > 2 && this.pins.size === 0 && this.remotes.size === 0) {
         this.lon0 += 0.06 * this.zoomScale * dt * Math.min(1, (t - this.lastInteract - 2) / 2);
       }
       if (this.mode === "flying" && this.hasPointer && !this.dest) {

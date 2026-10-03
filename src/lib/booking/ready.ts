@@ -35,3 +35,13 @@ export function storedFlights(chosen: StoredOffer): OfferLike | null {
     flights: flights.map((f) => ({ number: f.number, from: f.from, to: f.to, departingAt: f.depart })),
   };
 }
+
+/**
+ * Which rider a Duffel field error is about, from its JSON pointer ("/passengers/1/phone_number"): passengers are sent
+ * in rider order. Null for an error about the order as a whole, which has to send the leg back to planning.
+ */
+export function refusedPassenger(field: string | undefined, riders: readonly string[]): { rider: string; field: string } | null {
+  const m = field?.match(/^\/passengers\/(\d+)\/(.+)$/);
+  const rider = m && riders[Number(m[1])];
+  return rider ? { rider, field: m[2].split("/").pop()!.replace(/_/g, " ") } : null;
+}

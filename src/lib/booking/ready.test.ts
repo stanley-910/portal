@@ -5,7 +5,7 @@ import type { Offer } from "@/lib/transport/types";
 import { buildSoloStorage, soloSaveSchema } from "@/lib/trip/server";
 
 import { matchOffer } from "./offer";
-import { settleReady, storedFlights } from "./ready";
+import { refusedPassenger, settleReady, storedFlights } from "./ready";
 
 // A leg saved from the home globe with a Duffel pick must arrive in its room ready to settle: the saver rides it, its
 // search is done (so the room doesn't search again and drop the pick), and the pick keeps what settling matches on.
@@ -91,5 +91,18 @@ describe("a solo-saved leg with a Duffel pick", () => {
     const { input, legId } = saved(duffelOffer.id);
     expect(bookingHref({ id: "trip123", legs: [legId] }, input)).toBe(`/t/trip123?book=${legId}`);
     expect(bookingHref({ id: "trip123", legs: [legId] }, saved(cachedOffer.id).input)).toBe("/t/trip123");
+  });
+});
+
+describe("refusedPassenger", () => {
+  const riders = ["ada", "mei", "joon"];
+  it("names the rider whose field Duffel refused, in rider order", () => {
+    expect(refusedPassenger("/passengers/1/phone_number", riders)).toEqual({ rider: "mei", field: "phone number" });
+    expect(refusedPassenger("/passengers/2/identity_documents/0/expires_on", riders)).toEqual({ rider: "joon", field: "expires on" });
+  });
+  it("is null for an error about the order itself or an unknown passenger", () => {
+    expect(refusedPassenger("/payments/0/amount", riders)).toBeNull();
+    expect(refusedPassenger("/passengers/7/email", riders)).toBeNull();
+    expect(refusedPassenger(undefined, riders)).toBeNull();
   });
 });

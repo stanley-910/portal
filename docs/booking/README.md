@@ -148,6 +148,7 @@ that point stops the step and says so; a lower one is used.
 | --- | --- |
 | Re-search can't find the chosen flight at settle | "That flight is gone"; back to the options |
 | Hold order fails (seats gone, price changed) | Back to Planning with the reason; details are deleted |
+| The airline refuses one rider's detail (a phone number, a passport) | Only that rider enters their details again; everyone else's stay in and the settle stands |
 | A card hold fails | That rider retries; others are unaffected |
 | Paying Duffel fails after every card is held | Retry, then cancel every card hold and return to Planning; nobody is charged |
 | A capture fails after Duffel was paid | The ticket stands; that rider's share becomes a debt in the split and we contact them. Rare, since holds are already approved. |

@@ -7,7 +7,7 @@ import type { BookingSeat, LegBooking, Money } from "@/lib/liveblocks/types";
 import { cancelOrder, createOrder, findOfferFor, getOffer, getOrder, payOrder } from "./duffel";
 import { BookingError, isBookingError, type BookingErrorCode } from "./errors";
 import { offerExpired, perSeat, travellerSchema, type BookableOffer, type TravellerDetails } from "./offer";
-import { settleReady, storedFlights } from "./ready";
+import { refusedPassenger, settleReady, storedFlights } from "./ready";
 import { allDetailsIn, allPaid, anyonePaid, bookingDeadline, openSeats, priceRose, splitShares } from "./shares";
 import { bookingStore, type PaymentRow } from "./store";
 import { cancelPayment, capturePayment, captureBefore, createHoldCheckout, getCheckoutSession, getPaymentIntent, stripeConfigured, testCheckoutAllowed } from "./stripe";
@@ -237,6 +237,20 @@ async function holdSeats(roomId: string, legId: string) {
     await store.deleteTravellers(roomId, legId);
   } catch (e) {
     const f = failure(e);
+    const refused = refusedPassenger(f.field, riders);
+    if (refused) {
+      // one rider's detail was refused: only they enter theirs again; everyone else's stay in, and the settle stands
+      await store.deleteTravellers(roomId, legId, refused.rider);
+      await liveblocks().mutateStorage(roomId, ({ root }) => {
+        const l = root.get("legs").get(legId);
+        const b = l?.get("booking");
+        if (!l || !b || b.status !== "details") return;
+        l.set("booking", { ...b, seats: { ...b.seats, [refused.rider]: { ...b.seats[refused.rider], details: false } } });
+        const who = root.get("members").get(refused.rider)?.get("name") ?? "That rider";
+        l.set("bookingNotice", `The airline refused a traveller detail (${refused.field}). ${who} needs to check it and enter their details again.`);
+      });
+      return;
+    }
     await back(f.field ? `The airline refused a traveller detail (${f.field.split("/").pop()}). Check it and settle again.` : `${f.message} Settle again when you're ready.`);
   }
 }
