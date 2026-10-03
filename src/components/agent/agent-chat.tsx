@@ -120,38 +120,13 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
   );
 }
 
-// The speech bubble's tail: a pixel wedge from the box's bottom edge to a point at Pip. Each row of light cells runs
-// from a(y) to b(y), the left edge leaning in faster than the right so it narrows to a point down and to the right;
-// ink outlines it like the box. Row 0 overlaps the box's border so the two read as one shape.
-const TAIL_CELL = 2;
-const TAIL_LIGHT = new Set<string>();
-for (let y = 0; ; y++) {
-  const a = Math.round(y * 1.7);
-  const b = 8 + Math.round(y * 0.9);
-  if (a > b) break;
-  for (let x = a; x <= b; x++) TAIL_LIGHT.add(`${x},${y}`);
-}
-const TAIL_INK = new Set<string>();
-for (const cell of TAIL_LIGHT) {
-  const [x, y] = cell.split(",").map(Number);
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1]]) if (!TAIL_LIGHT.has(`${x + dx},${y + dy}`)) TAIL_INK.add(`${x + dx},${y + dy}`);
-}
-const tailCells = (set: Set<string>) => [...set].map((c) => c.split(",").map(Number) as [number, number]);
-const TAIL_W = Math.max(...tailCells(TAIL_INK).map(([x]) => x)) + 2;
-const TAIL_H = Math.max(...tailCells(TAIL_INK).map(([, y]) => y)) + 1;
-
+// The speech bubble's tail: a short curl from under the bubble toward Pip. The fill runs up over the bubble's
+// border so the two read as one shape; the outline is drawn on the two curved sides only.
 function NudgeTail() {
   return (
-    <svg
-      aria-hidden
-      className="pip-nudge-tail"
-      width={TAIL_W * TAIL_CELL}
-      height={TAIL_H * TAIL_CELL}
-      viewBox={`-1 0 ${TAIL_W} ${TAIL_H}`}
-      shapeRendering="crispEdges"
-    >
-      {tailCells(TAIL_INK).map(([x, y]) => <rect key={`k${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-ink" />)}
-      {tailCells(TAIL_LIGHT).map(([x, y]) => <rect key={`l${x},${y}`} x={x} y={y} width={1} height={1} className="pip-nudge-tail-light" />)}
+    <svg aria-hidden className="pip-nudge-tail" width={22} height={16} viewBox="0 0 22 16">
+      <path className="pip-nudge-tail-fill" d="M3 0 C 5 7, 11 12, 20 14 C 15 10, 14 5, 15 0 Z" />
+      <path className="pip-nudge-tail-line" d="M3 1.5 C 5 7, 11 12, 20 14 C 15 10, 14 5, 15 1.5" />
     </svg>
   );
 }
