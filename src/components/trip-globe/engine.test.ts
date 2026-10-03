@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GlobeEngine } from "./engine";
+import { GlobeEngine, type GlobeCursor, type GlobeEvents } from "./engine";
 import { angle, D2R, dot, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
 
 function engine() {
@@ -94,7 +94,7 @@ function context() {
   }) as unknown as CanvasRenderingContext2D;
 }
 
-function setup(width = 2560, height = 1440) {
+function setup(width = 2560, height = 1440, events: GlobeEvents = {}) {
   const canvas = () => ({ width: 1, height: 1, getContext: () => context() }) as unknown as HTMLCanvasElement;
   const root = {
     clientWidth: width, clientHeight: height,
@@ -106,7 +106,7 @@ function setup(width = 2560, height = 1440) {
   vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
   const gl = canvas(), hud = canvas();
   const onFrame = vi.fn();
-  const engine = new GlobeEngine(root as unknown as HTMLElement, gl, hud, "", "", "", { onFrame });
+  const engine = new GlobeEngine(root as unknown as HTMLElement, gl, hud, "", "", "", { onFrame, ...events });
   const state = engine as unknown as Internals;
   state.gl = {} as WebGL2RenderingContext;
   state.resize();
@@ -179,6 +179,26 @@ describe("canvas invalidation", () => {
     engine.pointerLeave();
     frames(1);
     expect(drawHud).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops the ground ring and peels the cursor off the globe as it leaves", () => {
+    const changes: GlobeCursor[] = [];
+    const { engine, state, frames } = setup(2560, 1440, { onCursorChange: (c) => changes.push(c) });
+    state.reduceMotion = false;
+    frames(10);
+    engine.pointerMove({ clientX: 1280, clientY: 650 } as PointerEvent);
+    frames(5);
+    expect(changes.at(-1)?.marker).not.toBeNull();
+    expect(state.pick(40, 650)).toBeNull();
+    engine.pointerMove({ clientX: 40, clientY: 650 } as PointerEvent);
+    const before = changes.length;
+    frames(10);
+    const peel = changes.slice(before);
+    expect(peel.every((c) => c.marker === null)).toBe(true);
+    // held back toward the globe, which is to the right
+    expect(peel.some((c) => c.offset[0] > 0)).toBe(true);
+    frames(20);
+    expect(changes.at(-1)).toEqual({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   });
 
   it("redraws only the HUD when the 80ms surface-hub cache catches up under a still pointer", () => {

@@ -5,7 +5,7 @@ import { LiveMap, LiveObject } from "@liveblocks/node";
 import type { Handles, PlanJson } from "@/lib/agent/snapshot";
 import { showDate } from "@/lib/agent/snapshot";
 import { liveblocks } from "@/lib/liveblocks/server";
-import type { LegSearch, Stop } from "@/lib/liveblocks/types";
+import type { LegSearch, Stay, Stop } from "@/lib/liveblocks/types";
 import { searchPlaces } from "@/lib/places/search";
 import { runLegSearch } from "@/lib/trip/search-leg";
 
@@ -19,7 +19,22 @@ export type EditOp =
   | { op: "add_leg"; from: PlaceRef; to: PlaceRef; date: string; riders: string[] }
   | { op: "set_date"; leg: string; date: string }
   | { op: "set_riders"; leg: string; riders: string[] }
-  | { op: "remove_leg"; leg: string };
+  | { op: "remove_leg"; leg: string }
+  | { op: "set_stay_cost"; stop: string; nightly: { amount: number; currency: string } | null; label?: string | null }
+  | { op: "set_leaves"; member: string; date: string | null }
+  | { op: "set_trip_end"; date: string | null };
+
+/**
+ * What a changeset puts back, as JSON. Each id maps to the entry's old value, or null if the run created it.
+ * `leaves` and `ends` hold the old value wrapped, so "was unset" and "was null" both restore.
+ */
+type Before = {
+  legs: Record<string, LegJson | null>;
+  stops: Record<string, Stop | null>;
+  stays?: Record<string, Stay | null>;
+  leaves?: Record<string, { value: string | null }>;
+  ends?: { value: string | null };
+};
 
 export type Refusal = { op: number; code: "AMBIGUOUS_PLACE" | "UNKNOWN_PLACE" | "UNKNOWN_HANDLE" | "BAD_DATE"; reason: string; next: string };
 
@@ -51,7 +66,7 @@ type LegJson = NonNullable<PlanJson["legs"]>[string];
 export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: EditOp[], agentId: string): Promise<EditResult> {
   const refused: Refusal[] = [];
   const applied: string[] = [];
-  const before: { legs: Record<string, LegJson | null>; stops: Record<string, Stop | null> } = { legs: {}, stops: {} };
+  const before: Before = { legs: {}, stops: {} };
   const searches: { legId: string; searchId: string }[] = [];
   const member = (handle: string) => h.id.get(handle) ?? (plan.members?.[handle] ? handle : undefined);
   const legId = (handle: string) => {
@@ -65,7 +80,10 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     | { kind: "add"; from: string | Stop; to: string | Stop; date: string; riders: string[] }
     | { kind: "date"; leg: string; date: string }
     | { kind: "riders"; leg: string; riders: string[] }
-    | { kind: "remove"; leg: string };
+    | { kind: "remove"; leg: string }
+    | { kind: "stay"; stop: string; stay: Stay | null }
+    | { kind: "leaves"; member: string; date: string | null }
+    | { kind: "ends"; date: string | null };
   const planned: Planned[] = [];
   ops.forEach((op, i) => {
     const refuse = (r: Omit<Refusal, "op">) => refused.push({ op: i, ...r });
@@ -87,8 +105,9 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
       if (missing.length) return unknown(missing.join(", ")), null;
       return ids as string[];
     };
-    if ((op.op === "add_leg" || op.op === "set_date") && !DATE.test(op.date)) {
-      return refuse({ code: "BAD_DATE", reason: `${op.date} isn't YYYY-MM-DD.`, next: "Retry with an ISO date." });
+    const date = "date" in op ? op.date : null;
+    if (date !== null && !DATE.test(date)) {
+      return refuse({ code: "BAD_DATE", reason: `${date} isn't YYYY-MM-DD.`, next: "Retry with an ISO date." });
     }
     switch (op.op) {
       case "add_leg": {
@@ -117,6 +136,26 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
         planned.push({ kind: "remove", leg });
         return;
       }
+      case "set_stay_cost": {
+        const stop = h.id.get(op.stop);
+        if (!stop || !plan.stops?.[stop]) return unknown(op.stop);
+        if (op.nightly && !(op.nightly.amount >= 0)) {
+          return refuse({ code: "BAD_DATE", reason: "A nightly cost can't be negative.", next: "Ask what it costs." });
+        }
+        // clearing both the price and the label removes the stay
+        const label = op.label ?? plan.stays?.[stop]?.label ?? null;
+        planned.push({ kind: "stay", stop, stay: op.nightly || label ? { nightly: op.nightly, label } : null });
+        return;
+      }
+      case "set_leaves": {
+        const who = member(op.member);
+        if (!who) return unknown(op.member);
+        planned.push({ kind: "leaves", member: who, date: op.date });
+        return;
+      }
+      case "set_trip_end":
+        planned.push({ kind: "ends", date: op.date });
+        return;
     }
   });
 
@@ -146,6 +185,37 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
     };
 
     for (const p of planned) {
+      if (p.kind === "stay") {
+        let stays = root.get("stays");
+        if (!stays) root.set("stays", (stays = new LiveMap()));
+        before.stays ??= {};
+        if (!(p.stop in before.stays)) before.stays[p.stop] = plan.stays?.[p.stop] ?? null;
+        if (p.stay) stays.set(p.stop, new LiveObject(p.stay));
+        else stays.delete(p.stop);
+        const where = stopName(p.stop, created);
+        applied.push(
+          p.stay?.nightly
+            ? `Set ${where}${p.stay.label ? ` (${p.stay.label})` : ""} to ${p.stay.nightly.currency} ${p.stay.nightly.amount} a night`
+            : `Cleared the cost of staying in ${where}`,
+        );
+        continue;
+      }
+      if (p.kind === "leaves") {
+        const m = root.get("members").get(p.member);
+        if (!m) continue;
+        before.leaves ??= {};
+        if (!(p.member in before.leaves)) before.leaves[p.member] = { value: m.get("leaves") ?? null };
+        m.set("leaves", p.date);
+        const who = m.get("name");
+        applied.push(p.date ? `${who} leaves on ${showDate(p.date)}` : `${who} stays to the end`);
+        continue;
+      }
+      if (p.kind === "ends") {
+        before.ends ??= { value: root.get("ends") ?? null };
+        root.set("ends", p.date);
+        applied.push(p.date ? `Trip ends the morning of ${showDate(p.date)}` : "Trip ends after its last leg");
+        continue;
+      }
       if (p.kind === "add") {
         const id = newId();
         const search = pending();
@@ -214,7 +284,7 @@ export async function undoChangeset(roomId: string, changesetId: string) {
   await liveblocks().mutateStorage(roomId, ({ root }) => {
     const raw = root.get("changesets")?.get(changesetId);
     if (!raw) return;
-    const before = JSON.parse(raw) as { legs: Record<string, LegJson | null>; stops: Record<string, Stop | null> };
+    const before = JSON.parse(raw) as Before;
     const stops = root.get("stops");
     const legs = root.get("legs");
     for (const [id, stop] of Object.entries(before.stops)) if (stop) stops.set(id, new LiveObject(stop));
@@ -232,6 +302,16 @@ export async function undoChangeset(roomId: string, changesetId: string) {
     const used = new Set<string>();
     for (const l of legs.values()) used.add(l.get("from")).add(l.get("to"));
     for (const [id, stop] of Object.entries(before.stops)) if (!stop && !used.has(id)) stops.delete(id);
+    if (before.stays) {
+      let stays = root.get("stays");
+      if (!stays) root.set("stays", (stays = new LiveMap()));
+      for (const [id, stay] of Object.entries(before.stays)) {
+        if (stay) stays.set(id, new LiveObject(stay));
+        else stays.delete(id);
+      }
+    }
+    for (const [id, { value }] of Object.entries(before.leaves ?? {})) root.get("members").get(id)?.set("leaves", value);
+    if (before.ends) root.set("ends", before.ends.value);
     root.get("changesets")?.delete(changesetId);
   });
   await Promise.all(searches.map((s) => runLegSearch(roomId, s.legId, s.searchId)));

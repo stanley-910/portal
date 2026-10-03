@@ -6,7 +6,7 @@ import { cursorUrl, memberColor, RoundButton } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type FlightState, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
 import type { ThemeId } from "./palette";
 import { GlobeInfo } from "./globe-info";
 
@@ -106,6 +106,7 @@ export function TripGlobe({
   const [preview, setPreview] = useState<string | null>(null);
   const [landed, setLanded] = useState<LandedTrip | null>(null);
   const [unsupported, setUnsupported] = useState(false);
+  const [cursor, setCursor] = useState<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   const resolved = useResolvedTheme(theme);
 
   // Latest callbacks, so the engine never needs rebuilding when a parent re-renders.
@@ -126,6 +127,7 @@ export function TripGlobe({
         if (m === "flying") handlers.current.onTakeoff?.(a);
       },
       onPreviewChange: (_hub, name) => setPreview(name),
+      onCursorChange: setCursor,
       onLand: (trip) => {
         setLanded(trip);
         handlers.current.onLand?.(trip);
@@ -165,8 +167,8 @@ export function TripGlobe({
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
     if (rootRef.current)
-      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(0), resolved);
-  }, [mode, resolved]);
+      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(0), resolved, { ...cursor, noShadow: true });
+  }, [mode, resolved, cursor]);
 
   useImperativeHandle(
     ref,

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { editPlan, resolvePlace, type EditOp, type PlaceRef } from "@/lib/agent/edit";
 import { findMeetup, type MeetupGroup } from "@/lib/agent/meetup";
+import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
@@ -51,10 +52,32 @@ const editOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("set_date"), leg: z.string().describe("Leg handle"), date }),
   z.object({ op: z.literal("set_riders"), leg: z.string(), riders: z.array(z.string()) }),
   z.object({ op: z.literal("remove_leg"), leg: z.string() }),
+  z.object({
+    op: z.literal("set_stay_cost"),
+    stop: z.string().describe("Stop handle"),
+    nightly: z
+      .object({ amount: z.number().min(0), currency: z.string().length(3).describe("ISO code, e.g. HKD") })
+      .nullable()
+      .describe("What staying there costs the whole group per night, as someone said it; null clears it. Never estimate one."),
+    label: z.string().max(60).nullable().optional().describe("e.g. Shinjuku apartment"),
+  }),
+  z.object({
+    op: z.literal("set_leaves"),
+    member: z.string().describe("Member handle"),
+    date: date.nullable().describe("The day they leave; their last night is the one before. Null: they stay to the end"),
+  }),
+  z.object({
+    op: z.literal("set_trip_end"),
+    date: date.nullable().describe("The morning after the trip's last night. Null: it ends after the last leg"),
+  }),
 ]);
 
 /** How fresh a price is, said the same way every time so the model can't guess. */
 const KIND = { live: "live fare", cached: "cached fare", timetable: "timetable fare", estimated: "estimated" } as const;
+
+/** Amounts per currency, never converted: "HKD 1,240 + USD 67". */
+const money = (sums: Record<string, number>) =>
+  Object.entries(sums).map(([c, n]) => `${c} ${n.toLocaleString("en-GB")}`).join(" + ");
 
 const fmt = (o: MeetupOption) => {
   const legs = o.legs
@@ -101,9 +124,47 @@ export function agentTools(ctx: ToolContext) {
       },
     }),
 
+    get_split: tool({
+      description:
+        "Who pays what: each member's fares by leg and their share of each night's stay, totalled per currency, with what's missing (no option chosen on a leg, no stay cost). Nights come from legs, leave dates and the trip end. Quote it; never add up costs yourself.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { plan, handles } = await ctx.load();
+        const split = computeSplit(plan);
+        const legName = (id: string) => handles.leg.get(id) ?? "?";
+        const stopName = (id: string) => plan.stops?.[id]?.name ?? "?";
+        const members = Object.entries(split.members).map(([id, m]) => {
+          const who = `${handles.member.get(id) ?? "?"} ${plan.members?.[id]?.name ?? "someone"}`;
+          const fares = m.fares.map((f) => `${legName(f.leg)} ${f.price ? `${f.price.currency} ${f.price.amount} (${KIND[f.kind ?? "estimated"]})` : "no option chosen"}`);
+          // nights grouped by stop, each stop's shares added per currency
+          const byStop = new Map<string, { nights: number; sums: Record<string, number> }>();
+          for (const n of m.nightShares) {
+            const e = byStop.get(n.stop) ?? { nights: 0, sums: {} };
+            e.nights++;
+            e.sums[n.share.currency] = Math.round(((e.sums[n.share.currency] ?? 0) + n.share.amount) * 100) / 100;
+            byStop.set(n.stop, e);
+          }
+          const stays = [...byStop].map(([stop, e]) => `${stopName(stop)} ${e.nights} night${e.nights > 1 ? "s" : ""} ${money(e.sums)}`);
+          const unpriced = split.nights.filter((n) => !n.nightly && n.present.includes(id)).length;
+          return [
+            who,
+            `fares: ${fares.join("; ") || "none"}`,
+            `stays: ${stays.join("; ") || "none priced"}${unpriced ? ` (+${unpriced} unpriced night${unpriced > 1 ? "s" : ""})` : ""}`,
+            `total: ${money(m.totals) || "nothing yet"}`,
+            m.missing.length ? `missing: ${m.missing.map((x) => (x === "no_chosen_offer" ? "a leg has no option chosen" : "a stop has no stay cost")).join(", ")}` : "",
+          ].filter(Boolean).join(" · ");
+        });
+        return {
+          ends: split.ends,
+          members,
+          note: "Totals are per currency and never converted. If something is missing, say what, and that the total covers only what's priced.",
+        };
+      },
+    }),
+
     edit_plan: tool({
       description:
-        "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
+        "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, set what a stay costs a night, when someone leaves, and when the trip ends. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
       inputSchema: z.object({ ops: z.array(editOp).min(1) }),
       execute: async ({ ops }) => {
         ctx.activity("editing the trip");

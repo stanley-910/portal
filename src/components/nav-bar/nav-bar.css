@@ -74,14 +74,17 @@
 
 /* The profile menu: who you are, then titled groups of segmented choices. */
 .pn-profile-menu { width: min(18rem, calc(100vw - 2 * var(--space-4))); min-width: 0; gap: 0; padding: var(--space-2) var(--space-3) var(--space-3); color: var(--ink); font-family: var(--font-sans); }
-.pn-profile-who { display: flex; align-items: center; gap: var(--space-gap); min-height: 44px; padding-block: var(--space-1); font-size: 15px; font-weight: 600; }
+.pn-profile-who { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-gap); min-height: 44px; padding-block: var(--space-1); font-size: 15px; font-weight: 600; }
 .pn-profile-who .pn-menu-text { min-width: 0; }
-.pn-profile-who .pn-menu-text > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pn-profile-who .pn-menu-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pn-profile-who .pn-profile-row { flex-basis: 100%; }
 .pn-profile-initials { border-radius: var(--radius-round); width: 32px; }
 .pn-profile-menu .pn-profile-edit { flex: none; height: 44px; min-height: 0; padding-inline: var(--space-2); }
 .pn-profile-form { display: flex; flex-direction: column; gap: var(--space-1); padding-block: var(--space-2); }
 .pn-profile-form .pn-profile-edit { align-self: flex-start; }
 .pn-profile-row { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
+.pn-profile-guest { display: flex; flex-direction: column; gap: var(--space-1); padding-bottom: var(--space-1); }
+.pn-profile-guest .pa-btn, .pn-profile-guest .pa-btn > span { justify-content: center; padding-inline: var(--space-2); }
 .pn-profile-input { flex: 1; min-width: 0; height: 44px; box-sizing: border-box; padding-inline: var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font: inherit; font-size: 15px; }
 .pn-profile-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-profile-section { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); margin-top: var(--space-2); border-top: var(--line-hair) solid var(--line); }

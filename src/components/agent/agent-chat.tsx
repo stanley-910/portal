@@ -1,11 +1,10 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
+import { useOpenAuth } from "@/components/auth/links";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import { Button, RoundButton } from "@/components/paper-atlas";
 import { showDate } from "@/lib/agent/snapshot";
@@ -17,8 +16,11 @@ import { memberColor } from "@/lib/liveblocks/types";
 // a chat panel. Pip's surfaces are starlight pixels; people's are Paper Atlas print (handoff: "what Pip makes").
 
 const CHIPS = ["@Pip where should we meet?", "@Pip somewhere fair in the middle", "@Pip what's on the trip so far?"];
-const NUDGE = "Tell me where everyone's starting from. I'll find where to meet.";
+const NUDGE = `Hi, I'm ${AGENT_NAME}. Tell me where everyone's starting from and I'll find where to meet.`;
 const NUDGE_DELAY_MS = 900;
+// how long the nudge stays once typed out; it shows once per page load
+const NUDGE_HOLD_MS = 5000;
+const nudged = new Set<string>();
 const TYPE_MS = 34;
 const NUDGE_VISIBLE_MS = 2_000;
 
@@ -38,10 +40,18 @@ export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
 
 export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; onOpen: () => void; nudge?: string }) {
   const [hover, setHover] = useState(false);
-  const typed = useTyping(nudge);
+  const [done, setDone] = useState(() => nudged.has(nudge));
+  const typed = useTyping(done ? null : nudge);
+  const finished = typed === nudge;
+  useEffect(() => {
+    if (!finished) return;
+    nudged.add(nudge);
+    const timer = window.setTimeout(() => setDone(true), NUDGE_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [finished, nudge]);
   return (
     <div className="pip-launcher">
-      {typed !== null ? (
+      {typed !== null && !done ? (
         <button type="button" className="pip-nudge" onClick={onOpen}>
           <span className="pip-nudge-inner">
             <span className="pip-nudge-text">
@@ -51,7 +61,6 @@ export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; o
                 {typed.length < nudge.length ? <span className="pip-caret">▌</span> : null}
               </span>
             </span>
-            <span className="pip-nudge-foot">{AGENT_NAME} · tap to chat</span>
           </span>
           <span aria-hidden className="pip-nudge-tail" />
         </button>
@@ -64,7 +73,7 @@ export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; o
         onPointerEnter={() => setHover(true)}
         onPointerLeave={() => setHover(false)}
       >
-        <PipSprite size={58} mood={hover ? "talk" : "idle"} />
+        <PipSprite size={40} mood={hover ? "talk" : "idle"} />
         {unread ? <span aria-label="New reply" className="pip-unread" /> : null}
       </button>
     </div>
@@ -72,9 +81,10 @@ export function Launcher({ unread, onOpen, nudge = NUDGE }: { unread: boolean; o
 }
 
 /** Types `text` out a character at a time after a short wait; the whole text at once under reduced motion. */
-function useTyping(text: string): string | null {
+function useTyping(text: string | null): string | null {
   const [n, setN] = useState<number | null>(null);
   useEffect(() => {
+    if (text === null) return;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let i = 0;
     let timer: number;
@@ -100,7 +110,7 @@ function useTyping(text: string): string | null {
       window.clearTimeout(hide);
     };
   }, [text]);
-  return n === null ? null : text.slice(0, n);
+  return n === null || text === null ? null : text.slice(0, n);
 }
 
 function Panel({ thread, onClose }: { thread: ThreadMessage[]; onClose: () => void }) {
@@ -290,7 +300,7 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<"failed" | "sign-in" | null>(null);
   const [pending, start] = useTransition();
-  const pathname = usePathname();
+  const openAuth = useOpenAuth();
   const submit = (text: string) => {
     const t = text.trim();
     if (!t) return;
@@ -322,9 +332,9 @@ export function Composer({ send, chips = CHIPS, placeholder = `Message the group
       {error === "failed" ? <p className="pip-caption" role="alert">That didn&apos;t send. Try again.</p> : null}
       {error === "sign-in" ? (
         <p className="pip-caption" role="alert">
-          <Link href={`/login?next=${encodeURIComponent(pathname || "/")}`} className="underline">
+          <button type="button" className="underline" onClick={() => openAuth("signin")}>
             Sign in
-          </Link>{" "}
+          </button>{" "}
           to ask {AGENT_NAME}.
         </p>
       ) : null}

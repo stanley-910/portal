@@ -35,6 +35,9 @@ begin
     left(
       coalesce(
         nullif(btrim(new.raw_user_meta_data->>'display_name'), ''),
+        -- Google sign-ins carry the account's name here instead.
+        nullif(btrim(new.raw_user_meta_data->>'full_name'), ''),
+        nullif(btrim(new.raw_user_meta_data->>'name'), ''),
         nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
         'Traveller'
       ),

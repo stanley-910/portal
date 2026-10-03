@@ -1,12 +1,14 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { safeNext } from "@/lib/auth/next";
 import { MAX_NAME } from "@/lib/auth/limits";
+import { safeNext } from "@/lib/auth/next";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
-export type AuthState = { error?: string; notice?: string };
+/** `ok`: signed in, so the panel reloads the page as the new account. */
+export type AuthState = { error?: string; notice?: string; ok?: boolean };
 
 const MSG = {
   wrong: "Email or password is wrong.",
@@ -40,7 +42,12 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   const supabase = await createSupabaseServer();
   if (!supabase) return { error: MSG.off };
   const { name, email, password } = parsed.data;
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: name } } });
+  const emailRedirectTo = (await callbackUrl(field(formData, "next"), "email")) ?? undefined;
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: name }, emailRedirectTo },
+  });
   if (error) {
     if (error.code === "weak_password") return { error: MSG.weak };
     if (error.code === "user_already_exists" || error.code === "email_exists") return { error: MSG.taken };
@@ -52,7 +59,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   // With "Confirm email" on, an already-registered address returns an obfuscated user with no identities.
   if (data.user && data.user.identities?.length === 0) return { error: MSG.taken };
   if (!data.session) return { notice: MSG.confirm };
-  redirect(safeNext(field(formData, "next")));
+  return { ok: true };
 }
 
 export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -62,7 +69,35 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   if (!supabase) return { error: MSG.off };
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: error.status && error.status >= 500 ? MSG.generic : MSG.wrong };
-  redirect(safeNext(field(formData, "next")));
+  return { ok: true };
+}
+
+/**
+ * Where Google, or the link in a confirmation email, sends people back to: /auth/callback, which swaps the one-time
+ * code for a session and returns them to `next`. Next has already checked that a Server Action's Origin matches the
+ * host, and Supabase only redirects to URLs on its allow list.
+ */
+async function callbackUrl(next: unknown, via: "google" | "email"): Promise<string | null> {
+  const origin = (await headers()).get("origin");
+  if (!origin) return null;
+  const url = new URL("/auth/callback", origin);
+  url.searchParams.set("next", safeNext(next));
+  url.searchParams.set("via", via);
+  return url.toString();
+}
+
+/** Starts Google sign-in, the quickest way in: no password, and the email is already verified. */
+export async function signInWithGoogle(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const supabase = await createSupabaseServer();
+  if (!supabase) return { error: MSG.off };
+  const redirectTo = await callbackUrl(field(formData, "next"), "google");
+  if (!redirectTo) return { error: MSG.generic };
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+  if (error || !data.url) {
+    console.warn("[auth] Google sign-in failed:", error?.status, error?.code);
+    return { error: MSG.generic };
+  }
+  redirect(data.url);
 }
 
 export async function signOut(): Promise<void> {
