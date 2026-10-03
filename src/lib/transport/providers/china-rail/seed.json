@@ -1,5 +1,5 @@
 {
-  "checked": "2026-10-02",
+  "checked": "2026-10-04",
   "stations": {
     "beijing-south": {
       "city": "beijing",
@@ -222,7 +222,12 @@
       ],
       "durationMin": 59,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -233,7 +238,12 @@
       ],
       "durationMin": 69,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -244,7 +254,12 @@
       ],
       "durationMin": 66,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -255,7 +270,12 @@
       ],
       "durationMin": 49,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -266,7 +286,12 @@
       ],
       "durationMin": 69,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -277,7 +302,12 @@
       ],
       "durationMin": 59,
       "tz": "Asia/Shanghai",
-      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/"
+      "source": "https://www.chinaairlinetravel.com/trains/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -288,7 +318,12 @@
       ],
       "durationMin": 45,
       "tz": "Asia/Shanghai",
-      "source": "https://www.trip.com/trains/china/route/shanghai-to-hangzhou/"
+      "source": "https://www.trip.com/trains/china/route/shanghai-to-hangzhou/",
+      "fare": {
+        "amount": 73,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/shanghai-hangzhou.htm"
+      }
     },
     {
       "from": "hangzhou-east",
@@ -431,7 +466,12 @@
       ],
       "durationMin": 29,
       "tz": "Asia/Shanghai",
-      "source": "https://www.klook.com/en-US/china-high-speed-rail/23301-shenzhen/12146-guangzhou/"
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/23301-shenzhen/12146-guangzhou/",
+      "fare": {
+        "amount": 74.5,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "shenzhen-north",
@@ -442,7 +482,12 @@
       ],
       "durationMin": 41,
       "tz": "Asia/Shanghai",
-      "source": "https://www.klook.com/en-US/china-high-speed-rail/23301-shenzhen/12146-guangzhou/"
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/23301-shenzhen/12146-guangzhou/",
+      "fare": {
+        "amount": 74.5,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "shenzhen-north",
@@ -453,7 +498,12 @@
       ],
       "durationMin": 36,
       "tz": "Asia/Shanghai",
-      "source": "https://www.travelchinaguide.com/china-trains/shenzhen-guangzhou.htm"
+      "source": "https://www.travelchinaguide.com/china-trains/shenzhen-guangzhou.htm",
+      "fare": {
+        "amount": 74.5,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "shenzhen-north",
@@ -464,7 +514,12 @@
       ],
       "durationMin": 29,
       "tz": "Asia/Shanghai",
-      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/"
+      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/",
+      "fare": {
+        "amount": 74.5,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "shenzhen-futian",
@@ -486,7 +541,12 @@
       ],
       "durationMin": 29,
       "tz": "Asia/Shanghai",
-      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/"
+      "source": "https://www.trip.com/trains/china/route/shenzhen-to-guangzhou/",
+      "fare": {
+        "amount": 74.5,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -497,7 +557,12 @@
       ],
       "durationMin": 18,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 82,
+        "currency": "HKD",
+        "source": "https://www.moneyhero.com.hk/blog/zh/香港高鐵優惠-高鐵信用卡-高鐵訂票"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -508,7 +573,12 @@
       ],
       "durationMin": 14,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 68,
+        "currency": "CNY",
+        "source": "https://www.hk01.com/社會新聞/856256"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -519,7 +589,12 @@
       ],
       "durationMin": 20,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 82,
+        "currency": "HKD",
+        "source": "https://www.moneyhero.com.hk/blog/zh/香港高鐵優惠-高鐵信用卡-高鐵訂票"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -530,7 +605,12 @@
       ],
       "durationMin": 18,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 82,
+        "currency": "HKD",
+        "source": "https://www.moneyhero.com.hk/blog/zh/香港高鐵優惠-高鐵信用卡-高鐵訂票"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -541,7 +621,12 @@
       ],
       "durationMin": 18,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 82,
+        "currency": "HKD",
+        "source": "https://www.moneyhero.com.hk/blog/zh/香港高鐵優惠-高鐵信用卡-高鐵訂票"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -552,7 +637,12 @@
       ],
       "durationMin": 14,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 68,
+        "currency": "CNY",
+        "source": "https://www.hk01.com/社會新聞/856256"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -563,7 +653,12 @@
       ],
       "durationMin": 18,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 82,
+        "currency": "HKD",
+        "source": "https://www.moneyhero.com.hk/blog/zh/香港高鐵優惠-高鐵信用卡-高鐵訂票"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -574,7 +669,12 @@
       ],
       "durationMin": 20,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 82,
+        "currency": "HKD",
+        "source": "https://www.moneyhero.com.hk/blog/zh/香港高鐵優惠-高鐵信用卡-高鐵訂票"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -585,7 +685,12 @@
       ],
       "durationMin": 14,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/short-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 68,
+        "currency": "CNY",
+        "source": "https://www.hk01.com/社會新聞/856256"
+      }
     },
     {
       "from": "shenzhen-north",
@@ -706,7 +811,12 @@
       ],
       "durationMin": 260,
       "tz": "Asia/Shanghai",
-      "source": "https://www.klook.com/en-US/china-high-speed-rail/57-beijing/60-xian/"
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/57-beijing/60-xian/",
+      "fare": {
+        "amount": 515,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "beijing-west",
@@ -717,7 +827,12 @@
       ],
       "durationMin": 250,
       "tz": "Asia/Shanghai",
-      "source": "https://www.klook.com/en-US/china-high-speed-rail/57-beijing/60-xian/"
+      "source": "https://www.klook.com/en-US/china-high-speed-rail/57-beijing/60-xian/",
+      "fare": {
+        "amount": 515,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "beijing-west",
@@ -728,7 +843,12 @@
       ],
       "durationMin": 347,
       "tz": "Asia/Shanghai",
-      "source": "https://www.trainspread.com/china-trains/beijing-xian-trains"
+      "source": "https://www.trainspread.com/china-trains/beijing-xian-trains",
+      "fare": {
+        "amount": 515,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "beijing-west",
@@ -739,7 +859,12 @@
       ],
       "durationMin": 251,
       "tz": "Asia/Shanghai",
-      "source": "https://www.trainspread.com/china-trains/beijing-xian-trains"
+      "source": "https://www.trainspread.com/china-trains/beijing-xian-trains",
+      "fare": {
+        "amount": 515,
+        "currency": "CNY",
+        "source": "https://www.chinafortravelers.com/guides/china-hsr-overview/"
+      }
     },
     {
       "from": "xian-north",
@@ -805,7 +930,12 @@
       ],
       "durationMin": 488,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 973,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/hongkong-shanghai.htm"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -816,7 +946,12 @@
       ],
       "durationMin": 524,
       "tz": "Asia/Hong_Kong",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 973,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/hongkong-shanghai.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -827,7 +962,12 @@
       ],
       "durationMin": 545,
       "tz": "Asia/Shanghai",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 973,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/hongkong-shanghai.htm"
+      }
     },
     {
       "from": "shanghai-hongqiao",
@@ -838,7 +978,12 @@
       ],
       "durationMin": 486,
       "tz": "Asia/Shanghai",
-      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+      "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf",
+      "fare": {
+        "amount": 973,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/high-speed/hongkong-shanghai.htm"
+      }
     },
     {
       "from": "hong-kong-west-kowloon",
@@ -861,6 +1006,274 @@
       "durationMin": 492,
       "tz": "Asia/Shanghai",
       "source": "https://www.highspeed.mtr.com.hk/res/pdf/long-haul-train-timetable.pdf"
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "shanghai-hongqiao",
+      "number": "G700",
+      "departures": [
+        "07:21"
+      ],
+      "durationMin": 434,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 878.5,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "shanghai-hongqiao",
+      "number": "G270",
+      "departures": [
+        "07:43"
+      ],
+      "durationMin": 394,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 878.5,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "shanghai-hongqiao",
+      "number": "G902",
+      "departures": [
+        "11:57"
+      ],
+      "durationMin": 466,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 878.5,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "shanghai-hongqiao",
+      "number": "G100",
+      "departures": [
+        "11:59"
+      ],
+      "durationMin": 446,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 878.5,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shenzhen-north",
+      "to": "shanghai-hongqiao",
+      "number": "G386",
+      "departures": [
+        "14:27"
+      ],
+      "durationMin": 495,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 878.5,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shenzhen-futian",
+      "to": "shanghai-hongqiao",
+      "number": "G386",
+      "departures": [
+        "14:14"
+      ],
+      "durationMin": 508,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 878.5,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "shenzhen-north",
+      "number": "G2784",
+      "departures": [
+        "06:55"
+      ],
+      "durationMin": 613,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/shanghai-shenzhen-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "shenzhen-north",
+      "number": "G2788",
+      "departures": [
+        "12:50"
+      ],
+      "durationMin": 585,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/shanghai-shenzhen-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "shenzhen-north",
+      "number": "G99",
+      "departures": [
+        "13:50"
+      ],
+      "durationMin": 461,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/shanghai-shenzhen-train.htm"
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "shenzhen-north",
+      "number": "G699",
+      "departures": [
+        "15:00"
+      ],
+      "durationMin": 442,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.chinahighlights.com/china-trains/shanghai-shenzhen-train.htm"
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shanghai-hongqiao",
+      "number": "G246",
+      "departures": [
+        "08:27"
+      ],
+      "durationMin": 396,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shanghai-hongqiao",
+      "number": "G1302",
+      "departures": [
+        "13:19"
+      ],
+      "durationMin": 508,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "guangzhou-south",
+      "to": "shanghai-hongqiao",
+      "number": "G254",
+      "departures": [
+        "15:09"
+      ],
+      "durationMin": 405,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm"
+      }
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "guangzhou-south",
+      "number": "G1305",
+      "departures": [
+        "06:51"
+      ],
+      "durationMin": 448,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm"
+      }
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "guangzhou-south",
+      "number": "G245",
+      "departures": [
+        "08:00"
+      ],
+      "durationMin": 398,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm"
+      }
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "guangzhou-south",
+      "number": "G247",
+      "departures": [
+        "11:03"
+      ],
+      "durationMin": 407,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm"
+      }
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "guangzhou-south",
+      "number": "G251",
+      "departures": [
+        "14:00"
+      ],
+      "durationMin": 374,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm"
+      }
+    },
+    {
+      "from": "shanghai-hongqiao",
+      "to": "guangzhou-south",
+      "number": "G253",
+      "departures": [
+        "16:00"
+      ],
+      "durationMin": 387,
+      "tz": "Asia/Shanghai",
+      "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm",
+      "fare": {
+        "amount": 835,
+        "currency": "CNY",
+        "source": "https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm"
+      }
     }
   ]
 }

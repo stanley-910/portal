@@ -12,6 +12,7 @@ import officialFerries from "./providers/official-ferries";
 import twelveGo from "./providers/12go";
 import vietnamRail from "./providers/vietnam-rail";
 import railCache from "./providers/rail-cache";
+import crossBorder from "./providers/cross-border";
 
 // The provider list. Each provider lives in providers/<id>/index.ts; adding one never means editing the others.
 export const providers: readonly TransportProvider[] = [
@@ -27,4 +28,5 @@ export const providers: readonly TransportProvider[] = [
   srt,
   vietnamRail,
   railCache,
+  crossBorder,
 ];

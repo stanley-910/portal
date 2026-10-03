@@ -79,7 +79,10 @@ export function createChinaRailProvider(seed: Seed): TransportProvider {
                   durationMin: t.durationMin,
                 },
               ],
-              attribution: `Typical China rail timetable, checked ${seed.checked}: ${t.source}; fare and seats not checked`,
+              ...(t.fare && { price: { amount: t.fare.amount, currency: t.fare.currency, asOf: seed.checked } }),
+        attribution: t.fare
+          ? `Typical China rail timetable and second-class fare, checked ${seed.checked}: ${t.source}; ${t.fare.source}. Real fares vary by train and date; seats not checked`
+          : `Typical China rail timetable, checked ${seed.checked}: ${t.source}; fare and seats not checked`,
               bookingUrl: tripComTrainUrl(from, to, q.date),
             };
           }),

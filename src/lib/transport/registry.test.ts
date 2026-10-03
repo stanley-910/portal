@@ -16,10 +16,11 @@ const ALL_IDS: Record<ProviderId, true> = {
   duffel: true,
   "vietnam-rail": true,
   "rail-cache": true,
+  "cross-border": true,
 };
 
 // Providers whose adapter task has replaced the stub; their own tests cover search/covers.
-const LANDED = new Set<ProviderId>(["gtfs", "china-rail", "tdx", "busonlineticket", "korea-tago", "12go", "srt", "travelpayouts", "duffel", "vietnam-rail", "official-ferries", "rail-cache"]);
+const LANDED = new Set<ProviderId>(["gtfs", "china-rail", "tdx", "busonlineticket", "korea-tago", "12go", "srt", "travelpayouts", "duffel", "vietnam-rail", "official-ferries", "rail-cache", "cross-border"]);
 const stubs = providers.filter((p) => !LANDED.has(p.id));
 
 const place = { name: "X", lat: 0, lng: 0 };

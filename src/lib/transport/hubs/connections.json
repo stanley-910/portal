@@ -34,5 +34,9 @@
   {"to":"ferry:BINTAN-BBT","mode":"ferry","durationMin":70,"source":"https://www.brf.com.sg/","from":"ferry:SG-TANAH-MERAH"},
   {"to":"ferry:SG-TANAH-MERAH","mode":"ferry","durationMin":70,"source":"https://www.brf.com.sg/","from":"ferry:BINTAN-BBT"},
   {"to":"ferry:BUSAN-INTERNATIONAL","mode":"ferry","durationMin":360,"source":"https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf","from":"ferry:HAKATA-INTERNATIONAL"},
-  {"to":"ferry:HAKATA-INTERNATIONAL","mode":"ferry","durationMin":540,"source":"https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf","from":"ferry:BUSAN-INTERNATIONAL"}
+  {"to":"ferry:HAKATA-INTERNATIONAL","mode":"ferry","durationMin":540,"source":"https://www.camellia-line.co.jp/wp-content/themes/2017theme_0111/camellialine/pdf/en_pamphlet.pdf","from":"ferry:BUSAN-INTERNATIONAL"},
+  {"from":"train:SHENZHEN-NORTH","to":"train:SHANGHAI-HONGQIAO","mode":"train","durationMin":446,"source":"https://www.travelchinaguide.com/shenzhen-to-shanghai-trains.htm"},
+  {"from":"train:SHANGHAI-HONGQIAO","to":"train:SHENZHEN-NORTH","mode":"train","durationMin":446,"source":"https://www.chinahighlights.com/china-trains/shanghai-shenzhen-train.htm"},
+  {"from":"train:GUANGZHOU-SOUTH","to":"train:SHANGHAI-HONGQIAO","mode":"train","durationMin":396,"source":"https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm"},
+  {"from":"train:SHANGHAI-HONGQIAO","to":"train:GUANGZHOU-SOUTH","mode":"train","durationMin":398,"source":"https://www.travelchinaguide.com/china-trains/shanghai-guangzhou-highspeed.htm"}
 ]

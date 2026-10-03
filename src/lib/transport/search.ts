@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 
 import { providers } from "./registry";
+import { createSearchCache } from "./search-cache";
 import {
   ProviderFailure,
   transfersOf,
@@ -221,9 +222,16 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
   return { offers: rankOffers(offers, query.currency), errors, tookMs };
 }
 
-/** Coordinate/hub searches use best-option ranking and retain their error contract. */
+const cachedSearch = createSearchCache(
+  (query: SearchQuery, signal: AbortSignal) => runSearch(query, { signal }, false),
+  { ttlMs: 5 * 60_000, errorTtlMs: 30_000, max: 500 },
+);
+
+/** Coordinate/hub searches use best-option ranking and retain their error contract. Cached briefly; see search-cache. */
 export function searchTransport(query: SearchQuery, signal: AbortSignal): Promise<SearchResult> {
-  return runSearch(query, { signal }, false);
+  // Tests swap providers between cases, so a shared cache would leak results across them.
+  if (process.env.VITEST) return runSearch(query, { signal }, false);
+  return cachedSearch(query, signal);
 }
 
 // No retries here yet: retryable failures go back to the client in `errors[]`.

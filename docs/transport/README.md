@@ -138,6 +138,12 @@ curl --get 'http://localhost:3000/api/transport/search' \
   are unknown rather than inventing airports.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical
   departure times with a cited source. A row without a cited time or fare isn't seeded.
+- China rail seed trains can carry a cited typical second-class fare (`fare` in the seed). Priced rows show the
+  fare with the Estimated badge, because real fares vary by train and date; rows without a source stay unpriced.
+  A Hong Kong search also returns trains from Shenzhen North and Futian, a border crossing away.
+- `cross-border` models frequent ground links no timetable covers: Hong Kong (Admiralty) ↔ Shenzhen North by MTR
+  East Rail, the Lo Wu checkpoint and Shenzhen Metro. Typical fare and times, always **estimated**, with the
+  crossing time stated. `CONNECTORS` is also what Pip's route composer uses to reach a cheaper gateway.
 - `official-ferries` adds cited typical operator timetables for Singapore–Batam (HarbourFront and Tanah Merah),
   Singapore–Bintan and Busan–Hakata, with independent directions, weekday restrictions and local arrival offsets.
   It is an offline **timetable** subset: no live seats or prices, no date-specific cancellation calendar. Every result
