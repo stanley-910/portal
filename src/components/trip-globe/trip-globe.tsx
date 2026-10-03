@@ -41,6 +41,8 @@ export interface TripGlobeProps {
   onLand?: (legs: LandedTrip[]) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
+  /** Called on a click on the landed trip's route. That click neither takes off nor cancels. */
+  onRouteClick?: () => void;
   /**
    * Called when the place under the pointer changes, including when the globe turns under a still pointer.
    * Null once the pointer leaves the globe. Rounded to about 10 m.
@@ -95,6 +97,7 @@ export function TripGlobe({
   onTakeoff,
   onLand,
   onCancel,
+  onRouteClick,
   onPointerLatLng,
   onFlightChange,
   earthUrl = "/textures/earth.png",
@@ -118,9 +121,9 @@ export function TripGlobe({
   const resolved = useResolvedTheme(theme);
 
   // Latest callbacks, so the engine never needs rebuilding when a parent re-renders.
-  const handlers = useRef({ onTakeoff, onLand, onCancel, onPointerLatLng, onFlightChange });
+  const handlers = useRef({ onTakeoff, onLand, onCancel, onRouteClick, onPointerLatLng, onFlightChange });
   useEffect(() => {
-    handlers.current = { onTakeoff, onLand, onCancel, onPointerLatLng, onFlightChange };
+    handlers.current = { onTakeoff, onLand, onCancel, onRouteClick, onPointerLatLng, onFlightChange };
   });
   const frameListeners = useRef(new Set<() => void>());
 
@@ -141,6 +144,7 @@ export function TripGlobe({
         handlers.current.onLand?.(legs);
       },
       onCancel: () => handlers.current.onCancel?.(),
+      onRouteClick: () => handlers.current.onRouteClick?.(),
       onFrame: () => {
         const ll = roundLatLng(engine.pointerLatLng());
         if (!sameLatLng(ll, lastPointer)) {

@@ -87,6 +87,15 @@
 .pn-profile-guest .pa-btn, .pn-profile-guest .pa-btn > span { justify-content: center; padding-inline: var(--space-2); }
 .pn-profile-input { flex: 1; min-width: 0; height: 44px; box-sizing: border-box; padding-inline: var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font: inherit; font-size: 15px; }
 .pn-profile-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pn-passports { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.pn-passport { display: flex; align-items: center; gap: var(--space-2); min-height: 32px; font-size: 14px; }
+.pn-passport-remove { position: relative; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: none; border-radius: var(--radius-round); background: transparent; color: var(--ink-muted); cursor: pointer; }
+.pn-passport-remove::before { content: ""; position: absolute; inset: -10px; }
+.pn-passport-remove:hover { background: var(--control-hover); color: var(--ink); }
+.pn-passport-remove:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pn-passport-remove svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
+.pn-select { min-height: 40px; padding: 0 var(--space-2); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 14px; cursor: pointer; }
+.pn-select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pn-profile-section { display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); margin-top: var(--space-2); border-top: var(--line-hair) solid var(--line); }
 .pn-choices { display: flex; padding: 2px; gap: 2px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
 .pn-choice { position: relative; flex: 1; display: grid; place-items: center; min-height: 40px; border-radius: calc(var(--radius-control) - 2px); font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease; }

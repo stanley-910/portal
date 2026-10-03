@@ -36,7 +36,7 @@ export function estimateFlight(query: SearchQuery, origin: string, destination: 
       provider: "travelpayouts",
       mode: "flight",
       kind: "estimated",
-      attribution: "Travelpayouts / Aviasales search — distance-based estimate; availability unverified",
+      attribution: "Travelpayouts / Aviasales — distance-based estimate; availability unverified",
       segments: [
         {
           mode: "flight",

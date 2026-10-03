@@ -1,7 +1,6 @@
 "use client";
 
-import type { Mode } from "@/lib/transport/types";
-
+import { Glyph } from "./glyphs";
 import type { TimelineLeg } from "./options";
 
 // Pieces of the ticket search popover that the trip plan reuses: the route header, a date field with its one-week
@@ -31,12 +30,6 @@ export const dateLabel = (iso: string) => {
   return `${p.weekday} ${p.day} ${p.month}`;
 };
 
-export const ICON: Record<Mode, string> = {
-  flight: "M8 1.8v12.4M2.2 9.2L8 6.6l5.8 2.6M5.6 14.2L8 13.2l2.4 1",
-  train: "M4.5 2h7A1.5 1.5 0 0 1 13 3.5v7a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 10.5v-7A1.5 1.5 0 0 1 4.5 2zM3 7.5h10M5.5 14.5L6.8 12M10.5 14.5L9.2 12",
-  bus: "M3.5 2.5h9a1 1 0 0 1 1 1V12h-11V3.5a1 1 0 0 1 1-1zM2.5 8h11M4.5 12v2M11.5 12v2",
-  ferry: "M2 10.5h12l-1.8 3.5H3.8zM8 2v8.5M8 3.2l4 5.8H8",
-};
 
 /** Station codes like "HK-WEST-KOWLOON" are catalogue ids, not something to print. */
 const IATA = /^[A-Z]{3}$/;
@@ -146,11 +139,14 @@ export function Timeline({ legs }: { legs: TimelineLeg[] }) {
         >
           {leg.kind === "wait" ? (
             <span className="ts-dots" />
+          ) : leg.kind === "flight" ? (
+            <>
+              <span className="ts-trail" />
+              <Glyph kind="flight" />
+            </>
           ) : (
             <>
-              <svg width={14} height={14} viewBox="0 0 16 16" className="ts-icon">
-                <path d={ICON[leg.kind]} />
-              </svg>
+              <Glyph kind={leg.kind} size={13} />
               <span className="ts-bar" />
             </>
           )}

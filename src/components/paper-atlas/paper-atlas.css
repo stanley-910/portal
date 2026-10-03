@@ -60,6 +60,9 @@
 .pa-sticker-face { fill: var(--sticker-fill); stroke: var(--sticker-ink); stroke-width: 1.4px; stroke-linejoin: round; }
 .pa-sticker-detail { fill: none; stroke: var(--sticker-ink); stroke-width: 1.4px; stroke-linecap: round; }
 .pa-roundel { fill: var(--roundel); }
+
+/* The flag of the passport someone travels on */
+.pa-passport-flag { font-size: 14px; line-height: 1; }
 .pa-star-light { stop-color: var(--star-light); }
 .pa-star-edge { stop-color: var(--star-edge); }
 

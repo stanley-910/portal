@@ -74,6 +74,8 @@ export interface GlobeEvents {
   /** The trip's legs, in order: one per click while flying, ended by clicking the last stop again. */
   onLand?: (legs: LandedTrip[]) => void;
   onCancel?: () => void;
+  /** A click on the landed trip's route, which doesn't take off or cancel. */
+  onRouteClick?: () => void;
   /** When the pointer's lie on the ground under it changes, so it can be drawn flat on the globe. */
   onCursorChange?: (cursor: GlobeCursor) => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
@@ -92,6 +94,7 @@ const CURSOR_CHASE = 0.035; // s for the shadow to close most of the gap when th
 const CURSOR_PEEL = 0.32; // s
 const CURSOR_PULL = 8;
 const CURSOR_FLOAT = { x: 6, y: 8 };
+const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
 const CENTRE_Y = 0.455; // globe centre, as a fraction of the screen height
@@ -103,6 +106,13 @@ const RANGE_MAX = DG - 1; // the whole-globe view
 const RANGE_MIN = 0.2; // about 1,300 km up: the 2048px earth texture still prints cleanly here
 const TILT_MAX = 0.8; // radians from straight down, at RANGE_MIN
 const STOP_HIT = 16; // px: a click this close to the stop the plane just left ends the trip there
+// After a stop, the plane sticks to it like a magnet, so a second click lands there even if the pointer wandered a
+// little. It lets go past MAGNET_RELEASE px, and catches again inside MAGNET_CATCH. While held it leans
+// MAGNET_LEAN of the way toward the pointer; for MAGNET_EASE s after either change it glides instead of jumping.
+const MAGNET_CATCH = 18;
+const MAGNET_RELEASE = 40;
+const MAGNET_LEAN = 0.15;
+const MAGNET_EASE = 0.18;
 const FLY_SCROLL = 2.5; // two-finger scroll turns the globe this much faster while a route is being plotted
 
 interface Camera {
@@ -269,6 +279,7 @@ export class GlobeEngine {
   private namesMoving = true;
   private groundArc: ArcBuffer = { points: [], pool: [] };
   private airArc: ArcBuffer = { points: [], pool: [] };
+  private hitArc: ArcBuffer = { points: [], pool: [] };
   private glDirty = true;
   private hudDirty = true;
   private scene: number[] = [];
@@ -312,6 +323,9 @@ export class GlobeEngine {
   private destinationHub: Hub | null = null;
   /** Stops before `origin`, from takeoff on: each click while flying ends a leg there and starts the next. */
   private via: { v: Vec3; hub: Hub | null; name: string | null }[] = [];
+  // the plane is held at the stop it just left (only after a stop, not at takeoff), and when that last changed
+  private magnet = false;
+  private magnetT = -Infinity;
   /** The cities the labels name: where the trip starts, where it landed, and what's under the pointer or plane. */
   private originName: string | null = null;
   private destinationName: string | null = null;
@@ -563,9 +577,36 @@ export class GlobeEngine {
       return;
     }
     const [x, y] = this.pos(e);
+    if (this.mode === "landed" && this.onRoute(x, y)) {
+      this.events.onRouteClick?.();
+      return;
+    }
     const hit = this.pick(x, y);
     if (hit) this.takeoff(hit);
     else if (this.mode === "landed") this.cancel();
+  }
+
+  /** Whether a screen point is within ROUTE_HIT px of the landed trip's arcs or their ground tracks. */
+  private onRoute(x: number, y: number) {
+    const origin = this.origin;
+    const pl = this.pl;
+    if (!origin || !pl) return false;
+    const stops = [...this.via.map((s) => s.v), origin, pl.n];
+    for (let i = 0; i < stops.length - 1; i++) {
+      const alt = i === stops.length - 2 ? pl.alt : 0;
+      for (const lift of [1, 0]) {
+        const pts = this.arc(stops[i], stops[i + 1], lift, lift ? alt : 0, this.hitArc);
+        for (let j = 1; j < pts.length; j++) {
+          const a = pts[j - 1];
+          const b = pts[j];
+          if (!a?.vis || !b?.vis) continue;
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const k = clamp(((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy || 1), 0, 1);
+          if (Math.hypot(x - a.x - dx * k, y - a.y - dy * k) <= ROUTE_HIT) return true;
+        }
+      }
+    }
+    return false;
   }
 
   pointerLeave() {
@@ -710,6 +751,7 @@ export class GlobeEngine {
     this.origin = o;
     this.dest = null;
     this.via = [];
+    this.magnet = false;
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
@@ -721,8 +763,9 @@ export class GlobeEngine {
     this.events.onModeChange?.("flying", this.originHub);
   }
 
-  /** Whether screen point (x, y) is on the stop the plane is flying from. */
+  /** Whether screen point (x, y) is on the stop the plane is flying from, or the plane is still held there. */
   private nearOrigin(x: number, y: number) {
+    if (this.magnet) return true;
     const p = this.origin && this.proj(this.origin);
     return !!p && p.vis && Math.hypot(p.x - x, p.y - y) < STOP_HIT;
   }
@@ -733,8 +776,10 @@ export class GlobeEngine {
     this.origin = v;
     this.originHub = nearestPreviewHub(toLatLng(v));
     this.originName = this.originHub && placeName(toLatLng(v), this.originHub);
-    // the plane touches down and lifts off again, with the takeoff ripple
+    // the plane touches down and lifts off again, with the takeoff ripple, held to the stop by the magnet
     this.tTake = this.t;
+    this.magnet = true;
+    this.magnetT = this.t;
   }
 
   /** Lands the trip at the last stop, which ends the leg flown into it. */
@@ -1260,7 +1305,19 @@ export class GlobeEngine {
         const origin = this.origin!;
         const fPrev = pl.f;
         const fT = angle(origin, hit) > 0.01 ? tangent(sub(hit, slerp(origin, hit, 0.97)), hit) : tangent(pl.f, hit);
-        pl.n = hit;
+        let at = hit;
+        if (this.via.length) {
+          const p = this.proj(origin);
+          const d = p && p.vis ? Math.hypot(p.x - this.mx, p.y - this.my) : Infinity;
+          const held = this.magnet ? d <= MAGNET_RELEASE : d < MAGNET_CATCH;
+          if (held !== this.magnet) {
+            this.magnet = held;
+            this.magnetT = t;
+          }
+          if (held) at = slerp(origin, hit, MAGNET_LEAN);
+        }
+        // glide for a moment after the magnet catches or lets go, rather than jumping
+        pl.n = t - this.magnetT < MAGNET_EASE && !this.reduceMotion ? slerp(pl.n, at, k(30)) : at;
         pl.f = tangent(lerp(tangent(pl.f, hit), fT, k(14)), hit);
         const turn = Math.atan2(dot(cross(fPrev, pl.f), hit), dot(fPrev, pl.f)) / Math.max(dt, 1e-3);
         pl.bank += (clamp(-turn * 0.08, -0.6, 0.6) - pl.bank) * k(6);

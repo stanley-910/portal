@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import { entry, isBlocking, needsDocument, type EntryKind, type EntryMember, type EntryRule, type LegEntryInput, type MemberLegEntry } from "@/lib/entry";
 import { cn } from "@/lib/utils";
 
+import { PassportMark } from "./passport-mark";
+
 const KIND_LABEL: Record<EntryKind, string> = {
   visa_free: "Visa free",
   visa_on_arrival: "Visa on arrival",
@@ -82,7 +84,7 @@ function LinkList({ rule }: { rule: EntryRule }) {
   );
 }
 
-function MemberRow({ member, rule, transitOption }: MemberLegEntry) {
+function MemberRow({ member, passport, rule, transitOption }: MemberLegEntry) {
   const body = rule ? (
     <div className="flex flex-col gap-(--space-2) pt-(--space-2) pb-(--space-1)">
       {rule.conditions.length ? (
@@ -106,7 +108,10 @@ function MemberRow({ member, rule, transitOption }: MemberLegEntry) {
 
   const summary = (
     <span className="flex min-h-11 items-center justify-between gap-(--space-3)">
-      <span className="type-body text-ink">{member.name}</span>
+      <span className="flex min-w-0 items-center gap-(--space-2)">
+        <PassportMark passport={passport} others={[member.passport, ...(member.passports ?? [])]} />
+        <span className="type-body text-ink">{member.name}</span>
+      </span>
       <span className="flex items-center gap-(--space-2)">
         {rule && rule.freshness === "estimated" ? <EstimatedBadge /> : null}
         <EntryChip rule={rule} />
