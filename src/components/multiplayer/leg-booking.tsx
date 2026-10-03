@@ -229,12 +229,13 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
 
 const TITLES = ["mr", "ms", "mrs", "miss", "dr"] as const;
 
-function DetailsForm({
+export function DetailsForm({
   documents,
   email,
   passportCountry,
   busy,
   invalid,
+  submitLabel = "Save details",
   onCancel,
   onSubmit,
 }: {
@@ -243,6 +244,7 @@ function DetailsForm({
   passportCountry: string;
   busy: boolean;
   invalid: string[];
+  submitLabel?: string;
   onCancel: () => void;
   onSubmit: (details: unknown) => void;
 }) {
@@ -337,7 +339,7 @@ function DetailsForm({
           Cancel
         </button>
         <Button type="submit" disabled={busy}>
-          Save details
+          {submitLabel}
         </Button>
       </div>
     </form>

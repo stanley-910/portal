@@ -7,6 +7,7 @@ import { HomePip, type HomePipHandle } from "@/components/agent/home-pip";
 import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/auth/links";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import { TicketSearch } from "@/components/ticket-search";
+import { SoloCheckout } from "@/components/ticket-search/solo-checkout";
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type LatLng, type TripGlobeHandle } from "@/components/trip-globe";
 import type { SoloLeg } from "@/lib/agent/solo";
@@ -108,7 +109,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
 
   const account = person?.account ?? false;
   const openAuth = useOpenAuth();
-  // Book saves like Save trip, then opens the saved trip at the leg to settle
+  // Book saves like Save trip, then checks out the saved trip's leg right in the fare card
   const book = useBookAfterSave(account);
   const runSave = (input: Parameters<typeof saveSoloTrip>[0]) =>
     startSaving(async () => {
@@ -173,6 +174,7 @@ export function GlobeScreen({ person }: { person: Person | null }) {
         globe.current?.setPins(stopPins(landed, cursorPref.color, pinKeys.current));
         setLegs(landed);
         setSaved(null);
+        book.close();
         setActive(0);
         setCollapsed(false);
         setPicks([]);
@@ -265,6 +267,18 @@ export function GlobeScreen({ person }: { person: Person | null }) {
           openAuth("signup");
         }}
         onBook={book.request}
+        checkout={
+          book.checkout ? (
+            <SoloCheckout
+              key={`${book.checkout.tripId}:${book.checkout.legId}`}
+              tripId={book.checkout.tripId}
+              legId={book.checkout.legId}
+              email={person?.email ?? null}
+              nationalities={person?.nationalities ?? []}
+              onClose={book.close}
+            />
+          ) : undefined
+        }
         canBook={picks.slice(0, active).some((p) => !!p.offer && isBookable(p.offer))}
         onDismiss={() => globe.current?.cancel()}
         collapsed={collapsed}

@@ -564,3 +564,18 @@ export async function sweepBookings(now = Date.now()): Promise<{ rooms: number; 
 export async function dismissNotice(roomId: string, legId: string) {
   await liveblocks().mutateStorage(roomId, ({ root }) => root.get("legs").get(legId)?.set("bookingNotice", null));
 }
+
+/** Where a rider's own seat stands, for a checkout that walks one rider through it. Null before a settle. */
+export async function seatStep(roomId: string, legId: string, actorId: string): Promise<{ step: "details" | "pay" | "wait" | "done"; documents: boolean; share: Money } | null> {
+  const { leg } = await readLeg(roomId, legId);
+  const booking = leg?.booking;
+  const seat = booking?.seats[actorId];
+  if (!booking || !seat) return null;
+  const step = seat.paid || booking.status === "booked" ? "done" : !seat.details ? "details" : booking.status === "paying" ? "pay" : "wait";
+  return { step, documents: booking.documents, share: seat.share };
+}
+
+/** Why a leg went back to planning, when it did. */
+export async function bookingNoticeOf(roomId: string, legId: string): Promise<string | null> {
+  return (await readLeg(roomId, legId)).leg?.bookingNotice ?? null;
+}

@@ -200,6 +200,8 @@ export interface TicketSearchProps {
    */
   onBook?: (saved: boolean) => void;
   canBook?: boolean;
+  /** Booking in the card itself, after Book: takes the place of the buttons. */
+  checkout?: ReactNode;
   /** Esc, with no date strip open. A click outside is the globe's own cancel. */
   onDismiss: () => void;
   /**
@@ -215,7 +217,7 @@ export interface TicketSearchProps {
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, home, addedId, saving = false, error, savedHref, onBook, canBook = false, onDismiss, step, collapsed = false, onCollapse, onExpand,
+  trip, globe, currency, rates, onAdd, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -508,79 +510,83 @@ export function TicketSearch({
             </p>
           ) : null}
 
-          <Button
-            block
-            className="ts-save"
-            disabled={saving || added || (roundTrip ? !choice || (showBack && !backChoice) : !choice && !hotel)}
-            aria-busy={saving || undefined}
-            onClick={() => {
-              if (roundTrip && !showBack) {
-                setHotelsOpen(false);
-                return setLeg("back");
-              }
-              onAdd({
-                offer: choice?.offer ?? null,
-                offers,
-                depart,
-                return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
-                stay: hotel ? stayFrom(hotel) : null,
-              });
-            }}
-          >
-            {saving
-              ? "Saving trip…"
-              : added
-                ? "Saved"
-                : next
-                  ? hotel ? "Next leg with stay" : "Next leg"
-                  : roundTrip
-                    ? showBack
-                      ? hotel ? "Save round trip with stay" : "Save round trip"
-                      : "Choose return"
-                    : hotel && choice
-                      ? "Save trip with stay"
-                      : hotel
-                        ? "Save hotel"
-                        : choice
-                          ? SAVE_LABEL[choice.offer.mode]
-                          : "Save trip"}
-          </Button>
-          {onBook && !next && (canBook || (choice && isBookable(choice.offer))) ? (
+          {checkout ?? (
+            <>
             <Button
-              variant="secondary"
               block
               className="ts-save"
-              disabled={saving || (!choice && !hotel)}
+              disabled={saving || added || (roundTrip ? !choice || (showBack && !backChoice) : !choice && !hotel)}
+              aria-busy={saving || undefined}
               onClick={() => {
-                const saved = !!choice && choice.offer.id === addedId;
-                if (!saved) {
-                  onAdd({
-                    offer: choice?.offer ?? null,
-                    offers,
-                    depart,
-                    return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
-                    stay: hotel ? stayFrom(hotel) : null,
-                  });
+                if (roundTrip && !showBack) {
+                  setHotelsOpen(false);
+                  return setLeg("back");
                 }
-                onBook(saved);
+                onAdd({
+                  offer: choice?.offer ?? null,
+                  offers,
+                  depart,
+                  return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
+                  stay: hotel ? stayFrom(hotel) : null,
+                });
               }}
             >
-              Book
+              {saving
+                ? "Saving trip…"
+                : added
+                  ? "Saved"
+                  : next
+                    ? hotel ? "Next leg with stay" : "Next leg"
+                    : roundTrip
+                      ? showBack
+                        ? hotel ? "Save round trip with stay" : "Save round trip"
+                        : "Choose return"
+                      : hotel && choice
+                        ? "Save trip with stay"
+                        : hotel
+                          ? "Save hotel"
+                          : choice
+                            ? SAVE_LABEL[choice.offer.mode]
+                            : "Save trip"}
             </Button>
-          ) : null}
-          {error && !saving ? (
-            <p className="ts-empty" role="alert">
-              {error}
-            </p>
-          ) : null}
-          {savedHref && !saving ? (
-            <p className="ts-empty" role="status">
-              Saved to your trips ·{" "}
-              <a href={savedHref} className="underline underline-offset-2">
-                Open
-              </a>
-            </p>
-          ) : null}
+            {onBook && !next && (canBook || (choice && isBookable(choice.offer))) ? (
+              <Button
+                variant="secondary"
+                block
+                className="ts-save"
+                disabled={saving || (!choice && !hotel)}
+                onClick={() => {
+                  const saved = !!choice && choice.offer.id === addedId;
+                  if (!saved) {
+                    onAdd({
+                      offer: choice?.offer ?? null,
+                      offers,
+                      depart,
+                      return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
+                      stay: hotel ? stayFrom(hotel) : null,
+                    });
+                  }
+                  onBook(saved);
+                }}
+              >
+                Book
+              </Button>
+            ) : null}
+            {error && !saving ? (
+              <p className="ts-empty" role="alert">
+                {error}
+              </p>
+            ) : null}
+            {savedHref && !saving ? (
+              <p className="ts-empty" role="status">
+                Saved to your trips ·{" "}
+                <a href={savedHref} className="underline underline-offset-2">
+                  Open
+                </a>
+              </p>
+            ) : null}
+            </>
+          )}
         </div>
       </section>
     </div>

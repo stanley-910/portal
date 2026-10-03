@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bookingHref } from "@/app/use-book-after-save";
+import { bookingTarget } from "@/app/use-book-after-save";
 import type { Offer } from "@/lib/transport/types";
 import { buildSoloStorage, soloSaveSchema } from "@/lib/trip/server";
 
@@ -87,10 +87,10 @@ describe("a solo-saved leg with a Duffel pick", () => {
     expect(settleReady(saved(cachedOffer.id).leg, saver.id)).toMatchObject({ ok: false, error: { code: "WRONG_STATE" } });
   });
 
-  it("opens the saved trip at that leg", () => {
+  it("checks out the saved trip at that leg", () => {
     const { input, legId } = saved(duffelOffer.id);
-    expect(bookingHref({ id: "trip123", legs: [legId] }, input)).toBe(`/t/trip123?book=${legId}`);
-    expect(bookingHref({ id: "trip123", legs: [legId] }, saved(cachedOffer.id).input)).toBe("/t/trip123");
+    expect(bookingTarget({ id: "trip123", legs: [legId] }, input)).toEqual({ tripId: "trip123", legId });
+    expect(bookingTarget({ id: "trip123", legs: [legId] }, saved(cachedOffer.id).input)).toBeNull();
   });
 });
 

@@ -80,8 +80,11 @@ whether to switch flights.
 - **In a trip.** Options from Duffel carry a Bookable badge. A leg whose pick is one shows Settle and book to its
   riders. Any other pick is bought on its provider's site, by each rider: the leg links to it ("Book on 12Go").
 - **On the home globe.** Booking needs a trip, so a Bookable pick on the ticket adds Book under Save. It saves the
-  trip like Save trip, then opens it at `/t/<id>?book=<leg>` with that leg's Settle in view and focused. The saved leg
-  keeps its pick and is ridden by the saver, so nothing is searched again. Guests sign in first and carry on after.
+  trip like Save trip, then checks the leg out right in the fare card (`SoloCheckout`): it settles, asks for the
+  rider's details and pays through Stripe, with no room to join and no trip page on the way
+  (`startSoloBookingAction` and `finishSoloBookingAction` in `src/app/t/booking-actions.ts`). The saved leg keeps its
+  pick and is ridden by the saver, so nothing is searched again. Stripe sends them back to the saved trip at that leg.
+  Guests sign in first and carry on after.
 
 ## Who can do what
 
