@@ -9,7 +9,8 @@ import { RoundButton } from "@/components/paper-atlas";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
-import { useMySplit, usePlanActions, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, type PlanLeg } from "@/lib/trip/plan";
+import { lastLegDate, leaveBounds, legBefore } from "@/lib/trip/dates";
+import { useMySplit, usePlanActions, usePlanDates, usePlanEnd, usePlanLegs, usePlanMembers, usePlanStays, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
@@ -37,13 +38,51 @@ const describe = (o: StoredOffer) =>
     .filter(Boolean)
     .join(", ");
 
+/**
+ * The first day the depart strip offers: a few days before the leg's date so it can move either way, but never before
+ * tomorrow or the leg that gets its riders there.
+ */
+function stripStart(date: string, after: string | null | undefined) {
+  const floor = [addDays(localIso(new Date()), 1), after ?? ""].sort().at(-1)!;
+  const centred = addDays(date, -3);
+  return centred > floor ? centred : floor;
+}
+
+/**
+ * A native date field that commits in-range dates as they're picked. One typed out of range waits for blur, so typing a
+ * year digit by digit isn't snapped to the bounds halfway; the plan clamps it then.
+ */
+function DateInput({ value, min, max, onCommit }: { value: string | null; min: string | null; max: string | null; onCommit: (date: string | null) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <input
+      type="date"
+      value={draft ?? value ?? ""}
+      min={min ?? undefined}
+      max={max ?? undefined}
+      onChange={(event) => {
+        const date = event.target.value || null;
+        if (!date || ((!min || date >= min) && (!max || date <= max))) {
+          setDraft(null);
+          onCommit(date);
+        } else setDraft(date);
+      }}
+      onBlur={() => {
+        if (draft) onCommit(draft);
+        setDraft(null);
+      }}
+    />
+  );
+}
+
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
 export function TripPlan({ hostId, email = null, nationalities = [], onMinimise }: { hostId: string | null; email?: string | null; nationalities?: string[]; onMinimise?: () => void }) {
   const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useMySplit();
   const end = usePlanEnd();
-  const { setEnds } = usePlanActions();
+  const dates = usePlanDates();
+  const { setEnds, setLeave } = usePlanActions();
   const members = usePlanMembers();
   const stays = usePlanStays();
   if (!legs?.length) return null;
@@ -70,10 +109,22 @@ export function TripPlan({ hostId, email = null, nationalities = [], onMinimise 
           Your share: {Object.entries(split.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
         </div>
       ) : null}
-      <label className="tp-end">
-        Trip ends
-        <input type="date" value={end ?? ""} min={legs[legs.length - 1]?.date} onChange={(event) => setEnds(event.target.value || null)} />
-      </label>
+      <div className="tp-trip-dates">
+        <label className="tp-end">
+          Trip ends
+          <DateInput value={end} min={dates ? lastLegDate(dates) : null} max={null} onCommit={setEnds} />
+        </label>
+        <p className="tp-hint type-meta text-ink-muted">The morning everyone checks out of the last stay.</p>
+        {me ? (
+          <>
+            <label className="tp-end">
+              My leave date
+              <DateInput value={members?.[me]?.leaves ?? null} {...(dates ? leaveBounds(dates, me) : { min: null, max: null })} onCommit={setLeave} />
+            </label>
+            <p className="tp-hint type-meta text-ink-muted">Only if you leave early. Your share of nights stops the night before.</p>
+          </>
+        ) : null}
+      </div>
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
@@ -89,8 +140,10 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
   // a leg being bought keeps its date, riders and pick until a rider cancels the settle
   const locked = !!leg.booking;
   const members = usePlanMembers();
-  const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg, setLeave } = usePlanActions();
+  const dates = usePlanDates();
+  const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg } = usePlanActions();
   const [picking, setPicking] = useState(false);
+  const [dateBlocked, setDateBlocked] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pendingChoice, setPendingChoice] = useState(leg.chosen?.id ?? null);
   const [pendingHotel, setPendingHotel] = useState<HotelResult | null>(null);
@@ -138,25 +191,20 @@ function LegCard({ leg, stay, isHost, memberCount, email, nationalities }: { leg
               : null}
           </ul>
         </div>
-        {me ? (
-          <label className="tp-leave">
-            My leave date
-            <input type="date" value={members?.[me]?.leaves ?? ""} min={leg.date} onChange={(event) => setLeave(event.target.value || null)} />
-          </label>
-        ) : null}
       </div>
 
       {picking ? (
         <DayStrip
-          start={addDays(localIso(new Date()), 1)}
+          start={stripStart(leg.date, dates ? legBefore(dates, leg.id)?.date : null)}
           value={leg.date}
           label="Departure date"
           onPick={(iso) => {
             setPicking(false);
-            if (iso !== leg.date) setDate(leg.id, iso);
+            setDateBlocked(iso !== leg.date && !setDate(leg.id, iso));
           }}
         />
       ) : null}
+      {dateBlocked ? <p className="tp-hint type-meta text-ink-muted">A later leg is being booked, so this one can’t move past it.</p> : null}
       <div className="tp-edit-row">
         {stay ? <span className="type-meta text-ink-muted">Stay: {stay.label ?? "Hotel selected"}</span> : null}
         {locked ? null : <button type="button" className="ts-oneway" onClick={() => setEditing((value) => !value)}>{editing ? "Close edit" : "Edit trip"}</button>}

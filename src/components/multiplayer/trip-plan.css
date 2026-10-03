@@ -4,10 +4,12 @@
 .tp-bar { padding: 8px 12px 0; }
 .tp-leg { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .tp-total { padding: 10px 12px; border-bottom: var(--line-control) solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600; }
-.tp-end { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; color: var(--ink-muted); font-size: 11px; }
+/* The trip's two dates: when it ends for everyone, and when you leave it early. Each has its line of explanation. */
+.tp-trip-dates { display: grid; gap: 2px; padding: 8px 12px; }
+.tp-end { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-muted); font-size: 11px; }
 .tp-end input { min-height: 28px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; }
-.tp-leave { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-muted); font-size: 11px; }
-.tp-leave input { min-height: 28px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; }
+.tp-hint { margin: 0; }
+.tp-trip-dates .tp-hint:not(:last-child) { margin-bottom: 6px; }
 .tp-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tp-editor { display: grid; gap: 8px; }
 .tp-editor > button:disabled { opacity: .45; cursor: not-allowed; }
