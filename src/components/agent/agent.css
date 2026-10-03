@@ -12,6 +12,10 @@
 .pip-porthole:focus-visible, .pip-nudge:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .pip-launcher-arriving { animation: none; }
 .pip-arrival { position: absolute; bottom: 0; pointer-events: none; }
+.pip-hop { position: absolute; bottom: 0; pointer-events: none; }
+/* Pip in the bottom-left corner, after hopping out of the way of trip cards */
+.pip-launcher-left { right: auto; left: var(--space-6); flex-direction: row-reverse; transform-origin: 0 100%; }
+.pip-panel-left { right: auto; left: var(--space-6); transform-origin: 0 100%; }
 .pip-hidden { visibility: hidden; }
 .pip-unread { position: absolute; top: 0; right: 0; width: 8px; height: 8px; background: var(--star-light); border: 1px solid var(--sticker-ink); box-shadow: var(--shadow-pixel); }
 

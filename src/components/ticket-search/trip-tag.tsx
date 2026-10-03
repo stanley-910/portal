@@ -23,7 +23,7 @@ export interface TripTagProps {
 /** A minimised trip: a small ticket on the route, styled by the kind of trip. Clicking it opens the trip again. */
 export function TripTag({ mode, from, to, price, onClick, className, style, ref, ...aria }: TripTagProps) {
   return (
-    <button ref={ref} type="button" className={cn("ts-chip", `ts-chip-${mode}`, className)} style={style} onClick={onClick} {...aria}>
+    <button ref={ref} type="button" data-globe-follow className={cn("ts-chip", `ts-chip-${mode}`, className)} style={style} onClick={onClick} {...aria}>
       <span className="ts-chip-main">
         <Glyph kind={mode} sticker />
         {from} → {to}

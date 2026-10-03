@@ -285,7 +285,7 @@ export function TicketSearch({
         onClick={onExpand}
       />
     ) : null}
-    <div ref={root} className="ts-anchor pa-cast" style={{ "--alt": 0.8, visibility: "hidden" } as CSSProperties} hidden={collapsed}>
+    <div ref={root} data-globe-follow className="ts-anchor pa-cast" style={{ "--alt": 0.8, visibility: "hidden" } as CSSProperties} hidden={collapsed}>
       <section ref={card} className="ts" aria-label={`Trip from ${ends.from.name} to ${ends.to.name}`}>
         <div className="ts-top">
           <div className="ts-topbar">

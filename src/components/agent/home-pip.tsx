@@ -5,6 +5,7 @@ import { useState } from "react";
 import { startTripWithPip } from "@/app/t/actions";
 import { Composer, Launcher, PipClose } from "@/components/agent/agent-chat";
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
+import { pipPlace } from "@/components/agent/pip-arrival";
 import { PipSprite } from "@/components/agent/pip-sprite";
 import { AGENT_NAME } from "@/lib/agent/types";
 
@@ -35,7 +36,7 @@ export function HomePip({ account }: { account: boolean }) {
   };
   if (!open) return <Launcher unread={false} nudges={NUDGES} onOpen={() => setOpen(true)} />;
   return (
-    <section className="pip-panel" aria-label={`Plan a trip with ${AGENT_NAME}`}>
+    <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
       <header className="pip-head">
         <PipSprite size={32} />
         <div className="min-w-0 flex-1">
