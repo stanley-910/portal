@@ -1,12 +1,12 @@
 import type { ThreadMessage } from "@/lib/agent/types";
-import type { MemberInfo, Stop, StoredOffer } from "@/lib/liveblocks/types";
+import type { Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
 
 // The plan as the model sees it: short handles (M1, S1, L1) instead of Liveblocks ids, rebuilt from Storage every
 // turn so the agent never trusts what it said earlier (harness: "Context: rebuilt every turn").
 
 /** Storage as `getStorageDocument(room, "json")` returns it. */
 export type PlanJson = {
-  members?: Record<string, MemberInfo>;
+  members?: Record<string, TripMember>;
   stops?: Record<string, Stop>;
   legs?: Record<
     string,
@@ -23,6 +23,10 @@ export type PlanJson = {
     }
   >;
   thread?: ThreadMessage[];
+  /** Stop id → what staying there costs the group a night. */
+  stays?: Record<string, Stay>;
+  /** The morning after the trip's last night. */
+  ends?: string | null;
 };
 
 export type Handles = {
@@ -59,12 +63,18 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
   const lines = [`Today ${today} (${showDate(today)}).`];
   const members = Object.entries(plan.members ?? {});
   lines.push(members.length ? "Members:" : "Members: none yet.");
-  for (const [id, m] of members) lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}`);
+  for (const [id, m] of members) {
+    lines.push(`  ${h.member.get(id)} ${m.name}${id === askedBy ? " (asking)" : ""}${m.leaves ? ` · leaves ${showDate(m.leaves)}` : ""}`);
+  }
 
   const stops = Object.entries(plan.stops ?? {});
   if (stops.length) {
     lines.push("Stops:");
-    for (const [id, s] of stops) lines.push(`  ${h.stop.get(id)} ${s.name}${s.code ? ` (${s.code})` : ""}`);
+    for (const [id, s] of stops) {
+      const stay = plan.stays?.[id];
+      const cost = stay?.nightly ? ` · stay ${stay.nightly.currency} ${stay.nightly.amount} a night${stay.label ? ` (${stay.label})` : ""}` : "";
+      lines.push(`  ${h.stop.get(id)} ${s.name}${s.code ? ` (${s.code})` : ""}${cost}`);
+    }
   }
 
   const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.createdAt - b.createdAt);
@@ -82,6 +92,7 @@ export function describePlan(plan: PlanJson, h: Handles, today: string, askedBy:
       `  ${h.leg.get(id)} ${h.stop.get(leg.from)}→${h.stop.get(leg.to)} ${leg.date} (${showDate(leg.date)}) · riders ${riders} · ${search}`,
     );
   }
+  if (plan.ends) lines.push(`Trip ends the morning of ${showDate(plan.ends)}.`);
   return lines.join("\n");
 }
 

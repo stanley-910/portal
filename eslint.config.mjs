@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // design-sync build output and staged scripts
     "ds-bundle/**",
+    // nested git worktrees (.worktrees/<ledger>)
+    ".worktrees/**",
     ".ds-sync/**",
     "design-system/paper-atlas/dist/**",
   ]),

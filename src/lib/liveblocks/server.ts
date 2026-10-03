@@ -19,11 +19,11 @@ export function liveblocks() {
 export const isNotFound = (e: unknown) => e instanceof LiveblocksError && e.status === 404;
 
 /**
- * Records a guest as a member of a trip room if they aren't one yet, and returns their member colour (1 to
- * MEMBER_COLORS, in join order). Returns null if the room doesn't exist. The access list it writes is what
+ * Records a person (account or guest id) as a member of a trip room if they aren't one yet, and returns their member
+ * colour (1 to MEMBER_COLORS, in join order). Returns null if the room doesn't exist. The access list it writes is what
  * `getRooms({ userId })` reads for "My trips"; connecting uses the access token from the auth route.
  */
-export async function joinTrip(roomId: string, guestId: string): Promise<number | null> {
+export async function joinTrip(roomId: string, userId: string): Promise<number | null> {
   const lb = liveblocks();
   let data;
   try {
@@ -32,15 +32,15 @@ export async function joinTrip(roomId: string, guestId: string): Promise<number 
     if (isNotFound(e)) return null;
     throw e;
   }
-  // Two guests joining in the same instant can both get the same colour; fine for now.
+  // Two users joining in the same instant can both get the same colour; fine for now.
   const raw = data.metadata.members;
   const members = Array.isArray(raw) ? raw : raw ? [raw] : [];
-  if (!data.usersAccesses[guestId] || !members.includes(guestId)) {
+  if (!data.usersAccesses[userId] || !members.includes(userId)) {
     await lb.updateRoom(roomId, {
-      usersAccesses: { [guestId]: ["room:write"] },
-      metadata: { members: members.includes(guestId) ? members : [...members, guestId] },
+      usersAccesses: { [userId]: ["room:write"] },
+      metadata: { members: members.includes(userId) ? members : [...members, userId] },
     });
   }
-  const index = members.indexOf(guestId);
+  const index = members.indexOf(userId);
   return ((index < 0 ? members.length : index) % MEMBER_COLORS) + 1;
 }

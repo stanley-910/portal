@@ -5,20 +5,26 @@ import { useTheme } from "next-themes";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { Button } from "@/components/paper-atlas";
+import { renameProfile, signOut } from "@/app/(auth)/actions";
+import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
 import { initials, MAX_NAME } from "@/lib/guest-name";
 
 export interface ProfileMenuProps {
-  /** The guest's name, or null before they pick one. */
+  /** Your display name: an account's, a guest's, or null before you've picked one. */
   name: string | null;
+  /** The signed-in user's email. */
+  email?: string | null;
+  /** Signed in, rather than a guest. */
+  account?: boolean;
   /** Reload the page after a rename, so a trip room reconnects with the new name on your cursor. */
   reloadOnRename?: boolean;
   /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
   children?: ReactNode;
 }
 
-/** The disc at the end of the bar: who you are, and the app's settings. Until accounts land, you are a guest with a name. */
-export function ProfileMenu({ name, reloadOnRename, children }: ProfileMenuProps) {
+/** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
+export function ProfileMenu({ name, email = null, account = false, reloadOnRename, children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -58,7 +64,7 @@ export function ProfileMenu({ name, reloadOnRename, children }: ProfileMenuProps
       </button>
       {open ? (
         <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
-          <Identity name={name} reloadOnRename={reloadOnRename} />
+          <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
           <ThemeSetting />
           {children}
         </div>
@@ -67,32 +73,64 @@ export function ProfileMenu({ name, reloadOnRename, children }: ProfileMenuProps
   );
 }
 
-function Identity({ name, reloadOnRename }: { name: string | null; reloadOnRename?: boolean }) {
+function Identity({ name, email, account, reloadOnRename }: { name: string | null; email: string | null; account: boolean; reloadOnRename?: boolean }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(!name);
+  const openAuth = useOpenAuth();
+  const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
-
-  if (name && !editing) {
+  if (!account && !editing) {
     return (
-      <div className="pn-profile-who">
-        <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span>
-        <span className="pn-menu-text">
-          <span>{name}</span>
-          <span className="pn-menu-detail">Not signed in</span>
-        </span>
-        <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
-          Rename
-        </Button>
+      <div className="pn-profile-guest">
+        <div className="pn-profile-who">
+          {name ? <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name)}</span> : null}
+          <span className="pn-menu-text">
+            <span>{name ?? "Guest"}</span>
+            <span className="pn-menu-detail">{name ? "Guest" : "Not signed in"}</span>
+          </span>
+          {name ? (
+            <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+              Rename
+            </Button>
+          ) : null}
+        </div>
+        <div className="pn-profile-row">
+          <Button className="flex-1" onClick={() => openAuth("signin")}>
+            Sign in
+          </Button>
+          <Button variant="secondary" className="flex-1" onClick={() => openAuth("signup")}>
+            Create account
+          </Button>
+        </div>
       </div>
     );
   }
-
+  if (!editing) {
+    return (
+      <div className="pn-profile-who">
+        <span className="pn-menu-symbol pn-profile-initials" aria-hidden>{initials(name ?? "")}</span>
+        <span className="pn-menu-text">
+          <span>{name}</span>
+          {email ? <span className="pn-menu-detail">{email}</span> : null}
+        </span>
+        <div className="pn-profile-row">
+          <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(true)}>
+            Rename
+          </Button>
+          <form action={signOut}>
+            <Button type="submit" variant="quiet" className="pn-profile-edit">
+              Sign out
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
   return (
     <form
       className="pn-profile-form"
       action={(form) =>
         startTransition(async () => {
-          await saveName(form);
+          await (account ? renameProfile(form) : saveName(form));
           if (reloadOnRename) window.location.reload();
           else {
             router.refresh();
@@ -104,7 +142,6 @@ function Identity({ name, reloadOnRename }: { name: string | null; reloadOnRenam
       <label htmlFor="pn-profile-name" className="type-label">
         Your name
       </label>
-      {name ? null : <p className="type-caption text-ink-muted">Friends see it next to your cursor.</p>}
       <div className="pn-profile-row">
         <input
           id="pn-profile-name"
@@ -120,11 +157,9 @@ function Identity({ name, reloadOnRename }: { name: string | null; reloadOnRenam
           Save
         </Button>
       </div>
-      {name ? (
-        <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(false)}>
-          Cancel
-        </Button>
-      ) : null}
+      <Button variant="quiet" className="pn-profile-edit" onClick={() => setEditing(false)}>
+        Cancel
+      </Button>
     </form>
   );
 }

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
 
+import { AuthPanel } from "@/components/auth/auth-panel";
 import { ThemeProvider } from "@/components/theme-provider";
 
 import { fontVariables } from "./fonts";
@@ -22,7 +24,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${fontVariables} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <Suspense fallback={null}>
+            <AuthPanel />
+          </Suspense>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

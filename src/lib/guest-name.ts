@@ -1,4 +1,4 @@
-// Guest names, shared by the server cookie code (guest.ts) and the client.
+// Display names, shared by the server and the client.
 
 export const MAX_NAME = 32;
 

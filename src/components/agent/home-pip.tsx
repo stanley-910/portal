@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { startTripWithPip } from "@/app/t/actions";
 import { Composer, Launcher } from "@/components/agent/agent-chat";
+import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { PipSprite } from "@/components/agent/pip-sprite";
 import { RoundButton } from "@/components/paper-atlas";
 import { AGENT_NAME } from "@/lib/agent/types";
@@ -11,15 +12,22 @@ import { AGENT_NAME } from "@/lib/agent/types";
 // Pip on the home globe, before there's a trip: the first message starts a solo trip with it, and Pip answers
 // there. Friends join from the trip's URL afterwards.
 
-const NUDGE = "Tell me where you're going, or where your friends are. I'll plan the trip.";
+const NUDGE = `Hi, I'm ${AGENT_NAME}. Tell me where you're going and I'll plan the trip.`;
 const CHIPS = [
   "Train from Hong Kong to Shanghai on Friday",
   "I'm in Hong Kong, my friend's in Seoul. Where should we meet?",
   "Cheapest way from Taipei to Tokyo next week",
 ];
 
-export function HomePip() {
+/** `account`: Pip needs one. A guest's first message waits behind sign-in and goes out once they're in. */
+export function HomePip({ account }: { account: boolean }) {
   const [open, setOpen] = useState(false);
+  const openAuth = useOpenAuth();
+  const send = async (text: string) => {
+    if (account) return startTrip(text);
+    setPendingAction({ type: "pip", text });
+    openAuth("signup");
+  };
   if (!open) return <Launcher unread={false} nudge={NUDGE} onOpen={() => setOpen(true)} />;
   return (
     <section className="pip-panel" aria-label={`Plan a trip with ${AGENT_NAME}`}>
@@ -46,7 +54,7 @@ export function HomePip() {
 }
 
 /** Starts the trip; the action redirects into it, which is not a failure. */
-async function send(text: string) {
+export async function startTrip(text: string) {
   try {
     await startTripWithPip(text);
   } catch (error) {

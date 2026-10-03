@@ -24,7 +24,7 @@ Paper Atlas is the look of Trip Globe: a globe printed in halftone ink on paper,
 
 ## Type
 
-- Three faces, all from Google Fonts: **IM Fell English SC** (`fell-sc`) for codes and titles, **IM Fell English** (`fell`) for city names and running text, **Courier Prime** (`typewriter`) for dates, distances, tags and country names.
+- Four faces, all from Google Fonts: **Barlow Semi Condensed** (`sans`) for the interface (titles, text, buttons, panels, inputs), **IM Fell English SC** (`fell-sc`) for codes and titles, **IM Fell English** (`fell`) for city names and running text, **Courier Prime** (`typewriter`) for dates, distances, tags and country names.
 - Load them with one link: `https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap`.
 - Styles: `code`, `title`, `country`, `body`, `city`, `stamp`, `meta`, `tag`. Do not mix them inside one line.
 
