@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { safeNext } from "@/lib/auth/next";
@@ -63,6 +64,25 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: error.status && error.status >= 500 ? MSG.generic : MSG.wrong };
   redirect(safeNext(field(formData, "next")));
+}
+
+/** Starts Google sign-in. Supabase sends the user back to /auth/callback, which finishes the session. */
+export async function signInWithGoogle(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const supabase = await createSupabaseServer();
+  if (!supabase) return { error: MSG.off };
+  const origin = (await headers()).get("origin");
+  if (!origin) return { error: MSG.generic };
+  const callback = new URL("/auth/callback", origin);
+  callback.searchParams.set("next", safeNext(field(formData, "next")));
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callback.toString() },
+  });
+  if (error || !data.url) {
+    console.warn("[auth] Google sign-in failed:", error?.status, error?.code);
+    return { error: MSG.generic };
+  }
+  redirect(data.url);
 }
 
 export async function signOut(): Promise<void> {

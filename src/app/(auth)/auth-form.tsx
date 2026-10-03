@@ -2,28 +2,45 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import type { AuthState } from "./actions";
+import { signInWithGoogle, type AuthState } from "./actions";
 
 type Props = {
   mode: "login" | "signup";
   action: (prev: AuthState, formData: FormData) => Promise<AuthState>;
   next: string;
   maxName: number;
+  /** Shown before the first submit, e.g. after a failed Google sign-in. */
+  error?: string;
 };
 
 const input = "type-body h-11 rounded-tag border-(length:--line-hair) border-ink bg-paper px-(--space-2)";
 
-export function AuthForm({ mode, action, next, maxName }: Props) {
-  const [state, formAction, pending] = useActionState(action, {});
+export function AuthForm({ mode, action, next, maxName, error }: Props) {
+  const [state, formAction, pending] = useActionState(action, { error });
+  const [google, googleAction, googlePending] = useActionState(signInWithGoogle, {});
   const signup = mode === "signup";
   const carry = next === "/" ? "" : `?next=${encodeURIComponent(next)}`;
   return (
     <main className="grid min-h-dvh place-items-center bg-paper p-(--space-5)">
-      <form
-        action={formAction}
-        className="flex w-full max-w-sm flex-col gap-(--space-3) rounded-ticket border-(length:--line-ink) border-ink bg-paper-raised p-(--space-5) shadow-ticket"
-      >
+      <div className="flex w-full max-w-sm flex-col gap-(--space-3) rounded-ticket border-(length:--line-ink) border-ink bg-paper-raised p-(--space-5) shadow-ticket">
         <h1 className="type-title">{signup ? "Create an account" : "Sign in"}</h1>
+        <form action={googleAction} className="flex flex-col gap-(--space-1)">
+          <input type="hidden" name="next" value={next} />
+          <button
+            type="submit"
+            disabled={googlePending}
+            className="type-stamp h-11 rounded-tag border-(length:--line-ink) border-ink bg-paper text-ink"
+          >
+            Continue with Google
+          </button>
+          {google.error && (
+            <p role="alert" className="type-body">
+              {google.error}
+            </p>
+          )}
+        </form>
+        <p className="type-meta text-center text-ink-muted">or with email</p>
+        <form action={formAction} className="flex flex-col gap-(--space-3)">
         <input type="hidden" name="next" value={next} />
         {signup && (
           <div className="flex flex-col gap-(--space-1)">
@@ -63,6 +80,7 @@ export function AuthForm({ mode, action, next, maxName }: Props) {
         >
           {signup ? "Sign up" : "Sign in"}
         </button>
+        </form>
         <p className="type-body text-ink-muted">
           {signup ? "Already have an account? " : "New here? "}
           <Link
@@ -72,7 +90,7 @@ export function AuthForm({ mode, action, next, maxName }: Props) {
             {signup ? "Sign in" : "Create an account"}
           </Link>
         </p>
-      </form>
+      </div>
     </main>
   );
 }
