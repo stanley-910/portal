@@ -41,6 +41,10 @@ export interface BookingStore {
   findPaymentBySession(sessionId: string): Promise<PaymentRow | null>;
   findPaymentByIntent(paymentIntentId: string): Promise<PaymentRow | null>;
   listPayments(roomId: string, legId: string): Promise<PaymentRow[]>;
+  /** A leg whose booking is in progress, so the scheduled sweep knows to look at its room. */
+  markActive(roomId: string, legId: string): Promise<void>;
+  clearActive(roomId: string, legId: string): Promise<void>;
+  listActive(): Promise<{ roomId: string; legId: string }[]>;
   /** Takes a short lease on `key`, or false if someone holds it. The purchase runs under one so a retried webhook can't buy twice. */
   acquire(key: string, ttlMs: number): Promise<boolean>;
   release(key: string): Promise<void>;
@@ -80,6 +84,19 @@ class MemoryStore implements BookingStore {
   }
   async listPayments(roomId: string, legId: string) {
     return [...this.payments.values()].filter((p) => p.roomId === roomId && p.legId === legId);
+  }
+  private readonly active = new Set<string>();
+  async markActive(roomId: string, legId: string) {
+    this.active.add(`${roomId}/${legId}`);
+  }
+  async clearActive(roomId: string, legId: string) {
+    this.active.delete(`${roomId}/${legId}`);
+  }
+  async listActive() {
+    return [...this.active].map((k) => {
+      const i = k.lastIndexOf("/");
+      return { roomId: k.slice(0, i), legId: k.slice(i + 1) };
+    });
   }
   async acquire(key: string, ttlMs: number) {
     const until = this.leases.get(key);
@@ -193,6 +210,16 @@ class SupabaseStore implements BookingStore {
   async listPayments(roomId: string, legId: string) {
     const rows = await this.run<PaymentRecord[] | null>("list payments", this.db.from("booking_payments").select("*").eq("room_id", roomId).eq("leg_id", legId));
     return (rows ?? []).map(fromRecord);
+  }
+  async markActive(roomId: string, legId: string) {
+    await this.run("mark active", this.db.from("booking_active").upsert({ room_id: roomId, leg_id: legId, updated_at: new Date().toISOString() }));
+  }
+  async clearActive(roomId: string, legId: string) {
+    await this.run("clear active", this.db.from("booking_active").delete().eq("room_id", roomId).eq("leg_id", legId));
+  }
+  async listActive() {
+    const rows = await this.run<{ room_id: string; leg_id: string }[] | null>("list active", this.db.from("booking_active").select("room_id, leg_id"));
+    return (rows ?? []).map((r) => ({ roomId: r.room_id, legId: r.leg_id }));
   }
   async acquire(key: string, ttlMs: number) {
     // one row per key; the insert wins the lease, an expired lease is taken over

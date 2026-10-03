@@ -44,6 +44,8 @@ const schema = z.object({
   SUPABASE_SECRET_KEY: optional,
   // 32 random bytes, base64: traveller details are sealed with it before they reach Supabase
   BOOKING_ENCRYPTION_KEY: optional,
+  // Vercel sends it as a bearer token to /api/booking/expire; unset = the sweep refuses every call
+  CRON_SECRET: optional,
 });
 
 export type Env = z.infer<typeof schema>;

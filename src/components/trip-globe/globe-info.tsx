@@ -31,7 +31,7 @@ export function GlobeInfo() {
         <Popover.Portal>
           <Popover.Positioner side="top" align="start" sideOffset={8} className="z-50">
             <Popover.Popup className="w-[min(14rem,calc(100vw-2*var(--space-3)))] rounded-control border border-line bg-paper-raised px-(--space-gap) py-(--space-2) text-ink shadow-float">
-              <Popover.Title className="type-label">Trip Globe</Popover.Title>
+              <Popover.Title className="type-label">Portal</Popover.Title>
               <Popover.Description className="type-caption text-ink-muted">
                 HKU Hackathon 2026
               </Popover.Description>

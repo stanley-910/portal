@@ -1,4 +1,4 @@
-// The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
+// The Portal globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
 import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
@@ -242,7 +242,7 @@ interface RouteEnd {
 const screenPoint = (): ScreenPoint => ({ x: 0, y: 0, z: 0, vis: false });
 
 /** How much bigger than the `country` token a name grows as its country fills the screen. */
-const NAME_MAX = 1.8;
+const NAME_MAX = 1.4;
 // province and state borders print in between these zoom levels (0 whole globe, 1 closest)
 const PROVINCES_FROM = 0.3;
 const PROVINCES_FULL = 0.6;

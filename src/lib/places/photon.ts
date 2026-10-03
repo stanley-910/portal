@@ -3,7 +3,7 @@ import { regionName, type PlaceKind, type PlaceResult } from "./place";
 // Photon (komoot) geocodes OpenStreetMap data with no key. Fair use only: keep requests few and cached.
 // https://photon.komoot.io
 const ENDPOINT = "https://photon.komoot.io/api/";
-const USER_AGENT = "Portal trip globe (HKU Hackathon)";
+const USER_AGENT = "Portal (HKU Hackathon)";
 const TIMEOUT_MS = 1500;
 const LIMIT = 8;
 const CACHE_SIZE = 500;

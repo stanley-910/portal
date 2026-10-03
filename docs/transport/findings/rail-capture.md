@@ -1,5 +1,8 @@
 # Current rail source capture
 
+The following records the acquisition phase. The subsequent [offline cache conversion](rail-cache.md) now
+serves normalized schedules through transport search; see its report for extraction limits.
+
 Captured on **2026-10-03–04 (Hong Kong time)** from operator sources and explicitly labelled reseller pages. This is the source-collection phase requested before
 provider integration or simulated booking. No runtime seeds, reservations, accounts or payments were changed.
 

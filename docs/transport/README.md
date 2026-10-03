@@ -2,6 +2,10 @@
 
 How a click on the globe becomes flights, trains, buses and ferries.
 
+The [offline rail cache](findings/rail-cache.md) now converts the downloaded source corpus into searchable
+schedule records. `rail-cache` serves those records locally alongside the existing providers, preserving dated
+samples, published calendar limits and unresolved operating-day labels.
+
 ## Planned demo cache work
 
 [TODO: collect real transit listings and add a simulated booking path](briefs/demo-listing-cache.md)
@@ -246,7 +250,7 @@ China rail, Korail, THSR and SRT offers carry their actual seed source and check
   scrapes or depends on the source being online. The source has no robots.txt (404 observed 2026-10-03) or linked
   reuse terms; the script stops if robots.txt changes so its directives can be reviewed. This is not a claim of an
   open-data licence or permission for bulk redistribution.
-- **Japan:** remains blocked for implementation; NAVITIME documents routing but requires licensed access, and the
+- **Japan:** cached JR PDFs and dated reseller samples are available through `rail-cache`; broader live integration remains blocked; NAVITIME documents routing but requires licensed access, and the
   official JR basic PDF is not a complete dated service calendar. Do not label route tariffs as live inventory.
 - **China/Korea/Taiwan/Thailand:** existing schedules remain available without keys. Genuine quotes/booking need
   approved operator or rail reseller access. TDX and TAGO are schedule/data sources, not booking contracts.

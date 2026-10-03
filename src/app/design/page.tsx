@@ -4,7 +4,7 @@ import tokens from "@/design/tokens.json";
 
 import { ComponentGallery, CursorGallery, ThemeSwitch } from "./gallery";
 
-export const metadata: Metadata = { title: "Paper Atlas · Trip Globe" };
+export const metadata: Metadata = { title: "Paper Atlas · Portal" };
 
 type Themed = string | { light: string; dark?: string };
 const light = (v: Themed) => (typeof v === "string" ? v : v.light);

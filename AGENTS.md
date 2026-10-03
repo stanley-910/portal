@@ -1,4 +1,4 @@
-# Trip Globe
+# Portal
 
 A multiplayer globe for getting between places in Asia, built for the HKU Hackathon (Fall 2026).
 

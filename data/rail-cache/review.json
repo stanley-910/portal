@@ -1,0 +1,2902 @@
+[
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6566",
+    "locator": {
+      "page": 1,
+      "y": 411.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6552",
+    "locator": {
+      "page": 1,
+      "y": 478.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6546",
+    "locator": {
+      "page": 1,
+      "y": 692.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6568",
+    "locator": {
+      "page": 1,
+      "y": 800.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6556",
+    "locator": {
+      "page": 1,
+      "y": 880.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6558",
+    "locator": {
+      "page": 1,
+      "y": 987.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6548",
+    "locator": {
+      "page": 1,
+      "y": 1054.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6560",
+    "locator": {
+      "page": 1,
+      "y": 1282.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6562",
+    "locator": {
+      "page": 1,
+      "y": 1349.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:046a4dc403e81095",
+    "number": "G6564",
+    "locator": {
+      "page": 1,
+      "y": 1645.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6566",
+    "locator": {
+      "page": 1,
+      "y": 411.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6552",
+    "locator": {
+      "page": 1,
+      "y": 478.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6546",
+    "locator": {
+      "page": 1,
+      "y": 692.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6568",
+    "locator": {
+      "page": 1,
+      "y": 800.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6556",
+    "locator": {
+      "page": 1,
+      "y": 880.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6558",
+    "locator": {
+      "page": 1,
+      "y": 987.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6548",
+    "locator": {
+      "page": 1,
+      "y": 1054.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6560",
+    "locator": {
+      "page": 1,
+      "y": 1282.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6562",
+    "locator": {
+      "page": 1,
+      "y": 1349.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:a260454c12164647",
+    "number": "G6564",
+    "locator": {
+      "page": 1,
+      "y": 1645.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6114",
+    "locator": {
+      "page": 1,
+      "y": 586.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G918",
+    "locator": {
+      "page": 1,
+      "y": 732.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G906",
+    "locator": {
+      "page": 1,
+      "y": 875.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G920",
+    "locator": {
+      "page": 1,
+      "y": 1057.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G924",
+    "locator": {
+      "page": 1,
+      "y": 1211.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G908/9",
+    "locator": {
+      "page": 1,
+      "y": 1398.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G902",
+    "locator": {
+      "page": 2,
+      "y": 442.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G386/3",
+    "locator": {
+      "page": 2,
+      "y": 524.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6390",
+    "locator": {
+      "page": 2,
+      "y": 668.33
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G65",
+    "locator": {
+      "page": 2,
+      "y": 745.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G004",
+    "locator": {
+      "page": 2,
+      "y": 1301.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G922",
+    "locator": {
+      "page": 2,
+      "y": 1629.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G926",
+    "locator": {
+      "page": 2,
+      "y": 1705.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G914/5",
+    "locator": {
+      "page": 3,
+      "y": 480.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6080",
+    "locator": {
+      "page": 3,
+      "y": 701.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6048/5",
+    "locator": {
+      "page": 3,
+      "y": 882.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6113",
+    "locator": {
+      "page": 4,
+      "y": 584.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G917",
+    "locator": {
+      "page": 4,
+      "y": 767.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G923",
+    "locator": {
+      "page": 4,
+      "y": 1260.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6589",
+    "locator": {
+      "page": 4,
+      "y": 1668.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G901",
+    "locator": {
+      "page": 5,
+      "y": 659.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6",
+    "locator": {
+      "page": 5,
+      "y": 925.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "locator": {
+      "page": 5
+    },
+    "reason": "No complete validated schedule on this page; layout retained in local OCR cache"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G921",
+    "locator": {
+      "page": 6,
+      "y": 583.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G916/3",
+    "locator": {
+      "page": 6,
+      "y": 884.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6079",
+    "locator": {
+      "page": 6,
+      "y": 1147.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:f0badd817e932d97",
+    "number": "G6579",
+    "locator": {
+      "page": 6,
+      "y": 1559.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G924",
+    "locator": {
+      "page": 1,
+      "y": 1211.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G908/9",
+    "locator": {
+      "page": 1,
+      "y": 1398.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G928",
+    "locator": {
+      "page": 1,
+      "y": 1686.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G902",
+    "locator": {
+      "page": 2,
+      "y": 442.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G386/3",
+    "locator": {
+      "page": 2,
+      "y": 524.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6390",
+    "locator": {
+      "page": 2,
+      "y": 668.33
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G65",
+    "locator": {
+      "page": 2,
+      "y": 745.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G5660",
+    "locator": {
+      "page": 2,
+      "y": 1119.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G922",
+    "locator": {
+      "page": 2,
+      "y": 1629.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G926",
+    "locator": {
+      "page": 2,
+      "y": 1705.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G914/5",
+    "locator": {
+      "page": 3,
+      "y": 480.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6080",
+    "locator": {
+      "page": 3,
+      "y": 701.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6048/5",
+    "locator": {
+      "page": 3,
+      "y": 922.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G381",
+    "locator": {
+      "page": 4,
+      "y": 396.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6113",
+    "locator": {
+      "page": 4,
+      "y": 584.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G917",
+    "locator": {
+      "page": 4,
+      "y": 767.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G905",
+    "locator": {
+      "page": 4,
+      "y": 954.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G919",
+    "locator": {
+      "page": 4,
+      "y": 1144.17
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G923",
+    "locator": {
+      "page": 4,
+      "y": 1260.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G910/07",
+    "locator": {
+      "page": 4,
+      "y": 1484.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6589",
+    "locator": {
+      "page": 4,
+      "y": 1668.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "locator": {
+      "page": 4
+    },
+    "reason": "No complete validated schedule on this page; layout retained in local OCR cache"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G927",
+    "locator": {
+      "page": 5,
+      "y": 398.33
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G384",
+    "locator": {
+      "page": 5,
+      "y": 583.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G901",
+    "locator": {
+      "page": 5,
+      "y": 659.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6397",
+    "locator": {
+      "page": 5,
+      "y": 855.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6572/3",
+    "locator": {
+      "page": 5,
+      "y": 928.0
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6389",
+    "locator": {
+      "page": 5,
+      "y": 1004.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6576/7",
+    "locator": {
+      "page": 5,
+      "y": 1088.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6391",
+    "locator": {
+      "page": 5,
+      "y": 1155.83
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G5659",
+    "locator": {
+      "page": 5,
+      "y": 1347.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "locator": {
+      "page": 5
+    },
+    "reason": "No complete validated schedule on this page; layout retained in local OCR cache"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G921",
+    "locator": {
+      "page": 6,
+      "y": 583.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G925",
+    "locator": {
+      "page": 6,
+      "y": 659.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G916/3",
+    "locator": {
+      "page": 6,
+      "y": 884.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6079",
+    "locator": {
+      "page": 6,
+      "y": 1147.5
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "mtr:c2886d499b82397d",
+    "number": "G6579",
+    "locator": {
+      "page": 6,
+      "y": 1557.67
+    },
+    "reason": "OCR confidence or station-column alignment below threshold"
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "807",
+    "locator": {
+      "page": 3,
+      "columnX": 200.9
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 28620,
+        "departure": 28620
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 29040,
+        "departure": 29040
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 29700,
+        "departure": 29700
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 30900,
+        "departure": 30900
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 33660,
+        "departure": 33660
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 34680,
+        "departure": 34680
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 36540,
+        "departure": 36540
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 37560,
+        "departure": 37560
+      },
+      {
+        "station": "JP:gifu-hashima",
+        "arrival": 39480,
+        "departure": 39480
+      },
+      {
+        "station": "JP:kyoto",
+        "arrival": 42960,
+        "departure": 42960
+      },
+      {
+        "station": "JP:shin-osaka",
+        "arrival": 42660,
+        "departure": 42660
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "809",
+    "locator": {
+      "page": 3,
+      "columnX": 350.1
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 30420,
+        "departure": 30420
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 32040,
+        "departure": 32040
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 31500,
+        "departure": 31500
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 32700,
+        "departure": 32700
+      },
+      {
+        "station": "JP:shin-fuji",
+        "arrival": 34620,
+        "departure": 34620
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 35580,
+        "departure": 35580
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 36480,
+        "departure": 36480
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 38340,
+        "departure": 38340
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 39300,
+        "departure": 39300
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "813",
+    "locator": {
+      "page": 3,
+      "columnX": 682.0
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 34020,
+        "departure": 34020
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 35640,
+        "departure": 35640
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 35100,
+        "departure": 35100
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 36300,
+        "departure": 36300
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 37440,
+        "departure": 37440
+      },
+      {
+        "station": "JP:shin-fuji",
+        "arrival": 38220,
+        "departure": 38220
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 39180,
+        "departure": 39180
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 40080,
+        "departure": 40080
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 41940,
+        "departure": 41940
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "815",
+    "locator": {
+      "page": 4,
+      "columnX": 184.1
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 35820,
+        "departure": 35820
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 36240,
+        "departure": 36240
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 36900,
+        "departure": 36900
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 39240,
+        "departure": 39240
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 44760,
+        "departure": 44760
+      },
+      {
+        "station": "JP:nagoya",
+        "arrival": 45420,
+        "departure": 45420
+      },
+      {
+        "station": "JP:maibara",
+        "arrival": 47760,
+        "departure": 47760
+      },
+      {
+        "station": "JP:kyoto",
+        "arrival": 56160,
+        "departure": 56160
+      },
+      {
+        "station": "JP:shin-osaka",
+        "arrival": 49860,
+        "departure": 49860
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "955",
+    "locator": {
+      "page": 5,
+      "columnX": 217.2
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:okayama",
+        "arrival": 57000,
+        "departure": 57000
+      },
+      {
+        "station": "JP:fukuyama",
+        "arrival": 58560,
+        "departure": 58560
+      },
+      {
+        "station": "JP:mihara",
+        "arrival": 60060,
+        "departure": 60060
+      },
+      {
+        "station": "JP:higashihiroshima",
+        "arrival": 60960,
+        "departure": 60960
+      },
+      {
+        "station": "JP:hiroshima",
+        "arrival": 61680,
+        "departure": 61680
+      },
+      {
+        "station": "JP:shin-iwakuni",
+        "arrival": 62700,
+        "departure": 62700
+      },
+      {
+        "station": "JP:shin-yamaguchi",
+        "arrival": 64680,
+        "departure": 64680
+      },
+      {
+        "station": "JP:asa",
+        "arrival": 65460,
+        "departure": 65460
+      },
+      {
+        "station": "JP:kokura",
+        "arrival": 68040,
+        "departure": 68040
+      },
+      {
+        "station": "JP:hakata",
+        "arrival": 67860,
+        "departure": 67860
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "827",
+    "locator": {
+      "page": 5,
+      "columnX": 300.5
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 46620,
+        "departure": 46620
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 54240,
+        "departure": 54240
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 48900,
+        "departure": 48900
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 49380,
+        "departure": 49380
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 51660,
+        "departure": 51660
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 54480,
+        "departure": 54480
+      },
+      {
+        "station": "JP:nagoya",
+        "arrival": 57420,
+        "departure": 56700
+      },
+      {
+        "station": "JP:gifu-hashima",
+        "arrival": 68280,
+        "departure": 68280
+      },
+      {
+        "station": "JP:kyoto",
+        "arrival": 59760,
+        "departure": 59760
+      },
+      {
+        "station": "JP:shin-osaka",
+        "arrival": 60660,
+        "departure": 60660
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "829",
+    "locator": {
+      "page": 5,
+      "columnX": 416.5
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 55620,
+        "departure": 55620
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 57240,
+        "departure": 57240
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 56700,
+        "departure": 56700
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 50520,
+        "departure": 50520
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 51000,
+        "departure": 51000
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 51720,
+        "departure": 51720
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 53520,
+        "departure": 53520
+      },
+      {
+        "station": "JP:hamamatsu",
+        "arrival": 55500,
+        "departure": 55500
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 56340,
+        "departure": 56340
+      },
+      {
+        "station": "JP:nagoya",
+        "arrival": 57960,
+        "departure": 57960
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "957",
+    "locator": {
+      "page": 5,
+      "columnX": 483.0
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:fukuyama",
+        "arrival": 62160,
+        "departure": 62160
+      },
+      {
+        "station": "JP:mihara",
+        "arrival": 63660,
+        "departure": 63660
+      },
+      {
+        "station": "JP:higashihiroshima",
+        "arrival": 64560,
+        "departure": 64560
+      },
+      {
+        "station": "JP:hiroshima",
+        "arrival": 65280,
+        "departure": 65280
+      },
+      {
+        "station": "JP:shin-iwakuni",
+        "arrival": 66300,
+        "departure": 66300
+      },
+      {
+        "station": "JP:shin-yamaguchi",
+        "arrival": 68280,
+        "departure": 68280
+      },
+      {
+        "station": "JP:asa",
+        "arrival": 69060,
+        "departure": 69060
+      },
+      {
+        "station": "JP:kokura",
+        "arrival": 71640,
+        "departure": 71640
+      },
+      {
+        "station": "JP:hakata",
+        "arrival": 71460,
+        "departure": 71460
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "831",
+    "locator": {
+      "page": 5,
+      "columnX": 549.0
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:shinagawa",
+        "arrival": 50640,
+        "departure": 50640
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 51300,
+        "departure": 51300
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 52500,
+        "departure": 52500
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 52980,
+        "departure": 52980
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 55260,
+        "departure": 55260
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 56280,
+        "departure": 56280
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 58080,
+        "departure": 58080
+      },
+      {
+        "station": "JP:nagoya",
+        "arrival": 59820,
+        "departure": 60300
+      },
+      {
+        "station": "JP:kyoto",
+        "arrival": 64560,
+        "departure": 64560
+      },
+      {
+        "station": "JP:shin-osaka",
+        "arrival": 64260,
+        "departure": 64260
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "833",
+    "locator": {
+      "page": 5,
+      "columnX": 665.4
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 52020,
+        "departure": 52020
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 53640,
+        "departure": 53640
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 53100,
+        "departure": 53100
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 54300,
+        "departure": 54300
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 54780,
+        "departure": 54780
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 57120,
+        "departure": 57120
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 58080,
+        "departure": 58080
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 59940,
+        "departure": 59940
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "837",
+    "locator": {
+      "page": 6,
+      "columnX": 283.9
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:tokyo",
+        "arrival": 55620,
+        "departure": 55620
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 57240,
+        "departure": 57240
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 56700,
+        "departure": 56700
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 57720,
+        "departure": 57720
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 58920,
+        "departure": 58920
+      },
+      {
+        "station": "JP:shin-fuji",
+        "arrival": 59820,
+        "departure": 59820
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 60720,
+        "departure": 60720
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 61680,
+        "departure": 61680
+      },
+      {
+        "station": "JP:hamamatsu",
+        "arrival": 62580,
+        "departure": 62580
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 63540,
+        "departure": 63540
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 64560,
+        "departure": 64560
+      },
+      {
+        "station": "JP:nagoya",
+        "arrival": 65160,
+        "departure": 65160
+      }
+    ]
+  },
+  {
+    "source": "jr-central:381636ad36d767b4",
+    "number": "967",
+    "locator": {
+      "page": 7,
+      "columnX": 101.2
+    },
+    "reason": "Implausible duration in daytime Japan timetable",
+    "stops": [
+      {
+        "station": "JP:fukuyama",
+        "arrival": 76560,
+        "departure": 76560
+      },
+      {
+        "station": "JP:hiroshima",
+        "arrival": 94020,
+        "departure": 94020
+      },
+      {
+        "station": "JP:tokuyama",
+        "arrival": 167820,
+        "departure": 167820
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "806",
+    "locator": {
+      "page": 2,
+      "columnX": 233.4
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:nagoya",
+        "arrival": 32280,
+        "departure": 32280
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 31920,
+        "departure": 31920
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 32940,
+        "departure": 32940
+      },
+      {
+        "station": "JP:hamamatsu",
+        "arrival": 33900,
+        "departure": 33900
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 34680,
+        "departure": 34680
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 35820,
+        "departure": 35820
+      },
+      {
+        "station": "JP:shin-fuji",
+        "arrival": 36780,
+        "departure": 36780
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 37620,
+        "departure": 37620
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 38100,
+        "departure": 38100
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 38700,
+        "departure": 38700
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 39540,
+        "departure": 39540
+      },
+      {
+        "station": "JP:tokyo",
+        "arrival": 40680,
+        "departure": 40680
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "810",
+    "locator": {
+      "page": 2,
+      "columnX": 432.5
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:nagoya",
+        "arrival": 35880,
+        "departure": 35880
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 35520,
+        "departure": 35520
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 36540,
+        "departure": 36540
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 38280,
+        "departure": 38280
+      },
+      {
+        "station": "JP:shin-fuji",
+        "arrival": 40200,
+        "departure": 40200
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 41040,
+        "departure": 41040
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "814",
+    "locator": {
+      "page": 2,
+      "columnX": 731.3
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:nagoya",
+        "arrival": 39480,
+        "departure": 39480
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 39120,
+        "departure": 39120
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 40140,
+        "departure": 40140
+      },
+      {
+        "station": "JP:hamamatsu",
+        "arrival": 41100,
+        "departure": 41100
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 43080,
+        "departure": 43080
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 43020,
+        "departure": 43020
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 44820,
+        "departure": 44820
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 45300,
+        "departure": 45300
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 45900,
+        "departure": 45900
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "824",
+    "locator": {
+      "page": 4,
+      "columnX": 83.9
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:shin-osaka",
+        "arrival": 42840,
+        "departure": 42840
+      },
+      {
+        "station": "JP:kyoto",
+        "arrival": 43800,
+        "departure": 43800
+      },
+      {
+        "station": "JP:maibara",
+        "arrival": 46500,
+        "departure": 46500
+      },
+      {
+        "station": "JP:gifu-hashima",
+        "arrival": 46260,
+        "departure": 46260
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 55440,
+        "departure": 55440
+      },
+      {
+        "station": "JP:hamamatsu",
+        "arrival": 50280,
+        "departure": 50280
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 51000,
+        "departure": 51000
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 51900,
+        "departure": 51900
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 56400,
+        "departure": 56400
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "826",
+    "locator": {
+      "page": 4,
+      "columnX": 316.4
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:nagoya",
+        "arrival": 57480,
+        "departure": 57480
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 49920,
+        "departure": 49920
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 52680,
+        "departure": 52680
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 53820,
+        "departure": 53820
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 57540,
+        "departure": 57540
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 58260,
+        "departure": 58260
+      },
+      {
+        "station": "JP:tokyo",
+        "arrival": 58680,
+        "departure": 58680
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "948",
+    "locator": {
+      "page": 4,
+      "columnX": 498.9
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:hakata",
+        "arrival": 35340,
+        "departure": 35340
+      },
+      {
+        "station": "JP:kokura",
+        "arrival": 36720,
+        "departure": 36720
+      },
+      {
+        "station": "JP:shin-shimonoseki",
+        "arrival": 37440,
+        "departure": 37440
+      },
+      {
+        "station": "JP:asa",
+        "arrival": 38160,
+        "departure": 38160
+      },
+      {
+        "station": "JP:shin-yamaguchi",
+        "arrival": 38940,
+        "departure": 38940
+      },
+      {
+        "station": "JP:tokuyama",
+        "arrival": 39780,
+        "departure": 39780
+      },
+      {
+        "station": "JP:shin-iwakuni",
+        "arrival": 40920,
+        "departure": 40920
+      },
+      {
+        "station": "JP:hiroshima",
+        "arrival": 43080,
+        "departure": 43080
+      },
+      {
+        "station": "JP:higashihiroshima",
+        "arrival": 42720,
+        "departure": 42720
+      },
+      {
+        "station": "JP:shin-onomichi",
+        "arrival": 44460,
+        "departure": 44460
+      },
+      {
+        "station": "JP:fukuyama",
+        "arrival": 45060,
+        "departure": 45060
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "830",
+    "locator": {
+      "page": 4,
+      "columnX": 565.3
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:nagoya",
+        "arrival": 53880,
+        "departure": 53880
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 53520,
+        "departure": 53520
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 56280,
+        "departure": 56280
+      },
+      {
+        "station": "JP:shizuoka",
+        "arrival": 57360,
+        "departure": 57360
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 61140,
+        "departure": 61140
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 61800,
+        "departure": 61800
+      },
+      {
+        "station": "JP:tokyo",
+        "arrival": 62280,
+        "departure": 62280
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "952",
+    "locator": {
+      "page": 5,
+      "columnX": 366.2
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:hakata",
+        "arrival": 49680,
+        "departure": 49680
+      },
+      {
+        "station": "JP:kokura",
+        "arrival": 43920,
+        "departure": 43920
+      },
+      {
+        "station": "JP:shin-shimonoseki",
+        "arrival": 44640,
+        "departure": 44640
+      },
+      {
+        "station": "JP:asa",
+        "arrival": 45360,
+        "departure": 45360
+      },
+      {
+        "station": "JP:hiroshima",
+        "arrival": 49080,
+        "departure": 49080
+      },
+      {
+        "station": "JP:higashihiroshima",
+        "arrival": 49920,
+        "departure": 49920
+      },
+      {
+        "station": "JP:okayama",
+        "arrival": 53700,
+        "departure": 53700
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "842",
+    "locator": {
+      "page": 5,
+      "columnX": 698.2
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:nagoya",
+        "arrival": 63480,
+        "departure": 63480
+      },
+      {
+        "station": "JP:mikawa-anjo",
+        "arrival": 64500,
+        "departure": 64500
+      },
+      {
+        "station": "JP:toyohashi",
+        "arrival": 65340,
+        "departure": 65340
+      },
+      {
+        "station": "JP:hamamatsu",
+        "arrival": 66360,
+        "departure": 66360
+      },
+      {
+        "station": "JP:kakegawa",
+        "arrival": 68280,
+        "departure": 68280
+      },
+      {
+        "station": "JP:mishima",
+        "arrival": 69840,
+        "departure": 69840
+      },
+      {
+        "station": "JP:atami",
+        "arrival": 71520,
+        "departure": 71520
+      },
+      {
+        "station": "JP:odawara",
+        "arrival": 71040,
+        "departure": 71040
+      },
+      {
+        "station": "JP:shin-yokohama",
+        "arrival": 71940,
+        "departure": 71940
+      },
+      {
+        "station": "JP:shinagawa",
+        "arrival": 72600,
+        "departure": 72600
+      },
+      {
+        "station": "JP:tokyo",
+        "arrival": 73080,
+        "departure": 73080
+      }
+    ]
+  },
+  {
+    "source": "jr-central:250b61662096eca4",
+    "number": "866",
+    "locator": {
+      "page": 7,
+      "columnX": 731.4
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:shin-osaka",
+        "arrival": 78960,
+        "departure": 78960
+      },
+      {
+        "station": "JP:kyoto",
+        "arrival": 78660,
+        "departure": 78660
+      }
+    ]
+  },
+  {
+    "source": "korail:eaadc99d90aa9fb4",
+    "number": "450",
+    "locator": {
+      "sheet": "호남선",
+      "row": 61,
+      "column": 2
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "KR:용산",
+        "arrival": 82440,
+        "departure": 82440
+      },
+      {
+        "station": "KR:광명",
+        "arrival": 81510,
+        "departure": 81510
+      },
+      {
+        "station": "KR:천안아산",
+        "arrival": 79920,
+        "departure": 79920
+      },
+      {
+        "station": "KR:오송",
+        "arrival": 79080,
+        "departure": 79080
+      },
+      {
+        "station": "KR:익산",
+        "arrival": 77250,
+        "departure": 77250
+      },
+      {
+        "station": "KR:정읍",
+        "arrival": 76140,
+        "departure": 76140
+      },
+      {
+        "station": "KR:광주송정",
+        "arrival": 75000,
+        "departure": 75000
+      }
+    ]
+  },
+  {
+    "source": "korail:f8d30c98b684d5a6",
+    "number": "1491",
+    "locator": {
+      "sheet": "호남선",
+      "column": 2,
+      "headerRow": 9
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "KR:극락강",
+        "arrival": 25800,
+        "departure": 25800
+      },
+      {
+        "station": "KR:광주",
+        "arrival": 25200,
+        "departure": 25200
+      },
+      {
+        "station": "KR:광주송정",
+        "arrival": 26340,
+        "departure": 26340
+      },
+      {
+        "station": "KR:나주",
+        "arrival": 27000,
+        "departure": 27000
+      },
+      {
+        "station": "KR:다시",
+        "arrival": 27360,
+        "departure": 27360
+      },
+      {
+        "station": "KR:함평",
+        "arrival": 27930,
+        "departure": 27930
+      },
+      {
+        "station": "KR:무안",
+        "arrival": 28380,
+        "departure": 28380
+      },
+      {
+        "station": "KR:몽탄",
+        "arrival": 28710,
+        "departure": 28710
+      },
+      {
+        "station": "KR:일로",
+        "arrival": 29160,
+        "departure": 29160
+      },
+      {
+        "station": "KR:임성리",
+        "arrival": 29520,
+        "departure": 29520
+      },
+      {
+        "station": "KR:목포",
+        "arrival": 29940,
+        "departure": 29940
+      }
+    ]
+  },
+  {
+    "source": "korail:f8d30c98b684d5a6",
+    "number": "1492",
+    "locator": {
+      "sheet": "호남선",
+      "column": 20,
+      "headerRow": 62
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "KR:목포",
+        "arrival": 65520,
+        "departure": 65520
+      },
+      {
+        "station": "KR:임성리",
+        "arrival": 65940,
+        "departure": 65940
+      },
+      {
+        "station": "KR:일로",
+        "arrival": 66330,
+        "departure": 66330
+      },
+      {
+        "station": "KR:몽탄",
+        "arrival": 66750,
+        "departure": 66750
+      },
+      {
+        "station": "KR:무안",
+        "arrival": 67050,
+        "departure": 67050
+      },
+      {
+        "station": "KR:함평",
+        "arrival": 67410,
+        "departure": 67410
+      },
+      {
+        "station": "KR:다시",
+        "arrival": 67890,
+        "departure": 67890
+      },
+      {
+        "station": "KR:나주",
+        "arrival": 68310,
+        "departure": 68310
+      },
+      {
+        "station": "KR:광주송정",
+        "arrival": 69240,
+        "departure": 69240
+      },
+      {
+        "station": "KR:광주",
+        "arrival": 70200,
+        "departure": 70200
+      },
+      {
+        "station": "KR:극락강",
+        "arrival": 69780,
+        "departure": 69780
+      }
+    ]
+  },
+  {
+    "source": "korail:f8d30c98b684d5a6",
+    "number": "1246",
+    "locator": {
+      "sheet": "장항선",
+      "column": 12,
+      "headerRow": 50
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "KR:홍성",
+        "arrival": 68400,
+        "departure": 68400
+      },
+      {
+        "station": "KR:삽교",
+        "arrival": 55770,
+        "departure": 55770
+      },
+      {
+        "station": "KR:예산",
+        "arrival": 56190,
+        "departure": 56190
+      },
+      {
+        "station": "KR:신례원",
+        "arrival": 56520,
+        "departure": 56520
+      },
+      {
+        "station": "KR:온양온천",
+        "arrival": 57390,
+        "departure": 57390
+      },
+      {
+        "station": "KR:아산",
+        "arrival": 57900,
+        "departure": 57900
+      },
+      {
+        "station": "KR:천안",
+        "arrival": 58290,
+        "departure": 58290
+      },
+      {
+        "station": "KR:평택",
+        "arrival": 59400,
+        "departure": 59400
+      }
+    ]
+  },
+  {
+    "source": "thailand:d575f442b30a25af",
+    "number": "23",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:bangkok-krung-thep-aphiwat",
+        "departure": 75900
+      },
+      {
+        "station": "TH:don-muang",
+        "departure": 76920
+      },
+      {
+        "station": "TH:rangsit",
+        "departure": 77460
+      },
+      {
+        "station": "TH:ayutthaya",
+        "departure": 79320
+      },
+      {
+        "station": "TH:saraburi",
+        "departure": 81360
+      },
+      {
+        "station": "TH:pak-chong",
+        "departure": 86460
+      },
+      {
+        "station": "TH:nakhon-ratchasima",
+        "departure": 92100
+      },
+      {
+        "station": "TH:lam-plai-mat",
+        "departure": 96180
+      },
+      {
+        "station": "TH:buri-ram",
+        "departure": 97920
+      },
+      {
+        "station": "TH:surin",
+        "departure": 2880
+      },
+      {
+        "station": "TH:sikhoraphum",
+        "departure": 15420
+      },
+      {
+        "station": "TH:uthumphon-phisai",
+        "departure": 17520
+      },
+      {
+        "station": "TH:si-sa-ket",
+        "departure": 18600
+      },
+      {
+        "station": "TH:kanthararom",
+        "departure": 20040
+      },
+      {
+        "station": "TH:ubon-ratchathani",
+        "arrival": 21600
+      }
+    ]
+  },
+  {
+    "source": "thailand:0dcc9f5e98c76af8",
+    "number": "451",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:khao-chum-thong-junction",
+        "departure": 24840
+      },
+      {
+        "station": "TH:nakhon-si-thammarat",
+        "departure": 21600
+      },
+      {
+        "station": "TH:cha-uat",
+        "departure": 26640
+      },
+      {
+        "station": "TH:phatthalung",
+        "departure": 30240
+      },
+      {
+        "station": "TH:hat-yai-junction",
+        "departure": 36540
+      },
+      {
+        "station": "TH:pattani",
+        "departure": 42240
+      },
+      {
+        "station": "TH:yala",
+        "departure": 44400
+      },
+      {
+        "station": "TH:tanyong-mat",
+        "departure": 48840
+      },
+      {
+        "station": "TH:su-ngai-kolok",
+        "arrival": 52800
+      }
+    ]
+  },
+  {
+    "source": "thailand:0dcc9f5e98c76af8",
+    "number": "261",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:bangkok-hua-lamphong",
+        "departure": 33600
+      },
+      {
+        "station": "TH:sam-sen",
+        "departure": 34380
+      },
+      {
+        "station": "TH:bang-sue-junction",
+        "departure": 34860
+      },
+      {
+        "station": "TH:taling-chan-junction",
+        "departure": 36180
+      },
+      {
+        "station": "TH:bang-bamru",
+        "departure": 35820
+      },
+      {
+        "station": "TH:sala-thammasop",
+        "departure": 36780
+      },
+      {
+        "station": "TH:sala-ya",
+        "departure": 37200
+      },
+      {
+        "station": "TH:nakhon-pathom",
+        "departure": 39420
+      },
+      {
+        "station": "TH:nong-pla-duk-junction",
+        "departure": 40680
+      },
+      {
+        "station": "TH:ban-pong",
+        "departure": 41040
+      },
+      {
+        "station": "TH:photharam",
+        "departure": 42060
+      },
+      {
+        "station": "TH:rachaburi",
+        "departure": 43380
+      },
+      {
+        "station": "TH:pak-tho",
+        "departure": 44340
+      },
+      {
+        "station": "TH:phetchaburi",
+        "departure": 46080
+      },
+      {
+        "station": "TH:cha-am",
+        "departure": 48360
+      },
+      {
+        "station": "TH:hua-hin",
+        "departure": 49980
+      }
+    ]
+  },
+  {
+    "source": "thailand:0dcc9f5e98c76af8",
+    "number": "455",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:khao-chum-thong-junction",
+        "departure": 40620
+      },
+      {
+        "station": "TH:nakhon-si-thammarat",
+        "departure": 37500
+      },
+      {
+        "station": "TH:cha-uat",
+        "departure": 42600
+      },
+      {
+        "station": "TH:phatthalung",
+        "departure": 46500
+      },
+      {
+        "station": "TH:hat-yai-junction",
+        "departure": 52560
+      },
+      {
+        "station": "TH:pattani",
+        "departure": 58020
+      },
+      {
+        "station": "TH:yala",
+        "departure": 60300
+      }
+    ]
+  },
+  {
+    "source": "thailand:0dcc9f5e98c76af8",
+    "number": "355",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:bangkok-hua-lamphong",
+        "departure": 60000
+      },
+      {
+        "station": "TH:sam-sen",
+        "departure": 60900
+      },
+      {
+        "station": "TH:bang-sue-junction",
+        "departure": 61380
+      },
+      {
+        "station": "TH:ramathibodi-hospital",
+        "departure": 60660
+      },
+      {
+        "station": "TH:taling-chan-junction",
+        "departure": 62820
+      },
+      {
+        "station": "TH:bang-bamru",
+        "departure": 62460
+      },
+      {
+        "station": "TH:sala-thammasop",
+        "departure": 63360
+      },
+      {
+        "station": "TH:sala-ya",
+        "departure": 63780
+      },
+      {
+        "station": "TH:nakhon-pathom",
+        "departure": 65760
+      },
+      {
+        "station": "TH:nong-pla-duk-junction",
+        "departure": 66780
+      },
+      {
+        "station": "TH:suphan-buri",
+        "departure": 72600
+      },
+      {
+        "station": "TH:ban-pong",
+        "departure": 67200
+      }
+    ]
+  },
+  {
+    "source": "thailand:0dcc9f5e98c76af8",
+    "number": "489",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:khiri-ratthanikhom",
+        "departure": 63600
+      },
+      {
+        "station": "TH:surat-thani",
+        "departure": 60900
+      }
+    ]
+  },
+  {
+    "source": "thailand:0dcc9f5e98c76af8",
+    "number": "173",
+    "reason": "Cancelled service or conflicting Thai/English restart date",
+    "rule": "GO:15/05/2026"
+  },
+  {
+    "source": "thailand:da8c5eaf37ee352a",
+    "number": "356",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:ban-pong",
+        "departure": 21900
+      },
+      {
+        "station": "TH:suphan-buri",
+        "departure": 15300
+      },
+      {
+        "station": "TH:nong-pla-duk-junction",
+        "departure": 22380
+      },
+      {
+        "station": "TH:nakhon-pathom",
+        "departure": 23580
+      },
+      {
+        "station": "TH:sala-ya",
+        "departure": 25740
+      },
+      {
+        "station": "TH:sala-thammasop",
+        "departure": 26040
+      },
+      {
+        "station": "TH:bang-bamru",
+        "departure": 27060
+      },
+      {
+        "station": "TH:taling-chan-junction",
+        "departure": 26700
+      },
+      {
+        "station": "TH:ramathibodi-hospital",
+        "departure": 28560
+      },
+      {
+        "station": "TH:bang-sue-junction",
+        "departure": 28020
+      },
+      {
+        "station": "TH:sam-sen",
+        "departure": 28380
+      },
+      {
+        "station": "TH:bangkok-hua-lamphong",
+        "arrival": 29100
+      }
+    ]
+  },
+  {
+    "source": "thailand:da8c5eaf37ee352a",
+    "number": "490",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:surat-thani",
+        "departure": 25800
+      },
+      {
+        "station": "TH:khiri-ratthanikhom",
+        "departure": 23100
+      }
+    ]
+  },
+  {
+    "source": "thailand:da8c5eaf37ee352a",
+    "number": "456",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:yala",
+        "departure": 23700
+      },
+      {
+        "station": "TH:pattani",
+        "departure": 26220
+      },
+      {
+        "station": "TH:hat-yai-junction",
+        "departure": 32040
+      },
+      {
+        "station": "TH:phatthalung",
+        "departure": 39120
+      },
+      {
+        "station": "TH:cha-uat",
+        "departure": 42540
+      },
+      {
+        "station": "TH:nakhon-si-thammarat",
+        "departure": 48000
+      },
+      {
+        "station": "TH:khao-chum-thong-junction",
+        "departure": 45000
+      }
+    ]
+  },
+  {
+    "source": "thailand:da8c5eaf37ee352a",
+    "number": "452",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:su-ngai-kolok",
+        "departure": 32400
+      },
+      {
+        "station": "TH:tanyong-mat",
+        "departure": 35820
+      },
+      {
+        "station": "TH:yala",
+        "departure": 39960
+      },
+      {
+        "station": "TH:pattani",
+        "departure": 42180
+      },
+      {
+        "station": "TH:hat-yai-junction",
+        "departure": 47880
+      },
+      {
+        "station": "TH:phatthalung",
+        "departure": 53400
+      },
+      {
+        "station": "TH:cha-uat",
+        "departure": 57060
+      },
+      {
+        "station": "TH:nakhon-si-thammarat",
+        "departure": 63000
+      },
+      {
+        "station": "TH:khao-chum-thong-junction",
+        "departure": 60000
+      }
+    ]
+  },
+  {
+    "source": "thailand:da8c5eaf37ee352a",
+    "number": "262",
+    "locator": null,
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "TH:hua-hin",
+        "departure": 53160
+      },
+      {
+        "station": "TH:cha-am",
+        "departure": 54480
+      },
+      {
+        "station": "TH:phetchaburi",
+        "departure": 56760
+      },
+      {
+        "station": "TH:pak-tho",
+        "departure": 58500
+      },
+      {
+        "station": "TH:rachaburi",
+        "departure": 59460
+      },
+      {
+        "station": "TH:photharam",
+        "departure": 60840
+      },
+      {
+        "station": "TH:ban-pong",
+        "departure": 61740
+      },
+      {
+        "station": "TH:nong-pla-duk-junction",
+        "departure": 62100
+      },
+      {
+        "station": "TH:nakhon-pathom",
+        "departure": 63540
+      },
+      {
+        "station": "TH:sala-ya",
+        "departure": 65700
+      },
+      {
+        "station": "TH:sala-thammasop",
+        "departure": 66060
+      },
+      {
+        "station": "TH:bang-bamru",
+        "departure": 67080
+      },
+      {
+        "station": "TH:taling-chan-junction",
+        "departure": 66720
+      },
+      {
+        "station": "TH:bang-sue-junction",
+        "departure": 68220
+      },
+      {
+        "station": "TH:sam-sen",
+        "departure": 68640
+      },
+      {
+        "station": "TH:bangkok-hua-lamphong",
+        "arrival": 69600
+      }
+    ]
+  },
+  {
+    "source": "thailand:da8c5eaf37ee352a",
+    "number": "174",
+    "reason": "Cancelled service or conflicting Thai/English restart date",
+    "rule": "GO:15/05/2026"
+  },
+  {
+    "source": "jr-kyushu:208a0a10946b7c2b",
+    "locator": {
+      "page": 1
+    },
+    "reason": "No complete validated schedule on this page; layout retained in local OCR cache"
+  },
+  {
+    "source": "jr-kyushu:208a0a10946b7c2b",
+    "number": "66",
+    "locator": {
+      "page": 8,
+      "headerY": 150.4,
+      "columnX": 716.2
+    },
+    "reason": "Implausible duration in daytime Japan timetable",
+    "stops": [
+      {
+        "station": "JP:fukuma",
+        "arrival": 86340,
+        "departure": 86340
+      },
+      {
+        "station": "JP:togo",
+        "arrival": 86700,
+        "departure": 86700
+      },
+      {
+        "station": "JP:akama",
+        "arrival": 86880,
+        "departure": 86880
+      },
+      {
+        "station": "JP:orio",
+        "arrival": 87600,
+        "departure": 87600
+      },
+      {
+        "station": "JP:kurosaki",
+        "arrival": 87900,
+        "departure": 87900
+      },
+      {
+        "station": "JP:yahata",
+        "arrival": 88080,
+        "departure": 88080
+      },
+      {
+        "station": "JP:tobata",
+        "arrival": 88320,
+        "departure": 88320
+      },
+      {
+        "station": "JP:kokura",
+        "arrival": 88740,
+        "departure": 88740
+      },
+      {
+        "station": "JP:mojiko",
+        "arrival": 89520,
+        "departure": 89520
+      },
+      {
+        "station": "JP:takeo-onsen",
+        "arrival": 168180,
+        "departure": 168180
+      }
+    ]
+  },
+  {
+    "source": "jr-kyushu:208a0a10946b7c2b",
+    "number": "34",
+    "locator": {
+      "page": 9,
+      "headerY": 150.4,
+      "columnX": 716.2
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "JP:oita",
+        "arrival": 49440,
+        "departure": 49440
+      },
+      {
+        "station": "JP:beppu",
+        "arrival": 49980,
+        "departure": 49980
+      },
+      {
+        "station": "JP:nakatsu",
+        "arrival": 52260,
+        "departure": 52260
+      },
+      {
+        "station": "JP:yukuhashi",
+        "arrival": 53280,
+        "departure": 53280
+      },
+      {
+        "station": "JP:kokura",
+        "arrival": 54300,
+        "departure": 54300
+      },
+      {
+        "station": "JP:kurosaki",
+        "arrival": 54840,
+        "departure": 54840
+      },
+      {
+        "station": "JP:orio",
+        "arrival": 55140,
+        "departure": 55140
+      },
+      {
+        "station": "JP:hakata",
+        "arrival": 57120,
+        "departure": 57120
+      },
+      {
+        "station": "JP:takeo-onsen",
+        "arrival": 33600,
+        "departure": 33600
+      }
+    ]
+  },
+  {
+    "source": "ktmb-published:dccb7d2d916efbd3",
+    "number": "SH38",
+    "locator": {
+      "page": 1,
+      "headerY": 114.75
+    },
+    "reason": "Non-monotonic timetable (not a midnight crossing)",
+    "stops": [
+      {
+        "station": "MY:gemas",
+        "arrival": 55800,
+        "departure": 55800
+      },
+      {
+        "station": "MY:bahau",
+        "arrival": 58020,
+        "departure": 58020
+      },
+      {
+        "station": "MY:kemayan",
+        "arrival": 60300,
+        "departure": 60300
+      },
+      {
+        "station": "MY:triang",
+        "arrival": 61260,
+        "departure": 61260
+      },
+      {
+        "station": "MY:mengkarak",
+        "arrival": 61920,
+        "departure": 61920
+      },
+      {
+        "station": "MY:mentakab",
+        "arrival": 63300,
+        "departure": 63300
+      },
+      {
+        "station": "MY:kuala-krau",
+        "arrival": 69960,
+        "departure": 69960
+      },
+      {
+        "station": "MY:jerantut",
+        "arrival": 68040,
+        "departure": 68040
+      },
+      {
+        "station": "MY:mela",
+        "arrival": 69240,
+        "departure": 69240
+      },
+      {
+        "station": "MY:kerambit",
+        "arrival": 69900,
+        "departure": 69900
+      },
+      {
+        "station": "MY:kuala-lipis",
+        "arrival": 71400,
+        "departure": 71400
+      }
+    ]
+  }
+]
