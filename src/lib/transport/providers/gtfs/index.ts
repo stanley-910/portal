@@ -3,6 +3,7 @@ import { ProviderFailure, type Offer, type Place, type SearchQuery, type Transpo
 import { servesModes } from "../stub";
 import cityList from "./cities.json";
 import { cityAt } from "./geo";
+import { matchRadiusKm } from "../match-radius";
 import meta from "./meta.json";
 import { pairs as builtPairs } from "./pairs";
 import { departuresOn } from "./schedule";
@@ -19,8 +20,9 @@ const MODES = ["bus", "train"] as const;
 export function createGtfsProvider(opts: GtfsProviderOptions): TransportProvider {
   const feeds = new Map(opts.feeds.map((f) => [f.id, f]));
   const keyFor = (q: SearchQuery) => {
-    const a = cityAt(opts.cities, q.from.lat, q.from.lng);
-    const b = cityAt(opts.cities, q.to.lat, q.to.lng);
+    const reach = (floorKm: number) => matchRadiusKm(q.from, q.to, floorKm);
+    const a = cityAt(opts.cities, q.from.lat, q.from.lng, reach);
+    const b = cityAt(opts.cities, q.to.lat, q.to.lng, reach);
     return a && b && a.id !== b.id ? pairKey(a.id, b.id) : undefined;
   };
 

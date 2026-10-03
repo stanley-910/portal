@@ -60,6 +60,9 @@
 .pa-sticker-face { fill: var(--sticker-fill); stroke: var(--sticker-ink); stroke-width: 1.4px; stroke-linejoin: round; }
 .pa-sticker-detail { fill: none; stroke: var(--sticker-ink); stroke-width: 1.4px; stroke-linecap: round; }
 .pa-roundel { fill: var(--roundel); }
+
+/* The flag of the passport someone travels on */
+.pa-passport-flag { font-size: 14px; line-height: 1; }
 .pa-star-light { stop-color: var(--star-light); }
 .pa-star-edge { stop-color: var(--star-edge); }
 
@@ -68,6 +71,8 @@
 .pa-round:hover { background: var(--control-hover); }
 .pa-round:active { transform: scale(0.96); }
 .pa-round svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
+.pa-round-quiet { border-color: transparent; background: transparent; box-shadow: none; color: var(--ink-muted); }
+.pa-round-quiet:hover { background: var(--control-hover); color: var(--ink); }
 .pa-round:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Small: a 32px disc that keeps a 44px hit area. */
 .pa-round-sm { position: relative; width: 32px; height: 32px; box-shadow: var(--shadow-tag); }

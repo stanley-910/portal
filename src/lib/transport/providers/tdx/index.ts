@@ -1,5 +1,6 @@
 import "server-only";
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import { ProviderFailure, type Offer, type Place, type SearchQuery, type TransportProvider } from "../../types";
 import { servesModes } from "../stub";
 import { createBusSearch, type BusSearch } from "./bus";
@@ -12,7 +13,7 @@ import { at, runsOn, timeline } from "./time";
 
 // THSR seed + 國道客運 seed, no TDX calls at request time. Provider id stays `tdx`.
 const MODES = ["train", "bus"] as const;
-const MATCH_KM = 20;
+const MIN_MATCH_KM = 20;
 
 /** Minutes from midnight of the train's start day; may exceed DAY after midnight. */
 interface Leg {
@@ -21,9 +22,9 @@ interface Leg {
   arriveMin: number;
 }
 
-function nearest(seed: Seed, lat: number, lng: number): string | undefined {
+function nearest(seed: Seed, lat: number, lng: number, radiusKm: number): string | undefined {
   let best: string | undefined;
-  let bestKm = MATCH_KM;
+  let bestKm = radiusKm;
   for (const [key, s] of Object.entries(seed.stations)) {
     const km = distanceKm(lat, lng, s.lat, s.lng);
     if (km <= bestKm) {
@@ -38,8 +39,9 @@ function createThsrSearch(seed: Seed) {
   const timelines = seed.trains.map((train) => ({ train, times: timeline(train.stops) }));
 
   const legsFor = (q: SearchQuery): { from: string; to: string; legs: Leg[] } | undefined => {
-    const from = nearest(seed, q.from.lat, q.from.lng);
-    const to = nearest(seed, q.to.lat, q.to.lng);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+    const from = nearest(seed, q.from.lat, q.from.lng, radiusKm);
+    const to = nearest(seed, q.to.lat, q.to.lng, radiusKm);
     if (!from || !to || from === to) return undefined;
     const legs: Leg[] = [];
     for (const { train, times } of timelines) {

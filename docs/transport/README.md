@@ -59,6 +59,10 @@ python3 scripts/snapshot-hubs.py          # refresh airports from the pinned sou
 - Within a mode, lower scores win:
   `accessKm + 0.25 × max(0, accessKm + legKm − clickKm) − 8 × (originImportance + destinationImportance)`.
 - Ties break on stable pair IDs. Up to **4 flight**, **3 train** and **3 ferry** pairs are searched.
+- Surface providers match a click to their own stations or cities with one shared radius:
+  `clamp(0.2 × click-to-click km, provider floor, 100 km)`. The floor is that provider's old fixed radius. Short trips
+  keep it, so both ends can't snap to one city. Long trips get up to the 100 km station radius. The nearest station or
+  city still wins. A floor above 100 km stays as it is.
 - Surface providers also get one raw-coordinate search over their own seeds, so the partial hub graph can't hide
   train or bus coverage.
 

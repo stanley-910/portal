@@ -1,12 +1,13 @@
 import "server-only";
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import type { Offer, Place, SearchQuery } from "../../types";
 import type { BusSeed, BusTerminals, BusTrip } from "./schema";
 import { at, runsOn, timeline } from "./time";
 
 // 國道客運 seed. A city can have several intercity terminals (Taipei: main, Yuanshan, Nangang,
-// City Hall), so every terminal within MATCH_KM counts; per trip the one nearest the query point wins.
-const MATCH_KM = 10;
+// City Hall), so every terminal within the match radius counts; per trip the one nearest the query point wins.
+const MIN_MATCH_KM = 10;
 
 export interface BusSearch {
   covers(q: SearchQuery): boolean;
@@ -25,19 +26,20 @@ interface Leg {
 export function createBusSearch(seed: BusSeed, terminals: BusTerminals): BusSearch {
   const trips = seed.trips.map((trip) => ({ trip, times: timeline(trip.stops) }));
 
-  /** terminal key → km from the point, only those within MATCH_KM. */
-  const near = (lat: number, lng: number): Map<string, number> => {
+  /** terminal key → km from the point, only those within `radiusKm`. */
+  const near = (lat: number, lng: number, radiusKm: number): Map<string, number> => {
     const out = new Map<string, number>();
     for (const [key, t] of Object.entries(terminals.terminals)) {
       const km = distanceKm(lat, lng, t.lat, t.lng);
-      if (km <= MATCH_KM) out.set(key, km);
+      if (km <= radiusKm) out.set(key, km);
     }
     return out;
   };
 
   const legsFor = (q: SearchQuery): Leg[] => {
-    const fromKm = near(q.from.lat, q.from.lng);
-    const toKm = near(q.to.lat, q.to.lng);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+    const fromKm = near(q.from.lat, q.from.lng, radiusKm);
+    const toKm = near(q.to.lat, q.to.lng, radiusKm);
     if (fromKm.size === 0 || toKm.size === 0) return [];
     const legs: Leg[] = [];
     for (const { trip, times } of trips) {

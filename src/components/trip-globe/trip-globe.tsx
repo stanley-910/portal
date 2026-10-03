@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type PointerEvent, type Ref } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type Ref } from "react";
 
-import { cursorUrl, memberColor, RoundButton } from "@/components/paper-atlas";
+import { cursorUrl, memberColor } from "@/components/paper-atlas";
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GlobeEngine, type FlightState, type GlobeCursor, type GlobeMode, type LandedTrip, type LatLng, type RemoteFlight } from "./engine";
+import { openArea } from "./free-area";
+import type { Vehicle } from "./vehicle-models";
 import type { ThemeId } from "./palette";
 import { GlobeInfo } from "./globe-info";
 
@@ -21,6 +23,8 @@ export interface TripGlobeHandle {
   onFrame(cb: () => void): () => void;
   /** Draws other members' planes and routes. Replaces the previous list; planes ease toward new positions. */
   setRemoteFlights(flights: RemoteFlight[]): void;
+  /** What your landed trip parks as: the mode of the offer you picked. Ignored while flying. */
+  setVehicle(v: Vehicle): void;
   /** Where another member's plane is on screen, for their name label. Null when hidden or not flying. */
   remotePlane(id: string): { x: number; y: number } | null;
   /** How far the view is zoomed in: 0 for the whole globe, 1 at the closest range. */
@@ -34,10 +38,15 @@ export interface TripGlobeProps {
   theme?: TripGlobeTheme;
   /** Called at takeoff, including uncovered points (null). Hub is a local preview, not a route result. */
   onTakeoff?: (from: Hub | null) => void;
-  /** Called once the plane touches down. The search for the trip starts here. */
-  onLand?: (trip: LandedTrip) => void;
+  /**
+   * Called once the plane touches down, with the trip's legs in order. Each click while flying ends a leg and flies
+   * on; clicking that stop again (a double click) lands there. The search for the trip starts here.
+   */
+  onLand?: (legs: LandedTrip[]) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
+  /** Called on a click on the landed trip's route. That click neither takes off nor cancels. */
+  onRouteClick?: () => void;
   /**
    * Called when the place under the pointer changes, including when the globe turns under a still pointer.
    * Null once the pointer leaves the globe. Rounded to about 10 m.
@@ -45,6 +54,8 @@ export interface TripGlobeProps {
   onPointerLatLng?: (ll: LatLng | null) => void;
   /** Called when this viewer's trip changes: takeoff, every move of the plane, landing, cancel (null). Rounded. */
   onFlightChange?: (flight: FlightState | null) => void;
+  /** This viewer's member colour slot (0 for `member-1`): their cursor and route. Default 0. */
+  color?: number;
   /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
   skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
@@ -56,6 +67,8 @@ export interface TripGlobeProps {
   className?: string;
   ref?: Ref<TripGlobeHandle>;
 }
+
+const place = (hub: Hub | null) => hub?.city || hub?.name || "selected point";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 function subscribeSystemTheme(onChange: () => void) {
@@ -76,7 +89,7 @@ function useResolvedTheme(theme: TripGlobeTheme): ThemeId {
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
 const roundLatLng = (ll: LatLng | null): LatLng | null => (ll ? { lat: round4(ll.lat), lng: round4(ll.lng) } : null);
 const roundFlight = (f: FlightState | null): FlightState | null =>
-  f && { origin: roundLatLng(f.origin)!, at: roundLatLng(f.at)!, ahead: roundLatLng(f.ahead)!, landed: f.landed };
+  f && { origin: roundLatLng(f.origin)!, at: roundLatLng(f.at)!, ahead: roundLatLng(f.ahead)!, landed: f.landed, vehicle: f.vehicle };
 const sameLatLng = (a: LatLng | null, b: LatLng | null) => a === b || (!!a && !!b && a.lat === b.lat && a.lng === b.lng);
 
 /**
@@ -88,12 +101,14 @@ export function TripGlobe({
   onTakeoff,
   onLand,
   onCancel,
+  onRouteClick,
   onPointerLatLng,
   onFlightChange,
   earthUrl = "/textures/earth.png",
   bordersUrl = "/textures/borders.png",
   provincesUrl = "/textures/provinces.png",
   skySeed,
+  color = 0,
   className,
   ref,
 }: TripGlobeProps) {
@@ -104,17 +119,36 @@ export function TripGlobe({
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [landed, setLanded] = useState<LandedTrip | null>(null);
+  const [landed, setLanded] = useState<LandedTrip[] | null>(null);
   const [unsupported, setUnsupported] = useState(false);
   const [cursor, setCursor] = useState<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   const resolved = useResolvedTheme(theme);
 
   // Latest callbacks, so the engine never needs rebuilding when a parent re-renders.
-  const handlers = useRef({ onTakeoff, onLand, onCancel, onPointerLatLng, onFlightChange });
+  const handlers = useRef({ onTakeoff, onLand, onCancel, onRouteClick, onPointerLatLng, onFlightChange });
   useEffect(() => {
-    handlers.current = { onTakeoff, onLand, onCancel, onPointerLatLng, onFlightChange };
+    handlers.current = { onTakeoff, onLand, onCancel, onRouteClick, onPointerLatLng, onFlightChange };
   });
   const frameListeners = useRef(new Set<() => void>());
+
+  // While a trip is landed, the page changing (a panel opening, closing, or growing as results arrive) re-frames
+  // its route in the space left open. Settled changes only: it waits for the page to be still for a moment.
+  useEffect(() => {
+    if (mode !== "landed") return;
+    let timer = 0;
+    const reframe = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => engineRef.current?.reframe(), 200);
+    };
+    const page = new MutationObserver(reframe);
+    page.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", reframe);
+    return () => {
+      window.clearTimeout(timer);
+      page.disconnect();
+      window.removeEventListener("resize", reframe);
+    };
+  }, [mode]);
 
   useEffect(() => {
     let lastPointer: LatLng | null = null;
@@ -128,11 +162,23 @@ export function TripGlobe({
       },
       onPreviewChange: (_hub, name) => setPreview(name),
       onCursorChange: setCursor,
-      onLand: (trip) => {
-        setLanded(trip);
-        handlers.current.onLand?.(trip);
+      onLand: (legs) => {
+        setLanded(legs);
+        handlers.current.onLand?.(legs);
       },
       onCancel: () => handlers.current.onCancel?.(),
+      onRouteClick: () => handlers.current.onRouteClick?.(),
+      // routes are framed in the space the page leaves open: a point is covered when what's on top there isn't the
+      // globe. Pass-through overlays (pointer-events: none) like cursors and labels don't count, nor do cards that
+      // ride on the route itself (data-globe-follow), which would otherwise push the route away from its own card.
+      freeArea: () => {
+        const root = rootRef.current!;
+        const box = root.getBoundingClientRect();
+        return openArea(box.width, box.height, (x, y) => {
+          const el = document.elementFromPoint(box.left + x, box.top + y);
+          return !!el && !root.contains(el) && !el.closest("[data-globe-follow]");
+        });
+      },
       onFrame: () => {
         const ll = roundLatLng(engine.pointerLatLng());
         if (!sameLatLng(ll, lastPointer)) {
@@ -164,11 +210,15 @@ export function TripGlobe({
     if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
   }, [skySeed, earthUrl, bordersUrl, provincesUrl]);
 
+  useEffect(() => {
+    engineRef.current?.setColor(color);
+  }, [color, earthUrl, bordersUrl, provincesUrl]);
+
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
     if (rootRef.current)
-      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(0), resolved, { ...cursor, noShadow: true });
-  }, [mode, resolved, cursor]);
+      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(color), resolved, { ...cursor, noShadow: true });
+  }, [mode, resolved, cursor, color]);
 
   useImperativeHandle(
     ref,
@@ -176,6 +226,7 @@ export function TripGlobe({
       cancel: () => engineRef.current?.cancel(),
       project: (ll) => engineRef.current?.project(ll) ?? null,
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      setVehicle: (v) => engineRef.current?.setVehicle(v),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
       onFrame: (cb) => {
         const listeners = frameListeners.current;
@@ -190,22 +241,38 @@ export function TripGlobe({
 
   const label =
     mode === "flying"
-      ? `Flying from ${from?.city || from?.name || "selected point"}`
-      : mode === "landed" && landed
-        ? `Trip ${landed.from?.city || landed.from?.name || "selected point"} to ${landed.to?.city || landed.to?.name || "selected point"}`
+      ? `Flying from ${place(from)}`
+      : mode === "landed" && landed?.length
+        ? `Trip ${place(landed[0].from)} to ${place(landed.at(-1)!.to)}${landed.length > 1 ? `, ${landed.length} legs` : ""}`
         : "Globe";
 
-  const stop = (e: PointerEvent) => e.stopPropagation();
+  // While flying, Esc or a right-click puts the plane away. Esc typed into a field stays with the field.
+  useEffect(() => {
+    if (mode !== "flying") return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "Escape" || e.defaultPrevented || t?.closest("input, textarea, select, [contenteditable]")) return;
+      engineRef.current?.cancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mode]);
 
   return (
     <div
       ref={rootRef}
+      data-globe-root
       className={cn("relative h-full w-full touch-none overflow-hidden bg-paper select-none", className)}
       onPointerDown={(e) => engineRef.current?.pointerDown(e.nativeEvent)}
       onPointerMove={(e) => engineRef.current?.pointerMove(e.nativeEvent)}
       onPointerUp={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
       onPointerCancel={(e) => engineRef.current?.pointerUp(e.nativeEvent)}
       onPointerLeave={() => engineRef.current?.pointerLeave()}
+      onContextMenu={(e) => {
+        if (mode !== "flying") return;
+        e.preventDefault();
+        engineRef.current?.cancel();
+      }}
     >
       <canvas ref={glRef} role="img" aria-label={label} className="absolute inset-0 block size-full" />
       <canvas ref={hudRef} aria-hidden className="pointer-events-none absolute inset-0 block size-full" />
@@ -213,11 +280,6 @@ export function TripGlobe({
         {preview ?? ""}
       </output>
       <GlobeInfo />
-      {mode === "flying" ? (
-        <div className="absolute top-24 right-6" onPointerDown={stop} onPointerUp={stop}>
-          <RoundButton label="Cancel trip" onClick={() => engineRef.current?.cancel()} />
-        </div>
-      ) : null}
       {unsupported ? (
         <p className="type-body absolute inset-x-0 top-1/2 text-center text-ink-muted">This browser cannot draw the globe.</p>
       ) : null}

@@ -7,6 +7,8 @@ import { useEffect, useId, useRef, useState, useTransition, type ReactNode } fro
 
 import { Button } from "@/components/paper-atlas";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
+import { saveNationalities } from "@/app/profile-actions";
+import { countries, countryName, flagEmoji, MAX_NATIONALITIES } from "@/lib/nationality";
 import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
 import { initials, MAX_NAME } from "@/lib/guest-name";
@@ -20,12 +22,14 @@ export interface ProfileMenuProps {
   account?: boolean;
   /** Reload the page after a rename, so a trip room reconnects with the new name on your cursor. */
   reloadOnRename?: boolean;
+  /** The passports you hold, ISO-3. Entry requirements are worked out for these. */
+  nationalities?: string[];
   /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
   children?: ReactNode;
 }
 
 /** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
-export function ProfileMenu({ name, email = null, account = false, reloadOnRename, children }: ProfileMenuProps) {
+export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -66,6 +70,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
       {open ? (
         <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
           <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
+          <PassportSetting saved={nationalities} />
           {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
           <ThemeSetting />
           {children}
@@ -171,6 +176,58 @@ const THEMES = [
   { value: "dark", label: "Night" },
   { value: "system", label: "Auto" },
 ] as const;
+
+/** The passports you hold. Several are fine: a dual national travels on whichever gets them in more easily. */
+function PassportSetting({ saved }: { saved: string[] }) {
+  const router = useRouter();
+  const [list, setList] = useState(saved);
+  const [, startTransition] = useTransition();
+  const save = (next: string[]) => {
+    setList(next);
+    startTransition(async () => {
+      await saveNationalities(next);
+      router.refresh();
+    });
+  };
+  return (
+    <MenuSection title="Passports">
+      {list.length ? (
+        <ul className="pn-passports">
+          {list.map((code) => (
+            <li key={code} className="pn-passport">
+              <span aria-hidden>{flagEmoji(code)}</span>
+              <span className="min-w-0 flex-1 truncate">{countryName(code)}</span>
+              <button type="button" className="pn-passport-remove" aria-label={`Remove ${countryName(code)}`} onClick={() => save(list.filter((c) => c !== code))}>
+                <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
+                  <path d="M3 3l6 6M9 3l-6 6" />
+                </svg>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="type-meta text-ink-muted">Add yours to see what each border needs.</p>
+      )}
+      {list.length < MAX_NATIONALITIES ? (
+        <select
+          className="pn-select"
+          aria-label="Add a passport"
+          value=""
+          onChange={(e) => e.target.value && save([...list, e.target.value])}
+        >
+          <option value="">{list.length ? "Add another passport" : "Add a passport"}</option>
+          {countries()
+            .filter((c) => !list.includes(c.code))
+            .map((c) => (
+              <option key={c.code} value={c.code}>
+                {flagEmoji(c.code)} {c.name}
+              </option>
+            ))}
+        </select>
+      ) : null}
+    </MenuSection>
+  );
+}
 
 function ThemeSetting() {
   const { theme, setTheme } = useTheme();

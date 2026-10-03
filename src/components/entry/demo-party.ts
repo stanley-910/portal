@@ -5,5 +5,6 @@ export const DEMO_PARTY: EntryMember[] = [
   { id: "mei", name: "Mei", passport: "HKG" },
   { id: "ada", name: "Ada", passport: "GBR" },
   { id: "joon", name: "Joon", passport: "KOR" },
-  { id: "sam", name: "Sam", passport: "USA" },
+  // a dual national: each leg uses whichever passport gets Sam in more easily
+  { id: "sam", name: "Sam", passport: "USA", passports: ["CAN"] },
 ];

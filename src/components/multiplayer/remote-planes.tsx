@@ -4,17 +4,18 @@ import { shallow, useOther, useOthers, useRoom, useStorage } from "@liveblocks/r
 import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 
 import { memberColor as paperMemberColor } from "@/components/paper-atlas";
-import type { LatLng, RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
+import type { RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
+import { storedFlights } from "./stored-flights";
 
 /**
- * Everyone else's trips on the globe and every stored leg: the globe draws each plane, route and
+ * Everyone else's trips on the globe and every stored leg, parked as its chosen vehicle: the globe draws each plane, route and
  * pins; this adds a member's name label beside their plane while it flies. Flights go straight from presence to the
  * globe engine, and labels are positioned after every frame, so a moving plane never re-renders React. React only
  * re-renders when someone takes off or stops, or the plan changes.
  *
- * `hideLeg` is the leg you just landed, which your own plane is still showing.
+ * `hideLegs` are the legs you just landed, which your own globe is still showing.
  */
-export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHandle | null>; hideLeg: string | null }) {
+export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHandle | null>; hideLegs: string[] }) {
   const room = useRoom();
   const legs = useStorage((root) => storedFlights(root), shallowFlights);
   // only while in the air: once they land, their cursor and its label come back
@@ -28,11 +29,12 @@ export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHan
     const handle = globe.current;
     if (!handle) return;
     const push = () => {
-      const flights: RemoteFlight[] = (legs ?? []).filter((l) => l.id !== `leg:${hideLeg}`);
+      const flights: RemoteFlight[] = (legs ?? []).filter((l) => !hideLegs.some((id) => l.id === `leg:${id}`));
       // a landed trip is stored as a leg straight away, so only trips still in the air come from presence
       for (const o of room.getOthers()) {
         const f = o.presence.flight;
-        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f });
+        // the room numbers colours from 1; the design system's slots count from 0
+        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f, color: o.info.color - 1 });
       }
       handle.setRemoteFlights(flights);
     };
@@ -50,7 +52,7 @@ export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHan
       stopFrames();
       handle.setRemoteFlights([]);
     };
-  }, [globe, room, legs, hideLeg]);
+  }, [globe, room, legs, hideLegs]);
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -80,27 +82,6 @@ function PlaneLabel({ connectionId, ref }: { connectionId: number; ref: (el: HTM
       </span>
     </div>
   );
-}
-
-type Plan = {
-  readonly legs: { readonly [id: string]: { readonly from: string; readonly to: string } };
-  readonly stops: { readonly [id: string]: LatLng };
-};
-
-/** Each stored leg as a landed flight: the plane parked at its end, facing along the route. */
-function storedFlights(root: Plan): RemoteFlight[] {
-  const flights: RemoteFlight[] = [];
-  for (const [id, leg] of Object.entries(root.legs)) {
-    const from = root.stops[leg.from];
-    const to = root.stops[leg.to];
-    if (!from || !to) continue;
-    const o = { lat: from.lat, lng: from.lng };
-    const at = { lat: to.lat, lng: to.lng };
-    // a hair past the end gives the heading; near enough on a great circle for a parked plane
-    const ahead = { lat: at.lat + (at.lat - o.lat) * 0.01, lng: at.lng + (at.lng - o.lng) * 0.01 };
-    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true });
-  }
-  return flights;
 }
 
 const shallowFlights = (a: RemoteFlight[] | null, b: RemoteFlight[] | null) => JSON.stringify(a) === JSON.stringify(b);

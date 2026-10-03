@@ -127,7 +127,9 @@ describe("korea-tago provider", () => {
 
   it("unseeded pairs → covers false, search UNSUPPORTED_ROUTE", async () => {
     expect(provider.covers(q(BUSAN, DAEGU))).toBe(false); // both seeded stations, pair not seeded
-    expect(provider.covers(q(INCHEON, BUSAN))).toBe(false); // > 15 km from any station
+    // Incheon is ~21 km from Seoul station; a ~330 km trip widens the radius to ~66 km, so it matches now.
+    expect(provider.covers(q(INCHEON, BUSAN))).toBe(true);
+    expect(provider.covers(q(city("Jeju", 33.5, 126.53), BUSAN))).toBe(false); // > 100 km from any station
     await expect(provider.search(q(BUSAN, DAEGU), signal())).rejects.toMatchObject({ code: "UNSUPPORTED_ROUTE" });
   });
 

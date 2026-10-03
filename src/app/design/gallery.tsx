@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { DEMO_PARTY, EntryPanel } from "@/components/entry";
+import { Glyph, Timeline, TripTag, type GlyphKind } from "@/components/ticket-search";
 import {
   Cursor,
   cursorUrl,
@@ -43,6 +44,8 @@ function noop() {
   return () => {};
 }
 
+const GLYPHS: GlyphKind[] = ["flight", "train", "bus", "ferry", "hotel"];
+
 const HKG = { code: "HKG", city: "Hong Kong" };
 const CDG = { code: "CDG", city: "Paris" };
 
@@ -63,6 +66,34 @@ export function ComponentGallery() {
         <Route marching />
         <Route lift={0.4} />
         <RoundButton label="Close" />
+        <RoundButton label="Close" variant="quiet" />
+      </div>
+      <div className="ts-glyphs flex flex-wrap items-center gap-6 text-ink">
+        {GLYPHS.map((k) => (
+          <Glyph key={k} kind={k} size={28} />
+        ))}
+        {GLYPHS.map((k) => (
+          <Glyph key={`${k}-sticker`} kind={k} size={28} sticker />
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-8">
+        <TripTag mode="flight" from="HKG" to="PVG" price="$165" style={{ position: "relative" }} />
+        <TripTag mode="train" from="Hong Kong" to="Shanghai" price="$92" style={{ position: "relative" }} />
+        <TripTag mode="ferry" from="Hong Kong" to="Macau" price="$24" style={{ position: "relative" }} />
+        <TripTag mode="bus" from="Kuala Lumpur" to="Singapore" price="$18" style={{ position: "relative" }} />
+      </div>
+      <div className="grid w-72 gap-3">
+        <Timeline legs={[{ kind: "flight", minutes: 168, label: "Flight 2h 48m" }]} />
+        <Timeline
+          legs={[
+            { kind: "flight", minutes: 610, label: "Flight 10h 10m" },
+            { kind: "wait", minutes: 105, label: "Layover 1h 45m" },
+            { kind: "flight", minutes: 225, label: "Flight 3h 45m" },
+          ]}
+        />
+        <Timeline legs={[{ kind: "train", minutes: 500, label: "Train 8h 20m" }]} />
+        <Timeline legs={[{ kind: "ferry", minutes: 60, label: "Ferry 1h" }]} />
+        <Timeline legs={[{ kind: "bus", minutes: 330, label: "Bus 5h 30m" }]} />
       </div>
       <div className="flex flex-wrap items-start gap-8">
         <EntryPanel leg={{ fromHub: "HKG", toHub: "PVG" }} members={DEMO_PARTY} />

@@ -1,6 +1,6 @@
 .hotel-search { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: var(--line-control) solid var(--line); }
 .hotel-heading { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
-.hotel-heading h2 { margin: 0; font-family: var(--font-fell-sc); font-size: 20px; line-height: 22px; font-weight: 400; }
+.hotel-heading h2 { margin: 0; font-family: var(--font-fell-sc); font-size: 17px; line-height: 19px; font-weight: 400; }
 .hotel-heading span, .hotel-row > div > span, .hotel-row small { display: block; color: var(--ink-muted); font-size: 11px; line-height: 15px; }
 .hotel-occupants { display: flex; align-items: center; gap: 5px; color: var(--ink-muted); font-size: 11px; }
 .hotel-occupants select { min-height: 32px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); }

@@ -1,9 +1,9 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useSelf, useStatus, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AgentChat } from "@/components/agent/agent-chat";
 import { PipCursor } from "@/components/agent/pip-cursor";
@@ -15,12 +15,14 @@ import { RemotePlanes } from "@/components/multiplayer/remote-planes";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { initialTripStorage, usePlanActions, usePlanLegs, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
 
-export function TripRoom({ tripId, name, email, account }: { tripId: string; name: string; email: string | null; account: boolean }) {
+type Me = { name: string; email: string | null; account: boolean; nationalities: string[] };
+
+export function TripRoom({ tripId, ...me }: { tripId: string } & Me) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
@@ -28,16 +30,18 @@ export function TripRoom({ tripId, name, email, account }: { tripId: string; nam
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen name={name} email={email} account={account} />
+        <TripScreen {...me} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen({ name, email, account }: { name: string; email: string | null; account: boolean }) {
+function TripScreen({ name, email, account, nationalities }: Me) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
+  // the room numbers colours from 1; the design system's slots count from 0
+  const color = useSelf((me) => me.info.color - 1) ?? 0;
   const status = useStatus();
   // a trip started by talking to Pip on the home globe opens with the chat showing
   const pipOpen = useSearchParams().get("pip") === "open";
@@ -45,7 +49,11 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
-  const [landedLeg, setLandedLeg] = useState<string | null>(null);
+  const [landedLegs, setLandedLegs] = useState<string[]>([]);
+  // your own vehicle still stands in for the last of those legs, so it parks as that leg's chosen offer
+  const planLegs = usePlanLegs();
+  const landedMode = planLegs?.find((leg) => leg.id === landedLegs.at(-1))?.chosen?.mode ?? "flight";
+  useEffect(() => globe.current?.setVehicle(landedMode), [landedMode]);
   useRecordMember();
 
   useErrorListener((error) => {
@@ -64,17 +72,18 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
     <main className="relative h-dvh w-full overflow-hidden">
       <TripGlobe
         ref={globe}
+        color={color}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
-        onLand={(trip) => planReady && setLandedLeg(addLeg(trip))}
-        onTakeoff={() => setLandedLeg(null)}
-        onCancel={() => setLandedLeg(null)}
+        onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
+        onTakeoff={() => setLandedLegs([])}
+        onCancel={() => setLandedLegs([])}
       />
-      <RemotePlanes globe={globe} hideLeg={landedLeg} />
+      <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
-      <NavBar globe={globe} name={name} email={email} account={account} reloadOnRename>
+      <NavBar globe={globe} name={name} email={email} account={account} nationalities={nationalities} reloadOnRename>
         <PlaceSearch globe={globe} />
         <AvatarStack />
         <InviteButton />

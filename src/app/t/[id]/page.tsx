@@ -18,7 +18,7 @@ export default async function TripPage({ params }: PageProps<"/t/[id]">) {
   const person = await currentPerson();
   if (!person?.name) return <NamePrompt tripPath={`/t/${id}`} />;
   if ((await joinTrip(tripRoomId(id), person.id)) === null) notFound();
-  return <TripRoom tripId={id} name={person.name} email={person.email} account={person.account} />;
+  return <TripRoom tripId={id} name={person.name} email={person.email} account={person.account} nationalities={person.nationalities} />;
 }
 
 /** Before joining, a guest picks the name others will see, or signs in. Styled like the sign-in panel. */

@@ -152,3 +152,24 @@ describe("country codes", () => {
     expect(entry.getRule("ZZ", "CN").kind).toBe("unknown");
   });
 });
+
+describe("getLegEntry with several passports", () => {
+  it("uses whichever passport gets the member in most easily, and says which", () => {
+    const [sam] = entry.getLegEntry({ fromHub: "ICN", toHub: "PVG" }, [{ id: "sam", name: "Sam", passport: "US", passports: ["GB"] }]);
+    expect(sam.passport).toBe("GBR");
+    expect(sam.rule?.kind).toBe("visa_free");
+    const [ada] = entry.getLegEntry({ fromHub: "ICN", toHub: "PVG" }, [{ id: "ada", name: "Ada", passport: "GBR" }]);
+    expect(ada.passport).toBe("GBR");
+  });
+
+  it("prefers a known rule to a passport with no data", () => {
+    const [sam] = entry.getLegEntry({ fromHub: "ICN", toHub: "PVG" }, [{ id: "sam", name: "Sam", passport: "CAN", passports: ["USA"] }]);
+    expect(sam.passport).toBe("USA");
+  });
+
+  it("needs no rule at all for a passport of the destination itself", () => {
+    const [mei] = entry.getLegEntry({ fromHub: "HKG", toHub: "PVG" }, [{ id: "mei", name: "Mei", passport: "USA", passports: ["CHN"] }]);
+    expect(mei.passport).toBe("CHN");
+    expect(mei.rule).toBeNull();
+  });
+});

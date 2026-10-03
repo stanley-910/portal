@@ -143,7 +143,8 @@ const DAY = 86_400_000;
  * the popover showed and the one picked. Never trusted: unknown fields are stripped, sizes capped, and the date must
  * be from yesterday in UTC (a traveller west of UTC may still be on it) to a year ahead.
  */
-export const soloSaveSchema = z
+/** One leg landed on `/`, with the options its search showed and the one picked. */
+export const soloLegSchema = z
   .object({
     from: stopSchema,
     to: stopSchema,
@@ -161,6 +162,14 @@ export const soloSaveSchema = z
   .refine((v) => new Set(v.offers.map((o) => o.id)).size === v.offers.length, "duplicate offers")
   .refine((v) => JSON.stringify(v.offers).length <= MAX_OFFERS_CHARS, "options too large");
 
+/** The most legs one save takes: far more stops than anyone clicks in one go. */
+export const MAX_SOLO_LEGS = 8;
+
+/** A trip landed on `/`: its legs in order, each departing no earlier than the one before. */
+export const soloSaveSchema = z
+  .object({ legs: z.array(soloLegSchema).min(1).max(MAX_SOLO_LEGS) })
+  .refine((v) => v.legs.every((l, i) => i === 0 || l.date >= v.legs[i - 1].date), "legs out of order");
+
 export type SoloSaveInput = z.infer<typeof soloSaveSchema>;
 
 /** Storage as `getStorageDocument(room, "json")` returns it, for the parts a solo save writes. */
@@ -172,33 +181,48 @@ export type SoloStorageJson = {
 };
 
 /**
- * A trip with one leg whose search is already done (the options `/` showed) and the picked offer chosen, drawn and
- * ridden by the saver, who is member colour 1.
+ * A trip whose legs' searches are already done (the options `/` showed), each with its picked offer chosen, drawn
+ * and ridden by the saver, who is member colour 1. Legs that meet at the same place share its stop.
  */
 export function buildSoloStorage(
   input: SoloSaveInput,
   user: { id: string; displayName: string },
-  ids: { from: string; to: string; leg: string; search: string },
+  newId: () => string,
   now: number,
 ): SoloStorageJson {
+  const stops: SoloStorageJson["stops"] = {};
+  const legs: SoloStorageJson["legs"] = {};
+  const stays: Record<string, Stay> = {};
+  const stopAt = (stop: Stop) => {
+    const found = Object.entries(stops).find(([, s]) => sameStop(s, stop));
+    if (found) return found[0];
+    const id = newId();
+    stops[id] = stop;
+    return id;
+  };
+  input.legs.forEach((leg, i) => {
+    const from = stopAt(leg.from);
+    const to = stopAt(leg.to);
+    legs[newId()] = {
+      from,
+      to,
+      date: leg.date,
+      createdBy: user.id,
+      riders: [user.id],
+      // the schema checked each offer's fields; `provider` is a ProviderId there too
+      search: { id: newId(), status: "done", offers: leg.offers.map((o) => toStoredOffer(o as Offer)) },
+      votes: {},
+      chosen: leg.chosen,
+      // in order, so legs on the same day keep the order they were flown in
+      createdAt: now + i,
+    };
+    if (leg.stay) stays[to] = { ...leg.stay, estimated: true };
+  });
   return {
     members: { [user.id]: { name: user.displayName, color: 1 } },
-    stops: { [ids.from]: input.from, [ids.to]: input.to },
-    legs: {
-      [ids.leg]: {
-        from: ids.from,
-        to: ids.to,
-        date: input.date,
-        createdBy: user.id,
-        riders: [user.id],
-        // the schema checked each offer's fields; `provider` is a ProviderId there too
-        search: { id: ids.search, status: "done", offers: input.offers.map((o) => toStoredOffer(o as Offer)) },
-        votes: {},
-        chosen: input.chosen,
-        createdAt: now,
-      },
-    },
-    ...(input.stay ? { stays: { [ids.to]: { ...input.stay, estimated: true } } } : {}),
+    stops,
+    legs,
+    ...(Object.keys(stays).length ? { stays } : {}),
   };
 }
 

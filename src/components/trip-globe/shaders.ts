@@ -268,6 +268,7 @@ uniform float uMode;
 uniform vec3 uFill;
 uniform vec3 uInkS;
 uniform vec3 uRoundel;
+uniform int uVehicle;
 out vec4 outColor;
 ` + GLSL_COMMON + `
 void main() {
@@ -280,11 +281,41 @@ void main() {
   if (facing > 0.0) discard;
   vec3 base = uFill;
   int part = int(vPart + 0.5);
-  if (part == 3) base = uRoundel;
-  if (part == 1 && vObj.y > 0.0 && length(vec2(abs(vObj.x) - 0.33, vObj.z + 0.09)) < 0.042) base = uRoundel;
-  if (part == 0) {
-    if (abs(vObj.x) > 0.045 && vObj.y > 0.005 && vObj.y < 0.04 && vObj.z > -0.26 && vObj.z < 0.3 && fract(vObj.z * 26.0) < 0.4) base = uInkS;
-    if (vObj.z > 0.36 && vObj.y > 0.015) base = mix(base, uInkS, 0.85);
+  vec3 o = vObj;
+  if (uVehicle == 0) {
+    // plane
+    if (part == 3) base = uRoundel;
+    if (part == 1 && o.y > 0.0 && length(vec2(abs(o.x) - 0.33, o.z + 0.09)) < 0.042) base = uRoundel;
+    if (part == 0) {
+      if (abs(o.x) > 0.045 && o.y > 0.005 && o.y < 0.04 && o.z > -0.26 && o.z < 0.3 && fract(o.z * 26.0) < 0.4) base = uInkS;
+      if (o.z > 0.36 && o.y > 0.015) base = mix(base, uInkS, 0.85);
+    }
+  } else if (uVehicle == 1) {
+    // train: window band and a roundel stripe down each side, a dark windscreen on the nose
+    bool side = abs(o.x) > 0.05;
+    if (side && o.y > -0.015 && o.y < 0.01 && o.z < 0.3 && fract(o.z * 30.0) < 0.6) base = uInkS;
+    if (side && o.y > -0.06 && o.y < -0.045) base = uRoundel;
+    if (o.z > 0.38 && o.y > -0.035) base = mix(base, uInkS, 0.85);
+  } else if (uVehicle == 2) {
+    // bus: window band and a roundel stripe down each side and round the roof, a raked windscreen, ink wheels
+    bool side = abs(o.x) > 0.12;
+    if (part == 2) base = uInkS;
+    else if (part == 0) {
+      if (side && o.y > 0.03 && o.y < 0.09 && o.z > -0.42 && o.z < 0.34 && fract(o.z * 12.0) < 0.8) base = uInkS;
+      if (side && o.y > -0.03 && o.y < -0.005) base = uRoundel;
+      // the same stripe trims the roof's edges, so it shows from above
+      if (o.y > 0.115 && abs(o.x) > 0.095 && o.z > -0.47 && o.z < 0.38) base = uRoundel;
+      if (o.z > 0.38 && o.y > 0.04) base = mix(base, uInkS, 0.85);
+    }
+  } else {
+    // ferry: a roundel funnel, a row of windows along each deck
+    if (part == 2) base = uRoundel;
+    if (part == 1) {
+      bool lower = o.y < 0.07;
+      float w = lower ? 0.105 : 0.075;
+      float y = lower ? 0.035 : 0.1;
+      if (abs(o.x) > w && abs(o.y - y) < 0.012 && fract(o.z * 25.0) < 0.5) base = uInkS;
+    }
   }
   // flat paper with a soft smooth shade: no dot screen, so it can't be mistaken for the globe's print showing through
   float dif = max(dot(vFN, uL), 0.0);

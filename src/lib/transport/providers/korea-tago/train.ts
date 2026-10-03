@@ -1,17 +1,18 @@
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import type { Offer, Place, SearchQuery } from "../../types";
 import type { TrainRow, TrainSeed } from "./schema";
 
 // Korail seed search. Pure: no network, no env.
-const MATCH_KM = 15;
+const MIN_MATCH_KM = 15;
 const OFFSET = "+09:00"; // Asia/Seoul, no DST
 // Korail's own search page; takes no OD/date params (korail.com SPA, observed 2026-10-02).
 export const KORAIL_BOOKING_URL = "https://www.korail.com/ticket/search/general";
 
-/** Nearest station within MATCH_KM picks the city; every station in that city matches (Seoul + Yongsan). */
-function stationsNear(seed: TrainSeed, lat: number, lng: number): Set<string> {
+/** Nearest station within `radiusKm` picks the city; every station in that city matches (Seoul + Yongsan). */
+function stationsNear(seed: TrainSeed, lat: number, lng: number, radiusKm: number): Set<string> {
   let city: string | undefined;
-  let bestKm = MATCH_KM;
+  let bestKm = radiusKm;
   for (const s of Object.values(seed.stations)) {
     const km = distanceKm(lat, lng, s.lat, s.lng);
     if (km <= bestKm) {
@@ -29,8 +30,9 @@ export function at(date: string, hhmm: string, plusMin = 0): string {
 
 export function createTrainSearch(seed: TrainSeed) {
   const rowsFor = (q: SearchQuery): TrainRow[] => {
-    const from = stationsNear(seed, q.from.lat, q.from.lng);
-    const to = stationsNear(seed, q.to.lat, q.to.lng);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+    const from = stationsNear(seed, q.from.lat, q.from.lng, radiusKm);
+    const to = stationsNear(seed, q.to.lat, q.to.lng, radiusKm);
     return seed.trains.filter((t) => from.has(t.from) && to.has(t.to));
   };
   const place = (key: string): Place => {
