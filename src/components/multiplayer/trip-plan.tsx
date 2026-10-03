@@ -4,6 +4,7 @@ import { useSelf } from "@liveblocks/react";
 import { Fragment, useState } from "react";
 
 import { HotelSearch } from "@/components/hotel-search/hotel-search";
+import { RoundButton } from "@/components/paper-atlas";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { carrierLabel, duration } from "@/components/ticket-search/options";
 import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
@@ -35,15 +36,34 @@ const describe = (o: StoredOffer) =>
     .filter(Boolean)
     .join(", ");
 
-export function TripPlan() {
+/** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
+export function TripPlan({ hostId, onMinimise }: { hostId: string | null; onMinimise?: () => void }) {
+  const me = useSelf((s) => s.id);
   const legs = usePlanLegs();
   const split = useMySplit();
   const end = usePlanEnd();
   const { setEnds } = usePlanActions();
+  const members = usePlanMembers();
   const stays = usePlanStays();
   if (!legs?.length) return null;
   return (
     <section aria-label="Trip plan" className="ts tp">
+      {onMinimise ? (
+        <div className="ts-topbar tp-bar">
+          <span className="ts-step">Trip plan</span>
+          <RoundButton
+            label="Minimise"
+            variant="quiet"
+            className="ts-min"
+            onClick={onMinimise}
+            icon={
+              <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
+                <path d="M2 6 H10" />
+              </svg>
+            }
+          />
+        </div>
+      ) : null}
       {split?.totals && Object.keys(split.totals).length ? (
         <div className="tp-total">
           Your share: {Object.entries(split.totals).map(([currency, amount]) => new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)).join(" + ")}
@@ -56,14 +76,14 @@ export function TripPlan() {
       {legs.map((leg, i) => (
         <Fragment key={leg.id}>
           {i > 0 ? <div className="ts-rule" /> : null}
-          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} />
+          <LegCard leg={leg} stay={stays?.[leg.to.id] ?? null} isHost={me === hostId} memberCount={members ? Object.keys(members).length : 1} />
         </Fragment>
       ))}
     </section>
   );
 }
 
-function LegCard({ leg, stay }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null }) {
+function LegCard({ leg, stay, isHost, memberCount }: { leg: PlanLeg; stay: { label: string | null; nightly: { amount: number; currency: string } | null } | null; isHost: boolean; memberCount: number }) {
   const me = useSelf((s) => s.id);
   const members = usePlanMembers();
   const { setDate, retrySearch, vote, choose, setStay, toggleRider, removeLeg, setLeave } = usePlanActions();
@@ -80,6 +100,7 @@ function LegCard({ leg, stay }: { leg: PlanLeg; stay: { label: string | null; ni
       setStay(leg.to.id, {
         label: pendingHotel.name,
         nightly: { amount: pendingHotel.pricePerNight.amount * pendingHotel.rooms, currency: pendingHotel.pricePerNight.currency },
+        estimated: pendingHotel.freshness !== "live",
       });
     }
     setPendingHotel(null);
@@ -148,17 +169,20 @@ function LegCard({ leg, stay }: { leg: PlanLeg; stay: { label: string | null; ni
               </button>
             ))}
           </div>
-          <HotelSearch
-            city={leg.to.name}
-            lat={leg.to.lat}
-            lng={leg.to.lng}
-            checkIn={leg.date}
-            checkOut={addDays(leg.date, 1)}
-            currency="USD"
-            rates={null}
-            picked={pendingHotel}
-            onPick={setPendingHotel}
-          />
+          {isHost ? (
+            <HotelSearch
+              city={leg.to.name}
+              lat={leg.to.lat}
+              lng={leg.to.lng}
+              checkIn={leg.date}
+              checkOut={addDays(leg.date, 1)}
+              currency="USD"
+              rates={null}
+              picked={pendingHotel}
+              onPick={setPendingHotel}
+              defaultOccupants={Math.min(4, Math.max(1, memberCount))}
+            />
+          ) : null}
           <button type="button" className="ts-oneway" disabled={(!pendingChoice && !pendingHotel && !stay) || !changed} onClick={commit}>
             Save changes
           </button>

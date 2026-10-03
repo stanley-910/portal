@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countries, countryName, flagEmoji, MAX_NATIONALITIES, parseNationalities } from "./nationality";
+import { countries, countryName, flagEmoji, MAX_NATIONALITIES, parseNationalities, searchCountries } from "./nationality";
 
 describe("nationalities", () => {
   it("keeps valid, distinct ISO-3 codes in order", () => {
@@ -16,5 +16,20 @@ describe("nationalities", () => {
     expect(countryName("USA")).toBe("United States");
     expect(countryName("HK")).toBe("Hong Kong");
     expect(countries().some((c) => c.code === "HKG")).toBe(true);
+  });
+});
+
+describe("searchCountries", () => {
+  const top = (q: string) => searchCountries(q)[0]?.code;
+  it("finds countries by name, code, alias and loose spelling", () => {
+    expect(top("can")).toBe("CAN");
+    expect(top("united s")).toBe("USA");
+    expect(top("uk")).toBe("GBR");
+    expect(top("korea")).toBe("KOR");
+    expect(top("HK")).toBe("HKG");
+    expect(top("nzl")).toBe("NZL");
+    expect(top("cote")).toBe("CIV");
+    expect(searchCountries("zzzz")).toEqual([]);
+    expect(searchCountries("")).toHaveLength(countries().length);
   });
 });

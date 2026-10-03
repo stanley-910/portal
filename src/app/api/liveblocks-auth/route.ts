@@ -1,5 +1,6 @@
 import { ensurePerson } from "@/lib/identity";
 import { joinTrip, liveblocks } from "@/lib/liveblocks/server";
+import { adoptGuest } from "@/lib/trip/adopt";
 import { TRIP_ID } from "@/lib/liveblocks/types";
 
 export const runtime = "nodejs";
@@ -17,6 +18,8 @@ export async function POST(request: Request) {
   }
 
   const person = await ensurePerson();
+  // someone who joined trips as a guest and has signed in since: their guest self becomes this account
+  if (person.account) await adoptGuest(person.id);
   const color = await joinTrip(room, person.id);
   if (color === null) return Response.json({ error: "Trip not found" }, { status: 404 });
 

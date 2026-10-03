@@ -10,8 +10,8 @@ import { currentPerson } from "@/lib/identity";
 // room, not this response: everyone in the trip sees it at once.
 
 export const runtime = "nodejs";
-// a run is capped at 90 s (lib/agent/run.ts); this leaves room to write the reply
-export const maxDuration = 120;
+// a message can wait up to 180 s for earlier ones, then run for up to 90 s (lib/agent/run.ts)
+export const maxDuration = 300;
 
 const MAX_TEXT = 2_000;
 
@@ -42,6 +42,6 @@ export async function POST(request: Request) {
   if (!user.account) return Response.json({ code: "SIGN_IN" }, { status: 401 });
   if (!allowWake(user.id)) return Response.json({ code: "RATE_LIMITED" }, { status: 429, headers: { "retry-after": "60" } });
   const { messageId, claim } = await postToPip(roomId, user.id, body.data.text);
-  if (claim) after(() => runAgent(roomId, claim, user.id));
-  return Response.json({ messageId, agent: !!claim });
+  after(() => runAgent(roomId, claim, user.id));
+  return Response.json({ messageId, agent: true });
 }
