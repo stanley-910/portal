@@ -146,6 +146,17 @@ describe("srt provider", () => {
     await expect(provider.search(q(TAIPEI, ZUOYING), signal())).rejects.toMatchObject({ code: "UNSUPPORTED_ROUTE" });
   });
 
+  it("a click ~40 km from Chiang Mai on a long trip still finds its trains", async () => {
+    const nearby = city("North of Chiang Mai", 19.13, 98.98);
+    expect(provider.covers(q(BANGKOK, nearby))).toBe(true);
+    expect((await provider.search(q(BANGKOK, nearby), signal())).length).toBeGreaterThan(0);
+  });
+
+  it("a short hop keeps the tight radius", () => {
+    // ~22 km from Ayutthaya on an ~83 km trip: radius is 20% = ~17 km, so no match.
+    expect(provider.covers(q(BANGKOK, city("Off the line", 14.55, 100.5689)))).toBe(false);
+  });
+
   it("same city both ends → covers false", () => {
     expect(provider.covers(q(BANGKOK, city("Hua Lamphong", 13.7392, 100.5169)))).toBe(false);
   });

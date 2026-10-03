@@ -19,11 +19,11 @@ export function memberColor(slot: number): MemberColor {
 // "outline" is the ink edge; the parts are painted inside it.
 type Paint = "member" | "face" | "shade" | "ink";
 type Part = { d: string; paint: Paint; dashed?: boolean };
-type ShapeDef = { outline: string; transform?: string; parts: Part[] };
+type ShapeDef = { outline: string; /** Degrees clockwise about the tip. */ rotate?: number; parts: Part[] };
 
 const ARROW = "M0 0 L0 18 L4.6 14 L7.8 21 L11 19.6 L7.9 12.8 L13.6 12.6 Z";
-/** The arrow cursor's outline, tip at 0 0, in CSS px: for drawing its shadow somewhere else. */
-export const CURSOR_ARROW_PATH = ARROW;
+// a paper map folded in three like an accordion; its top-left corner is the tip
+const MAP = "M0 0 L5 2.2 L10 0 L15 2.2 L15 18.2 L10 16 L5 18.2 L0 16 Z";
 
 const SHAPES: Record<CursorShape, ShapeDef> = {
   // a plain pointer cut from the member's paper
@@ -31,7 +31,7 @@ const SHAPES: Record<CursorShape, ShapeDef> = {
   // a compass needle: the north half in the member's colour, the south half plain sticker, a pin at the pivot
   compass: {
     outline: "M0 0 L3.8 11 L0 25 L-3.8 11 Z",
-    transform: "rotate(-24)",
+    rotate: -24,
     parts: [
       { d: "M0 0 L3.8 11 L-3.8 11 Z", paint: "member" },
       { d: "M-3.8 11 L3.8 11 L0 25 Z", paint: "face" },
@@ -39,16 +39,25 @@ const SHAPES: Record<CursorShape, ShapeDef> = {
       { d: "M-1.5 11 a1.5 1.5 0 1 0 3 0 a1.5 1.5 0 1 0 -3 0 Z", paint: "ink" },
     ],
   },
-  // the arrow folded like a road map: two creases, alternate panels in shade, a dashed route across it
+  // a folded paper map, tipped back so its corner points: the outer panels in the member's colour, the middle one
+  // plain paper in shade, a dashed route across all three ending at a pin
   map: {
-    outline: ARROW,
+    outline: MAP,
+    rotate: -8,
     parts: [
-      { d: ARROW, paint: "member" },
-      { d: "M0 6.5 L6.5 0 L13 6.5 L0 19.5 Z", paint: "shade" },
-      { d: "M2.2 15.2 L6.2 9.4 L9.4 11.4", paint: "ink", dashed: true },
+      { d: MAP, paint: "member" },
+      { d: "M5 2.2 L10 0 L10 16 L5 18.2 Z", paint: "face" },
+      { d: "M5 2.2 L10 0 L10 16 L5 18.2 Z", paint: "shade" },
+      { d: "M2.4 13.4 L6.4 9.2 L9.2 11.4 L11.6 6.8", paint: "ink", dashed: true },
+      { d: "M11.6 4.6 a1.6 1.6 0 1 0 0.01 0 Z", paint: "ink" },
     ],
   },
 };
+
+/** A cursor shape's outline, tip at 0 0 in CSS px, and its turn about the tip: for drawing its shadow elsewhere. */
+export function cursorOutline(shape: CursorShape): { d: string; rotate: number } {
+  return { d: SHAPES[shape].outline, rotate: SHAPES[shape].rotate ?? 0 };
+}
 
 /** The SVG's viewBox: the shape plus room for its shadow in the cursor image. One unit is one CSS pixel. */
 const BOX = { x: -2, y: -2, size: 40 };
@@ -87,7 +96,7 @@ export function Cursor({ shape = "arrow", color, name, altitude = 0.5, cast = tr
             <path d={def.outline} />
           </clipPath>
         </defs>
-        <g transform={def.transform}>
+        <g transform={def.rotate ? `rotate(${def.rotate})` : undefined}>
           <g clipPath={`url(#${clipId})`}>
             {def.parts.map((p, i) => (
               <path key={i} className={cn(`pa-cursor-${p.paint}`, p.dashed && "pa-cursor-dashed")} d={p.d} />
@@ -189,7 +198,7 @@ function buildCursorUrl(
   };
   const dashed = `fill="none" stroke="${t("sticker-ink")}" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.6 1.6"`;
   const m = cursorLieMatrix(lie).map((x) => +x.toFixed(4)).join(" ");
-  const g = ` transform="matrix(${m} 0 0)${def.transform ? " " + def.transform : ""}"`;
+  const g = ` transform="matrix(${m} 0 0)${def.rotate ? ` rotate(${def.rotate})` : ""}"`;
   const parts = def.parts
     .map((p) => `<path d="${p.d}" ${p.dashed ? dashed : paint[p.paint]}/>`)
     .join("");

@@ -1,7 +1,16 @@
 /* Trip plan: the shared legs, built from the ticket search popover's pieces (ticket-search.css). */
 
 .tp { max-height: calc(100dvh - 12rem); overflow-y: auto; }
+.tp-bar { padding: 8px 12px 0; }
 .tp-leg { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.tp-total { padding: 10px 12px; border-bottom: var(--line-control) solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600; }
+.tp-end { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; color: var(--ink-muted); font-size: 11px; }
+.tp-end input { min-height: 28px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; }
+.tp-leave { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-muted); font-size: 11px; }
+.tp-leave input { min-height: 28px; padding: 3px 5px; color: var(--ink); background: var(--paper-raised); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); font: inherit; }
+.tp-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tp-editor { display: grid; gap: 8px; }
+.tp-editor > button:disabled { opacity: .45; cursor: not-allowed; }
 
 /* Riders sit in a box the size of the date field beside them */
 .tp-riders { cursor: default; }

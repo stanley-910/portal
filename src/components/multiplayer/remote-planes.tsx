@@ -4,10 +4,11 @@ import { shallow, useOther, useOthers, useRoom, useStorage } from "@liveblocks/r
 import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 
 import { memberColor as paperMemberColor } from "@/components/paper-atlas";
-import type { LatLng, RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
+import type { RemoteFlight, TripGlobeHandle } from "@/components/trip-globe";
+import { storedFlights } from "./stored-flights";
 
 /**
- * Everyone else's trips on the globe and every stored leg: the globe draws each plane, route and
+ * Everyone else's trips on the globe and every stored leg, parked as its chosen vehicle: the globe draws each plane, route and
  * pins; this adds a member's name label beside their plane while it flies. Flights go straight from presence to the
  * globe engine, and labels are positioned after every frame, so a moving plane never re-renders React. React only
  * re-renders when someone takes off or stops, or the plan changes.
@@ -81,29 +82,6 @@ function PlaneLabel({ connectionId, ref }: { connectionId: number; ref: (el: HTM
       </span>
     </div>
   );
-}
-
-type Plan = {
-  readonly legs: { readonly [id: string]: { readonly from: string; readonly to: string; readonly createdBy: string } };
-  readonly stops: { readonly [id: string]: LatLng };
-  readonly members: { readonly [id: string]: { readonly color: number } };
-};
-
-/** Each stored leg as a landed flight: the plane parked at its end, facing along the route, in its drawer's colour. */
-function storedFlights(root: Plan): RemoteFlight[] {
-  const flights: RemoteFlight[] = [];
-  for (const [id, leg] of Object.entries(root.legs)) {
-    const from = root.stops[leg.from];
-    const to = root.stops[leg.to];
-    if (!from || !to) continue;
-    const o = { lat: from.lat, lng: from.lng };
-    const at = { lat: to.lat, lng: to.lng };
-    // a hair past the end gives the heading; near enough on a great circle for a parked plane
-    const ahead = { lat: at.lat + (at.lat - o.lat) * 0.01, lng: at.lng + (at.lng - o.lng) * 0.01 };
-    const drawer = root.members[leg.createdBy];
-    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true, color: drawer ? drawer.color - 1 : null });
-  }
-  return flights;
 }
 
 const shallowFlights = (a: RemoteFlight[] | null, b: RemoteFlight[] | null) => JSON.stringify(a) === JSON.stringify(b);

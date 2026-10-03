@@ -1,6 +1,7 @@
 import "server-only";
 import { env } from "@/lib/env.server";
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import { ProviderFailure, type Offer, type Place, type SearchQuery, type TransportProvider } from "../../types";
 import { servesModes } from "../stub";
 import { botRouteUrl } from "./links";
@@ -9,7 +10,7 @@ import seedJson from "./seed.json";
 
 // Seed + link-out, no BOT calls. JB and Singapore centres are ~21 km apart → nearest wins.
 const MODES = ["bus"] as const;
-const MATCH_KM = 30;
+const MIN_MATCH_KM = 30;
 // Fixed offsets in minutes, no DST in any of these zones.
 const OFFSET_MIN: Record<City["tz"], number> = {
   "Asia/Kuala_Lumpur": 480,
@@ -17,9 +18,9 @@ const OFFSET_MIN: Record<City["tz"], number> = {
   "Asia/Bangkok": 420,
 };
 
-function nearest(seed: Seed, lat: number, lng: number): string | undefined {
+function nearest(seed: Seed, lat: number, lng: number, radiusKm: number): string | undefined {
   let best: string | undefined;
-  let bestKm = MATCH_KM;
+  let bestKm = radiusKm;
   for (const [key, c] of Object.entries(seed.cities)) {
     const km = distanceKm(lat, lng, c.lat, c.lng);
     if (km <= bestKm) {
@@ -44,8 +45,9 @@ const carrierKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").re
 
 export function createBusOnlineTicketProvider(seed: Seed, opts: { refererId?: string } = {}): TransportProvider {
   const routesFor = (q: SearchQuery): SeedRoute[] => {
-    const from = nearest(seed, q.from.lat, q.from.lng);
-    const to = nearest(seed, q.to.lat, q.to.lng);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+    const from = nearest(seed, q.from.lat, q.from.lng, radiusKm);
+    const to = nearest(seed, q.to.lat, q.to.lng, radiusKm);
     if (!from || !to || from === to) return [];
     return seed.routes.filter((r) => r.from === from && r.to === to);
   };

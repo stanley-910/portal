@@ -10,8 +10,13 @@ import type { Offer, ProviderId } from "@/lib/transport/types";
 
 import { MAX_OFFERS, toStoredOffer, webUrlOrNull } from "./offers";
 import { sameStop } from "./stops";
+import { computeSplit, type SplitInput } from "./split";
 
-export type TripSummary = { id: string; title: string; members: number; updatedAt: string };
+export type TripCostBreakdown = {
+  fares: { label: string; price: { amount: number; currency: string } | null; kind: string | null }[];
+  nights: { stop: string; date: string; share: { amount: number; currency: string } }[];
+};
+export type TripSummary = { id: string; title: string; members: number; updatedAt: string; costs?: Record<string, number>; breakdown?: TripCostBreakdown };
 
 /** The saved plan of a trip room as plain JSON. Unreadable Storage reads as an empty plan. */
 export async function readPlan(tripId: string): Promise<unknown> {
@@ -41,7 +46,37 @@ export function toTripSummaries(rooms: Pick<RoomData, "id" | "metadata" | "creat
 export async function listMyTrips(userId: string): Promise<TripSummary[]> {
   try {
     const { data } = await liveblocks().getRooms({ userId });
-    return toTripSummaries(data.filter((room) => room.id.startsWith("trip:")));
+    const summaries = toTripSummaries(data.filter((room) => room.id.startsWith("trip:")));
+    return await Promise.all(
+      summaries.map(async (summary) => {
+        try {
+          const plan = (await readPlan(summary.id)) as SplitInput & { stops?: Record<string, { name: string }> };
+          const split = computeSplit(plan);
+          const mine = split.members[userId];
+          const legs = plan.legs ?? {};
+          return {
+            ...summary,
+            costs: mine?.totals,
+            breakdown: mine
+              ? {
+                  fares: mine.fares.map((fare) => {
+                    const leg = legs[fare.leg];
+                    const from = leg ? plan.stops?.[leg.from]?.name ?? leg.from : fare.leg;
+                    const to = leg ? plan.stops?.[leg.to]?.name ?? leg.to : "";
+                    return { label: `${from}${to ? ` → ${to}` : ""}`, price: fare.price, kind: fare.kind };
+                  }),
+                  nights: mine.nightShares.map((night) => ({
+                    ...night,
+                    stop: plan.stops?.[night.stop]?.name ?? night.stop,
+                  })),
+                }
+              : undefined,
+          };
+        } catch {
+          return summary;
+        }
+      }),
+    );
   } catch {
     return [];
   }
@@ -49,7 +84,7 @@ export async function listMyTrips(userId: string): Promise<TripSummary[]> {
 
 // ---- Solo save from `/` ----
 
-const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt"] as const satisfies readonly ProviderId[];
+const PROVIDERS = ["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel"] as const satisfies readonly ProviderId[];
 const MODES = ["flight", "train", "bus", "ferry"] as const;
 const MAX_SEGMENTS = 8;
 /** All options together, after unknown fields are stripped. Twenty real offers are a few KB. */
@@ -114,15 +149,21 @@ export const soloLegSchema = z
     from: stopSchema,
     to: stopSchema,
     date: z.iso.date().refine((d) => d >= isoDay(Date.now() - DAY) && d <= isoDay(Date.now() + 400 * DAY), "date out of range"),
-    offers: z.array(offerSchema).min(1).max(MAX_OFFERS),
-    chosen: text(200),
-    // the hotel picked in the popover's Hotels tab: an estimate for the whole group, per night
+    offers: z.array(offerSchema).min(0).max(MAX_OFFERS),
+    chosen: text(200).nullable(),
+    // the hotel picked in the popover's Hotels tab: the whole group's cost per night, live or estimated
     stay: z
-      .object({ label: text(120), nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }) })
+      .object({
+        label: text(120),
+        nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }),
+        // a live hotel rate; anything unmarked is an estimate
+        estimated: z.boolean().default(true),
+      })
       .optional(),
   })
   .refine((v) => !sameStop(v.from, v.to), "from and to are the same place")
-  .refine((v) => v.offers.some((o) => o.id === v.chosen), "chosen offer is not among the options")
+  .refine((v) => v.offers.length > 0 || v.stay !== undefined, "a flight or hotel must be selected")
+  .refine((v) => v.chosen === null || v.offers.some((o) => o.id === v.chosen), "chosen offer is not among the options")
   .refine((v) => new Set(v.offers.map((o) => o.id)).size === v.offers.length, "duplicate offers")
   .refine((v) => JSON.stringify(v.offers).length <= MAX_OFFERS_CHARS, "options too large");
 
@@ -180,7 +221,7 @@ export function buildSoloStorage(
       // in order, so legs on the same day keep the order they were flown in
       createdAt: now + i,
     };
-    if (leg.stay) stays[to] = { ...leg.stay, estimated: true };
+    if (leg.stay) stays[to] = leg.stay;
   });
   return {
     members: { [user.id]: { name: user.displayName, color: 1 } },

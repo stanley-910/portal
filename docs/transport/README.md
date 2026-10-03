@@ -59,6 +59,10 @@ python3 scripts/snapshot-hubs.py          # refresh airports from the pinned sou
 - Within a mode, lower scores win:
   `accessKm + 0.25 × max(0, accessKm + legKm − clickKm) − 8 × (originImportance + destinationImportance)`.
 - Ties break on stable pair IDs. Up to **4 flight**, **3 train** and **3 ferry** pairs are searched.
+- Surface providers match a click to their own stations or cities with one shared radius:
+  `clamp(0.2 × click-to-click km, provider floor, 100 km)`. The floor is that provider's old fixed radius. Short trips
+  keep it, so both ends can't snap to one city. Long trips get up to the 100 km station radius. The nearest station or
+  city still wins. A floor above 100 km stays as it is.
 - Surface providers also get one raw-coordinate search over their own seeds, so the partial hub graph can't hide
   train or bus coverage.
 
@@ -88,10 +92,14 @@ curl --get 'http://localhost:3000/api/transport/search' \
 ## Being honest about data
 
 - Every offer says where it came from. Anything that isn't live shows an **Estimated** badge.
-- Hotel results use the same landed city as the transport search. The `/api/hotels/search` route uses the bundled
-  city catalogue when available and a deterministic local fallback otherwise; every hotel is marked estimated.
+- Hotel results use the same landed city as the transport search. With a Duffel token, `/api/hotels/search` asks
+  Duffel Stays for live rates within 5 km; with no token, a failed call or no match (hostels are never on Duffel),
+  it uses the bundled city catalogue or a deterministic local fallback, marked estimated.
   Results can be filtered to 2–5 stars or hostels, support 1–4 occupants, calculate the required rooms, and rank
   by a weighted nightly price and distance-to-city-centre score.
+- Duffel flight offers are live quotes from the airline, per passenger, shown without the Estimated badge. They
+  expire within minutes, so they're for showing and later booking, not for storing as a price. Without a token,
+  Travelpayouts covers every flight leg on its own.
 - Travelpayouts fares are cached, per passenger, and not confirmed seats. Connecting summaries say intermediate legs
   are unknown rather than inventing airports.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical
@@ -107,6 +115,7 @@ and the app still runs on seeds and estimates.
 
 | Var | Provider | Where to get it |
 |---|---|---|
+| `DUFFEL_ACCESS_TOKEN` | Live flights and hotel rates | app.duffel.com → Developers → Access tokens. Self-serve; a test token only returns Duffel Airways and test hotels. |
 | `TRAVELPAYOUTS_TOKEN`, `_MARKER`, `_TRS` | Flights, 12Go links | app.travelpayouts.com → Profile → API token. Marker is the partner ID on the dashboard; TRS is the project ID. |
 | `TWELVEGO_AFFILIATE_ID` | 12Go | agent.12go.asia (form review) |
 | `TDX_CLIENT_ID`, `TDX_CLIENT_SECRET` | Taiwan | tdx.transportdata.tw/register → 會員中心 → API金鑰. Non-Taiwan phones need manual review. |

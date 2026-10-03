@@ -68,10 +68,10 @@ describe("computeSplit", () => {
     expect(split.members.bo!.totals).toEqual({ HKD: 1000, CNY: 900, USD: 250 });
   });
 
-  it("ends at the latest leg or leave date when the trip has no end set", () => {
+  it("ends the morning after the latest leg or on a leave date when no end is set", () => {
     const plan = demo();
     plan.ends = null;
-    expect(computeSplit(plan).nights.filter((n) => n.stop === "tyo")).toEqual([]);
+    expect(computeSplit(plan).nights.filter((n) => n.stop === "tyo").map((n) => n.date)).toEqual(["2026-10-13"]);
     plan.members!.ann = { leaves: "2026-10-15" };
     const split = computeSplit(plan);
     expect(split.ends).toBe("2026-10-15");

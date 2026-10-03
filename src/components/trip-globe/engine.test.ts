@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GlobeEngine, type GlobeCursor, type GlobeEvents } from "./engine";
-import { angle, D2R, dot, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
+import { angle, D2R, dot, EARTH_RADIUS_KM, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
 
 function engine() {
   const onLand = vi.fn();
@@ -218,6 +218,92 @@ describe("canvas invalidation", () => {
     expect(changes.at(-1)).toEqual({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   });
 
+  it("holds the plane to a new stop like a magnet: a small nudge lands there, a bigger move flies on", () => {
+    const onLand = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onLand });
+    frames(5);
+    const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const down = (x: number, y: number) =>
+      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const plane = () => (engine as unknown as { pl: { n: Vec3 } }).pl.n;
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
+    move(1280, 650);
+    frames(30);
+    down(1280, 650); // drops a stop
+    const stop = state.pick(1280, 650)!;
+    move(1305, 650);
+    frames(5);
+    // 25 px off, the plane is still at the stop, leaning only a little toward the pointer
+    expect(angle(plane(), stop)).toBeLessThan(angle(state.pick(1305, 650)!, stop) * 0.3);
+    down(1305, 650);
+    expect(onLand).toHaveBeenCalledTimes(1);
+    expect(onLand.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  it("lets the plane go once the pointer pulls far enough from the stop", () => {
+    const onLand = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onLand });
+    frames(5);
+    const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const down = (x: number, y: number) =>
+      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const plane = () => (engine as unknown as { pl: { n: Vec3 } }).pl.n;
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](state.pick(1080, 650)!);
+    move(1280, 650);
+    frames(30);
+    down(1280, 650);
+    const stop = state.pick(1280, 650)!;
+    move(1380, 650);
+    frames(5);
+    // 100 px off, the plane has left the stop and is back under the pointer
+    expect(angle(plane(), stop)).toBeGreaterThan(angle(state.pick(1380, 650)!, stop) * 0.9);
+    down(1380, 650); // another stop, not a landing
+    expect(onLand).not.toHaveBeenCalled();
+    expect(engine["mode"]).toBe("flying");
+  });
+
+  it("treats a click on a saved leg's route as a route click, not a takeoff", () => {
+    const onRouteClick = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onRouteClick });
+    frames(5);
+    const ll = (v: Vec3) => ({ lat: Math.asin(v[1]) / D2R, lng: Math.atan2(v[0], v[2]) / D2R });
+    const from = ll(state.pick(1180, 650)!);
+    const to = ll(state.pick(1480, 650)!);
+    engine.setRemoteFlights([{ id: "leg:1", origin: from, at: to, ahead: to, landed: true }]);
+    frames(30);
+    const mid = engine.routePoint(from, to)!;
+    expect(mid.visible).toBe(true);
+    engine.pointerDown({ clientX: mid.x, clientY: mid.y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    engine.pointerUp({ clientX: mid.x, clientY: mid.y, button: 0, pointerId: 1, pointerType: "mouse", type: "pointerup" } as PointerEvent);
+    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(engine["mode"]).toBe("idle");
+  });
+
+  it("opens the landed trip from a click on its route instead of cancelling or taking off", () => {
+    const onRouteClick = vi.fn();
+    const onCancel = vi.fn();
+    const { engine, state, frames } = setup(2560, 1440, { onRouteClick, onCancel });
+    frames(5);
+    const a = state.pick(1180, 650)!;
+    const b = state.pick(1480, 650)!;
+    (engine as unknown as { takeoff(v: Vec3): void })["takeoff"](a);
+    (engine as unknown as { land(v: Vec3): void })["land"](b);
+    frames(5);
+    const click = (x: number, y: number) => {
+      engine.pointerDown({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+      engine.pointerUp({ clientX: x, clientY: y, button: 0, pointerId: 1, pointerType: "mouse", type: "pointerup" } as PointerEvent);
+    };
+    const mid = state.proj(slerp(a, b, 0.5))!;
+    click(mid.x, mid.y);
+    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(engine["mode"]).toBe("landed");
+    // well off the route, a click on the globe still takes off again
+    click(mid.x, mid.y + 200);
+    expect(onRouteClick).toHaveBeenCalledTimes(1);
+    expect(engine["mode"]).toBe("flying");
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it("redraws only the HUD when the 80ms surface-hub cache catches up under a still pointer", () => {
     const { engine, state, frames, drawGL, drawHud } = setup();
     frames(10);
@@ -357,4 +443,101 @@ it("reuses route buffers without changing near, distant, antipodal or hidden arc
   state.arc(origin, ends[2], 1, 0.03, buffer);
   expect(buffer.pool[0]).toBe(point);
   expect(buffer.pool[0].w).toBe(world);
+});
+
+describe("vehicles", () => {
+  type Drawn = { vehicle: string; next: string; swap: number };
+  const own = (engine: unknown) => (engine as { pl: Drawn | null }).pl;
+  const remote = (engine: unknown, id: string) => (engine as { remotes: Map<string, { pl: Drawn }> }).remotes.get(id)!.pl;
+
+  it("parks the picked vehicle once landed, keeps the plane in the air, and resets on takeoff", () => {
+    const { engine, frames } = setup();
+    engine["takeoff"](point(22.3, 114.17));
+    engine.setVehicle("train");
+    frames(1);
+    expect(own(engine)!.vehicle).toBe("flight");
+    engine["land"](point(31.23, 121.47));
+    engine.setVehicle("train");
+    frames(1);
+    expect(own(engine)!.vehicle).toBe("train");
+    engine.setVehicle("flight");
+    frames(1);
+    expect(own(engine)!.vehicle).toBe("flight");
+    engine.setVehicle("ferry");
+    engine.cancel();
+    engine["takeoff"](point(22.3, 114.17));
+    expect(own(engine)!.vehicle).toBe("flight");
+  });
+
+  it("turns into whatever the leg being drawn looks like, once the guess has held", () => {
+    const { engine, state, frames } = setup();
+    // all land, so the guess comes down to length
+    (engine as unknown as { landAt: (v: Vec3) => boolean }).landAt = () => true;
+    const move = (x: number, y: number) => engine.pointerMove({ clientX: x, clientY: y, pointerId: 1, pointerType: "mouse" } as PointerEvent);
+    const o = state.pick(1280, 650)!;
+    engine["takeoff"](o);
+    // the first spot to the right of takeoff that's train distance away (300 to 900 km)
+    let x = 1280;
+    while (EARTH_RADIUS_KM * angle(o, state.pick(x, 650)!) < 300) x += 4;
+    expect(EARTH_RADIUS_KM * angle(o, state.pick(x, 650)!)).toBeLessThan(900);
+    move(x, 650);
+    frames(6); // 0.1 s: the guess hasn't held yet
+    expect(own(engine)!.next).toBe("flight");
+    frames(30);
+    expect(own(engine)!.next).toBe("train");
+    // dragged right back beside takeoff, it keeps the train rather than flickering
+    move(1281, 650);
+    frames(30);
+    expect(own(engine)!.next).toBe("train");
+  });
+
+  it("pops between vehicles over a quarter second, redrawing as it goes", () => {
+    const { engine, state, frames, drawGL } = setup();
+    state.reduceMotion = false;
+    engine["takeoff"](point(22.3, 114.17));
+    engine["land"](point(31.23, 121.47));
+    frames(120);
+    drawGL.mockClear();
+    engine.setVehicle("bus");
+    frames(3);
+    expect(own(engine)!.vehicle).toBe("flight");
+    expect(own(engine)!.swap).toBeGreaterThan(0);
+    frames(17);
+    expect(own(engine)!.vehicle).toBe("bus");
+    expect(own(engine)!.swap).toBe(0);
+    expect(drawGL.mock.calls.length).toBeGreaterThanOrEqual(15);
+  });
+
+  it("turns back mid-pop without jumping to full size", () => {
+    const { engine, state, frames } = setup();
+    state.reduceMotion = false;
+    engine["takeoff"](point(22.3, 114.17));
+    engine["land"](point(31.23, 121.47));
+    engine.setVehicle("train");
+    frames(10);
+    const before = own(engine)!.swap;
+    expect(before).toBeGreaterThan(0.5);
+    engine.setVehicle("bus");
+    expect(own(engine)!.swap).toBeCloseTo(1 - before);
+    frames(30);
+    expect(own(engine)!.vehicle).toBe("bus");
+  });
+
+  it("draws other members' trips as their vehicle, in the air as well as landed, planes otherwise", () => {
+    const { engine, frames } = setup();
+    const base = { origin: { lat: 22, lng: 114 }, at: { lat: 31, lng: 121 }, ahead: { lat: 31.1, lng: 121.1 } };
+    engine.setRemoteFlights([
+      { id: "a", ...base, landed: true, vehicle: "ferry" },
+      { id: "b", ...base, landed: true },
+      { id: "c", ...base, landed: false, vehicle: "train" },
+    ]);
+    frames(1);
+    expect(remote(engine, "a").vehicle).toBe("ferry");
+    expect(remote(engine, "b").vehicle).toBe("flight");
+    // in the air, what their globe guessed for the leg they're drawing
+    expect(remote(engine, "c").vehicle).toBe("train");
+    engine.setRemoteFlights([{ id: "a", ...base, landed: true, vehicle: "train" }]);
+    frames(1);
+    expect(remote(engine, "a").vehicle).toBe("train");
+  });
 });

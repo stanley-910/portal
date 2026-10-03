@@ -12,15 +12,19 @@ import { AvatarStack } from "@/components/multiplayer/avatar-stack";
 import { InviteButton } from "@/components/multiplayer/invite-button";
 import { RemoteCursors } from "@/components/multiplayer/remote-cursors";
 import { RemotePlanes } from "@/components/multiplayer/remote-planes";
+import { useCursorPref } from "@/lib/cursor-pref";
+import { LegTags } from "@/components/multiplayer/leg-tags";
 import { TripPlan } from "@/components/multiplayer/trip-plan";
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
-import { initialTripStorage, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { initialTripStorage, usePlanActions, usePlanLegs, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
 
-export function TripRoom({ tripId, name, email, account }: { tripId: string; name: string; email: string | null; account: boolean }) {
+type Me = { name: string; email: string | null; account: boolean; nationalities: string[] };
+
+export function TripRoom({ tripId, hostId, ...me }: { tripId: string; hostId: string | null } & Me) {
   return (
     <LiveblocksProvider
       authEndpoint="/api/liveblocks-auth"
@@ -28,15 +32,17 @@ export function TripRoom({ tripId, name, email, account }: { tripId: string; nam
       backgroundKeepAliveTimeout={BACKGROUND_TIMEOUT}
     >
       <RoomProvider id={tripRoomId(tripId)} initialPresence={{ cursor: null, flight: null }} initialStorage={initialTripStorage}>
-        <TripScreen name={name} email={email} account={account} />
+        <TripScreen {...me} hostId={hostId} />
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function TripScreen({ name, email, account }: { name: string; email: string | null; account: boolean }) {
+function TripScreen({ name, email, account, nationalities, hostId }: Me & { hostId: string | null }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
+  // your cursor's shape is yours; its colour is the one the room gave you
+  const cursorShape = useCursorPref().shape;
   const updateMyPresence = useUpdateMyPresence();
   // the room numbers colours from 1; the design system's slots count from 0
   const color = useSelf((me) => me.info.color - 1) ?? 0;
@@ -60,6 +66,12 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
     // the trip are drawn like everyone else's again
     if (landedLegs.length && landedOnTrip === false) globe.current?.cancel();
   }, [landedLegs, landedOnTrip]);
+  // the plan panel; folded away, each leg's ticket stub on its route opens it again
+  const [planOpen, setPlanOpen] = useState(true);
+  // your own vehicle still stands in for the last of those legs, so it parks as that leg's chosen offer
+  const planLegs = usePlanLegs();
+  const landedMode = planLegs?.find((leg) => leg.id === landedLegs.at(-1))?.chosen?.mode ?? "flight";
+  useEffect(() => globe.current?.setVehicle(landedMode), [landedMode]);
   useRecordMember();
 
   useErrorListener((error) => {
@@ -79,25 +91,30 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
       <TripGlobe
         ref={globe}
         color={color}
+        cursorShape={cursorShape}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
         onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
         onTakeoff={() => setLandedLegs([])}
         onCancel={() => setLandedLegs([])}
+        onRouteClick={() => setPlanOpen(true)}
       />
       <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
-      <NavBar globe={globe} name={name} email={email} account={account} reloadOnRename>
+      <NavBar globe={globe} name={name} email={email} account={account} nationalities={nationalities} reloadOnRename>
         <PlaceSearch globe={globe} />
         <AvatarStack />
         <InviteButton />
       </NavBar>
-      {/* below the navbar and the globe's cancel button */}
-      <div className="absolute top-40 right-(--space-4)">
-        <TripPlan />
-      </div>
+      <LegTags globe={globe} onOpen={() => setPlanOpen(true)} />
+      {/* below the navbar */}
+      {planOpen ? (
+        <div className="absolute top-40 right-(--space-4)">
+          <TripPlan hostId={hostId} onMinimise={() => setPlanOpen(false)} />
+        </div>
+      ) : null}
       <AgentChat initialOpen={pipOpen} />
       {status === "reconnecting" || status === "connecting" ? (
         <p role="status" className="type-meta absolute top-(--space-6) left-1/2 -translate-x-1/2 text-ink-muted">

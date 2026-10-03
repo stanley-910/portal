@@ -8,6 +8,7 @@ import { searchLeg } from "@/app/t/actions";
 import { refreshTripTitle } from "@/app/t/title-actions";
 import type { LandedTrip } from "@/components/trip-globe";
 import type { LegSearch, Stop, StoredOffer, TripStorage } from "@/lib/liveblocks/types";
+import { computeSplit, type MemberSplit, type SplitInput } from "./split";
 import { sameStop, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared trip plan: stops, the legs between them, and each leg's options, votes and pick. Presentation
@@ -70,6 +71,35 @@ export function usePlanLegs(): PlanLeg[] | null {
 /** Everyone who has joined the trip, online or not: guest id → name and colour. */
 export function usePlanMembers() {
   return useStorage((root) => root.members);
+}
+
+export function usePlanStays() {
+  return useStorage((root) => root.stays ?? {});
+}
+
+/** The current member's live fare and lodging total. Recomputes whenever another member changes presence. */
+export function useMySplit() {
+  const id = useSelf((self) => self.id);
+  const memberId = id;
+  return useStorage((root): MemberSplit | null => {
+    if (!memberId) return null;
+    const input: SplitInput = {
+      members: Object.fromEntries(Object.entries(root.members).map(([memberId, member]) => [memberId, { leaves: member.leaves }])),
+      legs: Object.fromEntries(
+        Object.entries(root.legs).map(([legId, leg]) => [
+          legId,
+          { from: leg.from, to: leg.to, date: leg.date, riders: leg.riders, search: leg.search, chosen: leg.chosen, createdAt: leg.createdAt },
+        ]),
+      ),
+      stays: root.stays,
+      ends: root.ends,
+    };
+    return computeSplit(input).members[memberId] ?? null;
+  });
+}
+
+export function usePlanEnd() {
+  return useStorage((root) => root.ends ?? null);
 }
 
 /** Records you in the trip's member list, and keeps your name and colour there current. Call once in the room. */
@@ -167,12 +197,25 @@ export function usePlanActions() {
   const chooseMutation = useMutation(({ storage }, legId: string, offerId: string | null) => {
     storage.get("legs").get(legId)?.set("chosen", offerId);
   }, []);
+  const setStayMutation = useMutation(({ storage }, stopId: string, stay: { label: string; nightly: { amount: number; currency: string }; estimated?: boolean } | null) => {
+    let stays = storage.get("stays");
+    if (!stays) storage.set("stays", (stays = new LiveMap()));
+    if (stay) stays.set(stopId, new LiveObject({ ...stay, estimated: stay.estimated ?? true }));
+    else stays.delete(stopId);
+  }, []);
 
   const toggleRiderMutation = useMutation(({ storage }, legId: string, guestId: string) => {
     const leg = storage.get("legs").get(legId);
     if (!leg) return;
     const riders = leg.get("riders");
     leg.set("riders", riders.includes(guestId) ? riders.filter((r) => r !== guestId) : [...riders, guestId]);
+  }, []);
+
+  const setLeaveMutation = useMutation(({ storage, self }, date: string | null) => {
+    storage.get("members").get(self.id)?.set("leaves", date);
+  }, []);
+  const setEndsMutation = useMutation(({ storage }, date: string | null) => {
+    storage.set("ends", date);
   }, []);
 
   /** Removes a leg, and any stop no other leg uses. */
@@ -204,7 +247,10 @@ export function usePlanActions() {
     },
     vote: voteMutation,
     choose: chooseMutation,
+    setStay: setStayMutation,
     toggleRider: toggleRiderMutation,
+    setLeave: (date: string | null) => setLeaveMutation(date),
+    setEnds: (date: string | null) => setEndsMutation(date),
     removeLeg: (legId: string) => {
       removeLegMutation(legId);
       retitle();

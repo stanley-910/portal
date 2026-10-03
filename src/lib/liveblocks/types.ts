@@ -13,6 +13,8 @@ export type TripPresence = {
     at: { lat: number; lng: number };
     ahead: { lat: number; lng: number };
     landed: boolean;
+    /** What they're riding while they draw: the globe's guess from the leg's shape. */
+    vehicle?: "flight" | "train" | "bus" | "ferry";
   } | null;
   /** Only Pip sets this (from the server): what it's doing, shown beside its cursor. */
   activity?: string | null;

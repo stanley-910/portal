@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Mode, Offer, Segment } from "@/lib/transport/types";
 
-import { rowPrice, rowsFor, timeline, visibleTabs } from "./options";
+import { credits, rowPrice, rowsFor, shortPlace, timeline, visibleTabs } from "./options";
 
 const place = (name: string) => ({ name, lat: 0, lng: 0 });
 const seg = (mode: Mode, from: string, to: string, depart: string, arrive: string, durationMin: number): Segment => ({
@@ -60,6 +60,23 @@ describe("ticket search options", () => {
     const [row] = rowsFor([o], "flight", null);
     expect(row.headline).toBe("Leaves 09:00");
     expect(row.description).toBe("Flight to Bangkok, 1 stop, 2h 45m");
+  });
+
+  it("keeps row text short and credits the provider once under the list", () => {
+    const tp = "Travelpayouts / Aviasales — distance-based estimate; availability unverified";
+    const to = (id: string, airport: string) =>
+      offer(id, "flight", 165, [seg("flight", "Hong Kong", airport, "2026-10-04T09:00:00+08:00", "2026-10-04T13:00:00+09:00", 168)], {
+        kind: "estimated",
+        attribution: tp,
+      });
+    const rows = rowsFor([to("a", "Incheon International Airport"), to("b", "Seoul Gimpo International Airport")], "best", null);
+    expect(rows.map((r) => r.description)).toEqual(["Flight to Incheon", "Flight to Seoul Gimpo"]);
+    expect(rows[0].source).toContain(tp);
+    expect(credits(rows)).toEqual([{ label: "Travelpayouts / Aviasales" }]);
+    rows[1].offer.bookingUrl = "https://www.aviasales.com/search/b";
+    expect(credits(rows, rows[1])).toEqual([{ label: "Travelpayouts / Aviasales", url: "https://www.aviasales.com/search/b" }]);
+    expect(shortPlace("Airport")).toBe("Airport");
+    expect(shortPlace("Shanghai Hongqiao")).toBe("Shanghai Hongqiao");
   });
 
   it("adds the cheapest same-mode return for a round trip", () => {

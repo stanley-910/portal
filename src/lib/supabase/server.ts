@@ -3,8 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { supabaseConfig } from "./config";
+import { parseNationalities } from "@/lib/nationality";
 
-export type CurrentUser = { id: string; email: string; displayName: string };
+export type CurrentUser = { id: string; email: string; displayName: string; nationalities: string[] };
 
 let warnedUnconfigured = false;
 
@@ -49,7 +50,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     const metaName = data.user.user_metadata?.display_name;
     const displayName =
       profile?.display_name || (typeof metaName === "string" && metaName.trim()) || email.split("@")[0] || "Traveller";
-    return { id, email, displayName };
+    // passports live in the user's own metadata, not the profiles table: nobody else needs to read them
+    return { id, email, displayName, nationalities: parseNationalities(data.user.user_metadata?.nationalities) };
   } catch (err) {
     // Supabase unreachable (paused project, network): treat as signed out so `/` keeps working.
     console.warn("[supabase] getUser failed:", err instanceof Error ? err.message : err);

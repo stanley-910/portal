@@ -1,24 +1,25 @@
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import type { Offer, Place, SearchQuery } from "../../types";
 import type { BusRow, BusSeed } from "./schema";
 import { at } from "./train";
 
 // KoBus express seed search. Pure: no network, no env.
 // Seoul and Busan each have two express terminals; every terminal in range counts, rows pick the pair.
-const MATCH_KM = 10;
+const MIN_MATCH_KM = 10;
 // KoBus booking page; takes no OD/date params (observed 2026-10-03).
 export const KOBUS_BOOKING_URL = "https://www.kobus.co.kr/mrs/rotinf.do";
 
 export function createBusSearch(seed: BusSeed) {
-  const near = (lat: number, lng: number): Set<string> =>
+  const near = (lat: number, lng: number, q: SearchQuery): Set<string> =>
     new Set(
       Object.entries(seed.terminals)
-        .filter(([, t]) => distanceKm(lat, lng, t.lat, t.lng) <= (t.matchKm ?? MATCH_KM))
+        .filter(([, t]) => distanceKm(lat, lng, t.lat, t.lng) <= matchRadiusKm(q.from, q.to, t.matchKm ?? MIN_MATCH_KM))
         .map(([key]) => key),
     );
   const rowsFor = (q: SearchQuery): BusRow[] => {
-    const from = near(q.from.lat, q.from.lng);
-    const to = near(q.to.lat, q.to.lng);
+    const from = near(q.from.lat, q.from.lng, q);
+    const to = near(q.to.lat, q.to.lng, q);
     return seed.buses.filter((b) => from.has(b.from) && to.has(b.to));
   };
   const place = (key: string): Place => {

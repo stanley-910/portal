@@ -1,11 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 
-import { Button } from "@/components/paper-atlas";
+import { Button, Cursor, MEMBER_COLORS, type CursorShape } from "@/components/paper-atlas";
+import { setCursorPref, useCursorPref } from "@/lib/cursor-pref";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
+import { saveNationalities } from "@/app/profile-actions";
+import { PassportPicker } from "./passport-picker";
 import { useOpenAuth } from "@/components/auth/links";
 import { saveName } from "@/app/t/actions";
 import { initials, MAX_NAME } from "@/lib/guest-name";
@@ -19,12 +23,14 @@ export interface ProfileMenuProps {
   account?: boolean;
   /** Reload the page after a rename, so a trip room reconnects with the new name on your cursor. */
   reloadOnRename?: boolean;
+  /** The passports you hold, ISO-3. Entry requirements are worked out for these. */
+  nationalities?: string[];
   /** Settings for this screen, shown under Theme. Build them from `MenuSection` and `MenuChoices`. */
   children?: ReactNode;
 }
 
 /** The disc at the end of the bar: who you are (your account, or a way to sign in), and the app's settings. */
-export function ProfileMenu({ name, email = null, account = false, reloadOnRename, children }: ProfileMenuProps) {
+export function ProfileMenu({ name, email = null, account = false, reloadOnRename, nationalities = [], children }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -65,6 +71,9 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
       {open ? (
         <div id={panelId} className="pn-menu pn-profile-menu" role="dialog" aria-label="Profile and settings">
           <Identity name={name} email={email} account={account} reloadOnRename={reloadOnRename} />
+          <PassportSetting saved={nationalities} />
+          {account ? <Link className="pn-profile-trips" href="/trips">My trips</Link> : null}
+          <CursorSetting />
           <ThemeSetting />
           {children}
         </div>
@@ -169,6 +178,50 @@ const THEMES = [
   { value: "dark", label: "Night" },
   { value: "system", label: "Auto" },
 ] as const;
+
+/** The passports you hold. Several are fine: a dual national travels on whichever gets them in more easily. */
+function PassportSetting({ saved }: { saved: string[] }) {
+  const router = useRouter();
+  const [list, setList] = useState(saved);
+  const [, startTransition] = useTransition();
+  const save = (next: string[]) => {
+    setList(next);
+    startTransition(async () => {
+      await saveNationalities(next);
+      router.refresh();
+    });
+  };
+  return (
+    <MenuSection title="Passports">
+      <PassportPicker value={list} onChange={save} />
+      {list.length ? null : <p className="type-meta text-ink-muted">Add yours to see what each border needs.</p>}
+    </MenuSection>
+  );
+}
+
+const CURSOR_SHAPES: readonly MenuChoice<CursorShape>[] = [
+  { value: "arrow", label: "Arrow" },
+  { value: "compass", label: "Compass" },
+  { value: "map", label: "Map" },
+];
+
+/** Your own cursor: its shape, and its colour wherever a trip hasn't given you one. */
+function CursorSetting() {
+  const pref = useCursorPref();
+  return (
+    <MenuSection title="Cursor">
+      <MenuChoices name="cursor-shape" label="Cursor shape" value={pref.shape} options={CURSOR_SHAPES} onChange={(shape) => setCursorPref({ shape })} />
+      <div role="radiogroup" aria-label="Cursor colour" className="pn-swatches">
+        {MEMBER_COLORS.map((color, i) => (
+          <label key={color} className="pn-swatch" title={`Colour ${i + 1}`}>
+            <input type="radio" name="cursor-color" checked={pref.color === i} onChange={() => setCursorPref({ color: i })} aria-label={`Colour ${i + 1}`} />
+            <Cursor shape={pref.shape} color={color} altitude={0} className="pn-swatch-cursor" />
+          </label>
+        ))}
+      </div>
+    </MenuSection>
+  );
+}
 
 function ThemeSetting() {
   const { theme, setTheme } = useTheme();

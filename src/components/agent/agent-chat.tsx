@@ -1,11 +1,11 @@
 "use client";
 
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 
 import { applyMeetup, undoAgentChange } from "@/app/t/actions";
 import { useOpenAuth } from "@/components/auth/links";
-import { arrival, ARRIVAL_MS, PipArrival } from "@/components/agent/pip-arrival";
+import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
 import { Button } from "@/components/paper-atlas";
 import { tripContext } from "@/lib/agent/context";
@@ -56,19 +56,27 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
     return picked.get(key)!;
   });
   const [hover, setHover] = useState(false);
-  // the first launcher of a page load arrives by saucer; the nudge waits for it
+  // the first launcher of a page load arrives, by saucer or by portal; the nudge waits for it
   const [arriving, setArriving] = useState(() => !arrival.played);
-  // the saucer is this launcher's entrance, so its own zoom-in doesn't play after it
+  // the arrival is this launcher's entrance, so its own zoom-in doesn't play after it
   const [entrance] = useState(arriving);
+  // picked in the browser only: the server renders no entrance, so a random pick can't mismatch it
+  const kind = useSyncExternalStore(noSubscribe, pickArrival, () => null);
   useEffect(() => {
     if (!arriving) return;
     arrival.played = true;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(() => setArriving(false), still ? 0 : ARRIVAL_MS);
+    const timer = window.setTimeout(() => setArriving(false), still ? 0 : kind === "portal" ? HOP_MS : ARRIVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [arriving]);
+  }, [arriving, kind]);
+  // trip cards and panels over Pip's corner send it through a portal to the other one
+  const root = useRef<HTMLDivElement>(null);
+  const porthole = useRef<HTMLButtonElement>(null);
+  const { side, hop } = usePipCorner(root, porthole, arriving);
+  const hidden = arriving || !!hop;
   const [done, setDone] = useState(() => nudged.has(nudge));
-  const typed = useTyping(done || arriving ? null : nudge);
+  // the bubble's tail points right, at Pip in the right-hand corner
+  const typed = useTyping(done || arriving || side !== "right" ? null : nudge);
   const finished = typed === nudge;
   useEffect(() => {
     if (!finished) return;
@@ -77,9 +85,10 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
     return () => window.clearTimeout(timer);
   }, [finished, nudge]);
   return (
-    <div className={`pip-launcher${entrance ? " pip-launcher-arriving" : ""}`}>
-      {arriving ? <PipArrival /> : null}
-      {typed !== null && !done ? (
+    <div ref={root} data-globe-float className={`pip-launcher${entrance ? " pip-launcher-arriving" : ""}${side === "left" ? " pip-launcher-left" : ""}`}>
+      {arriving && kind ? kind === "ufo" ? <PipArrival /> : <PipHop way="arrive" side={side} /> : null}
+      {hop ? <PipHop key={`${hop}-${side}`} way={hop} side={side} /> : null}
+      {typed !== null && !done && !hop && side === "right" ? (
         <button type="button" className="pip-nudge" onClick={onOpen}>
           <span className="pip-nudge-inner">
             <span className="pip-nudge-text">
@@ -94,6 +103,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
         </button>
       ) : null}
       <button
+        ref={porthole}
         type="button"
         className="pip-porthole"
         aria-label={`Open ${AGENT_NAME}`}
@@ -101,7 +111,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
         onPointerEnter={() => setHover(true)}
         onPointerLeave={() => setHover(false)}
       >
-        <PipSprite size={40} mood={hover ? "talk" : "idle"} className={arriving ? "pip-hidden" : undefined} />
+        <PipSprite size={40} mood={hover ? "talk" : "idle"} className={hidden ? "pip-hidden" : undefined} />
         {unread ? <span aria-label="New reply" className="pip-unread" /> : null}
       </button>
     </div>
@@ -143,6 +153,9 @@ function NudgeTail() {
     </svg>
   );
 }
+
+const noSubscribe = () => () => {};
+const pickArrival = () => (arrival.kind ??= Math.random() < 0.5 ? "ufo" : "portal");
 
 /** Types `text` out a character at a time after a short wait; the whole text at once under reduced motion. */
 function useTyping(text: string | null): string | null {
@@ -195,7 +208,7 @@ function Panel({ onClose }: { onClose: () => void }) {
   }, [thread, activity]);
 
   return (
-    <section className="pip-panel" aria-label={`Trip chat with ${AGENT_NAME}`}>
+    <section className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
       <header className="pip-head">
         <PipSprite size={32} mood={mood} />
         <div className="min-w-0 flex-1">

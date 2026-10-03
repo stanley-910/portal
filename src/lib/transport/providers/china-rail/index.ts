@@ -1,5 +1,6 @@
 import "server-only";
 import { distanceKm } from "../gtfs/geo";
+import { matchRadiusKm } from "../match-radius";
 import { ProviderFailure, type Offer, type Place, type SearchQuery, type TransportProvider } from "../../types";
 import { servesModes } from "../stub";
 import { tripComTrainUrl } from "./links";
@@ -9,15 +10,15 @@ import seedJson from "./seed.json";
 const MODES = ["train"] as const;
 // The globe snaps to airports, while China Rail stations are often outside the
 // airport's city-centre radius (PVG → Shanghai Hongqiao is about 45 km).
-const MATCH_KM = 60;
+const MIN_MATCH_KM = 60;
 // Both zones are fixed UTC+8, no DST.
 const OFFSET = { "Asia/Shanghai": "+08:00", "Asia/Hong_Kong": "+08:00" } as const;
 
 
-/** Nearest station within MATCH_KM picks the city; every station in that city matches. */
-function stationsNear(seed: Seed, lat: number, lng: number): Set<string> {
+/** Nearest station within `radiusKm` picks the city; every station in that city matches. */
+function stationsNear(seed: Seed, lat: number, lng: number, radiusKm: number): Set<string> {
   let city: string | undefined;
-  let bestKm = MATCH_KM;
+  let bestKm = radiusKm;
   for (const s of Object.values(seed.stations)) {
     const km = distanceKm(lat, lng, s.lat, s.lng);
     if (km <= bestKm) {
@@ -35,8 +36,9 @@ function at(date: string, hhmm: string, offset: string, plusMin = 0): string {
 
 export function createChinaRailProvider(seed: Seed): TransportProvider {
   const trainsFor = (q: SearchQuery): SeedTrain[] => {
-    const from = stationsNear(seed, q.from.lat, q.from.lng);
-    const to = stationsNear(seed, q.to.lat, q.to.lng);
+    const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
+    const from = stationsNear(seed, q.from.lat, q.from.lng, radiusKm);
+    const to = stationsNear(seed, q.to.lat, q.to.lng, radiusKm);
     return seed.trains.filter((t) => from.has(t.from) && to.has(t.to));
   };
   const place = (key: string, s: Station): Place => ({

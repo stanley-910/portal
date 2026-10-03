@@ -11,7 +11,7 @@ const placeSchema = z.object({
   country: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/)),
   iata: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)),
   providerIds: z.partialRecord(
-    z.enum(["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt"]),
+    z.enum(["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel"]),
     z.string().trim().min(1).max(200),
   ).optional(),
 });
