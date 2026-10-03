@@ -18,8 +18,8 @@ describe("globe hub preview lifecycle", () => {
     globe["takeoff"](point(0, -140));
     expect(onModeChange).toHaveBeenCalledWith("flying", null);
     globe["land"](point(5, -140));
-    expect(onLand).toHaveBeenCalledWith(expect.objectContaining({ from: null, to: null }));
-    const trip = onLand.mock.calls[0][0];
+    expect(onLand).toHaveBeenCalledWith([expect.objectContaining({ from: null, to: null })]);
+    const [trip] = onLand.mock.calls[0][0];
     expect(trip.origin.lng).toBeCloseTo(-140);
     expect(trip.destination.lat).toBeCloseTo(5);
     expect(trip.distanceKm).toBeGreaterThan(550);
@@ -28,10 +28,27 @@ describe("globe hub preview lifecycle", () => {
     const { globe, onLand } = engine();
     globe["takeoff"](point(22.305, 114.165));
     globe["land"](point(31.23, 121.47));
-    const trip = onLand.mock.calls[0][0];
+    const [trip] = onLand.mock.calls[0][0];
     expect(trip.from.mode).toBe("train");
     expect(trip.origin.lat).toBeCloseTo(22.305);
     expect(trip.destination.lng).toBeCloseTo(121.47);
+  });
+  it("lands one leg per stop, each departing a day after the last", () => {
+    const { globe, onLand } = engine();
+    globe["takeoff"](point(22.305, 114.165));
+    globe["addStop"](point(31.23, 121.47));
+    globe["addStop"](point(35.68, 139.77));
+    expect(onLand).not.toHaveBeenCalled();
+    globe["finish"]();
+    const legs = onLand.mock.calls[0][0];
+    expect(legs).toHaveLength(2);
+    expect(legs[0].origin.lat).toBeCloseTo(22.305);
+    expect(legs[0].destination.lat).toBeCloseTo(31.23);
+    expect(legs[1].origin.lat).toBeCloseTo(31.23);
+    expect(legs[1].destination.lng).toBeCloseTo(139.77);
+    expect(legs[1].departDate.getTime() - legs[0].departDate.getTime()).toBeGreaterThan(20 * 3600_000);
+    globe.cancel();
+    expect(globe["via"]).toEqual([]);
   });
   it("only publishes preview changes, clearing immediately on pointer leave", () => {
     const { globe, onPreviewChange } = engine();

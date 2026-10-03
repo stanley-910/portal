@@ -34,8 +34,11 @@ export interface TripGlobeProps {
   theme?: TripGlobeTheme;
   /** Called at takeoff, including uncovered points (null). Hub is a local preview, not a route result. */
   onTakeoff?: (from: Hub | null) => void;
-  /** Called once the plane touches down. The search for the trip starts here. */
-  onLand?: (trip: LandedTrip) => void;
+  /**
+   * Called once the plane touches down, with the trip's legs in order. Each click while flying ends a leg and flies
+   * on; clicking that stop again (a double click) lands there. The search for the trip starts here.
+   */
+  onLand?: (legs: LandedTrip[]) => void;
   /** Called when a trip in progress is cancelled, from the globe or through the handle. */
   onCancel?: () => void;
   /**
@@ -45,6 +48,8 @@ export interface TripGlobeProps {
   onPointerLatLng?: (ll: LatLng | null) => void;
   /** Called when this viewer's trip changes: takeoff, every move of the plane, landing, cancel (null). Rounded. */
   onFlightChange?: (flight: FlightState | null) => void;
+  /** This viewer's member colour slot (0 for `member-1`): their cursor and route. Default 0. */
+  color?: number;
   /** Seeds the generated sky. Leave it out for a new sky on every load; pass a trip's seed to share one sky. */
   skySeed?: string | number;
   /** The 2D earth data texture (land mask, coast distance, relief). */
@@ -56,6 +61,8 @@ export interface TripGlobeProps {
   className?: string;
   ref?: Ref<TripGlobeHandle>;
 }
+
+const place = (hub: Hub | null) => hub?.city || hub?.name || "selected point";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 function subscribeSystemTheme(onChange: () => void) {
@@ -94,6 +101,7 @@ export function TripGlobe({
   bordersUrl = "/textures/borders.png",
   provincesUrl = "/textures/provinces.png",
   skySeed,
+  color = 0,
   className,
   ref,
 }: TripGlobeProps) {
@@ -104,7 +112,7 @@ export function TripGlobe({
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [landed, setLanded] = useState<LandedTrip | null>(null);
+  const [landed, setLanded] = useState<LandedTrip[] | null>(null);
   const [unsupported, setUnsupported] = useState(false);
   const [cursor, setCursor] = useState<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   const resolved = useResolvedTheme(theme);
@@ -128,9 +136,9 @@ export function TripGlobe({
       },
       onPreviewChange: (_hub, name) => setPreview(name),
       onCursorChange: setCursor,
-      onLand: (trip) => {
-        setLanded(trip);
-        handlers.current.onLand?.(trip);
+      onLand: (legs) => {
+        setLanded(legs);
+        handlers.current.onLand?.(legs);
       },
       onCancel: () => handlers.current.onCancel?.(),
       onFrame: () => {
@@ -164,11 +172,15 @@ export function TripGlobe({
     if (skySeed !== undefined) engineRef.current?.setSkySeed(skySeed);
   }, [skySeed, earthUrl, bordersUrl, provincesUrl]);
 
+  useEffect(() => {
+    engineRef.current?.setColor(color);
+  }, [color, earthUrl, bordersUrl, provincesUrl]);
+
   // set after hydration: the cursor image depends on the client's theme
   useEffect(() => {
     if (rootRef.current)
-      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(0), resolved, { ...cursor, noShadow: true });
-  }, [mode, resolved, cursor]);
+      rootRef.current.style.cursor = mode === "flying" ? "none" : cursorUrl("arrow", memberColor(color), resolved, { ...cursor, noShadow: true });
+  }, [mode, resolved, cursor, color]);
 
   useImperativeHandle(
     ref,
@@ -190,9 +202,9 @@ export function TripGlobe({
 
   const label =
     mode === "flying"
-      ? `Flying from ${from?.city || from?.name || "selected point"}`
-      : mode === "landed" && landed
-        ? `Trip ${landed.from?.city || landed.from?.name || "selected point"} to ${landed.to?.city || landed.to?.name || "selected point"}`
+      ? `Flying from ${place(from)}`
+      : mode === "landed" && landed?.length
+        ? `Trip ${place(landed[0].from)} to ${place(landed.at(-1)!.to)}${landed.length > 1 ? `, ${landed.length} legs` : ""}`
         : "Globe";
 
   // While flying, Esc or a right-click puts the plane away. Esc typed into a field stays with the field.

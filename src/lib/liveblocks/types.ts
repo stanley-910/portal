@@ -32,12 +32,14 @@ export type TripMember = MemberInfo & {
   leaves?: string | null;
 };
 
-/** What a stop's lodging costs the group, typed in by a member or Pip. No search, no estimate. */
+/** What a stop's lodging costs the group: typed in by a member or Pip, or the hotel picked when saving from `/`. */
 export type Stay = {
   /** For the whole group per night, split among whoever is there that night. Null means not known yet. */
   nightly: { amount: number; currency: string } | null;
   /** e.g. "Shinjuku apartment". */
   label: string | null;
+  /** True when `nightly` is the hotel search's estimate rather than a price someone gave. */
+  estimated?: boolean;
 };
 
 /** An exact clicked place legs start or end at; preview hubs never move the point. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveblocksProvider, RoomProvider, useErrorListener, useStatus, useUpdateMyPresence } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useErrorListener, useSelf, useStatus, useUpdateMyPresence } from "@liveblocks/react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
@@ -38,6 +38,8 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const updateMyPresence = useUpdateMyPresence();
+  // the room numbers colours from 1; the design system's slots count from 0
+  const color = useSelf((me) => me.info.color - 1) ?? 0;
   const status = useStatus();
   // a trip started by talking to Pip on the home globe opens with the chat showing
   const pipOpen = useSearchParams().get("pip") === "open";
@@ -45,7 +47,7 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
   const { addLeg } = usePlanActions();
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
-  const [landedLeg, setLandedLeg] = useState<string | null>(null);
+  const [landedLegs, setLandedLegs] = useState<string[]>([]);
   useRecordMember();
 
   useErrorListener((error) => {
@@ -64,14 +66,15 @@ function TripScreen({ name, email, account }: { name: string; email: string | nu
     <main className="relative h-dvh w-full overflow-hidden">
       <TripGlobe
         ref={globe}
+        color={color}
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
-        onLand={(trip) => planReady && setLandedLeg(addLeg(trip))}
-        onTakeoff={() => setLandedLeg(null)}
-        onCancel={() => setLandedLeg(null)}
+        onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
+        onTakeoff={() => setLandedLegs([])}
+        onCancel={() => setLandedLegs([])}
       />
-      <RemotePlanes globe={globe} hideLeg={landedLeg} />
+      <RemotePlanes globe={globe} hideLegs={landedLegs} />
       <RemoteCursors globe={globe} />
       <PipCursor globe={globe} />
       <NavBar globe={globe} name={name} email={email} account={account} reloadOnRename>

@@ -47,6 +47,11 @@ export interface Palette {
   tagShadow: string;
   /** The viewer's own cursor's shadow, which the overlay draws so it can trail the pointer. */
   cursorShadow: string;
+  /**
+   * Each member's route, by design slot (`member-1` first): their sticker colour mixed toward ink, so it darkens
+   * on light paper and lightens at night, and a thin dashed line still reads against the page.
+   */
+  memberRoutes: string[];
   /** Opacity of the sky's stippled ink. Light paper takes it a touch softer. */
   skyInk: number;
   gl: Record<"uPaper" | "uInk" | "uSea" | "uSeaDeep" | "uSage" | "uMoss" | "uShade", RGB>;
@@ -56,6 +61,15 @@ export interface Palette {
 // The tint of the plane's shadow on the ground. Not a token: it only exists inside the shader.
 const SHADE: Record<ThemeId, RGB> = { light: [0.87, 0.86, 0.8], dark: [0.55, 0.55, 0.62] };
 const SKY_INK: Record<ThemeId, number> = { light: 0.7, dark: 0.95 };
+// How far a member's route is mixed toward ink. The pastels need more on light paper to hold a 2px line.
+const ROUTE_INK: Record<ThemeId, number> = { light: 0.45, dark: 0.2 };
+const MEMBER_TOKENS = tokens.color.tokens.map((t) => t.name).filter((n) => /^member-\d+$/.test(n));
+
+/** a mixed toward b by k, as "#rrggbb". */
+function mix(a: RGB, b: RGB, k: number): string {
+  const hex = (i: number) => Math.round((a[i] + (b[i] - a[i]) * k) * 255).toString(16).padStart(2, "0");
+  return `#${hex(0)}${hex(1)}${hex(2)}`;
+}
 
 function build(theme: ThemeId): Palette {
   const ink = parse(token("ink", theme)).rgb;
@@ -68,6 +82,7 @@ function build(theme: ThemeId): Palette {
     muted: token("ink-muted", theme),
     tagShadow: shadowColor("shadow-tag", theme),
     cursorShadow: token("sticker-shadow", theme),
+    memberRoutes: MEMBER_TOKENS.map((n) => mix(rgb(n, theme), ink, ROUTE_INK[theme])),
     skyInk: SKY_INK[theme],
     gl: {
       uPaper: rgb("paper", theme),
