@@ -6,7 +6,7 @@ import { Button } from "@/components/paper-atlas";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
-import type { Offer } from "@/lib/transport/types";
+import type { Mode, Offer } from "@/lib/transport/types";
 
 import { formatPrice, rowPrice, rowsFor, TABS, visibleTabs, type Tab } from "./options";
 import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "./parts";
@@ -147,10 +147,12 @@ export interface TicketSearchProps {
   error?: string | null;
   /** Esc, with no date strip open. A click outside is the globe's own cancel. */
   onDismiss: () => void;
+  /** The selected row's mode, or null with nothing selected: the globe parks the landed trip as that vehicle. */
+  onChoiceMode?: (mode: Mode | null) => void;
 }
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
-export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, saving = false, error, onDismiss }: TicketSearchProps) {
+export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, saving = false, error, onDismiss, onChoiceMode }: TicketSearchProps) {
   const card = useRef<HTMLElement>(null);
   const [firstDay] = useState(() => localIso(trip.departDate));
   const [depart, setDepart] = useState(firstDay);
@@ -184,6 +186,13 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, sav
   const activeTab = tabs.includes(tab) ? tab : "best";
   const rows = rowsFor(offers, activeTab, rates);
   const choice = rows[Math.min(selected, rows.length - 1)];
+  // the latest callback without re-firing when only its identity changes
+  const choiceMode = useRef(onChoiceMode);
+  useLayoutEffect(() => {
+    choiceMode.current = onChoiceMode;
+  });
+  const mode = choice?.offer.mode ?? null;
+  useEffect(() => choiceMode.current?.(mode), [mode]);
   const returns = returnDate === null ? null : back.status === "done" ? back.offers : back.status === "failed" ? [] : undefined;
 
   const pickDay = (iso: string) => {

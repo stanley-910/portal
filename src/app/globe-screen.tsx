@@ -101,6 +101,7 @@ export function GlobeScreen({ person, trips = [] }: { person: Person | null; tri
           });
         }}
         onDismiss={() => globe.current?.cancel()}
+        onChoiceMode={(mode) => globe.current?.setVehicle(mode ?? "flight")}
       />
     ) : null}
     <HomePip />
