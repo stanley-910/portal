@@ -1,5 +1,5 @@
 export interface Station {
-  city: string; // stations of one city match together (Beijing South + West)
+  city: string; // city label; coordinate searches consider every nearby station
   name: string;
   nameLocal: string;
   country: "CN" | "HK";

@@ -1,0 +1,4846 @@
+{
+  "CN:afh": {
+    "lat": 33.37472,
+    "lng": 120.17952,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16690688",
+    "wikidataLabel": "盐城站",
+    "match": "name"
+  },
+  "CN:bjp": {
+    "lat": 39.90222,
+    "lng": 116.42111,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q285141",
+    "wikidataLabel": "北京站",
+    "match": "name"
+  },
+  "CN:bmh": {
+    "lat": 33.67659,
+    "lng": 117.24629,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4887727",
+    "wikidataLabel": "蚌埠南站",
+    "match": "name"
+  },
+  "CN:cbp": {
+    "lat": 38.30631,
+    "lng": 116.76125,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5032353",
+    "wikidataLabel": "沧州西站",
+    "match": "name"
+  },
+  "CN:changping": {
+    "lat": 22.98611,
+    "lng": 114.00139,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5952651",
+    "wikidataLabel": "Changping railway station",
+    "match": "name"
+  },
+  "CN:changshanan": {
+    "lat": 28.15028,
+    "lng": 113.05889,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q986410",
+    "wikidataLabel": "Changshanan Railway Station",
+    "match": "name"
+  },
+  "CN:chaonan": {
+    "lat": 23.13631,
+    "lng": 116.52771,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q124512363",
+    "wikidataLabel": "Chaonan Railway Station",
+    "match": "name"
+  },
+  "CN:chaoshan": {
+    "lat": 23.54242,
+    "lng": 116.58284,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5072820",
+    "wikidataLabel": "Chaoshan railway station",
+    "match": "name"
+  },
+  "CN:chengdudong": {
+    "lat": 30.6311,
+    "lng": 104.139,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5091316",
+    "wikidataLabel": "Chengdudong Railway Station",
+    "match": "name"
+  },
+  "CN:chongqingxi": {
+    "lat": 29.50278,
+    "lng": 106.43333,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q15120595",
+    "wikidataLabel": "Chongqingxi Railway Station",
+    "match": "name"
+  },
+  "CN:dip": {
+    "lat": 37.41089,
+    "lng": 116.45493,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5268591",
+    "wikidataLabel": "德州东站",
+    "match": "name"
+  },
+  "CN:dongguan": {
+    "lat": 23.08963,
+    "lng": 113.85401,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q48894788",
+    "wikidataLabel": "Dongguan Railway Station",
+    "match": "name"
+  },
+  "CN:dongguannan": {
+    "lat": 22.84786,
+    "lng": 114.06411,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q96607321",
+    "wikidataLabel": "Dongguannan Railway Station",
+    "match": "name"
+  },
+  "CN:enh": {
+    "lat": 31.80052,
+    "lng": 117.2849,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q10916928",
+    "wikidataLabel": "合肥南站",
+    "match": "name"
+  },
+  "CN:enping": {
+    "lat": 22.18773,
+    "lng": 112.39141,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q55346605",
+    "wikidataLabel": "Enping Railway Station",
+    "match": "name"
+  },
+  "CN:eph": {
+    "lat": 30.69306,
+    "lng": 120.79556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5941755",
+    "wikidataLabel": "嘉兴南站",
+    "match": "name"
+  },
+  "CN:esh": {
+    "lat": 31.85629,
+    "lng": 119.95,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4390995",
+    "wikidataLabel": "常州北站",
+    "match": "name"
+  },
+  "CN:foshanxi": {
+    "lat": 23.08139,
+    "lng": 113.02861,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q9388554",
+    "wikidataLabel": "Foshanxi Railway Station",
+    "match": "name"
+  },
+  "CN:fuu": {
+    "lat": 30.0483,
+    "lng": 119.85647,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q112659260",
+    "wikidataLabel": "富阳西站",
+    "match": "name"
+  },
+  "CN:ganzhouxi": {
+    "lat": 25.82325,
+    "lng": 114.8109,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q52146308",
+    "wikidataLabel": "Ganzhouxi Railway Station",
+    "match": "name"
+  },
+  "CN:guangmingcheng": {
+    "lat": 22.7357,
+    "lng": 113.9495,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4392986",
+    "wikidataLabel": "Guangmingcheng railway station",
+    "match": "name"
+  },
+  "CN:guangzhoudong": {
+    "lat": 23.15167,
+    "lng": 113.31917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1185849",
+    "wikidataLabel": "Guangzhoudong Railway Station",
+    "match": "name"
+  },
+  "CN:guangzhouxintang": {
+    "lat": 23.13697,
+    "lng": 113.6017,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8044655",
+    "wikidataLabel": "Guangzhou Xintang Railway Station",
+    "match": "name"
+  },
+  "CN:guh": {
+    "lat": 31.62025,
+    "lng": 117.92029,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11056352",
+    "wikidataLabel": "巢湖东站",
+    "match": "name"
+  },
+  "CN:guilinxi": {
+    "lat": 25.35722,
+    "lng": 110.26222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11111633",
+    "wikidataLabel": "Guilinxi Railway Station",
+    "match": "name"
+  },
+  "CN:guiyangbei": {
+    "lat": 26.6225,
+    "lng": 106.6725,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18121548",
+    "wikidataLabel": "Guiyangbei Railway Station",
+    "match": "name"
+  },
+  "CN:guiyangdong": {
+    "lat": 26.66795,
+    "lng": 106.74083,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q19853753",
+    "wikidataLabel": "Guiyangdong Railway Station",
+    "match": "name"
+  },
+  "CN:hengyangdong": {
+    "lat": 26.90049,
+    "lng": 112.70582,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13635784",
+    "wikidataLabel": "Hengyangdong Railway Station",
+    "match": "name"
+  },
+  "CN:hezhou": {
+    "lat": 24.4572,
+    "lng": 111.5341,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q19853754",
+    "wikidataLabel": "Hezhou Railway Station",
+    "match": "name"
+  },
+  "CN:huidong": {
+    "lat": 22.93555,
+    "lng": 114.73708,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q83935369",
+    "wikidataLabel": "Huidong Railway Station",
+    "match": "name"
+  },
+  "CN:huizhounan": {
+    "lat": 22.99999,
+    "lng": 114.45343,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q83935392",
+    "wikidataLabel": "Huizhounan Railway Station",
+    "match": "name"
+  },
+  "CN:humen": {
+    "lat": 22.86209,
+    "lng": 113.66645,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q107331699",
+    "wikidataLabel": "Humen Railway Station",
+    "match": "name"
+  },
+  "CN:hvu": {
+    "lat": 30.30048,
+    "lng": 119.98172,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q24832739",
+    "wikidataLabel": "杭州西站",
+    "match": "name"
+  },
+  "CN:jdu": {
+    "lat": 29.57582,
+    "lng": 119.4228,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18653175",
+    "wikidataLabel": "建德站",
+    "match": "name"
+  },
+  "CN:jgk": {
+    "lat": 36.66889,
+    "lng": 116.88694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4391478",
+    "wikidataLabel": "济南西站",
+    "match": "name"
+  },
+  "CN:jiangmen": {
+    "lat": 22.4909,
+    "lng": 113.06646,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q17025373",
+    "wikidataLabel": "Jiangmen Railway Station",
+    "match": "name"
+  },
+  "CN:kaipingnan": {
+    "lat": 22.32203,
+    "lng": 112.67068,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54802425",
+    "wikidataLabel": "Kaipingnan Railway Station",
+    "match": "name"
+  },
+  "CN:knh": {
+    "lat": 31.355,
+    "lng": 120.94639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q248045",
+    "wikidataLabel": "昆山南站",
+    "match": "name"
+  },
+  "CN:kunmingnan": {
+    "lat": 24.87312,
+    "lng": 102.86024,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6444895",
+    "wikidataLabel": "Kunmingnan Railway Station",
+    "match": "name"
+  },
+  "CN:leh": {
+    "lat": 31.3881,
+    "lng": 119.498,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16924532",
+    "wikidataLabel": "溧阳站",
+    "match": "name"
+  },
+  "CN:leshan": {
+    "lat": 29.60434,
+    "lng": 103.71051,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q21017238",
+    "wikidataLabel": "Leshan Railway Station",
+    "match": "name"
+  },
+  "CN:lufeng": {
+    "lat": 22.95037,
+    "lng": 115.72862,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6699603",
+    "wikidataLabel": "Lufeng railway station",
+    "match": "name"
+  },
+  "CN:maoming": {
+    "lat": 21.64579,
+    "lng": 110.92353,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q15953532",
+    "wikidataLabel": "Maoming Railway Station",
+    "match": "name"
+  },
+  "CN:nanchangdong": {
+    "lat": 28.61716,
+    "lng": 116.01641,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q105044411",
+    "wikidataLabel": "Nanchangdong Railway Station",
+    "match": "name"
+  },
+  "CN:nanshabei": {
+    "lat": 22.86871,
+    "lng": 113.48523,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1038121",
+    "wikidataLabel": "Nanshabei Railway Station",
+    "match": "name"
+  },
+  "CN:ngh": {
+    "lat": 29.86466,
+    "lng": 121.53265,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1017158",
+    "wikidataLabel": "宁波站",
+    "match": "name"
+  },
+  "CN:ningbo": {
+    "lat": 29.86466,
+    "lng": 121.53265,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1017158",
+    "wikidataLabel": "Ningbo railway station",
+    "match": "name"
+  },
+  "CN:nkh": {
+    "lat": 31.97056,
+    "lng": 118.7925,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5925968",
+    "wikidataLabel": "南京南火车站",
+    "match": "name"
+  },
+  "CN:ohh": {
+    "lat": 31.4236,
+    "lng": 120.639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5926126",
+    "wikidataLabel": "苏州北站",
+    "match": "name"
+  },
+  "CN:puning": {
+    "lat": 23.2735,
+    "lng": 116.209,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7260207",
+    "wikidataLabel": "Puning railway station",
+    "match": "name"
+  },
+  "CN:qak": {
+    "lat": 35.55655,
+    "lng": 117.06306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7271613",
+    "wikidataLabel": "曲阜东站",
+    "match": "name"
+  },
+  "CN:qdk": {
+    "lat": 36.06417,
+    "lng": 120.3075,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1005878",
+    "wikidataLabel": "青岛站",
+    "match": "name"
+  },
+  "CN:qdu": {
+    "lat": 29.73799,
+    "lng": 119.18684,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q50643248",
+    "wikidataLabel": "千岛湖站",
+    "match": "name"
+  },
+  "CN:quanzhoudong": {
+    "lat": 24.92614,
+    "lng": 118.7671,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q122927377",
+    "wikidataLabel": "Quanzhoudong Railway Station",
+    "match": "name"
+  },
+  "CN:raoping": {
+    "lat": 23.7147,
+    "lng": 116.928,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7293710",
+    "wikidataLabel": "Raoping railway station",
+    "match": "name"
+  },
+  "CN:rnh": {
+    "lat": 29.117,
+    "lng": 119.73389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q21782667",
+    "wikidataLabel": "金华南站",
+    "match": "name"
+  },
+  "CN:sanshuinan": {
+    "lat": 23.11611,
+    "lng": 112.86611,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q19851593",
+    "wikidataLabel": "Sanshuinan railway station",
+    "match": "name"
+  },
+  "CN:shantou": {
+    "lat": 23.37464,
+    "lng": 116.75094,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11133513",
+    "wikidataLabel": "Shantou Railway Station",
+    "match": "name"
+  },
+  "CN:shanwei": {
+    "lat": 22.8137,
+    "lng": 115.427,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7489114",
+    "wikidataLabel": "Shanwei railway station",
+    "match": "name"
+  },
+  "CN:shh": {
+    "lat": 31.25155,
+    "lng": 121.45045,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q529728",
+    "wikidataLabel": "上海站",
+    "match": "name"
+  },
+  "CN:shijiazhuang": {
+    "lat": 38.00918,
+    "lng": 114.48186,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60675367",
+    "wikidataLabel": "Shijiazhuang Railway Station",
+    "match": "name"
+  },
+  "CN:squ": {
+    "lat": 33.87541,
+    "lng": 118.27643,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q78792014",
+    "wikidataLabel": "宿迁站",
+    "match": "name"
+  },
+  "CN:taishan": {
+    "lat": 22.3022,
+    "lng": 112.81017,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q53225818",
+    "wikidataLabel": "Taishan Railway Station",
+    "match": "name"
+  },
+  "CN:tip": {
+    "lat": 39.0558,
+    "lng": 117.055,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4391351",
+    "wikidataLabel": "天津南站",
+    "match": "name"
+  },
+  "CN:tlu": {
+    "lat": 29.7914,
+    "lng": 119.72772,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60161823",
+    "wikidataLabel": "桐庐站",
+    "match": "name"
+  },
+  "CN:ush": {
+    "lat": 28.44472,
+    "lng": 119.94944,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q24839647",
+    "wikidataLabel": "丽水站",
+    "match": "name"
+  },
+  "CN:uuh": {
+    "lat": 34.26893,
+    "lng": 117.29998,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11070551",
+    "wikidataLabel": "徐州东站",
+    "match": "name"
+  },
+  "CN:vrh": {
+    "lat": 27.96935,
+    "lng": 120.58091,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1305820",
+    "wikidataLabel": "温州南站",
+    "match": "name"
+  },
+  "CN:vzh": {
+    "lat": 30.86494,
+    "lng": 120.01784,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q15929201",
+    "wikidataLabel": "湖州站",
+    "match": "name"
+  },
+  "CN:wgh": {
+    "lat": 31.6003,
+    "lng": 120.454,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4390935",
+    "wikidataLabel": "无锡东站",
+    "match": "name"
+  },
+  "CN:whh": {
+    "lat": 31.35027,
+    "lng": 118.38928,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q111670767",
+    "wikidataLabel": "芜湖火车站",
+    "match": "name"
+  },
+  "CN:wjk": {
+    "lat": 36.79542,
+    "lng": 119.18942,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60147113",
+    "wikidataLabel": "潍坊北站",
+    "match": "name"
+  },
+  "CN:wuhan": {
+    "lat": 30.60967,
+    "lng": 114.41898,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q584376",
+    "wikidataLabel": "Wuhan railway station",
+    "match": "name"
+  },
+  "CN:xiamenbei": {
+    "lat": 24.6388,
+    "lng": 118.069,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8044109",
+    "wikidataLabel": "Xiamenbei Railway Station",
+    "match": "name"
+  },
+  "CN:yangjiang": {
+    "lat": 21.81236,
+    "lng": 111.98525,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q56118282",
+    "wikidataLabel": "Yangjiang Railway Station",
+    "match": "name"
+  },
+  "CN:yibinxi": {
+    "lat": 28.72614,
+    "lng": 104.60365,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q45901969",
+    "wikidataLabel": "Yibinxi Railway Station",
+    "match": "name"
+  },
+  "CN:yiwu": {
+    "lat": 29.3808,
+    "lng": 120.038,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q10877723",
+    "wikidataLabel": "Yiwu railway station",
+    "match": "name"
+  },
+  "CN:yueyangdong": {
+    "lat": 29.36885,
+    "lng": 113.20227,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8060311",
+    "wikidataLabel": "Yueyangdong Railway Station",
+    "match": "name"
+  },
+  "CN:yunxiao": {
+    "lat": 23.8941,
+    "lng": 117.357,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8061409",
+    "wikidataLabel": "Yunxiao railway station",
+    "match": "name"
+  },
+  "CN:zeh": {
+    "lat": 32.1543,
+    "lng": 119.419,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4390987",
+    "wikidataLabel": "镇江南站",
+    "match": "name"
+  },
+  "CN:zek": {
+    "lat": 34.78076,
+    "lng": 117.30594,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8066349",
+    "wikidataLabel": "枣庄站",
+    "match": "name"
+  },
+  "CN:zhangzhou": {
+    "lat": 24.4569,
+    "lng": 117.706,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8070491",
+    "wikidataLabel": "Zhangzhou railway station",
+    "match": "name"
+  },
+  "CN:zhanjiangxi": {
+    "lat": 21.24541,
+    "lng": 110.28367,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q17498915",
+    "wikidataLabel": "Zhanjiangxi railway station",
+    "match": "name"
+  },
+  "CN:zhaoan": {
+    "lat": 23.77476,
+    "lng": 117.09254,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8070509",
+    "wikidataLabel": "Zhao'an railway station",
+    "match": "name"
+  },
+  "CN:zhaogingdong": {
+    "lat": 23.21653,
+    "lng": 112.65767,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18658087",
+    "wikidataLabel": "Zhaoqingdong Railway Station",
+    "match": "close spelling"
+  },
+  "CN:zhaoqgingdong": {
+    "lat": 23.21653,
+    "lng": 112.65767,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18658087",
+    "wikidataLabel": "Zhaoqingdong Railway Station",
+    "match": "close spelling"
+  },
+  "CN:zhaoqingdong": {
+    "lat": 23.21653,
+    "lng": 112.65767,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18658087",
+    "wikidataLabel": "Zhaoqingdong Railway Station",
+    "match": "name"
+  },
+  "CN:zhengzhoudong": {
+    "lat": 34.7601,
+    "lng": 113.773,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8070777",
+    "wikidataLabel": "Zhengzhoudong Railway Station",
+    "match": "name"
+  },
+  "CN:zunyi": {
+    "lat": 27.66745,
+    "lng": 106.94504,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q30487996",
+    "wikidataLabel": "Zunyi Railway Station",
+    "match": "name"
+  },
+  "JP:aburatsu": {
+    "lat": 31.5871,
+    "lng": 131.3959,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4670658",
+    "wikidataLabel": "Aburatsu Station",
+    "match": "name"
+  },
+  "JP:aioi": {
+    "lat": 34.81807,
+    "lng": 134.47394,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1132350",
+    "wikidataLabel": "Ga Aioi",
+    "match": "name"
+  },
+  "JP:akama": {
+    "lat": 33.80833,
+    "lng": 130.56959,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q871575",
+    "wikidataLabel": "Akama Station",
+    "match": "name"
+  },
+  "JP:amagase": {
+    "lat": 33.255,
+    "lng": 131.02472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4739122",
+    "wikidataLabel": "Amagase Station",
+    "match": "name"
+  },
+  "JP:aoshima": {
+    "lat": 31.7998,
+    "lng": 131.46712,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4778783",
+    "wikidataLabel": "Aoshima Station",
+    "match": "name"
+  },
+  "JP:arita": {
+    "lat": 33.18339,
+    "lng": 129.88209,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4791116",
+    "wikidataLabel": "Arita Station",
+    "match": "name"
+  },
+  "JP:asa": {
+    "lat": 34.05328,
+    "lng": 131.15976,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136582",
+    "wikidataLabel": "Asa Station",
+    "match": "name"
+  },
+  "JP:aso": {
+    "lat": 32.93743,
+    "lng": 131.08017,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4807479",
+    "wikidataLabel": "Aso Station",
+    "match": "name"
+  },
+  "JP:atami": {
+    "lat": 35.10333,
+    "lng": 139.07778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q800412",
+    "wikidataLabel": "Atami Station",
+    "match": "name"
+  },
+  "JP:beppu": {
+    "lat": 33.27954,
+    "lng": 131.50026,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4890935",
+    "wikidataLabel": "Beppu Station",
+    "match": "name"
+  },
+  "JP:bungo-mori": {
+    "lat": 33.2828,
+    "lng": 131.155,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4997666",
+    "wikidataLabel": "Bungo-Mori Station",
+    "match": "name"
+  },
+  "JP:bungo-nakamura": {
+    "lat": 33.22611,
+    "lng": 131.2075,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q251216",
+    "wikidataLabel": "Bungo-Nakamura Station",
+    "match": "name"
+  },
+  "JP:bungo-taketa": {
+    "lat": 32.97083,
+    "lng": 131.39,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4997670",
+    "wikidataLabel": "Bungo-Taketa Station",
+    "match": "name"
+  },
+  "JP:chikugo-funagoya": {
+    "lat": 33.17792,
+    "lng": 130.49239,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136543",
+    "wikidataLabel": "Chikugo-Funagoya Station",
+    "match": "name"
+  },
+  "JP:fukuma": {
+    "lat": 33.76331,
+    "lng": 130.48608,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359639",
+    "wikidataLabel": "Fukuma Station",
+    "match": "name"
+  },
+  "JP:fukuyama": {
+    "lat": 34.489,
+    "lng": 133.361,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q800797",
+    "wikidataLabel": "Fukuyama Station",
+    "match": "name"
+  },
+  "JP:gifu-hashima": {
+    "lat": 35.31583,
+    "lng": 136.68556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q800820",
+    "wikidataLabel": "Gifu-Hashima Station",
+    "match": "name"
+  },
+  "JP:haiki": {
+    "lat": 33.13339,
+    "lng": 129.79904,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5639131",
+    "wikidataLabel": "Haiki Station",
+    "match": "name"
+  },
+  "JP:hamamatsu": {
+    "lat": 34.70361,
+    "lng": 137.73444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q603640",
+    "wikidataLabel": "Hamamatsu Station",
+    "match": "name"
+  },
+  "JP:hayato": {
+    "lat": 31.7438,
+    "lng": 130.7397,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357506",
+    "wikidataLabel": "Hayato Station",
+    "match": "name"
+  },
+  "JP:higashihiroshima": {
+    "lat": 34.38939,
+    "lng": 132.75979,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136538",
+    "wikidataLabel": "Ga Higashi-Hiroshima",
+    "match": "name"
+  },
+  "JP:higo-ozu": {
+    "lat": 32.8775,
+    "lng": 130.86611,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5760148",
+    "wikidataLabel": "Higo-Ōzu Station",
+    "match": "name"
+  },
+  "JP:himeji": {
+    "lat": 34.82764,
+    "lng": 134.69085,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q119301",
+    "wikidataLabel": "Ga Himeji",
+    "match": "name"
+  },
+  "JP:hiroshima": {
+    "lat": 34.39833,
+    "lng": 132.47583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q576459",
+    "wikidataLabel": "Ga Hiroshima",
+    "match": "name"
+  },
+  "JP:hita": {
+    "lat": 33.3179,
+    "lng": 130.93815,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5871577",
+    "wikidataLabel": "Hita Station",
+    "match": "name"
+  },
+  "JP:hizen-hama": {
+    "lat": 33.0951,
+    "lng": 130.11708,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357093",
+    "wikidataLabel": "Hizen-Hama Station",
+    "match": "name"
+  },
+  "JP:huis-ten-bosch": {
+    "lat": 33.09161,
+    "lng": 129.79661,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q852106",
+    "wikidataLabel": "Huis Ten Bosch Station",
+    "match": "name"
+  },
+  "JP:hyugashi": {
+    "lat": 32.42583,
+    "lng": 131.62778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357695",
+    "wikidataLabel": "Hyūgashi Station",
+    "match": "name"
+  },
+  "JP:ibusuki": {
+    "lat": 31.23736,
+    "lng": 130.64266,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q872956",
+    "wikidataLabel": "Ibusuki Station",
+    "match": "name"
+  },
+  "JP:isahaya": {
+    "lat": 32.85184,
+    "lng": 130.04147,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q901393",
+    "wikidataLabel": "Isahaya Station",
+    "match": "name"
+  },
+  "JP:izumi": {
+    "lat": 32.08942,
+    "lng": 130.35818,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136682",
+    "wikidataLabel": "Izumi Station",
+    "match": "name"
+  },
+  "JP:kadogawa": {
+    "lat": 32.4775,
+    "lng": 131.65389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357777",
+    "wikidataLabel": "Kadogawa Station",
+    "match": "name"
+  },
+  "JP:kagoshima": {
+    "lat": 31.60213,
+    "lng": 130.5642,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q874167",
+    "wikidataLabel": "Kagoshima Station",
+    "match": "name"
+  },
+  "JP:kagoshima-chuo": {
+    "lat": 31.58367,
+    "lng": 130.54172,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1316913",
+    "wikidataLabel": "Ga Kagoshima-Chūō",
+    "match": "name"
+  },
+  "JP:kakegawa": {
+    "lat": 34.76972,
+    "lng": 138.015,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q800978",
+    "wikidataLabel": "Kakegawa Station",
+    "match": "name"
+  },
+  "JP:kamegawa": {
+    "lat": 33.33139,
+    "lng": 131.49306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359653",
+    "wikidataLabel": "Kamegawa Station",
+    "match": "name"
+  },
+  "JP:kanazawa": {
+    "lat": 36.57897,
+    "lng": 136.64989,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q128034889",
+    "wikidataLabel": "Kanazawa Station",
+    "match": "name"
+  },
+  "JP:kashii": {
+    "lat": 33.65917,
+    "lng": 130.44389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q870605",
+    "wikidataLabel": "Kashii Station",
+    "match": "name"
+  },
+  "JP:kirishima-jingu": {
+    "lat": 31.81861,
+    "lng": 130.83667,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6415333",
+    "wikidataLabel": "Kirishima-Jingū Station",
+    "match": "name"
+  },
+  "JP:kitago": {
+    "lat": 31.67825,
+    "lng": 131.37355,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6417713",
+    "wikidataLabel": "Kitagō Station",
+    "match": "name"
+  },
+  "JP:kitsuki": {
+    "lat": 33.41111,
+    "lng": 131.57556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360203",
+    "wikidataLabel": "Kitsuki Station",
+    "match": "name"
+  },
+  "JP:kiyotake": {
+    "lat": 31.85944,
+    "lng": 131.38917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357380",
+    "wikidataLabel": "Kiyotake Station",
+    "match": "name"
+  },
+  "JP:kohoku": {
+    "lat": 33.2191,
+    "lng": 130.16114,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q872564",
+    "wikidataLabel": "Kōhoku Station",
+    "match": "name"
+  },
+  "JP:kokubu": {
+    "lat": 31.7436,
+    "lng": 130.7634,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357374",
+    "wikidataLabel": "Kokubu Station",
+    "match": "name"
+  },
+  "JP:kokura": {
+    "lat": 33.88692,
+    "lng": 130.88318,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801027",
+    "wikidataLabel": "Kokura Station",
+    "match": "name"
+  },
+  "JP:konagai": {
+    "lat": 32.92416,
+    "lng": 130.18619,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6428718",
+    "wikidataLabel": "Konagai Station",
+    "match": "name"
+  },
+  "JP:kozaki": {
+    "lat": 33.23389,
+    "lng": 131.79528,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359308",
+    "wikidataLabel": "Kōzaki Station",
+    "match": "name"
+  },
+  "JP:kumamoto": {
+    "lat": 32.78934,
+    "lng": 130.68869,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q969324",
+    "wikidataLabel": "Kumamoto Station",
+    "match": "name"
+  },
+  "JP:kurosaki": {
+    "lat": 33.86684,
+    "lng": 130.76614,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q871645",
+    "wikidataLabel": "Kurosaki Station",
+    "match": "name"
+  },
+  "JP:kurume": {
+    "lat": 33.31991,
+    "lng": 130.50143,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1122628",
+    "wikidataLabel": "Kurume Station",
+    "match": "name"
+  },
+  "JP:maibara": {
+    "lat": 35.31418,
+    "lng": 136.29049,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801158",
+    "wikidataLabel": "Ga Maibara",
+    "match": "name"
+  },
+  "JP:miemachi": {
+    "lat": 32.98361,
+    "lng": 131.58444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11357714",
+    "wikidataLabel": "Miemachi Station",
+    "match": "name"
+  },
+  "JP:mihara": {
+    "lat": 34.40061,
+    "lng": 133.08262,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136514",
+    "wikidataLabel": "Ga Mihara",
+    "match": "name"
+  },
+  "JP:mikawa-anjo": {
+    "lat": 34.96897,
+    "lng": 137.06067,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q578691",
+    "wikidataLabel": "Mikawa-Anjō Station",
+    "match": "name"
+  },
+  "JP:minami-miyazaki": {
+    "lat": 31.895,
+    "lng": 131.42222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q899171",
+    "wikidataLabel": "Minami-Miyazaki Station",
+    "match": "name"
+  },
+  "JP:mishima": {
+    "lat": 35.12722,
+    "lng": 138.91056,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q375061",
+    "wikidataLabel": "Mishima Station",
+    "match": "name"
+  },
+  "JP:misumi": {
+    "lat": 32.60788,
+    "lng": 130.4697,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8189975",
+    "wikidataLabel": "Misumi Station",
+    "match": "name"
+  },
+  "JP:miyaji": {
+    "lat": 32.93707,
+    "lng": 131.11876,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6884211",
+    "wikidataLabel": "Miyaji Station",
+    "match": "name"
+  },
+  "JP:miyakonojo": {
+    "lat": 31.73639,
+    "lng": 131.07472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q899376",
+    "wikidataLabel": "Miyakonojō Station",
+    "match": "name"
+  },
+  "JP:miyazaki": {
+    "lat": 31.91583,
+    "lng": 131.43201,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q899703",
+    "wikidataLabel": "Miyazaki Station",
+    "match": "name"
+  },
+  "JP:miyazaki-airport": {
+    "lat": 31.87247,
+    "lng": 131.43956,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11454569",
+    "wikidataLabel": "Miyazaki Airport Station",
+    "match": "name"
+  },
+  "JP:moji": {
+    "lat": 33.90415,
+    "lng": 130.93313,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q869281",
+    "wikidataLabel": "Moji Station",
+    "match": "name"
+  },
+  "JP:mojiko": {
+    "lat": 33.945,
+    "lng": 130.96139,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1051866",
+    "wikidataLabel": "Mojikō Station",
+    "match": "name"
+  },
+  "JP:mukainoharu": {
+    "lat": 33.19667,
+    "lng": 131.51389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6933389",
+    "wikidataLabel": "Mukainoharu Station",
+    "match": "name"
+  },
+  "JP:nagano": {
+    "lat": 36.64311,
+    "lng": 138.18806,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q374916",
+    "wikidataLabel": "Nagano Station",
+    "match": "name"
+  },
+  "JP:nagasaki": {
+    "lat": 32.75275,
+    "lng": 129.86908,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1076315",
+    "wikidataLabel": "Nagasaki Station",
+    "match": "name"
+  },
+  "JP:nagoya": {
+    "lat": 35.17075,
+    "lng": 136.88096,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q110799384",
+    "wikidataLabel": "Nagoya Station",
+    "match": "name"
+  },
+  "JP:nakatsu": {
+    "lat": 33.59917,
+    "lng": 131.19083,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360376",
+    "wikidataLabel": "Nakatsu Station",
+    "match": "name"
+  },
+  "JP:nango": {
+    "lat": 31.53591,
+    "lng": 131.37276,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6963566",
+    "wikidataLabel": "Nangō Station",
+    "match": "name"
+  },
+  "JP:nichinan": {
+    "lat": 31.60285,
+    "lng": 131.38124,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7024855",
+    "wikidataLabel": "Nichinan Station",
+    "match": "name"
+  },
+  "JP:niigata": {
+    "lat": 37.91203,
+    "lng": 139.06189,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q701753",
+    "wikidataLabel": "Niigata Station",
+    "match": "name"
+  },
+  "JP:nishi-akashi": {
+    "lat": 34.66685,
+    "lng": 134.96054,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q590272",
+    "wikidataLabel": "Ga Nishi-Akashi",
+    "match": "name"
+  },
+  "JP:nishi-miyakonojo": {
+    "lat": 31.72333,
+    "lng": 131.05694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357443",
+    "wikidataLabel": "Nishi-Miyakonojō Station",
+    "match": "name"
+  },
+  "JP:nobeoka": {
+    "lat": 32.58972,
+    "lng": 131.67222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357994",
+    "wikidataLabel": "Nobeoka Station",
+    "match": "name"
+  },
+  "JP:obi": {
+    "lat": 31.62766,
+    "lng": 131.36205,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7074922",
+    "wikidataLabel": "Obi Station",
+    "match": "name"
+  },
+  "JP:oda": {
+    "lat": 32.66761,
+    "lng": 130.54682,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8081436",
+    "wikidataLabel": "Ōda Station",
+    "match": "name"
+  },
+  "JP:odawara": {
+    "lat": 35.25639,
+    "lng": 139.155,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801290",
+    "wikidataLabel": "Odawara Station",
+    "match": "name"
+  },
+  "JP:ogata": {
+    "lat": 32.97111,
+    "lng": 131.47667,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7079847",
+    "wikidataLabel": "Ogata Station",
+    "match": "name"
+  },
+  "JP:oita": {
+    "lat": 33.23264,
+    "lng": 131.60671,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q861542",
+    "wikidataLabel": "Ōita Station",
+    "match": "name"
+  },
+  "JP:okayama": {
+    "lat": 34.66637,
+    "lng": 133.91859,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801293",
+    "wikidataLabel": "Ga Okayama",
+    "match": "name"
+  },
+  "JP:orio": {
+    "lat": 33.86372,
+    "lng": 130.71386,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q871048",
+    "wikidataLabel": "Orio Station",
+    "match": "name"
+  },
+  "JP:ozai": {
+    "lat": 33.2441,
+    "lng": 131.72,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359540",
+    "wikidataLabel": "Ōzai Station",
+    "match": "name"
+  },
+  "JP:sadowara": {
+    "lat": 32.0225,
+    "lng": 131.47722,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360779",
+    "wikidataLabel": "Sadowara Station",
+    "match": "name"
+  },
+  "JP:saga": {
+    "lat": 33.26413,
+    "lng": 130.29741,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1042665",
+    "wikidataLabel": "Saga Station",
+    "match": "name"
+  },
+  "JP:saiki": {
+    "lat": 32.9724,
+    "lng": 131.90181,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5358770",
+    "wikidataLabel": "Saiki Station",
+    "match": "name"
+  },
+  "JP:sasebo": {
+    "lat": 33.16389,
+    "lng": 129.72556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q848748",
+    "wikidataLabel": "Sasebo Station",
+    "match": "name"
+  },
+  "JP:sendai-kagoshima": {
+    "lat": 31.81366,
+    "lng": 130.31225,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136688",
+    "wikidataLabel": "Sendai Station",
+    "match": "name without qualifier"
+  },
+  "JP:sendai-miyagi": {
+    "lat": 38.26028,
+    "lng": 140.88194,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801429",
+    "wikidataLabel": "Ga Sendai (Miyagi)",
+    "match": "name"
+  },
+  "JP:shin-fuji": {
+    "lat": 35.14236,
+    "lng": 138.6632,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136475",
+    "wikidataLabel": "Shin-Fuji Station",
+    "match": "name"
+  },
+  "JP:shin-hakodate-hokuto": {
+    "lat": 41.90469,
+    "lng": 140.64836,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1039122",
+    "wikidataLabel": "Ga Shin-Hakodate-Hokuto",
+    "match": "name"
+  },
+  "JP:shin-iwakuni": {
+    "lat": 34.16494,
+    "lng": 132.14976,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q767197",
+    "wikidataLabel": "Shin-Iwakuni Station",
+    "match": "name"
+  },
+  "JP:shin-kobe": {
+    "lat": 34.70732,
+    "lng": 135.19703,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126952647",
+    "wikidataLabel": "Shin‐Kobe Station",
+    "match": "name"
+  },
+  "JP:shin-kurashiki": {
+    "lat": 34.56499,
+    "lng": 133.67867,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1067908",
+    "wikidataLabel": "Ga Shin-Kurashiki",
+    "match": "name"
+  },
+  "JP:shin-minamata": {
+    "lat": 32.21099,
+    "lng": 130.42925,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136460",
+    "wikidataLabel": "Shin-Minamata Station",
+    "match": "name"
+  },
+  "JP:shin-omura": {
+    "lat": 32.93276,
+    "lng": 129.95706,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7497155",
+    "wikidataLabel": "Shin-Ōmura Station",
+    "match": "name"
+  },
+  "JP:shin-omuta": {
+    "lat": 33.07111,
+    "lng": 130.48889,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136564",
+    "wikidataLabel": "Shin-Ōmuta Station",
+    "match": "name"
+  },
+  "JP:shin-onomichi": {
+    "lat": 34.43012,
+    "lng": 133.19026,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136506",
+    "wikidataLabel": "Ga Shin-Onomichi",
+    "match": "name"
+  },
+  "JP:shin-shimonoseki": {
+    "lat": 34.00568,
+    "lng": 130.94878,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1074353",
+    "wikidataLabel": "Shin-Shimonoseki Station",
+    "match": "name"
+  },
+  "JP:shin-suizenji": {
+    "lat": 32.7936,
+    "lng": 130.726,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7497128",
+    "wikidataLabel": "Shin-Suizenji Station",
+    "match": "name"
+  },
+  "JP:shin-tamana": {
+    "lat": 32.94306,
+    "lng": 130.57306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136695",
+    "wikidataLabel": "Shin-Tamana Station",
+    "match": "name"
+  },
+  "JP:shin-tosu": {
+    "lat": 33.37028,
+    "lng": 130.49111,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136568",
+    "wikidataLabel": "Shin-Tosu Station",
+    "match": "name"
+  },
+  "JP:shin-yamaguchi": {
+    "lat": 34.09306,
+    "lng": 131.39716,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136574",
+    "wikidataLabel": "Shin-Yamaguchi Station",
+    "match": "name"
+  },
+  "JP:shin-yatsushiro": {
+    "lat": 32.51861,
+    "lng": 130.63472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1187743",
+    "wikidataLabel": "Shin-Yatsushiro Station",
+    "match": "name"
+  },
+  "JP:shin-yokohama": {
+    "lat": 35.50833,
+    "lng": 139.61792,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q21234925",
+    "wikidataLabel": "Shin-Yokohama Station",
+    "match": "name"
+  },
+  "JP:shinagawa": {
+    "lat": 35.62956,
+    "lng": 139.74007,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q124653775",
+    "wikidataLabel": "Shinagawa Station",
+    "match": "name"
+  },
+  "JP:shizuoka": {
+    "lat": 34.97167,
+    "lng": 138.38889,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801440",
+    "wikidataLabel": "Shizuoka Station",
+    "match": "name"
+  },
+  "JP:takanabe": {
+    "lat": 32.1223,
+    "lng": 131.534,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357588",
+    "wikidataLabel": "Takanabe Station",
+    "match": "name"
+  },
+  "JP:takeo-onsen": {
+    "lat": 33.19673,
+    "lng": 130.02351,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q2105971",
+    "wikidataLabel": "Takeo-Onsen Station",
+    "match": "name"
+  },
+  "JP:tano": {
+    "lat": 31.83783,
+    "lng": 131.30486,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357255",
+    "wikidataLabel": "Tano Station",
+    "match": "name"
+  },
+  "JP:tara": {
+    "lat": 33.02522,
+    "lng": 130.17609,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7685150",
+    "wikidataLabel": "Tara Station",
+    "match": "name"
+  },
+  "JP:tayoshi": {
+    "lat": 31.8792,
+    "lng": 131.43,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7690310",
+    "wikidataLabel": "Tayoshi Station",
+    "match": "name"
+  },
+  "JP:tobata": {
+    "lat": 33.89721,
+    "lng": 130.82049,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360111",
+    "wikidataLabel": "Tobata Station",
+    "match": "name"
+  },
+  "JP:togo": {
+    "lat": 33.79471,
+    "lng": 130.52881,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359652",
+    "wikidataLabel": "Tōgō Station",
+    "match": "name"
+  },
+  "JP:tokuyama": {
+    "lat": 34.0514,
+    "lng": 131.802,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1136709",
+    "wikidataLabel": "Tokuyama Station",
+    "match": "name"
+  },
+  "JP:tosu": {
+    "lat": 33.37361,
+    "lng": 130.51917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q840544",
+    "wikidataLabel": "Tosu Station",
+    "match": "name"
+  },
+  "JP:toyohashi": {
+    "lat": 34.76278,
+    "lng": 137.38167,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q771465",
+    "wikidataLabel": "Toyohashi Station",
+    "match": "name"
+  },
+  "JP:tsukumi": {
+    "lat": 33.0728,
+    "lng": 131.864,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359003",
+    "wikidataLabel": "Tsukumi Station",
+    "match": "name"
+  },
+  "JP:tsuno": {
+    "lat": 32.2509,
+    "lng": 131.568,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5357711",
+    "wikidataLabel": "Tsuno Station",
+    "match": "name"
+  },
+  "JP:tsurusaki": {
+    "lat": 33.2426,
+    "lng": 131.687,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5359663",
+    "wikidataLabel": "Tsurusaki Station",
+    "match": "name"
+  },
+  "JP:unoshima": {
+    "lat": 33.6211,
+    "lng": 131.127,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360061",
+    "wikidataLabel": "Unoshima Station",
+    "match": "name"
+  },
+  "JP:ureshino-onsen": {
+    "lat": 33.10656,
+    "lng": 129.99897,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7900416",
+    "wikidataLabel": "Ureshino-Onsen Station",
+    "match": "name"
+  },
+  "JP:usa": {
+    "lat": 33.5322,
+    "lng": 131.412,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360282",
+    "wikidataLabel": "Usa Station",
+    "match": "name"
+  },
+  "JP:usuki": {
+    "lat": 33.1186,
+    "lng": 131.808,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5358999",
+    "wikidataLabel": "Usuki Station",
+    "match": "name"
+  },
+  "JP:uto": {
+    "lat": 32.69393,
+    "lng": 130.66877,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q874134",
+    "wikidataLabel": "Uto Station",
+    "match": "name"
+  },
+  "JP:yahata": {
+    "lat": 33.8693,
+    "lng": 130.795,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8011084",
+    "wikidataLabel": "Yahata Station",
+    "match": "name"
+  },
+  "JP:yufuin": {
+    "lat": 33.2624,
+    "lng": 131.355,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8060317",
+    "wikidataLabel": "Yufuin Station",
+    "match": "name"
+  },
+  "JP:yukuhashi": {
+    "lat": 33.7286,
+    "lng": 130.97,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5360403",
+    "wikidataLabel": "Yukuhashi Station",
+    "match": "name"
+  },
+  "JP:yunohira": {
+    "lat": 33.1975,
+    "lng": 131.354,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q8061354",
+    "wikidataLabel": "Yunohira Station",
+    "match": "name"
+  },
+  "KR:가남": {
+    "lat": 37.19757,
+    "lng": 127.53572,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q85972394",
+    "wikidataLabel": "가남역",
+    "match": "name"
+  },
+  "KR:각계": {
+    "lat": 36.20806,
+    "lng": 127.72556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q623671",
+    "wikidataLabel": "각계역",
+    "match": "name"
+  },
+  "KR:감곡장호원": {
+    "lat": 37.1266,
+    "lng": 127.63549,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q100270854",
+    "wikidataLabel": "감곡장호원역",
+    "match": "name"
+  },
+  "KR:강경": {
+    "lat": 36.15416,
+    "lng": 127.01554,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q818385",
+    "wikidataLabel": "강경역",
+    "match": "name"
+  },
+  "KR:강구": {
+    "lat": 36.3524,
+    "lng": 129.37258,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31180369",
+    "wikidataLabel": "강구역",
+    "match": "name"
+  },
+  "KR:강진": {
+    "lat": 34.6281,
+    "lng": 126.7715,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q134471827",
+    "wikidataLabel": "강진역",
+    "match": "name"
+  },
+  "KR:개포": {
+    "lat": 36.62692,
+    "lng": 128.32862,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464812",
+    "wikidataLabel": "개포역",
+    "match": "name"
+  },
+  "KR:경산": {
+    "lat": 35.81929,
+    "lng": 128.72806,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477071",
+    "wikidataLabel": "Ga Gyeongsan",
+    "match": "name"
+  },
+  "KR:경주": {
+    "lat": 35.79833,
+    "lng": 129.13889,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54294",
+    "wikidataLabel": "경주역",
+    "match": "name"
+  },
+  "KR:계룡": {
+    "lat": 36.27267,
+    "lng": 127.26565,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q626423",
+    "wikidataLabel": "계룡역",
+    "match": "name"
+  },
+  "KR:고래불": {
+    "lat": 36.6028,
+    "lng": 129.40651,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126364717",
+    "wikidataLabel": "고래불역",
+    "match": "name"
+  },
+  "KR:고한": {
+    "lat": 37.20087,
+    "lng": 128.85298,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599074",
+    "wikidataLabel": "고한역",
+    "match": "name"
+  },
+  "KR:곡성": {
+    "lat": 35.2837,
+    "lng": 127.304,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1232230",
+    "wikidataLabel": "곡성역",
+    "match": "name"
+  },
+  "KR:공주": {
+    "lat": 36.33245,
+    "lng": 127.09685,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1586754",
+    "wikidataLabel": "공주역",
+    "match": "name"
+  },
+  "KR:광명": {
+    "lat": 37.47917,
+    "lng": 126.85472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q69027",
+    "wikidataLabel": "광명역",
+    "match": "name"
+  },
+  "KR:광양": {
+    "lat": 34.95611,
+    "lng": 127.58778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332815",
+    "wikidataLabel": "광양역",
+    "match": "name"
+  },
+  "KR:광주": {
+    "lat": 35.16533,
+    "lng": 126.90924,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q489731",
+    "wikidataLabel": "광주역",
+    "match": "name"
+  },
+  "KR:광천": {
+    "lat": 36.50155,
+    "lng": 126.62233,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239886",
+    "wikidataLabel": "광천역",
+    "match": "name"
+  },
+  "KR:구례구": {
+    "lat": 35.1635,
+    "lng": 127.453,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1232219",
+    "wikidataLabel": "Guryegu Station",
+    "match": "name"
+  },
+  "KR:구미": {
+    "lat": 36.12877,
+    "lng": 128.32962,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q341196",
+    "wikidataLabel": "구미역",
+    "match": "name"
+  },
+  "KR:구포": {
+    "lat": 35.2046,
+    "lng": 128.997,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477507",
+    "wikidataLabel": "Ga Gupo",
+    "match": "name"
+  },
+  "KR:군북": {
+    "lat": 35.25152,
+    "lng": 128.35045,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332422",
+    "wikidataLabel": "군북역",
+    "match": "name"
+  },
+  "KR:군산": {
+    "lat": 35.9977,
+    "lng": 126.76087,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239993",
+    "wikidataLabel": "군산역",
+    "match": "name"
+  },
+  "KR:군위": {
+    "lat": 36.16117,
+    "lng": 128.74587,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q124214908",
+    "wikidataLabel": "군위역",
+    "match": "name"
+  },
+  "KR:극락강": {
+    "lat": 35.17618,
+    "lng": 126.83059,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q2048569",
+    "wikidataLabel": "극락강역",
+    "match": "name"
+  },
+  "KR:근덕": {
+    "lat": 37.31463,
+    "lng": 129.27719,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126371045",
+    "wikidataLabel": "근덕역",
+    "match": "name"
+  },
+  "KR:기성": {
+    "lat": 36.79036,
+    "lng": 129.44755,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126365534",
+    "wikidataLabel": "기성역",
+    "match": "name"
+  },
+  "KR:기장": {
+    "lat": 35.2429,
+    "lng": 129.219,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1234280",
+    "wikidataLabel": "기장역",
+    "match": "name"
+  },
+  "KR:김제": {
+    "lat": 35.7935,
+    "lng": 126.90544,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624708",
+    "wikidataLabel": "김제역",
+    "match": "name"
+  },
+  "KR:김천": {
+    "lat": 36.12333,
+    "lng": 128.11472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54286",
+    "wikidataLabel": "김천역",
+    "match": "name"
+  },
+  "KR:김천구미": {
+    "lat": 36.1131,
+    "lng": 128.18,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q59949",
+    "wikidataLabel": "Ga Gimcheon (Gumi)",
+    "match": "name"
+  },
+  "KR:나주": {
+    "lat": 35.01426,
+    "lng": 126.71699,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983289",
+    "wikidataLabel": "나주역",
+    "match": "name"
+  },
+  "KR:남성현": {
+    "lat": 35.70528,
+    "lng": 128.71694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477078",
+    "wikidataLabel": "남성현역",
+    "match": "name"
+  },
+  "KR:남원": {
+    "lat": 35.4112,
+    "lng": 127.36182,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1232590",
+    "wikidataLabel": "남원역",
+    "match": "name"
+  },
+  "KR:남창": {
+    "lat": 35.4173,
+    "lng": 129.284,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625615",
+    "wikidataLabel": "남창역",
+    "match": "name"
+  },
+  "KR:논산": {
+    "lat": 36.20727,
+    "lng": 127.0925,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q623739",
+    "wikidataLabel": "Nonsan Station",
+    "match": "name"
+  },
+  "KR:능주": {
+    "lat": 34.9866,
+    "lng": 126.964,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333492",
+    "wikidataLabel": "능주역",
+    "match": "name"
+  },
+  "KR:다시": {
+    "lat": 35.01669,
+    "lng": 126.64106,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983292",
+    "wikidataLabel": "다시역",
+    "match": "name"
+  },
+  "KR:단양": {
+    "lat": 36.97322,
+    "lng": 128.34375,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1591787",
+    "wikidataLabel": "단양역",
+    "match": "name"
+  },
+  "KR:대곡": {
+    "lat": 37.63088,
+    "lng": 126.81053,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q59856",
+    "wikidataLabel": "대곡역",
+    "match": "name"
+  },
+  "KR:대구": {
+    "lat": 35.8765,
+    "lng": 128.597,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4866710",
+    "wikidataLabel": "대구역",
+    "match": "name"
+  },
+  "KR:대야": {
+    "lat": 35.94472,
+    "lng": 126.82389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239999",
+    "wikidataLabel": "대야역",
+    "match": "name"
+  },
+  "KR:대천": {
+    "lat": 36.34089,
+    "lng": 126.58692,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239910",
+    "wikidataLabel": "대천역",
+    "match": "name"
+  },
+  "KR:덕소": {
+    "lat": 37.58647,
+    "lng": 127.20937,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q58944",
+    "wikidataLabel": "덕소역",
+    "match": "name"
+  },
+  "KR:도계": {
+    "lat": 37.2291,
+    "lng": 129.044,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983373",
+    "wikidataLabel": "도계역",
+    "match": "name"
+  },
+  "KR:도고온천": {
+    "lat": 36.7495,
+    "lng": 126.89,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625019",
+    "wikidataLabel": "도고온천역",
+    "match": "name"
+  },
+  "KR:동백산": {
+    "lat": 37.15083,
+    "lng": 129.03472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983366",
+    "wikidataLabel": "동백산역",
+    "match": "name"
+  },
+  "KR:동탄": {
+    "lat": 37.1993,
+    "lng": 127.09704,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q23954759",
+    "wikidataLabel": "Ga Dongtan",
+    "match": "name"
+  },
+  "KR:동해": {
+    "lat": 37.49798,
+    "lng": 129.12276,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1162839",
+    "wikidataLabel": "Donghae Station",
+    "match": "name"
+  },
+  "KR:둔내": {
+    "lat": 37.51,
+    "lng": 128.22111,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31179696",
+    "wikidataLabel": "Dunnae Station",
+    "match": "name"
+  },
+  "KR:득량": {
+    "lat": 34.7615,
+    "lng": 127.17,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333414",
+    "wikidataLabel": "득량역",
+    "match": "name"
+  },
+  "KR:마산": {
+    "lat": 35.2359,
+    "lng": 128.57727,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624162",
+    "wikidataLabel": "마산역",
+    "match": "name"
+  },
+  "KR:만종": {
+    "lat": 37.35636,
+    "lng": 127.8964,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545459",
+    "wikidataLabel": "Manjong Station",
+    "match": "name"
+  },
+  "KR:매곡": {
+    "lat": 37.43662,
+    "lng": 127.73028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545222",
+    "wikidataLabel": "매곡역",
+    "match": "name"
+  },
+  "KR:매화": {
+    "lat": 36.88268,
+    "lng": 129.40979,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126365727",
+    "wikidataLabel": "매화역",
+    "match": "name"
+  },
+  "KR:명봉": {
+    "lat": 34.82759,
+    "lng": 127.07608,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333473",
+    "wikidataLabel": "명봉역",
+    "match": "name"
+  },
+  "KR:몽탄": {
+    "lat": 34.92977,
+    "lng": 126.50323,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983300",
+    "wikidataLabel": "몽탄역",
+    "match": "name"
+  },
+  "KR:무안": {
+    "lat": 34.96235,
+    "lng": 126.51717,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983298",
+    "wikidataLabel": "무안역",
+    "match": "name"
+  },
+  "KR:묵호": {
+    "lat": 37.5461,
+    "lng": 129.108,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1162845",
+    "wikidataLabel": "Mukho Station",
+    "match": "name"
+  },
+  "KR:문경": {
+    "lat": 36.71976,
+    "lng": 128.11102,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126389907",
+    "wikidataLabel": "문경역",
+    "match": "name"
+  },
+  "KR:물금": {
+    "lat": 35.30715,
+    "lng": 128.98537,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477100",
+    "wikidataLabel": "Mulgeum Station",
+    "match": "name"
+  },
+  "KR:민둥산": {
+    "lat": 37.2456,
+    "lng": 128.773,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599221",
+    "wikidataLabel": "민둥산역",
+    "match": "name"
+  },
+  "KR:밀양": {
+    "lat": 35.47531,
+    "lng": 128.7702,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477090",
+    "wikidataLabel": "밀양역",
+    "match": "name"
+  },
+  "KR:반성": {
+    "lat": 35.17472,
+    "lng": 128.25806,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1597026",
+    "wikidataLabel": "반성역",
+    "match": "name"
+  },
+  "KR:백양사": {
+    "lat": 35.43138,
+    "lng": 126.80814,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q914759",
+    "wikidataLabel": "백양사역",
+    "match": "name"
+  },
+  "KR:벌교": {
+    "lat": 34.84182,
+    "lng": 127.34575,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333183",
+    "wikidataLabel": "벌교역",
+    "match": "name"
+  },
+  "KR:보성": {
+    "lat": 34.76671,
+    "lng": 127.08268,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333428",
+    "wikidataLabel": "보성역",
+    "match": "name"
+  },
+  "KR:봉양": {
+    "lat": 37.13031,
+    "lng": 128.12983,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q620017",
+    "wikidataLabel": "봉양역",
+    "match": "name"
+  },
+  "KR:봉화": {
+    "lat": 36.89147,
+    "lng": 128.72711,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1597624",
+    "wikidataLabel": "봉화역",
+    "match": "name"
+  },
+  "KR:부강": {
+    "lat": 36.53222,
+    "lng": 127.36528,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q188829",
+    "wikidataLabel": "부강역",
+    "match": "name"
+  },
+  "KR:부발": {
+    "lat": 37.25989,
+    "lng": 127.48853,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q23936227",
+    "wikidataLabel": "Ga Bubal",
+    "match": "name"
+  },
+  "KR:부전": {
+    "lat": 35.1646,
+    "lng": 129.06,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624891",
+    "wikidataLabel": "부전역",
+    "match": "name"
+  },
+  "KR:북울산": {
+    "lat": 35.61462,
+    "lng": 129.37241,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q108426233",
+    "wikidataLabel": "북울산역",
+    "match": "name"
+  },
+  "KR:북천": {
+    "lat": 35.11167,
+    "lng": 127.88362,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625860",
+    "wikidataLabel": "북천역",
+    "match": "name"
+  },
+  "KR:분천": {
+    "lat": 36.9327,
+    "lng": 129.058,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q999947",
+    "wikidataLabel": "분천역",
+    "match": "name"
+  },
+  "KR:사북": {
+    "lat": 37.22624,
+    "lng": 128.81698,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599264",
+    "wikidataLabel": "사북역",
+    "match": "name"
+  },
+  "KR:사상": {
+    "lat": 35.16251,
+    "lng": 128.98893,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477528",
+    "wikidataLabel": "사상역",
+    "match": "name"
+  },
+  "KR:살미": {
+    "lat": 36.90234,
+    "lng": 127.96038,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125975851",
+    "wikidataLabel": "Salmi Station",
+    "match": "name"
+  },
+  "KR:삼랑진": {
+    "lat": 35.39917,
+    "lng": 128.84306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477097",
+    "wikidataLabel": "삼랑진역",
+    "match": "name"
+  },
+  "KR:삼례": {
+    "lat": 35.9067,
+    "lng": 127.064,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1233640",
+    "wikidataLabel": "삼례역",
+    "match": "name"
+  },
+  "KR:삼산": {
+    "lat": 37.39225,
+    "lng": 127.77974,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545338",
+    "wikidataLabel": "삼산역",
+    "match": "name"
+  },
+  "KR:삼척": {
+    "lat": 37.42993,
+    "lng": 129.17872,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599269",
+    "wikidataLabel": "Samcheok Station",
+    "match": "name"
+  },
+  "KR:삼척해변": {
+    "lat": 37.4681,
+    "lng": 129.166,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599273",
+    "wikidataLabel": "삼척해변역",
+    "match": "name"
+  },
+  "KR:삼탄": {
+    "lat": 37.07308,
+    "lng": 128.03856,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812512",
+    "wikidataLabel": "삼탄역",
+    "match": "name"
+  },
+  "KR:삽교": {
+    "lat": 36.6803,
+    "lng": 126.75165,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235498",
+    "wikidataLabel": "삽교역",
+    "match": "name"
+  },
+  "KR:상동": {
+    "lat": 35.55556,
+    "lng": 128.76056,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624589",
+    "wikidataLabel": "상동역",
+    "match": "name"
+  },
+  "KR:상봉": {
+    "lat": 37.59557,
+    "lng": 127.08576,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q49995",
+    "wikidataLabel": "Ga Sangbong",
+    "match": "name"
+  },
+  "KR:상주": {
+    "lat": 36.41039,
+    "lng": 128.1639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464759",
+    "wikidataLabel": "상주역",
+    "match": "name"
+  },
+  "KR:서경주": {
+    "lat": 35.88495,
+    "lng": 129.18001,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q110286005",
+    "wikidataLabel": "서경주역",
+    "match": "name"
+  },
+  "KR:서광주": {
+    "lat": 35.125,
+    "lng": 126.84656,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624113",
+    "wikidataLabel": "서광주역",
+    "match": "name"
+  },
+  "KR:서대구": {
+    "lat": 35.8808,
+    "lng": 128.539,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q341676",
+    "wikidataLabel": "서대구역",
+    "match": "name"
+  },
+  "KR:서대전": {
+    "lat": 36.32247,
+    "lng": 127.40329,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54293",
+    "wikidataLabel": "Seodaejeon Station",
+    "match": "name"
+  },
+  "KR:서원주": {
+    "lat": 37.3498,
+    "lng": 127.837,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545380",
+    "wikidataLabel": "Seowonju Station",
+    "match": "name"
+  },
+  "KR:서정리": {
+    "lat": 37.05639,
+    "lng": 127.05389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q167500",
+    "wikidataLabel": "서정리역",
+    "match": "name"
+  },
+  "KR:서천": {
+    "lat": 36.08211,
+    "lng": 126.70858,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239969",
+    "wikidataLabel": "서천역",
+    "match": "name"
+  },
+  "KR:서화성": {
+    "lat": 37.248,
+    "lng": 126.787,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q116754124",
+    "wikidataLabel": "서화성역",
+    "match": "name"
+  },
+  "KR:석불": {
+    "lat": 37.46004,
+    "lng": 127.65484,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1595526",
+    "wikidataLabel": "석불역",
+    "match": "name"
+  },
+  "KR:석포": {
+    "lat": 37.046,
+    "lng": 129.06,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1000012",
+    "wikidataLabel": "석포역",
+    "match": "name"
+  },
+  "KR:성환": {
+    "lat": 36.91556,
+    "lng": 127.12778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q167550",
+    "wikidataLabel": "성환역",
+    "match": "name"
+  },
+  "KR:센텀": {
+    "lat": 35.17945,
+    "lng": 129.12451,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1234112",
+    "wikidataLabel": "Centum Station",
+    "match": "name"
+  },
+  "KR:송추": {
+    "lat": 37.72083,
+    "lng": 126.97972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q789498",
+    "wikidataLabel": "송추역",
+    "match": "name"
+  },
+  "KR:수서": {
+    "lat": 37.48694,
+    "lng": 127.10194,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q46157",
+    "wikidataLabel": "수서역",
+    "match": "name"
+  },
+  "KR:수안보온천": {
+    "lat": 36.84152,
+    "lng": 128.00484,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125975869",
+    "wikidataLabel": "수안보온천역",
+    "match": "name"
+  },
+  "KR:수원": {
+    "lat": 37.26611,
+    "lng": 126.99972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54306",
+    "wikidataLabel": "Ga Suwon",
+    "match": "name"
+  },
+  "KR:순천": {
+    "lat": 34.9464,
+    "lng": 127.502,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624385",
+    "wikidataLabel": "Suncheon Station",
+    "match": "name"
+  },
+  "KR:승부": {
+    "lat": 36.9927,
+    "lng": 129.084,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q999980",
+    "wikidataLabel": "승부역",
+    "match": "name"
+  },
+  "KR:신동": {
+    "lat": 35.95556,
+    "lng": 128.48528,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q341645",
+    "wikidataLabel": "신동역",
+    "match": "name"
+  },
+  "KR:신례원": {
+    "lat": 36.72714,
+    "lng": 126.84972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235378",
+    "wikidataLabel": "신례원역",
+    "match": "name"
+  },
+  "KR:신보성": {
+    "lat": 34.7595,
+    "lng": 127.0855,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q134471791",
+    "wikidataLabel": "신보성역",
+    "match": "name"
+  },
+  "KR:신창": {
+    "lat": 36.76963,
+    "lng": 126.95081,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q167613",
+    "wikidataLabel": "신창역",
+    "match": "name"
+  },
+  "KR:신탄진": {
+    "lat": 36.4491,
+    "lng": 127.4284,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q188831",
+    "wikidataLabel": "신탄진역",
+    "match": "name"
+  },
+  "KR:신태인": {
+    "lat": 35.6875,
+    "lng": 126.884,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q914578",
+    "wikidataLabel": "신태인역",
+    "match": "name"
+  },
+  "KR:신해운대": {
+    "lat": 35.1817,
+    "lng": 129.177,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1234122",
+    "wikidataLabel": "Sinhaeundae Station",
+    "match": "name"
+  },
+  "KR:심천": {
+    "lat": 36.23694,
+    "lng": 127.72028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625284",
+    "wikidataLabel": "심천역",
+    "match": "name"
+  },
+  "KR:쌍룡": {
+    "lat": 37.1744,
+    "lng": 128.329,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599367",
+    "wikidataLabel": "쌍룡역",
+    "match": "name"
+  },
+  "KR:아산": {
+    "lat": 36.79218,
+    "lng": 127.10458,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q167603",
+    "wikidataLabel": "아산역",
+    "match": "name"
+  },
+  "KR:아화": {
+    "lat": 35.89779,
+    "lng": 129.05159,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q755251",
+    "wikidataLabel": "아화역",
+    "match": "name"
+  },
+  "KR:안강": {
+    "lat": 35.97062,
+    "lng": 129.23294,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235070",
+    "wikidataLabel": "안강역",
+    "match": "name"
+  },
+  "KR:안동": {
+    "lat": 36.57511,
+    "lng": 128.67488,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q623565",
+    "wikidataLabel": "Andong Station",
+    "match": "name"
+  },
+  "KR:안양": {
+    "lat": 37.40222,
+    "lng": 126.9225,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54301",
+    "wikidataLabel": "안양역",
+    "match": "name"
+  },
+  "KR:안중": {
+    "lat": 36.971,
+    "lng": 126.938,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125696347",
+    "wikidataLabel": "안중역",
+    "match": "name"
+  },
+  "KR:앙성온천": {
+    "lat": 37.0921,
+    "lng": 127.7883,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q109738513",
+    "wikidataLabel": "앙성온천역",
+    "match": "name"
+  },
+  "KR:약목": {
+    "lat": 36.03722,
+    "lng": 128.36444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625988",
+    "wikidataLabel": "약목역",
+    "match": "name"
+  },
+  "KR:양동": {
+    "lat": 37.4203,
+    "lng": 127.755,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545295",
+    "wikidataLabel": "양동역",
+    "match": "name"
+  },
+  "KR:양원": {
+    "lat": 36.9648,
+    "lng": 129.092,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q999962",
+    "wikidataLabel": "양원역",
+    "match": "name"
+  },
+  "KR:양평": {
+    "lat": 37.52556,
+    "lng": 126.88611,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q56142",
+    "wikidataLabel": "Ga Yangpyeong",
+    "match": "name"
+  },
+  "KR:여수엑스포": {
+    "lat": 34.7531,
+    "lng": 127.749,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1162912",
+    "wikidataLabel": "Ga Yeosu–EXPO",
+    "match": "name"
+  },
+  "KR:여천": {
+    "lat": 34.7791,
+    "lng": 127.664,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1163006",
+    "wikidataLabel": "여천역",
+    "match": "name"
+  },
+  "KR:연산": {
+    "lat": 36.21225,
+    "lng": 127.20075,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1586912",
+    "wikidataLabel": "연산역",
+    "match": "name"
+  },
+  "KR:연풍": {
+    "lat": 36.78635,
+    "lng": 128.01816,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125975892",
+    "wikidataLabel": "연풍역",
+    "match": "name"
+  },
+  "KR:영덕": {
+    "lat": 36.41042,
+    "lng": 129.37731,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31180375",
+    "wikidataLabel": "Yeongdeok Station",
+    "match": "name"
+  },
+  "KR:영동": {
+    "lat": 36.17222,
+    "lng": 127.78667,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625850",
+    "wikidataLabel": "영동역",
+    "match": "name"
+  },
+  "KR:영등포": {
+    "lat": 37.51556,
+    "lng": 126.90778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q43311",
+    "wikidataLabel": "Yeongdeungpo Station",
+    "match": "name"
+  },
+  "KR:영암": {
+    "lat": 34.7594,
+    "lng": 126.5307,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q134471768",
+    "wikidataLabel": "영암역",
+    "match": "name"
+  },
+  "KR:영월": {
+    "lat": 37.1824,
+    "lng": 128.481,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599411",
+    "wikidataLabel": "영월역",
+    "match": "name"
+  },
+  "KR:영주": {
+    "lat": 36.81094,
+    "lng": 128.62575,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q58919",
+    "wikidataLabel": "영주역",
+    "match": "name"
+  },
+  "KR:영천": {
+    "lat": 35.9595,
+    "lng": 128.939,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q755243",
+    "wikidataLabel": "Yeongcheon Station",
+    "match": "name"
+  },
+  "KR:영해": {
+    "lat": 36.5382,
+    "lng": 129.39672,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126364677",
+    "wikidataLabel": "영해역",
+    "match": "name"
+  },
+  "KR:예당": {
+    "lat": 34.7787,
+    "lng": 127.203,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333402",
+    "wikidataLabel": "예당역",
+    "match": "name"
+  },
+  "KR:예미": {
+    "lat": 37.2127,
+    "lng": 128.65,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599418",
+    "wikidataLabel": "예미역",
+    "match": "name"
+  },
+  "KR:예산": {
+    "lat": 36.68717,
+    "lng": 126.82902,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235384",
+    "wikidataLabel": "예산역",
+    "match": "name"
+  },
+  "KR:예천": {
+    "lat": 36.6478,
+    "lng": 128.444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464818",
+    "wikidataLabel": "예천역",
+    "match": "name"
+  },
+  "KR:오근장": {
+    "lat": 36.69991,
+    "lng": 127.47852,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812295",
+    "wikidataLabel": "오근장역",
+    "match": "name"
+  },
+  "KR:오산": {
+    "lat": 37.14556,
+    "lng": 127.06722,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q137232",
+    "wikidataLabel": "오산역",
+    "match": "name"
+  },
+  "KR:오송": {
+    "lat": 36.62079,
+    "lng": 127.3278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54285",
+    "wikidataLabel": "Ga Osong",
+    "match": "name"
+  },
+  "KR:오수": {
+    "lat": 35.5429,
+    "lng": 127.321,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1232964",
+    "wikidataLabel": "오수역",
+    "match": "name"
+  },
+  "KR:옥산": {
+    "lat": 36.28292,
+    "lng": 128.09443,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464728",
+    "wikidataLabel": "옥산역",
+    "match": "name"
+  },
+  "KR:옥원": {
+    "lat": 37.18389,
+    "lng": 129.32423,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126371029",
+    "wikidataLabel": "옥원역",
+    "match": "name"
+  },
+  "KR:옥천": {
+    "lat": 36.29766,
+    "lng": 127.56529,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q292152",
+    "wikidataLabel": "옥천역",
+    "match": "name"
+  },
+  "KR:온양온천": {
+    "lat": 36.78056,
+    "lng": 127.00333,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q167611",
+    "wikidataLabel": "온양온천역",
+    "match": "name"
+  },
+  "KR:완사": {
+    "lat": 35.1341,
+    "lng": 127.977,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332399",
+    "wikidataLabel": "완사역",
+    "match": "name"
+  },
+  "KR:왜관": {
+    "lat": 35.99222,
+    "lng": 128.40028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q341410",
+    "wikidataLabel": "왜관역",
+    "match": "name"
+  },
+  "KR:용궁": {
+    "lat": 36.6069,
+    "lng": 128.273,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464807",
+    "wikidataLabel": "용궁역",
+    "match": "name"
+  },
+  "KR:울산": {
+    "lat": 35.55189,
+    "lng": 129.13837,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54295",
+    "wikidataLabel": "울산역",
+    "match": "name"
+  },
+  "KR:울진": {
+    "lat": 36.98279,
+    "lng": 129.39501,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126365729",
+    "wikidataLabel": "울진역",
+    "match": "name"
+  },
+  "KR:웅천": {
+    "lat": 36.23601,
+    "lng": 126.60668,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239931",
+    "wikidataLabel": "웅천역",
+    "match": "name"
+  },
+  "KR:원동": {
+    "lat": 35.36265,
+    "lng": 128.92027,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477098",
+    "wikidataLabel": "원동역",
+    "match": "name"
+  },
+  "KR:원릉": {
+    "lat": 37.6625,
+    "lng": 126.83972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q789470",
+    "wikidataLabel": "원릉역",
+    "match": "name"
+  },
+  "KR:원주": {
+    "lat": 37.31626,
+    "lng": 127.92178,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545473",
+    "wikidataLabel": "원주역",
+    "match": "name"
+  },
+  "KR:월포": {
+    "lat": 36.20356,
+    "lng": 129.36642,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31180267",
+    "wikidataLabel": "월포역",
+    "match": "name"
+  },
+  "KR:음성": {
+    "lat": 36.92603,
+    "lng": 127.7039,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812458",
+    "wikidataLabel": "음성역",
+    "match": "name"
+  },
+  "KR:의성": {
+    "lat": 36.3539,
+    "lng": 128.693,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q728716",
+    "wikidataLabel": "Uiseong Station",
+    "match": "name"
+  },
+  "KR:의정부": {
+    "lat": 37.7373,
+    "lng": 127.0433,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q702753",
+    "wikidataLabel": "의정부역",
+    "match": "name"
+  },
+  "KR:이양": {
+    "lat": 34.89075,
+    "lng": 126.99003,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624369",
+    "wikidataLabel": "이양역",
+    "match": "name"
+  },
+  "KR:이원": {
+    "lat": 36.24389,
+    "lng": 127.61806,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q292197",
+    "wikidataLabel": "이원역",
+    "match": "name"
+  },
+  "KR:익산": {
+    "lat": 35.94164,
+    "lng": 126.9458,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q100882",
+    "wikidataLabel": "익산역",
+    "match": "name"
+  },
+  "KR:인주": {
+    "lat": 36.83841,
+    "lng": 126.88168,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125696699",
+    "wikidataLabel": "인주역",
+    "match": "name"
+  },
+  "KR:일로": {
+    "lat": 34.8475,
+    "lng": 126.477,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983303",
+    "wikidataLabel": "일로역",
+    "match": "name"
+  },
+  "KR:일영": {
+    "lat": 37.70056,
+    "lng": 126.92917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q789484",
+    "wikidataLabel": "일영역",
+    "match": "name"
+  },
+  "KR:임기": {
+    "lat": 36.9039,
+    "lng": 128.999,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q999765",
+    "wikidataLabel": "임기역",
+    "match": "name"
+  },
+  "KR:임성리": {
+    "lat": 34.82039,
+    "lng": 126.43542,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983304",
+    "wikidataLabel": "임성리역",
+    "match": "name"
+  },
+  "KR:임실": {
+    "lat": 35.6331,
+    "lng": 127.29,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1232973",
+    "wikidataLabel": "임실역",
+    "match": "name"
+  },
+  "KR:임원": {
+    "lat": 37.24055,
+    "lng": 129.32655,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126371037",
+    "wikidataLabel": "임원역",
+    "match": "name"
+  },
+  "KR:장동": {
+    "lat": 34.7538,
+    "lng": 126.9961,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q134471853",
+    "wikidataLabel": "장동역",
+    "match": "name"
+  },
+  "KR:장사": {
+    "lat": 36.28414,
+    "lng": 129.36914,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31180259",
+    "wikidataLabel": "장사역",
+    "match": "name"
+  },
+  "KR:장성": {
+    "lat": 35.30011,
+    "lng": 126.77962,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983276",
+    "wikidataLabel": "장성역",
+    "match": "name"
+  },
+  "KR:장항": {
+    "lat": 36.04,
+    "lng": 126.71561,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239985",
+    "wikidataLabel": "장항역",
+    "match": "name"
+  },
+  "KR:장흥": {
+    "lat": 37.71861,
+    "lng": 126.94139,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1595763",
+    "wikidataLabel": "장흥역",
+    "match": "name"
+  },
+  "KR:전남장흥": {
+    "lat": 34.6693,
+    "lng": 126.9119,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q134471830",
+    "wikidataLabel": "전남장흥역",
+    "match": "name"
+  },
+  "KR:전의": {
+    "lat": 36.67833,
+    "lng": 127.20306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q188305",
+    "wikidataLabel": "전의역",
+    "match": "name"
+  },
+  "KR:전주": {
+    "lat": 35.8498,
+    "lng": 127.1618,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624605",
+    "wikidataLabel": "Jeonju Station",
+    "match": "name"
+  },
+  "KR:점촌": {
+    "lat": 36.59561,
+    "lng": 128.20335,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464797",
+    "wikidataLabel": "점촌역",
+    "match": "name"
+  },
+  "KR:정동진": {
+    "lat": 37.6914,
+    "lng": 129.033,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983383",
+    "wikidataLabel": "정동진역",
+    "match": "name"
+  },
+  "KR:정읍": {
+    "lat": 35.57559,
+    "lng": 126.84254,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q625983",
+    "wikidataLabel": "정읍역",
+    "match": "name"
+  },
+  "KR:제천": {
+    "lat": 37.12805,
+    "lng": 128.2053,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q620025",
+    "wikidataLabel": "제천역",
+    "match": "name"
+  },
+  "KR:조성": {
+    "lat": 34.8068,
+    "lng": 127.2481,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333397",
+    "wikidataLabel": "조성역",
+    "match": "name"
+  },
+  "KR:조치원": {
+    "lat": 36.60434,
+    "lng": 127.29543,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q188312",
+    "wikidataLabel": "조치원역",
+    "match": "name"
+  },
+  "KR:주덕": {
+    "lat": 36.97337,
+    "lng": 127.80233,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812483",
+    "wikidataLabel": "주덕역",
+    "match": "name"
+  },
+  "KR:죽변": {
+    "lat": 37.04927,
+    "lng": 129.40416,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126370988",
+    "wikidataLabel": "죽변역",
+    "match": "name"
+  },
+  "KR:중리": {
+    "lat": 35.24972,
+    "lng": 128.51917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332410",
+    "wikidataLabel": "중리역",
+    "match": "name"
+  },
+  "KR:증평": {
+    "lat": 36.77811,
+    "lng": 127.58318,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812316",
+    "wikidataLabel": "증평역",
+    "match": "name"
+  },
+  "KR:지탄": {
+    "lat": 36.24167,
+    "lng": 127.67583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q292253",
+    "wikidataLabel": "지탄역",
+    "match": "name"
+  },
+  "KR:지평": {
+    "lat": 37.4765,
+    "lng": 127.62968,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q545131",
+    "wikidataLabel": "지평역",
+    "match": "name"
+  },
+  "KR:진례": {
+    "lat": 35.2665,
+    "lng": 128.763,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332331",
+    "wikidataLabel": "진례역",
+    "match": "name"
+  },
+  "KR:진부-오대산": {
+    "lat": 37.6425,
+    "lng": 128.57472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31179712",
+    "wikidataLabel": "진부(오대산)역",
+    "match": "name"
+  },
+  "KR:진상": {
+    "lat": 35.0165,
+    "lng": 127.7198,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332788",
+    "wikidataLabel": "진상역",
+    "match": "name"
+  },
+  "KR:진영": {
+    "lat": 35.29861,
+    "lng": 128.77389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332309",
+    "wikidataLabel": "Ga Jinyeong",
+    "match": "name"
+  },
+  "KR:진주": {
+    "lat": 35.15,
+    "lng": 128.11806,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q389035",
+    "wikidataLabel": "Ga Jinju",
+    "match": "name"
+  },
+  "KR:창원": {
+    "lat": 35.25884,
+    "lng": 128.60853,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q626193",
+    "wikidataLabel": "창원역",
+    "match": "name"
+  },
+  "KR:창원중앙": {
+    "lat": 35.24227,
+    "lng": 128.70186,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332386",
+    "wikidataLabel": "Ga Changwonjungang",
+    "match": "name"
+  },
+  "KR:천안": {
+    "lat": 36.80917,
+    "lng": 127.14444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54298",
+    "wikidataLabel": "천안역",
+    "match": "name"
+  },
+  "KR:천안아산": {
+    "lat": 36.79438,
+    "lng": 127.10452,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q54282",
+    "wikidataLabel": "Ga Cheonan–Asan",
+    "match": "name"
+  },
+  "KR:철암": {
+    "lat": 37.1129,
+    "lng": 129.037,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1162666",
+    "wikidataLabel": "철암역",
+    "match": "name"
+  },
+  "KR:청도": {
+    "lat": 35.64,
+    "lng": 128.74639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477082",
+    "wikidataLabel": "청도역",
+    "match": "name"
+  },
+  "KR:청량리": {
+    "lat": 37.58059,
+    "lng": 127.04823,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q20417",
+    "wikidataLabel": "Cheongnyangni Station",
+    "match": "name"
+  },
+  "KR:청리": {
+    "lat": 36.33914,
+    "lng": 128.12888,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464748",
+    "wikidataLabel": "청리역",
+    "match": "name"
+  },
+  "KR:청소": {
+    "lat": 36.44593,
+    "lng": 126.59079,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1587042",
+    "wikidataLabel": "청소역",
+    "match": "name"
+  },
+  "KR:청주": {
+    "lat": 36.6467,
+    "lng": 127.392,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812289",
+    "wikidataLabel": "청주역",
+    "match": "name"
+  },
+  "KR:청주공항": {
+    "lat": 36.72137,
+    "lng": 127.48969,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q812302",
+    "wikidataLabel": "청주공항역",
+    "match": "name"
+  },
+  "KR:추암": {
+    "lat": 37.4782,
+    "lng": 129.158,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1599515",
+    "wikidataLabel": "추암역",
+    "match": "name"
+  },
+  "KR:추풍령": {
+    "lat": 36.21333,
+    "lng": 127.99583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q341160",
+    "wikidataLabel": "추풍령역",
+    "match": "name"
+  },
+  "KR:춘양": {
+    "lat": 36.9369,
+    "lng": 128.92,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q999483",
+    "wikidataLabel": "춘양역",
+    "match": "name"
+  },
+  "KR:충주": {
+    "lat": 36.97607,
+    "lng": 127.90878,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q50014",
+    "wikidataLabel": "Ga Chungju",
+    "match": "name"
+  },
+  "KR:태백": {
+    "lat": 37.176,
+    "lng": 128.984,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11278108",
+    "wikidataLabel": "태백역",
+    "match": "name"
+  },
+  "KR:태화강": {
+    "lat": 35.53912,
+    "lng": 129.35421,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q626465",
+    "wikidataLabel": "Ga Taehwagang",
+    "match": "name"
+  },
+  "KR:판교-경기": {
+    "lat": 37.39476,
+    "lng": 127.11114,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q486846",
+    "wikidataLabel": "Pangyo Station",
+    "match": "name"
+  },
+  "KR:평창": {
+    "lat": 37.56222,
+    "lng": 128.43,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31179708",
+    "wikidataLabel": "평창역",
+    "match": "name"
+  },
+  "KR:평택": {
+    "lat": 36.99108,
+    "lng": 127.085,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q137313",
+    "wikidataLabel": "평택역",
+    "match": "name"
+  },
+  "KR:평택지제": {
+    "lat": 37.01889,
+    "lng": 127.07028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q167502",
+    "wikidataLabel": "Pyeongtaek-Jije Station",
+    "match": "name"
+  },
+  "KR:평해": {
+    "lat": 36.72525,
+    "lng": 129.44577,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126365498",
+    "wikidataLabel": "평해역",
+    "match": "name"
+  },
+  "KR:포항": {
+    "lat": 36.07138,
+    "lng": 129.34227,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q624288",
+    "wikidataLabel": "Ga Pohang",
+    "match": "name"
+  },
+  "KR:풍기": {
+    "lat": 36.87401,
+    "lng": 128.52312,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q727651",
+    "wikidataLabel": "풍기역",
+    "match": "name"
+  },
+  "KR:하동": {
+    "lat": 35.06369,
+    "lng": 127.76185,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332777",
+    "wikidataLabel": "하동역",
+    "match": "name"
+  },
+  "KR:하양": {
+    "lat": 35.90961,
+    "lng": 128.81844,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1598053",
+    "wikidataLabel": "하양역",
+    "match": "name"
+  },
+  "KR:한림정": {
+    "lat": 35.32156,
+    "lng": 128.80353,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1239952",
+    "wikidataLabel": "한림정역",
+    "match": "name"
+  },
+  "KR:함안": {
+    "lat": 35.24925,
+    "lng": 128.42479,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332418",
+    "wikidataLabel": "함안역",
+    "match": "name"
+  },
+  "KR:함열": {
+    "lat": 36.08,
+    "lng": 126.957,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q914545",
+    "wikidataLabel": "함열역",
+    "match": "name"
+  },
+  "KR:함창": {
+    "lat": 36.56966,
+    "lng": 128.17486,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1464787",
+    "wikidataLabel": "함창역",
+    "match": "name"
+  },
+  "KR:함평": {
+    "lat": 35.02398,
+    "lng": 126.5388,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q983296",
+    "wikidataLabel": "함평역",
+    "match": "name"
+  },
+  "KR:합덕": {
+    "lat": 36.79641,
+    "lng": 126.79903,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125696382",
+    "wikidataLabel": "합덕역",
+    "match": "name"
+  },
+  "KR:해남": {
+    "lat": 34.6365,
+    "lng": 126.6383,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q134471821",
+    "wikidataLabel": "해남역",
+    "match": "name"
+  },
+  "KR:행신": {
+    "lat": 37.61223,
+    "lng": 126.83381,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q59850",
+    "wikidataLabel": "행신역",
+    "match": "name"
+  },
+  "KR:향남": {
+    "lat": 37.123,
+    "lng": 126.913,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q123398321",
+    "wikidataLabel": "향남역",
+    "match": "name"
+  },
+  "KR:현동": {
+    "lat": 36.93673,
+    "lng": 129.01202,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q999838",
+    "wikidataLabel": "현동역",
+    "match": "name"
+  },
+  "KR:홍성": {
+    "lat": 36.59954,
+    "lng": 126.68115,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235512",
+    "wikidataLabel": "홍성역",
+    "match": "name"
+  },
+  "KR:홍성-도착": {
+    "lat": 36.59954,
+    "lng": 126.68115,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235512",
+    "wikidataLabel": "홍성역",
+    "match": "name without qualifier"
+  },
+  "KR:홍성-출발": {
+    "lat": 36.59954,
+    "lng": 126.68115,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1235512",
+    "wikidataLabel": "홍성역",
+    "match": "name without qualifier"
+  },
+  "KR:화명": {
+    "lat": 35.2345,
+    "lng": 129.008,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q477420",
+    "wikidataLabel": "화명역",
+    "match": "name"
+  },
+  "KR:화성시청": {
+    "lat": 37.19,
+    "lng": 126.82,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q123398303",
+    "wikidataLabel": "화성시청역",
+    "match": "name"
+  },
+  "KR:화순": {
+    "lat": 35.05133,
+    "lng": 126.96198,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333500",
+    "wikidataLabel": "화순역",
+    "match": "name"
+  },
+  "KR:황간": {
+    "lat": 36.22417,
+    "lng": 127.91222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q341147",
+    "wikidataLabel": "황간역",
+    "match": "name"
+  },
+  "KR:횡성": {
+    "lat": 37.48278,
+    "lng": 128.01028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q31179710",
+    "wikidataLabel": "Hoengseong Station",
+    "match": "name"
+  },
+  "KR:횡천": {
+    "lat": 35.09933,
+    "lng": 127.80157,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1332768",
+    "wikidataLabel": "횡천역",
+    "match": "name"
+  },
+  "KR:효천": {
+    "lat": 35.10276,
+    "lng": 126.87667,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1333519",
+    "wikidataLabel": "효천역",
+    "match": "name"
+  },
+  "KR:후포": {
+    "lat": 36.68304,
+    "lng": 129.43702,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126364780",
+    "wikidataLabel": "후포역",
+    "match": "name"
+  },
+  "KR:흥부": {
+    "lat": 37.09707,
+    "lng": 129.36934,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q126370995",
+    "wikidataLabel": "흥부역",
+    "match": "name"
+  },
+  "MY:abdullah-hukum": {
+    "lat": 3.11861,
+    "lng": 101.67278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4666008",
+    "wikidataLabel": "Abdullah Hukum station",
+    "match": "name"
+  },
+  "MY:angkasapuri": {
+    "lat": 3.11306,
+    "lng": 101.67333,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4763313",
+    "wikidataLabel": "Angkasapuri Komuter station",
+    "match": "name"
+  },
+  "MY:bandar-tasek-selatan": {
+    "lat": 3.07611,
+    "lng": 101.71056,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4854431",
+    "wikidataLabel": "Bandar Tasik Selatan station",
+    "match": "close spelling"
+  },
+  "MY:bandar-tasik-selatan": {
+    "lat": 3.07611,
+    "lng": 101.71056,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4854431",
+    "wikidataLabel": "Bandar Tasik Selatan station",
+    "match": "name"
+  },
+  "MY:bank-negara": {
+    "lat": 3.15444,
+    "lng": 101.69278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4383726",
+    "wikidataLabel": "Bank Negara Komuter station",
+    "match": "name"
+  },
+  "MY:batang-benar": {
+    "lat": 2.83,
+    "lng": 101.82667,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4868583",
+    "wikidataLabel": "Batang Benar Komuter station",
+    "match": "name"
+  },
+  "MY:batu-caves": {
+    "lat": 3.23778,
+    "lng": 101.68111,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4381531",
+    "wikidataLabel": "Batu Caves Komuter station",
+    "match": "name"
+  },
+  "MY:batu-kentonmen": {
+    "lat": 3.19808,
+    "lng": 101.68117,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4873302",
+    "wikidataLabel": "Batu Kentonmen Komuter station",
+    "match": "name"
+  },
+  "MY:batu-tiga": {
+    "lat": 3.07583,
+    "lng": 101.56,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q378413",
+    "wikidataLabel": "Batu Tiga Komuter station",
+    "match": "name"
+  },
+  "MY:bukit-badak": {
+    "lat": 3.0362,
+    "lng": 101.47036,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4986864",
+    "wikidataLabel": "Bukit Badak Komuter station",
+    "match": "name"
+  },
+  "MY:jalan-kastam": {
+    "lat": 3.01278,
+    "lng": 101.4025,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q12709665",
+    "wikidataLabel": "Jalan Kastam Komuter station",
+    "match": "name"
+  },
+  "MY:jalan-templer": {
+    "lat": 3.08349,
+    "lng": 101.65651,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6126574",
+    "wikidataLabel": "Jalan Templer Komuter station",
+    "match": "name"
+  },
+  "MY:kampung-baru-sungai-mengkuang": {
+    "lat": 5.33025,
+    "lng": 102.2034,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q124727257",
+    "wikidataLabel": "Kampung Baru Sungai Mengkuang railway halt",
+    "match": "close spelling"
+  },
+  "MY:kampung-batu": {
+    "lat": 3.20472,
+    "lng": 101.67556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6359403",
+    "wikidataLabel": "Kampung Batu station",
+    "match": "name"
+  },
+  "MY:kepong": {
+    "lat": 3.20278,
+    "lng": 101.6375,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131833",
+    "wikidataLabel": "Kepong Komuter station",
+    "match": "name"
+  },
+  "MY:kerambit": {
+    "lat": 4.11699,
+    "lng": 102.19935,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6393540",
+    "wikidataLabel": "Kerambit railway station",
+    "match": "name"
+  },
+  "MY:klang": {
+    "lat": 3.04306,
+    "lng": 101.45,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131889",
+    "wikidataLabel": "Klang Komuter station",
+    "match": "name"
+  },
+  "MY:kuala-krai": {
+    "lat": 5.52989,
+    "lng": 102.20294,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13642253",
+    "wikidataLabel": "Kuala Krai railway station",
+    "match": "name"
+  },
+  "MY:kuala-kubu-bharu": {
+    "lat": 3.55301,
+    "lng": 101.64001,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131661",
+    "wikidataLabel": "Kuala Kubu Bharu railway station",
+    "match": "name"
+  },
+  "MY:kuang": {
+    "lat": 3.25806,
+    "lng": 101.555,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6441090",
+    "wikidataLabel": "Kuang Komuter station",
+    "match": "name"
+  },
+  "MY:midvalley": {
+    "lat": 3.11833,
+    "lng": 101.67861,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6150759",
+    "wikidataLabel": "Mid Valley Komuter station",
+    "match": "name"
+  },
+  "MY:nilai": {
+    "lat": 2.80222,
+    "lng": 101.79944,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131690",
+    "wikidataLabel": "Nilai Komuter station",
+    "match": "name"
+  },
+  "MY:padang-jawa": {
+    "lat": 3.0525,
+    "lng": 101.49278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124795",
+    "wikidataLabel": "Padang Jawa Komuter station",
+    "match": "name"
+  },
+  "MY:pantai-dalam": {
+    "lat": 3.095,
+    "lng": 101.66972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124885",
+    "wikidataLabel": "Pantai Dalam Komuter station",
+    "match": "name"
+  },
+  "MY:petaling": {
+    "lat": 3.095,
+    "lng": 101.66972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131607",
+    "wikidataLabel": "Petaling Komuter station",
+    "match": "name"
+  },
+  "MY:pulau-sebang": {
+    "lat": 2.46333,
+    "lng": 102.22694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q3183715",
+    "wikidataLabel": "Pulau Sebang",
+    "match": "name"
+  },
+  "MY:putra": {
+    "lat": 3.16528,
+    "lng": 101.69083,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4384012",
+    "wikidataLabel": "Putra Komuter station",
+    "match": "name"
+  },
+  "MY:rasa": {
+    "lat": 3.5,
+    "lng": 101.63417,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124911",
+    "wikidataLabel": "Rasa Komuter station",
+    "match": "name"
+  },
+  "MY:rembau": {
+    "lat": 2.59303,
+    "lng": 102.09456,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7311554",
+    "wikidataLabel": "Rembau railway station",
+    "match": "name"
+  },
+  "MY:salak-selatan": {
+    "lat": 3.09833,
+    "lng": 101.70472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13405070",
+    "wikidataLabel": "Salak Selatan Komuter station",
+    "match": "name"
+  },
+  "MY:segambut": {
+    "lat": 3.18639,
+    "lng": 101.66417,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131632",
+    "wikidataLabel": "Segambut Komuter station",
+    "match": "name"
+  },
+  "MY:segambut-utara": {
+    "lat": 3.192,
+    "lng": 101.65507,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125447678",
+    "wikidataLabel": "Segambut Utara Komuter station",
+    "match": "name"
+  },
+  "MY:senawang": {
+    "lat": 2.68919,
+    "lng": 101.97225,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7450083",
+    "wikidataLabel": "Senawang Komuter station",
+    "match": "name"
+  },
+  "MY:sentul": {
+    "lat": 3.18333,
+    "lng": 101.68889,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4383928",
+    "wikidataLabel": "Sentul Komuter station",
+    "match": "name"
+  },
+  "MY:seputeh": {
+    "lat": 3.11333,
+    "lng": 101.68139,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124851",
+    "wikidataLabel": "Seputeh Komuter station",
+    "match": "name"
+  },
+  "MY:serendah": {
+    "lat": 3.37583,
+    "lng": 101.61472,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124754",
+    "wikidataLabel": "Serendah Komuter station",
+    "match": "name"
+  },
+  "MY:seri-setia": {
+    "lat": 3.08452,
+    "lng": 101.62196,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q12709671",
+    "wikidataLabel": "Seri Setia Komuter station",
+    "match": "name"
+  },
+  "MY:setia-jaya": {
+    "lat": 3.08306,
+    "lng": 101.61111,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131802",
+    "wikidataLabel": "Setia Jaya station",
+    "match": "name"
+  },
+  "MY:shah-alam": {
+    "lat": 3.05639,
+    "lng": 101.52556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131770",
+    "wikidataLabel": "Shah Alam Komuter station",
+    "match": "name"
+  },
+  "MY:subang-jaya": {
+    "lat": 3.08472,
+    "lng": 101.58806,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7630760",
+    "wikidataLabel": "Subang Jaya station",
+    "match": "name"
+  },
+  "MY:sungai-gadut": {
+    "lat": 2.66048,
+    "lng": 101.99624,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q14231002",
+    "wikidataLabel": "Sungai Gadut Komuter station",
+    "match": "name"
+  },
+  "MY:taman-wahyu": {
+    "lat": 3.21444,
+    "lng": 101.67222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7680670",
+    "wikidataLabel": "Taman Wahyu Komuter station",
+    "match": "name"
+  },
+  "MY:tanjung-malim": {
+    "lat": 3.68444,
+    "lng": 101.518,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124725",
+    "wikidataLabel": "Tanjung Malim railway station",
+    "match": "name"
+  },
+  "MY:teluk-gadong": {
+    "lat": 3.03394,
+    "lng": 101.42495,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4887400",
+    "wikidataLabel": "Teluk Gadong Komuter station",
+    "match": "name"
+  },
+  "MY:teluk-pulai": {
+    "lat": 3.04083,
+    "lng": 101.43222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131618",
+    "wikidataLabel": "Teluk Pulai Komuter station",
+    "match": "name"
+  },
+  "MY:tiroi": {
+    "lat": 2.74139,
+    "lng": 101.87167,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6124781",
+    "wikidataLabel": "Tiroi Komuter station",
+    "match": "name"
+  },
+  "MY:ukm": {
+    "lat": 2.93944,
+    "lng": 101.78778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6131646",
+    "wikidataLabel": "UKM駅",
+    "match": "name"
+  },
+  "MY:wakaf-bahru": {
+    "lat": 6.11842,
+    "lng": 102.20069,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7960759",
+    "wikidataLabel": "Wakaf Bharu railway station",
+    "match": "close spelling"
+  },
+  "SG:woodlands": {
+    "lat": 1.44389,
+    "lng": 103.76917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6132101",
+    "wikidataLabel": "Woodlands Train Checkpoint",
+    "match": "name"
+  },
+  "TH:ayutthaya": {
+    "lat": 14.3567,
+    "lng": 100.583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q3648131",
+    "wikidataLabel": "Ayutthaya Railway Station",
+    "match": "name"
+  },
+  "TH:bamnet-narong": {
+    "lat": 15.4685,
+    "lng": 101.68508,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q108907028",
+    "wikidataLabel": "Bamnet Narong railway station",
+    "match": "name"
+  },
+  "TH:ban-dara-junction": {
+    "lat": 17.3825,
+    "lng": 100.08278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633247",
+    "wikidataLabel": "Ban Dara Junction Railway Station",
+    "match": "name"
+  },
+  "TH:ban-klap": {
+    "lat": 14.72056,
+    "lng": 100.67833,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q20810802",
+    "wikidataLabel": "Ban Klap Junction Railway Station",
+    "match": "name"
+  },
+  "TH:ban-krut": {
+    "lat": 11.3491,
+    "lng": 99.5564,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271184",
+    "wikidataLabel": "Ban Krut Railway Station",
+    "match": "name"
+  },
+  "TH:ban-luam": {
+    "lat": 15.59995,
+    "lng": 102.11965,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q108907030",
+    "wikidataLabel": "Ban Lueam railway station",
+    "match": "close spelling"
+  },
+  "TH:ban-mai": {
+    "lat": 16.6896,
+    "lng": 100.273,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16307552",
+    "wikidataLabel": "Ban Mai Station",
+    "match": "name"
+  },
+  "TH:ban-mi": {
+    "lat": 15.039,
+    "lng": 100.5412,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456471",
+    "wikidataLabel": "Ban Mi",
+    "match": "name"
+  },
+  "TH:ban-mo": {
+    "lat": 14.61806,
+    "lng": 100.72583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456473",
+    "wikidataLabel": "Ban Mo",
+    "match": "name"
+  },
+  "TH:ban-pa-wai": {
+    "lat": 14.7596,
+    "lng": 100.6434,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q20810803",
+    "wikidataLabel": "Ban Pa Wai Railway Station",
+    "match": "name"
+  },
+  "TH:ban-phachi-junction": {
+    "lat": 14.4508,
+    "lng": 100.7212,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633238",
+    "wikidataLabel": "Ban Phachi Junction",
+    "match": "name"
+  },
+  "TH:ban-phai": {
+    "lat": 16.0595,
+    "lng": 102.7254,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q20826579",
+    "wikidataLabel": "Ban Phai Railway Station",
+    "match": "name"
+  },
+  "TH:ban-pin": {
+    "lat": 18.09611,
+    "lng": 99.86694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021729",
+    "wikidataLabel": "Ban Pin Station",
+    "match": "name"
+  },
+  "TH:ban-pong": {
+    "lat": 13.8109,
+    "lng": 99.8756,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13378313",
+    "wikidataLabel": "Banpong Railway Station",
+    "match": "name"
+  },
+  "TH:ban-song": {
+    "lat": 8.63427,
+    "lng": 99.37207,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271186",
+    "wikidataLabel": "Ban Song",
+    "match": "name"
+  },
+  "TH:ban-takhli": {
+    "lat": 15.2563,
+    "lng": 100.3501,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11328626",
+    "wikidataLabel": "Ban Takhli",
+    "match": "name"
+  },
+  "TH:banchimphli": {
+    "lat": 13.79917,
+    "lng": 100.42083,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13015630",
+    "wikidataLabel": "Ban Chimphli railway station",
+    "match": "name"
+  },
+  "TH:bang-bamru": {
+    "lat": 13.7918,
+    "lng": 100.4776,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021717",
+    "wikidataLabel": "Bang Bamru Railway Station",
+    "match": "name"
+  },
+  "TH:bang-krathum": {
+    "lat": 16.5767,
+    "lng": 100.2989,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456468",
+    "wikidataLabel": "Bang Krathum",
+    "match": "name"
+  },
+  "TH:bang-mun-nak": {
+    "lat": 16.0287,
+    "lng": 100.381,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22127313",
+    "wikidataLabel": "Bang Mun Nak Station",
+    "match": "name"
+  },
+  "TH:bang-pa-in": {
+    "lat": 14.23944,
+    "lng": 100.58444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633334",
+    "wikidataLabel": "Bang Pa-in Railway Station",
+    "match": "name"
+  },
+  "TH:bang-saphan-noi": {
+    "lat": 11.08576,
+    "lng": 99.44991,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271183",
+    "wikidataLabel": "Bang Saphan Noi",
+    "match": "name"
+  },
+  "TH:bang-saphan-yai": {
+    "lat": 11.21429,
+    "lng": 99.50983,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13574722",
+    "wikidataLabel": "Bang Saphan Yai",
+    "match": "name"
+  },
+  "TH:bang-sue-junction": {
+    "lat": 13.80278,
+    "lng": 100.53944,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021685",
+    "wikidataLabel": "Bang Sue Junction Railway Station",
+    "match": "name"
+  },
+  "TH:bangkok-hua-lamphong": {
+    "lat": 13.7389,
+    "lng": 100.5167,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q125929",
+    "wikidataLabel": "Bangkok (Hua Lamphong) railway station",
+    "match": "name"
+  },
+  "TH:buri-ram": {
+    "lat": 15.00331,
+    "lng": 103.10798,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633321",
+    "wikidataLabel": "Buriram Railway Station",
+    "match": "name"
+  },
+  "TH:cha-am": {
+    "lat": 12.799,
+    "lng": 99.9656,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021689",
+    "wikidataLabel": "Cha-am Railway Station",
+    "match": "name"
+  },
+  "TH:cha-uat": {
+    "lat": 7.9674,
+    "lng": 99.9975,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q25053242",
+    "wikidataLabel": "Cha-uat Railway Station",
+    "match": "name"
+  },
+  "TH:chaiya": {
+    "lat": 9.38722,
+    "lng": 99.19583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5068150",
+    "wikidataLabel": "Chaiya Railway Station",
+    "match": "name"
+  },
+  "TH:chakkarat": {
+    "lat": 15.0128,
+    "lng": 102.4105,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22130610",
+    "wikidataLabel": "Chakkarat Station",
+    "match": "name"
+  },
+  "TH:chansen": {
+    "lat": 15.1222,
+    "lng": 100.4598,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456197",
+    "wikidataLabel": "Chan Sen",
+    "match": "name"
+  },
+  "TH:chatturat": {
+    "lat": 15.55578,
+    "lng": 101.83992,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021681",
+    "wikidataLabel": "Chatturat railway station",
+    "match": "name"
+  },
+  "TH:chawang": {
+    "lat": 8.42063,
+    "lng": 99.50841,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021682",
+    "wikidataLabel": "Chawang",
+    "match": "name"
+  },
+  "TH:chiang-mai": {
+    "lat": 18.78365,
+    "lng": 99.01688,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q1884773",
+    "wikidataLabel": "Chiang Mai Station",
+    "match": "name"
+  },
+  "TH:chiang-rak": {
+    "lat": 14.05528,
+    "lng": 100.59267,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q15044034",
+    "wikidataLabel": "Chiang Rak Station",
+    "match": "name"
+  },
+  "TH:chong-khae": {
+    "lat": 15.1649,
+    "lng": 100.4208,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456204",
+    "wikidataLabel": "Chong Khae",
+    "match": "name"
+  },
+  "TH:chumphon": {
+    "lat": 10.50297,
+    "lng": 99.1759,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895702",
+    "wikidataLabel": "Chumphon",
+    "match": "name"
+  },
+  "TH:chumsaeng": {
+    "lat": 15.8947,
+    "lng": 100.31,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456201",
+    "wikidataLabel": "Chum Saeng",
+    "match": "name"
+  },
+  "TH:den-chai": {
+    "lat": 17.98028,
+    "lng": 100.04639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633467",
+    "wikidataLabel": "Den Chai Railway Station",
+    "match": "name"
+  },
+  "TH:don-muang": {
+    "lat": 13.91469,
+    "lng": 100.59787,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q35596136",
+    "wikidataLabel": "Ga Don Mueang",
+    "match": "close spelling"
+  },
+  "TH:hat-yai-junction": {
+    "lat": 7.00389,
+    "lng": 100.4675,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633285",
+    "wikidataLabel": "Hat Yai Junction railway station",
+    "match": "name"
+  },
+  "TH:hua-hin": {
+    "lat": 12.56526,
+    "lng": 99.95493,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633431",
+    "wikidataLabel": "Hua Hin Railway Station",
+    "match": "name"
+  },
+  "TH:hua-wai": {
+    "lat": 15.3488,
+    "lng": 100.313,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021785",
+    "wikidataLabel": "Hua Wai Station",
+    "match": "name"
+  },
+  "TH:huai-sam-phat": {
+    "lat": 17.2093,
+    "lng": 102.938,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q108907006",
+    "wikidataLabel": "Huai Sam Phat railway station",
+    "match": "name"
+  },
+  "TH:huai-thalaeng": {
+    "lat": 14.99953,
+    "lng": 102.64669,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22123954",
+    "wikidataLabel": "Huai Thalaeng Station",
+    "match": "name"
+  },
+  "TH:kaeng-khoi-junction": {
+    "lat": 14.5869,
+    "lng": 101.004,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633232",
+    "wikidataLabel": "Kaeng Khoi Junction",
+    "match": "name"
+  },
+  "TH:kaeng-sue-ten": {
+    "lat": 14.84229,
+    "lng": 101.06389,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q108907025",
+    "wikidataLabel": "Kaeng Suea Ten railway station",
+    "match": "close spelling"
+  },
+  "TH:kanchanaburi": {
+    "lat": 14.03417,
+    "lng": 99.52528,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895690",
+    "wikidataLabel": "Kanchanaburi railway station",
+    "match": "name"
+  },
+  "TH:kantang": {
+    "lat": 7.41109,
+    "lng": 99.51482,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633206",
+    "wikidataLabel": "Kantang",
+    "match": "name"
+  },
+  "TH:kanthararom": {
+    "lat": 15.1072,
+    "lng": 104.57834,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021661",
+    "wikidataLabel": "Kanthararom railway station",
+    "match": "name"
+  },
+  "TH:khao-chum-thong-junction": {
+    "lat": 8.14786,
+    "lng": 99.8822,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633286",
+    "wikidataLabel": "Khao Chum Thong",
+    "match": "name"
+  },
+  "TH:khao-suan-kwang": {
+    "lat": 16.85006,
+    "lng": 102.87644,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22131052",
+    "wikidataLabel": "Khao Suan Kwang Station",
+    "match": "name"
+  },
+  "TH:khao-thong": {
+    "lat": 15.572,
+    "lng": 100.1764,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22130696",
+    "wikidataLabel": "Khao Thong Station",
+    "match": "name"
+  },
+  "TH:khlong-chan-di": {
+    "lat": 8.38188,
+    "lng": 99.54004,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021662",
+    "wikidataLabel": "Khlong Chan Di",
+    "match": "name"
+  },
+  "TH:khok-kathiam": {
+    "lat": 14.8998,
+    "lng": 100.5934,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124578",
+    "wikidataLabel": "Khok Kathiam Junction Station",
+    "match": "name"
+  },
+  "TH:khok-kruat": {
+    "lat": 14.931,
+    "lng": 101.959,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021820",
+    "wikidataLabel": "Khok Kruat railway station",
+    "match": "name"
+  },
+  "TH:khon-kaen": {
+    "lat": 16.42667,
+    "lng": 102.82583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633205",
+    "wikidataLabel": "Khon Kaen Railway Station",
+    "match": "name"
+  },
+  "TH:khun-tan": {
+    "lat": 18.499,
+    "lng": 99.2655,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633204",
+    "wikidataLabel": "Khun Tan Railway Station",
+    "match": "name"
+  },
+  "TH:krasang": {
+    "lat": 14.927,
+    "lng": 103.30269,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22127458",
+    "wikidataLabel": "Krasang Station",
+    "match": "name"
+  },
+  "TH:kumphawapi": {
+    "lat": 17.12197,
+    "lng": 102.94808,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22127361",
+    "wikidataLabel": "Kumphawapi Station",
+    "match": "name"
+  },
+  "TH:kut-chik": {
+    "lat": 14.9058,
+    "lng": 101.882,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021660",
+    "wikidataLabel": "Kut Chik",
+    "match": "name"
+  },
+  "TH:lam-chi": {
+    "lat": 14.89977,
+    "lng": 103.42266,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q19794142",
+    "wikidataLabel": "Lam Chi railway station",
+    "match": "name"
+  },
+  "TH:lam-plai-mat": {
+    "lat": 15.02461,
+    "lng": 102.82967,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021753",
+    "wikidataLabel": "Lam Plai Mat Station",
+    "match": "name"
+  },
+  "TH:lamae": {
+    "lat": 9.77466,
+    "lng": 99.10788,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271191",
+    "wikidataLabel": "Lamae",
+    "match": "name"
+  },
+  "TH:lamphun": {
+    "lat": 18.5938,
+    "lng": 99.021,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11347448",
+    "wikidataLabel": "Lam Phun",
+    "match": "name"
+  },
+  "TH:lang-suan": {
+    "lat": 9.94924,
+    "lng": 99.07651,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633442",
+    "wikidataLabel": "Lang Suan railway station",
+    "match": "name"
+  },
+  "TH:lop-buri": {
+    "lat": 14.79861,
+    "lng": 100.61528,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895727",
+    "wikidataLabel": "Lop Buri Railway Station",
+    "match": "name"
+  },
+  "TH:mae-mo": {
+    "lat": 18.2613,
+    "lng": 99.707,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021805",
+    "wikidataLabel": "Mae Mo Station",
+    "match": "name"
+  },
+  "TH:map-ammarit": {
+    "lat": 10.8693,
+    "lng": 99.34254,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021751",
+    "wikidataLabel": "Map Ammarit",
+    "match": "name"
+  },
+  "TH:map-kabao": {
+    "lat": 14.6189,
+    "lng": 101.084,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q10729224",
+    "wikidataLabel": "Map Kabao Station",
+    "match": "name"
+  },
+  "TH:muak-lek": {
+    "lat": 14.6509,
+    "lng": 101.2,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11343201",
+    "wikidataLabel": "Muak Lek railway station",
+    "match": "name"
+  },
+  "TH:muang-khong": {
+    "lat": 15.44517,
+    "lng": 102.33117,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22126504",
+    "wikidataLabel": "Muang Khong Station",
+    "match": "name"
+  },
+  "TH:muang-phon": {
+    "lat": 15.81953,
+    "lng": 102.60053,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22126519",
+    "wikidataLabel": "Muang Phon Station",
+    "match": "name"
+  },
+  "TH:na-bon": {
+    "lat": 8.26601,
+    "lng": 99.596,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021711",
+    "wikidataLabel": "Na Bon",
+    "match": "name"
+  },
+  "TH:na-san": {
+    "lat": 8.80129,
+    "lng": 99.3624,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021715",
+    "wikidataLabel": "Na San",
+    "match": "name"
+  },
+  "TH:nakhon-lampang": {
+    "lat": 18.2796,
+    "lng": 99.4727,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633322",
+    "wikidataLabel": "Nakhon Lampang Railway Station",
+    "match": "name"
+  },
+  "TH:nakhon-pathom": {
+    "lat": 13.82434,
+    "lng": 100.05934,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633314",
+    "wikidataLabel": "Nakhon Pathom railway station",
+    "match": "name"
+  },
+  "TH:nakhon-ratchasima": {
+    "lat": 14.97243,
+    "lng": 102.07895,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q801230",
+    "wikidataLabel": "Nakhon Ratchasima Railway Station",
+    "match": "name"
+  },
+  "TH:nakhon-sawan": {
+    "lat": 15.6625,
+    "lng": 100.15833,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895715",
+    "wikidataLabel": "Nakhon Sawan Railway Station",
+    "match": "name"
+  },
+  "TH:nakhon-si-thammarat": {
+    "lat": 8.43972,
+    "lng": 99.95972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633336",
+    "wikidataLabel": "Nakhon Si Thammarat",
+    "match": "name"
+  },
+  "TH:nam-phong": {
+    "lat": 16.70861,
+    "lng": 102.86139,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22127338",
+    "wikidataLabel": "Nam Phong Station",
+    "match": "name"
+  },
+  "TH:nam-tok": {
+    "lat": 14.2325,
+    "lng": 99.06778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895716",
+    "wikidataLabel": "Nam Tok",
+    "match": "name"
+  },
+  "TH:noen-makok": {
+    "lat": 15.4757,
+    "lng": 100.1729,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124870",
+    "wikidataLabel": "Noen Makok Station",
+    "match": "name"
+  },
+  "TH:non-sa-at": {
+    "lat": 16.96703,
+    "lng": 102.89731,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124802",
+    "wikidataLabel": "Non Sa-at Station",
+    "match": "name"
+  },
+  "TH:non-sung": {
+    "lat": 15.17681,
+    "lng": 102.24822,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124821",
+    "wikidataLabel": "Non Sung Station",
+    "match": "name"
+  },
+  "TH:nong-bua-lai": {
+    "lat": 15.66842,
+    "lng": 102.49661,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124838",
+    "wikidataLabel": "Nong Bua Lai Station",
+    "match": "name"
+  },
+  "TH:nong-don": {
+    "lat": 14.6825,
+    "lng": 100.70611,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456398",
+    "wikidataLabel": "Nong Don",
+    "match": "name"
+  },
+  "TH:nong-khai": {
+    "lat": 17.8646,
+    "lng": 102.7311,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633413",
+    "wikidataLabel": "Nong Khai railway station",
+    "match": "name"
+  },
+  "TH:nong-kuai": {
+    "lat": 14.4736,
+    "lng": 100.757,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16307584",
+    "wikidataLabel": "Nong Kuai Railway Station",
+    "match": "name"
+  },
+  "TH:nong-pho": {
+    "lat": 15.3936,
+    "lng": 100.2593,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124856",
+    "wikidataLabel": "Nong Pho Station",
+    "match": "name"
+  },
+  "TH:nong-pla-duk-junction": {
+    "lat": 13.81771,
+    "lng": 99.91087,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633279",
+    "wikidataLabel": "Nong Pla Duk Junction",
+    "match": "name"
+  },
+  "TH:nong-tom": {
+    "lat": 17.1006,
+    "lng": 100.1631,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18456396",
+    "wikidataLabel": "Nong Tom",
+    "match": "name"
+  },
+  "TH:nong-wiwat": {
+    "lat": 14.5057,
+    "lng": 100.7271,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22124780",
+    "wikidataLabel": "Nong Wiwat Station",
+    "match": "name"
+  },
+  "TH:pak-chong": {
+    "lat": 14.7049,
+    "lng": 101.4106,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633354",
+    "wikidataLabel": "Pak Chong Railway Station",
+    "match": "name"
+  },
+  "TH:pak-nam-pho": {
+    "lat": 15.704,
+    "lng": 100.153,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633356",
+    "wikidataLabel": "Pak Nam Pho Station",
+    "match": "name"
+  },
+  "TH:pak-tho": {
+    "lat": 13.3747,
+    "lng": 99.8436,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021741",
+    "wikidataLabel": "Pak Tho Railway Station",
+    "match": "name"
+  },
+  "TH:pattani": {
+    "lat": 6.72889,
+    "lng": 101.09444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895729",
+    "wikidataLabel": "Pattani Railway Station",
+    "match": "name"
+  },
+  "TH:pha-sadet": {
+    "lat": 14.6446,
+    "lng": 101.101,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021746",
+    "wikidataLabel": "Pha Sadet",
+    "match": "name"
+  },
+  "TH:phatthalung": {
+    "lat": 7.62103,
+    "lng": 100.08606,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633357",
+    "wikidataLabel": "Phatthalung Railway Station",
+    "match": "name"
+  },
+  "TH:phetchaburi": {
+    "lat": 13.116,
+    "lng": 99.9414,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633465",
+    "wikidataLabel": "Phetchaburi Railway Station",
+    "match": "name"
+  },
+  "TH:phichai": {
+    "lat": 17.2892,
+    "lng": 100.088,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q14947965",
+    "wikidataLabel": "Phichai Station",
+    "match": "name"
+  },
+  "TH:phichit": {
+    "lat": 16.44778,
+    "lng": 100.34667,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11331487",
+    "wikidataLabel": "Phichit Railway Station",
+    "match": "name"
+  },
+  "TH:phitsanulok": {
+    "lat": 16.815,
+    "lng": 100.26556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11331500",
+    "wikidataLabel": "Phitsanulok Railway Station",
+    "match": "name"
+  },
+  "TH:photharam": {
+    "lat": 13.6937,
+    "lng": 99.8506,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q15303366",
+    "wikidataLabel": "Photharam Railway Station",
+    "match": "name"
+  },
+  "TH:phrom-phiram": {
+    "lat": 17.0311,
+    "lng": 100.201,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22127175",
+    "wikidataLabel": "Phrom Phiram Station",
+    "match": "name"
+  },
+  "TH:prachuap-khiri-khan": {
+    "lat": 11.8075,
+    "lng": 99.79361,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633355",
+    "wikidataLabel": "Prachuap Khiri Khan Railway Station",
+    "match": "name"
+  },
+  "TH:pran-buri": {
+    "lat": 12.3767,
+    "lng": 99.9261,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021740",
+    "wikidataLabel": "Pran Buri Railway Station",
+    "match": "name"
+  },
+  "TH:rachaburi": {
+    "lat": 13.5306,
+    "lng": 99.8238,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895726",
+    "wikidataLabel": "Ratchaburi Railway Station",
+    "match": "close spelling"
+  },
+  "TH:rangsit": {
+    "lat": 13.98972,
+    "lng": 100.60222,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633383",
+    "wikidataLabel": "Rangsit Station",
+    "match": "name"
+  },
+  "TH:sala-thammasop": {
+    "lat": 13.801,
+    "lng": 100.371,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271193",
+    "wikidataLabel": "Sala Thammasop Railway Station",
+    "match": "name"
+  },
+  "TH:sala-ya": {
+    "lat": 13.80261,
+    "lng": 100.32429,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021768",
+    "wikidataLabel": "Salaya station",
+    "match": "name"
+  },
+  "TH:sam-sen": {
+    "lat": 13.77944,
+    "lng": 100.52972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6895741",
+    "wikidataLabel": "Sam Sen Railway Station",
+    "match": "name"
+  },
+  "TH:samrong-thap": {
+    "lat": 15.0211,
+    "lng": 103.94068,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021759",
+    "wikidataLabel": "Samrong Thap Station",
+    "match": "name"
+  },
+  "TH:saraburi": {
+    "lat": 14.52722,
+    "lng": 100.91694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633392",
+    "wikidataLabel": "Saraburi Railway Station",
+    "match": "name"
+  },
+  "TH:sawi": {
+    "lat": 10.23625,
+    "lng": 99.10479,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021767",
+    "wikidataLabel": "Sawi",
+    "match": "name"
+  },
+  "TH:si-sa-ket": {
+    "lat": 15.1164,
+    "lng": 104.327,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633377",
+    "wikidataLabel": "Si Sa Ket Railway Station",
+    "match": "name"
+  },
+  "TH:sikhoraphum": {
+    "lat": 14.94444,
+    "lng": 103.78611,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633380",
+    "wikidataLabel": "Sikhoraphum Station",
+    "match": "name"
+  },
+  "TH:sila-at": {
+    "lat": 17.63972,
+    "lng": 100.10083,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q14565979",
+    "wikidataLabel": "Sila At Station",
+    "match": "name"
+  },
+  "TH:su-ngai-kolok": {
+    "lat": 6.02583,
+    "lng": 101.96444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633444",
+    "wikidataLabel": "Su-ngai Kolok railway station",
+    "match": "name"
+  },
+  "TH:sung-noen": {
+    "lat": 14.89982,
+    "lng": 101.81474,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q111940940",
+    "wikidataLabel": "Sung Noen railway station",
+    "match": "name"
+  },
+  "TH:surat-thani": {
+    "lat": 9.10389,
+    "lng": 99.23056,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4922287",
+    "wikidataLabel": "Surat Thani Railway Station",
+    "match": "name"
+  },
+  "TH:surin": {
+    "lat": 14.89146,
+    "lng": 103.49397,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633430",
+    "wikidataLabel": "Surin railway station",
+    "match": "name"
+  },
+  "TH:taling-chan-junction": {
+    "lat": 13.7888,
+    "lng": 100.441,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633300",
+    "wikidataLabel": "Taling Chan Station",
+    "match": "name"
+  },
+  "TH:tanyong-mat": {
+    "lat": 6.2925,
+    "lng": 101.71417,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13386012",
+    "wikidataLabel": "Tan Yong Mat",
+    "match": "name"
+  },
+  "TH:taphan-hin": {
+    "lat": 16.2201,
+    "lng": 100.424,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633236",
+    "wikidataLabel": "Taphan Hin Station",
+    "match": "name"
+  },
+  "TH:tha-chana": {
+    "lat": 9.56562,
+    "lng": 99.16518,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q13021704",
+    "wikidataLabel": "Tha Chana",
+    "match": "name"
+  },
+  "TH:tha-kilen": {
+    "lat": 14.0407,
+    "lng": 99.25685,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q108907026",
+    "wikidataLabel": "Tha Kilen railway station",
+    "match": "name"
+  },
+  "TH:tha-lo": {
+    "lat": 16.5122,
+    "lng": 100.33,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22123199",
+    "wikidataLabel": "Tha Lo Station",
+    "match": "name"
+  },
+  "TH:tha-rua": {
+    "lat": 14.5625,
+    "lng": 100.72417,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q11316596",
+    "wikidataLabel": "Tha Ruea",
+    "match": "close spelling"
+  },
+  "TH:tha-sak": {
+    "lat": 17.41194,
+    "lng": 100.09778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q28197262",
+    "wikidataLabel": "Tha Sak Railway Station",
+    "match": "name"
+  },
+  "TH:thanon-chira-junction": {
+    "lat": 14.9675,
+    "lng": 102.10167,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4923132",
+    "wikidataLabel": "Thanon Chira Junction",
+    "match": "name"
+  },
+  "TH:thap-krit": {
+    "lat": 15.7552,
+    "lng": 100.2575,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q22127946",
+    "wikidataLabel": "Thap Krit Station",
+    "match": "name"
+  },
+  "TH:thap-sakae": {
+    "lat": 11.4981,
+    "lng": 99.6228,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271179",
+    "wikidataLabel": "Thap Sakae Railway Station",
+    "match": "name"
+  },
+  "TH:thon-buri": {
+    "lat": 13.75972,
+    "lng": 100.48694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q130198",
+    "wikidataLabel": "Thonburi Railway Station",
+    "match": "name"
+  },
+  "TH:thung-song-junction": {
+    "lat": 8.17048,
+    "lng": 99.67951,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633274",
+    "wikidataLabel": "Thung Song Junction",
+    "match": "name"
+  },
+  "TH:trang": {
+    "lat": 7.55443,
+    "lng": 99.60458,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633276",
+    "wikidataLabel": "Trang railway station",
+    "match": "name"
+  },
+  "TH:tron": {
+    "lat": 17.4832,
+    "lng": 100.1095,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q28197260",
+    "wikidataLabel": "Tron Railway Station",
+    "match": "name"
+  },
+  "TH:ubon-ratchathani": {
+    "lat": 15.20139,
+    "lng": 104.85917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633445",
+    "wikidataLabel": "Ubon Ratchathani Railway Station",
+    "match": "name"
+  },
+  "TH:udon-thani": {
+    "lat": 17.40415,
+    "lng": 102.80545,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633435",
+    "wikidataLabel": "Udon Thani Railway Station",
+    "match": "name"
+  },
+  "TH:uthumphon-phisai": {
+    "lat": 15.10611,
+    "lng": 104.14056,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633412",
+    "wikidataLabel": "Uthumphon Phisai Station",
+    "match": "name"
+  },
+  "TH:uttaradit": {
+    "lat": 17.6197,
+    "lng": 100.097,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633429",
+    "wikidataLabel": "Uttaradit Railway Station",
+    "match": "name"
+  },
+  "TH:wang-krot": {
+    "lat": 16.399,
+    "lng": 100.3894,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q18457154",
+    "wikidataLabel": "Wang Krot",
+    "match": "name"
+  },
+  "TH:wang-phong": {
+    "lat": 12.4036,
+    "lng": 99.9329,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16271192",
+    "wikidataLabel": "Wang Phong Railway Station",
+    "match": "name"
+  },
+  "TH:yala": {
+    "lat": 6.56056,
+    "lng": 101.29278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q6633389",
+    "wikidataLabel": "Yala Railway Station",
+    "match": "name"
+  },
+  "VN:biên-hòa": {
+    "lat": 10.95083,
+    "lng": 106.82639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q2012224",
+    "wikidataLabel": "Ga Biên Hòa",
+    "match": "name"
+  },
+  "VN:bình-thuận": {
+    "lat": 10.96861,
+    "lng": 108.00306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q4914343",
+    "wikidataLabel": "Ga Bình Thuận",
+    "match": "name"
+  },
+  "VN:bỉm-sơn": {
+    "lat": 20.08139,
+    "lng": 105.85528,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60325245",
+    "wikidataLabel": "Ga Bỉm Sơn",
+    "match": "name"
+  },
+  "VN:bồng-sơn": {
+    "lat": 14.43833,
+    "lng": 109.01944,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q10760429",
+    "wikidataLabel": "Ga Bồng Sơn",
+    "match": "name"
+  },
+  "VN:chợ-sy": {
+    "lat": 19.0075,
+    "lng": 105.57583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364070",
+    "wikidataLabel": "Ga Chợ Sy",
+    "match": "name"
+  },
+  "VN:diêu-trì": {
+    "lat": 13.80722,
+    "lng": 109.14361,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q3096367",
+    "wikidataLabel": "Ga Diêu Trì",
+    "match": "name"
+  },
+  "VN:dĩ-an": {
+    "lat": 10.90778,
+    "lng": 106.76917,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5270017",
+    "wikidataLabel": "Ga Dĩ An",
+    "match": "name"
+  },
+  "VN:giã": {
+    "lat": 12.7,
+    "lng": 109.22361,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60367176",
+    "wikidataLabel": "Ga Giã",
+    "match": "name"
+  },
+  "VN:huế": {
+    "lat": 16.4565,
+    "lng": 107.578,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q994118",
+    "wikidataLabel": "Ga Huế",
+    "match": "name"
+  },
+  "VN:hương-phố": {
+    "lat": 18.16972,
+    "lng": 105.70778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364585",
+    "wikidataLabel": "Ga Hương Phố",
+    "match": "name"
+  },
+  "VN:la-hai": {
+    "lat": 13.38167,
+    "lng": 109.10583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60367466",
+    "wikidataLabel": "Ga La Hai",
+    "match": "name"
+  },
+  "VN:long-khánh": {
+    "lat": 10.93333,
+    "lng": 107.24583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364815",
+    "wikidataLabel": "Ga Long Khánh",
+    "match": "name"
+  },
+  "VN:minh-khôi": {
+    "lat": 19.63278,
+    "lng": 105.70194,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364004",
+    "wikidataLabel": "Ga Minh Khôi",
+    "match": "name"
+  },
+  "VN:minh-lệ": {
+    "lat": 17.71222,
+    "lng": 106.37028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364715",
+    "wikidataLabel": "Ga Minh Lệ",
+    "match": "name"
+  },
+  "VN:mỹ-trạch": {
+    "lat": 17.18667,
+    "lng": 106.80556,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364424",
+    "wikidataLabel": "Ga Mỹ Trạch",
+    "match": "name"
+  },
+  "VN:mỹ-đức": {
+    "lat": 17.23833,
+    "lng": 106.69583,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364400",
+    "wikidataLabel": "Ga Mỹ Đức",
+    "match": "name"
+  },
+  "VN:nam-định": {
+    "lat": 20.42,
+    "lng": 106.16444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q3097164",
+    "wikidataLabel": "Ga Nam Định",
+    "match": "name"
+  },
+  "VN:nha-trang": {
+    "lat": 12.24833,
+    "lng": 109.18417,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q3097205",
+    "wikidataLabel": "Ga Nha Trang",
+    "match": "name"
+  },
+  "VN:ninh-bình": {
+    "lat": 20.242,
+    "lng": 105.97486,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q16877130",
+    "wikidataLabel": "Ga Ninh Bình",
+    "match": "name"
+  },
+  "VN:ninh-hoà": {
+    "lat": 12.48889,
+    "lng": 109.12278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60367202",
+    "wikidataLabel": "Ga Ninh Hòa",
+    "match": "name"
+  },
+  "VN:núi-thành": {
+    "lat": 15.42111,
+    "lng": 108.66972,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60363906",
+    "wikidataLabel": "Ga Núi Thành",
+    "match": "name"
+  },
+  "VN:phủ-lý": {
+    "lat": 20.54056,
+    "lng": 105.91306,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7188250",
+    "wikidataLabel": "Ga Phủ Lý",
+    "match": "name"
+  },
+  "VN:quảng-ngãi": {
+    "lat": 15.12078,
+    "lng": 108.78114,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7268850",
+    "wikidataLabel": "Ga Quảng Ngãi",
+    "match": "name"
+  },
+  "VN:suối-kiết": {
+    "lat": 10.96833,
+    "lng": 107.63028,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364792",
+    "wikidataLabel": "Ga Suối Kiết",
+    "match": "name"
+  },
+  "VN:tam-kỳ": {
+    "lat": 15.5575,
+    "lng": 108.48278,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7680466",
+    "wikidataLabel": "Ga Tam Kỳ",
+    "match": "name"
+  },
+  "VN:thanh-hoá": {
+    "lat": 19.81167,
+    "lng": 105.76694,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7710349",
+    "wikidataLabel": "Ga Thanh Hóa",
+    "match": "name"
+  },
+  "VN:tháp-chàm": {
+    "lat": 11.59722,
+    "lng": 108.95,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q2215367",
+    "wikidataLabel": "Ga Tháp Chàm",
+    "match": "name"
+  },
+  "VN:trà-kiệu": {
+    "lat": 15.80944,
+    "lng": 108.23111,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60363892",
+    "wikidataLabel": "Ga Trà Kiệu",
+    "match": "name"
+  },
+  "VN:tuy-hoà": {
+    "lat": 13.0881,
+    "lng": 109.2973,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7857223",
+    "wikidataLabel": "Ga Tuy Hòa",
+    "match": "name"
+  },
+  "VN:vinh": {
+    "lat": 18.68833,
+    "lng": 105.66444,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q7932534",
+    "wikidataLabel": "Ga Vinh",
+    "match": "name"
+  },
+  "VN:yên-trung": {
+    "lat": 18.52361,
+    "lng": 105.58778,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60299868",
+    "wikidataLabel": "Ga Yên Trung",
+    "match": "name"
+  },
+  "VN:đà-nẵng": {
+    "lat": 16.0716,
+    "lng": 108.2092,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q3096350",
+    "wikidataLabel": "Ga Đà Nẵng",
+    "match": "name"
+  },
+  "VN:đông-hà": {
+    "lat": 16.81111,
+    "lng": 107.11167,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q5295730",
+    "wikidataLabel": "Ga Đông Hà",
+    "match": "name"
+  },
+  "VN:đồng-hới": {
+    "lat": 17.46927,
+    "lng": 106.60011,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q527753",
+    "wikidataLabel": "Ga Đồng Hới",
+    "match": "name"
+  },
+  "VN:đồng-lê": {
+    "lat": 17.88778,
+    "lng": 106.02194,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60364689",
+    "wikidataLabel": "Ga Đồng Lê",
+    "match": "name"
+  },
+  "VN:đức-phổ": {
+    "lat": 14.80972,
+    "lng": 108.94639,
+    "coordinateSource": "https://www.wikidata.org/wiki/Q60367487",
+    "wikidataLabel": "Ga Đức Phổ",
+    "match": "name"
+  }
+}

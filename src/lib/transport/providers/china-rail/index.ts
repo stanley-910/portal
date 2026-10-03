@@ -15,18 +15,11 @@ const MIN_MATCH_KM = 60;
 const OFFSET = { "Asia/Shanghai": "+08:00", "Asia/Hong_Kong": "+08:00" } as const;
 
 
-/** Nearest station within `radiusKm` picks the city; every station in that city matches. */
+/** Include adjacent cities too; nearest-city-only matching hides useful rail alternatives. */
 function stationsNear(seed: Seed, lat: number, lng: number, radiusKm: number): Set<string> {
-  let city: string | undefined;
-  let bestKm = radiusKm;
-  for (const s of Object.values(seed.stations)) {
-    const km = distanceKm(lat, lng, s.lat, s.lng);
-    if (km <= bestKm) {
-      city = s.city;
-      bestKm = km;
-    }
-  }
-  return new Set(Object.keys(seed.stations).filter((k) => city !== undefined && seed.stations[k].city === city));
+  return new Set(Object.entries(seed.stations)
+    .filter(([, station]) => distanceKm(lat, lng, station.lat, station.lng) <= radiusKm)
+    .map(([id]) => id));
 }
 
 function at(date: string, hhmm: string, offset: string, plusMin = 0): string {
@@ -39,7 +32,15 @@ export function createChinaRailProvider(seed: Seed): TransportProvider {
     const radiusKm = matchRadiusKm(q.from, q.to, MIN_MATCH_KM);
     const from = stationsNear(seed, q.from.lat, q.from.lng, radiusKm);
     const to = stationsNear(seed, q.to.lat, q.to.lng, radiusKm);
-    return seed.trains.filter((t) => from.has(t.from) && to.has(t.to));
+    const km = (a: Place, b: Place) => distanceKm(a.lat, a.lng, b.lat, b.lng);
+    const direct = km(q.from, q.to);
+    return seed.trains.filter((t) => {
+      if (!from.has(t.from) || !to.has(t.to)) return false;
+      const a = seed.stations[t.from], b = seed.stations[t.to];
+      const access = km(q.from, a), egress = km(b, q.to);
+      return km(a, q.to) > egress && km(b, q.from) > access &&
+        access + km(a, b) + egress <= direct * 1.75 + 25;
+    });
   };
   const place = (key: string, s: Station): Place => ({
     name: s.name,

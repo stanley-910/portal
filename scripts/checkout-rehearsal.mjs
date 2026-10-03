@@ -1,11 +1,11 @@
 // Drives the booking rehearsal in headless Chromium: Ann settles, both riders enter details, both pay through Stripe
 // Checkout with the 4242 test card, and the leg ends Booked. Needs the dev server, `stripe listen` and a trip from
-// src/lib/booking/demo-seed.test.ts:  node scripts/checkout-rehearsal.mjs <TRIP_ID>   (SKIP_SETTLE=1 resumes at paying)
+// src/lib/booking/demo-seed.test.ts:  node scripts/checkout-rehearsal.mjs <TRIP_ID>   (SKIP_SETTLE=1 resumes at paying, BASE_URL=https://… for a tunnel)
 import { chromium } from "playwright";
-const TRIP = process.argv[2]; const BASE = "http://localhost:3000"; const url = `${BASE}/t/${TRIP}`;
+const TRIP = process.argv[2]; const BASE = process.env.BASE_URL ?? "http://localhost:3000"; const url = `${BASE}/t/${TRIP}`;
 const S = process.env.SHOTS;
 const browser = await chromium.launch();
-const ctxFor = async (id, name) => { const c = await browser.newContext(); await c.addCookies([{ name: "portal_guest", value: id, domain: "localhost", path: "/" }, { name: "portal_name", value: name, domain: "localhost", path: "/" }]); const p = await c.newPage(); p.on("console", m => { if (m.type()==="error") console.log(`[${name} console]`, m.text().slice(0,160)); }); return p; };
+const ctxFor = async (id, name) => { const c = await browser.newContext(); await c.addCookies([{ name: "portal_guest", value: id, domain: new URL(BASE).hostname, path: "/" }, { name: "portal_name", value: name, domain: new URL(BASE).hostname, path: "/" }]); const p = await c.newPage(); p.on("console", m => { if (m.type()==="error") console.log(`[${name} console]`, m.text().slice(0,160)); }); return p; };
 const ann = await ctxFor("g_demoAnn", "Ann"); const bo = await ctxFor("g_demoBo", "Bo");
 const log = (...a) => console.log(new Date().toISOString().slice(11,19), ...a);
 const status = async (p) => (await p.locator(".tp-book-head").textContent().catch(()=>"(no booking head)"))?.trim();
@@ -38,7 +38,7 @@ const payStripe = async (p, who) => {
   await p.waitForTimeout(3000);
 };
 try {
-  await ann.goto(url); await bo.goto(url);
+  await ann.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 }); await bo.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   if (process.env.SKIP_SETTLE) { await ann.locator(".tp-book").waitFor({ timeout: 30000 }); log("resuming:", await status(ann)); } else {
   await ann.getByRole("button", { name: "Settle and book" }).waitFor({ timeout: 30000 });
   log("ann settling"); await ann.getByRole("button", { name: "Settle and book" }).click();

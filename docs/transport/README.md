@@ -13,7 +13,7 @@ tracks rail across China, Taiwan, Japan, Korea and Southeast Asia, plus buses, f
 
 [Current rail source capture](findings/rail-capture.md) records the October 3–4 collection of published fares, PDFs,
 spreadsheets, GTFS, HTML timetables and dated China/Japan samples. `python3 scripts/capture-rail.py` refreshes local source evidence;
-these captures are not yet integrated into the runtime providers.
+timetable captures are integrated through `rail-cache`; fare-only evidence remains separate.
 
 ## The pipeline
 
@@ -28,6 +28,20 @@ these captures are not yet integrated into the runtime providers.
    cancelled search never reads as failed. A search that drops its connection is retried once before the card says
    it failed, and one still running after 4 seconds says "Still looking." Dates are the displayed local calendar date,
    not a sliced UTC timestamp.
+
+## Pip's nearby rail search
+
+Both home-globe and shared-trip Pip have a read-only `search_nearby_trains` tool for budget questions and missing
+train options. It searches rail independently of the mixed-mode fare list and reports a representative service for
+each station pair, with the actual station endpoints and straight-line access distances. China station matching
+includes adjacent cities within the provider radius (up to 100 km), with progress and detour checks to exclude
+backwards journeys. Other providers retain their own station matching and coverage limits.
+
+The tool accepts a maximum rail fare per person and currency. Same-currency fares can be compared; unknown or
+other-currency fares remain visible as unverified against the budget. Transfers are not priced or timed, so Pip
+cannot claim a cheaper door-to-door journey or convert distance into a driving-time promise. It suggests options
+without replacing the original trip endpoints. Station geocoding, schedule and fare coverage still bound the search;
+this does not add nationwide China coverage or a rail-transfer planner.
 
 ## Hover preview
 

@@ -1,0 +1,13 @@
+import { chromium } from "playwright";
+const [BASE, TRIP] = process.argv.slice(2);
+const b = await chromium.launch(); const c = await b.newContext();
+await c.addCookies([{ name: "portal_guest", value: "g_demoAnn", domain: new URL(BASE).hostname, path: "/" }, { name: "portal_name", value: "Ann", domain: new URL(BASE).hostname, path: "/" }]);
+const p = await c.newPage(); const t0 = Date.now(); const t = () => ((Date.now()-t0)/1000).toFixed(1)+"s";
+p.on("response", async r => { const u = r.url(); if (/liveblocks|auth|api\//.test(u) && !/_next/.test(u)) console.log(t(), "resp", r.status(), r.request().method(), u.slice(0,100)); });
+p.on("requestfailed", r => console.log(t(), "failed", r.url().slice(0,100), r.failure()?.errorText));
+p.on("websocket", ws => console.log(t(), "ws", ws.url().slice(0,80)));
+p.on("console", m => { if (m.type()!=="log") console.log(t(), "console", m.type(), m.text().slice(0,160)); });
+await p.goto(`${BASE}/t/${TRIP}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+const ok = await p.getByRole("button", { name: "Settle and book" }).waitFor({ timeout: 120000 }).then(()=>true).catch(()=>false);
+console.log(t(), "settle button visible:", ok, "| panel text:", (await p.locator(".tp, aside, [class*=plan]").first().innerText().catch(()=>"(none)")).replace(/\s+/g," ").slice(0,160));
+await b.close();

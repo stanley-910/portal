@@ -1,3 +1,4 @@
+import { NEARBY_RAIL_INSTRUCTION, railPreferences, searchNearbyRail } from "./nearby-rail";
 import "server-only";
 
 import { deepseek, type DeepSeekLanguageModelChatOptions } from "@ai-sdk/deepseek";
@@ -59,6 +60,7 @@ How to work:
 - A return or round trip is just one more leg back to where they started. Call plan_trip with the trip's stops (the ones on their globe, or the ones they name) and the first stop again at the end, the return date as that last leg's date. "How do I get back?" means the same: keep the legs they have and add the one home.
 - Then, if they asked about fares, times or the cheapest way, call search_routes for it in the same turn.
 - To talk about fares or times, call search_routes and quote it exactly; say when a price is estimated. Never estimate fares, distances or durations yourself.
+- ${NEARBY_RAIL_INSTRUCTION}
 - For visa, passport or entry questions, call check_entry for each leg it's about (by its number on their globe), or for a place they name. It covers every passport they've saved. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When their passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. If they've saved no passport, say so: they add them under Passports in the profile menu. Mention estimated rules as estimates, and end with the official-source reminder.
 - For "where should we meet", call find_meetup. Its card has a button that puts their own leg on the globe.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
@@ -136,6 +138,22 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState) {
             return `${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${cost} (${KIND[o.kind]})`;
           }),
         };
+      },
+    }),
+
+    search_nearby_trains: tool({
+      description: "Search train alternatives around both endpoints, including adjacent cities, for cheaper travel or missing trains. Returns actual station names and access distances without changing the trip.",
+      inputSchema: z.object({ from: z.string(), to: z.string(), date, ...railPreferences }),
+      execute: async ({ from, to, date: day, ...preferences }) => {
+        const a = place(from), b = place(to);
+        if ("refused" in a) return a;
+        if ("refused" in b) return b;
+        emit({ t: "activity", label: "checking nearby train stations" });
+        try {
+          return await searchNearbyRail({ from: stopToPlace(a), to: stopToPlace(b), date: day,
+            modes: ["train"], passengers: 1, currency: preferences.currency }, preferences, AbortSignal.timeout(15_000));
+        } catch { return { refused: "SEARCH_FAILED", next: "Say the nearby rail search failed; do not infer that no trains exist." }; }
+        finally { emit({ t: "activity", label: null }); }
       },
     }),
 

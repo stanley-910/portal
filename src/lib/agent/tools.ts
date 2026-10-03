@@ -1,6 +1,8 @@
 import "server-only";
 
 import { tool } from "ai";
+import { railPreferences, searchNearbyRail } from "./nearby-rail";
+import { stopToPlace } from "@/lib/trip/stops";
 import { z } from "zod";
 
 import { editPlan, resolvePlace, type EditOp, type PlaceRef } from "@/lib/agent/edit";
@@ -137,6 +139,25 @@ export function agentTools(ctx: ToolContext) {
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
         return { leg, total: l.search.offers.length, options, note: "Quote these exactly. Prices in different currencies are ordered by a rough conversion." };
+      },
+    }),
+
+    search_nearby_trains: tool({
+      description: "Search fresh train options around both ends of a leg, including adjacent cities, when optimizing cost or no trains appear. Read-only; includes transfer distances and unknown fares.",
+      inputSchema: z.object({ leg: z.string().describe("Leg handle from get_trip"), ...railPreferences }),
+      execute: async ({ leg, ...preferences }) => {
+        const { plan, handles } = await ctx.load();
+        const id = handles.id.get(leg);
+        const selected = id ? plan.legs?.[id] : undefined;
+        const from = selected && plan.stops?.[selected.from], to = selected && plan.stops?.[selected.to];
+        if (!selected || !from || !to) return { refused: "UNKNOWN_HANDLE", next: "Call get_trip and use a current leg handle." };
+        if (Date.now() >= ctx.until) return OUT_OF_TIME;
+        ctx.activity("checking nearby train stations", from);
+        try {
+          return await searchNearbyRail({ from: stopToPlace(from), to: stopToPlace(to), date: selected.date,
+            modes: ["train"], passengers: 1, currency: preferences.currency }, preferences,
+            AbortSignal.timeout(Math.max(1, Math.min(15_000, ctx.until - Date.now()))));
+        } catch { return { refused: "SEARCH_FAILED", next: "Say the nearby rail search failed; do not infer that no trains exist." }; }
       },
     }),
 
