@@ -27,7 +27,8 @@ export function useThread(): ThreadMessage[] {
  * until the room has loaded.
  */
 export function usePipReplies(): number | null {
-  return useStorage((root) => root.thread?.filter((m) => m.author.kind === "agent" && m.state !== "streaming").length ?? 0);
+  // queued and streaming replies aren't finished yet
+  return useStorage((root) => root.thread?.filter((m) => m.author.kind === "agent" && (m.state === "done" || m.state === "failed")).length ?? 0);
 }
 
 /** What Pip is doing right now, from the presence the server sets for it; null when it's idle or away. */

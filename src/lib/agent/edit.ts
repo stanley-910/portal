@@ -68,7 +68,11 @@ export async function editPlan(roomId: string, plan: PlanJson, h: Handles, ops: 
   const applied: string[] = [];
   const before: Before = { legs: {}, stops: {} };
   const searches: { legId: string; searchId: string }[] = [];
-  const member = (handle: string) => h.id.get(handle) ?? (plan.members?.[handle] ? handle : undefined);
+  // handles outlive members within a run (snapshot.ts), so check they're still in the trip
+  const member = (handle: string) => {
+    const id = h.id.get(handle) ?? handle;
+    return plan.members?.[id] ? id : undefined;
+  };
   const legId = (handle: string) => {
     const id = h.id.get(handle);
     return id && plan.legs?.[id] ? id : undefined;

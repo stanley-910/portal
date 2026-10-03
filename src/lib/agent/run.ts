@@ -19,11 +19,14 @@ import { liveblocks } from "@/lib/liveblocks/server";
 const MODEL = "deepseek-flash";
 const MAX_STEPS = 10;
 const LEASE_MS = 90_000;
-/** How long a message waits for Pip to finish earlier ones. With a run's lease, it fits the route's 300 s. */
+/**
+ * How long a message waits for Pip to finish earlier ones, from when its request started. Then it runs for at most
+ * LEASE_MS, which fits the route's 300 s with room to write the reply.
+ */
 const QUEUE_WAIT_MS = 180_000;
 const QUEUE_POLL_MS = 1_500;
-/** A reply still owed after this was left by a run that died; it no longer holds up the ones after it. */
-const STALE_MS = QUEUE_WAIT_MS + LEASE_MS;
+/** A queued reply gives up at QUEUE_WAIT_MS; past this it was left by a request that died. */
+const QUEUED_STALE_MS = QUEUE_WAIT_MS + 15_000;
 // Usage limits while nobody pays for Pip: the DeepSeek balance is the hard ceiling; these keep one trip or one
 // person from spending it. Over a limit, Pip answers from its tools without the model instead of failing.
 /** Model runs per trip per UTC day. */
@@ -69,9 +72,17 @@ const newId = () => crypto.randomUUID().slice(0, 8);
 /** The reply a posted message is owed. */
 export type Claim = { messageId: string; replyId: string };
 
+const waiting = (m: ThreadMessage) => m.author.kind === "agent" && (m.state === "queued" || m.state === "streaming");
+
+/**
+ * Whether a reply that says it's queued or being written was left by a request that died: a run that started more
+ * than LEASE_MS ago, or a queued one past the longest anyone waits. Exported for tests.
+ */
+export const abandoned = (m: ThreadMessage, now: number) =>
+  m.state === "streaming" ? now - (m.startedAt ?? m.at) > LEASE_MS : now - m.at > QUEUED_STALE_MS;
+
 /** Replies Pip still owes, in thread order: the first one is the one Pip is on. */
-const owed = (thread: readonly ThreadMessage[], now: number) =>
-  thread.filter((m) => m.author.kind === "agent" && (m.state === "queued" || m.state === "streaming") && now - m.at < STALE_MS);
+export const owed = (thread: readonly ThreadMessage[], now: number) => thread.filter((m) => waiting(m) && !abandoned(m, now));
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -82,15 +93,23 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function postToPip(roomId: string, authorId: string, text: string): Promise<{ messageId: string; claim: Claim }> {
   const messageId = newId();
   const replyId = newId();
-  await liveblocks().mutateStorage(roomId, ({ root }) => {
-    const now = Date.now();
-    const message: ThreadMessage = { id: messageId, at: now, author: { kind: "member", id: authorId }, text, state: "done", cards: [] };
-    let thread = root.get("thread");
-    if (thread) thread.push(new LiveObject(message));
-    else root.set("thread", (thread = new LiveList([new LiveObject(message)])));
-    const ahead = owed(thread.map((m) => m.toJSON()), now).length > 0;
-    thread.push(new LiveObject<ThreadMessage>({ id: replyId, at: now, author: { kind: "agent" }, text: "", state: ahead ? "queued" : "streaming", cards: [] }));
-  });
+  let posted = false;
+  const post = () =>
+    liveblocks().mutateStorage(roomId, ({ root }) => {
+      const thread = root.get("thread");
+      // Rooms made before the thread get an empty one first, in a write of its own, and the post goes in after it.
+      // Two servers can both make one and only one survives, but neither put a message in it, so nothing is lost;
+      // making the thread and posting in one write could lose a message, and with it the queue's order.
+      if (!thread) return root.set("thread", new LiveList([]));
+      const now = Date.now();
+      const ahead = owed(thread.map((m) => m.toJSON()), now).length > 0;
+      thread.push(new LiveObject<ThreadMessage>({ id: messageId, at: now, author: { kind: "member", id: authorId }, text, state: "done", cards: [] }));
+      thread.push(new LiveObject<ThreadMessage>({ id: replyId, at: now, author: { kind: "agent" }, text: "", state: ahead ? "queued" : "streaming", cards: [] }));
+      posted = true;
+    });
+  await post();
+  if (!posted) await post();
+  if (!posted) throw new Error("The trip has no thread to post to.");
   return { messageId, claim: { messageId, replyId } };
 }
 
@@ -109,32 +128,51 @@ export async function runAgent(roomId: string, { messageId, replyId }: Claim, as
   // posted at the same moment from different servers still land in one order everyone agrees on. A single "who's
   // running" value can't do that, since mutateStorage reads and then writes, and two servers could both see it empty.
   const deadline = Date.now() + QUEUE_WAIT_MS;
-  for (let waited = false; ; waited = true) {
-    const thread = ((await lb.getStorageDocument(roomId, "json")) as PlanJson).thread ?? [];
-    const now = Date.now();
-    const ahead = owed(thread, now);
-    if (ahead[0]?.id === replyId) break;
-    if (now > deadline) {
-      await patchReply((m) => m.update({ text: "I couldn't get to this one in time. Ask me again.", state: "failed" }));
-      return;
-    }
-    // posted as started by a server that raced another one, and lost: show it waiting
-    if (!waited && ahead.some((m) => m.id === replyId)) await patchReply((m) => m.set("state", "queued"));
-    await sleep(QUEUE_POLL_MS);
-  }
-
+  let startedAt = 0;
   let overLimit = false;
-  await lb.mutateStorage(roomId, ({ root }) => {
-    const now = Date.now();
-    root.get("thread")?.find((m) => m.get("id") === replyId)?.set("state", "streaming");
-    // tells everyone's chat Pip is busy; turns don't depend on it
-    root.set("agentRun", { id: runId, status: "running", by: askedBy, until: now + LEASE_MS });
-    const day = new Date(now).toISOString().slice(0, 10);
-    const usage = root.get("agentUsage");
-    const runs = usage?.day === day ? usage.runs : 0;
-    overLimit = runs >= TRIP_RUNS_PER_DAY;
-    if (!overLimit) root.set("agentUsage", { day, runs: runs + 1 });
-  });
+  try {
+    for (let waited = false; ; waited = true) {
+      const thread = ((await lb.getStorageDocument(roomId, "json")) as PlanJson).thread ?? [];
+      const now = Date.now();
+      // replies left by requests that died say so, rather than "thinking" forever
+      const dead = thread.filter((m) => waiting(m) && abandoned(m, now)).map((m) => m.id);
+      if (dead.length) {
+        await lb.mutateStorage(roomId, ({ root }) => {
+          for (const m of root.get("thread") ?? []) {
+            if (!dead.includes(m.get("id")) || !waiting(m.toJSON()) || !abandoned(m.toJSON(), Date.now())) continue;
+            m.update({ text: m.get("text") || "I lost track of this one. Ask me again.", state: "failed" });
+          }
+        });
+      }
+      const ahead = owed(thread, now);
+      if (ahead[0]?.id === replyId) break;
+      if (now > deadline) {
+        await patchReply((m) => m.update({ text: "I couldn't get to this one in time. Ask me again.", state: "failed" }));
+        return;
+      }
+      // posted as started by a server that raced another one, and lost: show it waiting
+      if (!waited && ahead.some((m) => m.id === replyId)) await patchReply((m) => m.set("state", "queued"));
+      await sleep(QUEUE_POLL_MS);
+    }
+
+    await lb.mutateStorage(roomId, ({ root }) => {
+      startedAt = Date.now();
+      root.get("thread")?.find((m) => m.get("id") === replyId)?.update({ state: "streaming", startedAt });
+      // tells everyone's chat Pip is busy; turns don't depend on it
+      root.set("agentRun", { id: runId, status: "running", by: askedBy, until: startedAt + LEASE_MS });
+      const day = new Date(startedAt).toISOString().slice(0, 10);
+      const usage = root.get("agentUsage");
+      const runs = usage?.day === day ? usage.runs : 0;
+      overLimit = runs >= TRIP_RUNS_PER_DAY;
+      if (!overLimit) root.set("agentUsage", { day, runs: runs + 1 });
+    });
+  } catch (error) {
+    console.error("AGENT_QUEUE_FAILED", error);
+    await patchReply((m) => m.update({ text: "Something went wrong on my side. Try asking again.", state: "failed" })).catch(() => {});
+    return;
+  }
+  // Past this the reply counts as abandoned and the next one starts, so this run makes no more changes after it.
+  const runEnds = startedAt + LEASE_MS - 5_000;
 
   const presence = (activity: string | null, cursor: { lat: number; lng: number } | null = null) =>
     lb
@@ -200,6 +238,7 @@ export async function runAgent(roomId: string, { messageId, replyId }: Claim, as
         }),
       activity,
       meetups,
+      expired: () => Date.now() > runEnds,
     };
 
     if (!process.env.DEEPSEEK_API_KEY || overLimit) {
@@ -221,7 +260,7 @@ export async function runAgent(roomId: string, { messageId, replyId }: Claim, as
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           // the edits and lookups here don't need deep thought, and every reasoning token delays the reply
           providerOptions: { deepseek: { reasoningEffort: "low" } satisfies DeepSeekLanguageModelChatOptions },
-          abortSignal: AbortSignal.timeout(LEASE_MS - 5_000),
+          abortSignal: AbortSignal.timeout(Math.max(0, runEnds - Date.now())),
         });
         for await (const part of result.stream) {
           if (part.type === "text-delta") text += part.text;

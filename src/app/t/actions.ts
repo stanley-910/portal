@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 
-import { LiveMap, LiveObject } from "@liveblocks/node";
+import { LiveList, LiveMap, LiveObject } from "@liveblocks/node";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 
@@ -55,6 +55,7 @@ export async function startTripWithPip(text: string) {
     if (!root.get("members")) root.set("members", new LiveMap([[user.id, new LiveObject({ name: user.displayName, color: 1 })]]));
     if (!root.get("stops")) root.set("stops", new LiveMap());
     if (!root.get("legs")) root.set("legs", new LiveMap());
+    if (!root.get("thread")) root.set("thread", new LiveList([]));
   });
   const { claim } = await postToPip(roomId, user.id, message);
   after(() => runAgent(roomId, claim, user.id));

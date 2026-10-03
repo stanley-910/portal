@@ -11,10 +11,37 @@ import { liveblocks } from "@/lib/liveblocks/server";
 
 type Root = LiveObject<Liveblocks["Storage"]>;
 
+/** A list of member ids with the guest swapped for the account, each once. */
+const swapIn = (ids: readonly string[], guestId: string, accountId: string) =>
+  [...new Set(ids.map((id) => (id === guestId ? accountId : id)))];
+
+/** A record keyed by member id with the guest's entry moved to the account, unless the account has its own. */
+function moveKey<T>(record: Record<string, T> | undefined, guestId: string, accountId: string) {
+  if (!record || !(guestId in record)) return record;
+  const { [guestId]: guest, ...rest } = record;
+  return accountId in rest ? rest : { ...rest, [accountId]: guest };
+}
+
+/**
+ * An Undo snapshot (lib/agent/edit.ts) with the guest moved onto the account, by field: riders swapped and kept once,
+ * the guest's vote and leave date moved unless the account has its own, legs they drew credited to the account.
+ */
+export function adoptChangeset(json: string, guestId: string, accountId: string): string {
+  if (!json.includes(guestId)) return json;
+  type LegBefore = { riders?: string[]; createdBy?: string; votes?: Record<string, string> } | null;
+  const before = JSON.parse(json) as { legs?: Record<string, LegBefore>; leaves?: Record<string, unknown> };
+  for (const leg of Object.values(before.legs ?? {})) {
+    if (!leg) continue;
+    if (leg.riders) leg.riders = swapIn(leg.riders, guestId, accountId);
+    if (leg.createdBy === guestId) leg.createdBy = accountId;
+    leg.votes = moveKey(leg.votes, guestId, accountId);
+  }
+  if (before.leaves) before.leaves = moveKey(before.leaves, guestId, accountId);
+  return JSON.stringify(before);
+}
+
 /** Moves everything one guest did in a trip's Storage onto their account. Runs inside mutateStorage. */
 export function adoptInStorage(root: Root, guestId: string, accountId: string) {
-  const swap = (id: string) => (id === guestId ? accountId : id);
-
   const members = root.get("members");
   const guest = members.get(guestId);
   if (guest) {
@@ -27,7 +54,7 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
 
   for (const leg of root.get("legs").values()) {
     const riders = leg.get("riders");
-    if (riders.includes(guestId)) leg.set("riders", [...new Set(riders.map(swap))]);
+    if (riders.includes(guestId)) leg.set("riders", swapIn(riders, guestId, accountId));
     if (leg.get("createdBy") === guestId) leg.set("createdBy", accountId);
     const votes = leg.get("votes");
     const vote = votes.get(guestId);
@@ -40,12 +67,26 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
   for (const message of root.get("thread") ?? []) {
     const author = message.get("author");
     if (author.kind === "member" && author.id === guestId) message.set("author", { kind: "member", id: accountId });
+    // a meet-up card's groups, so adding it later still puts them on the leg; both of them in one group is one person
+    const cards = message.get("cards");
+    if (!cards.some((c) => c.type === "meetup" && c.options.some((o) => o.legs.some((l) => l.members.includes(guestId))))) continue;
+    message.set("cards", cards.map((c) => c.type !== "meetup" ? c : {
+      ...c,
+      options: c.options.map((o) => ({
+        ...o,
+        legs: o.legs.map((l) => {
+          if (!l.members.includes(guestId)) return l;
+          const members = swapIn(l.members, guestId, accountId);
+          return { ...l, members, people: Math.max(1, l.people - (l.members.length - members.length)) };
+        }),
+      })),
+    }));
   }
 
-  // Undo snapshots name riders too; guest ids are unique enough to swap in the JSON
   const changesets = root.get("changesets");
   for (const [id, json] of changesets ?? []) {
-    if (json.includes(guestId)) changesets!.set(id, json.replaceAll(`"${guestId}"`, `"${accountId}"`));
+    const next = adoptChangeset(json, guestId, accountId);
+    if (next !== json) changesets!.set(id, next);
   }
 }
 
@@ -54,10 +95,15 @@ export function adoptInStorage(root: Root, guestId: string, accountId: string) {
  * messages. False if Liveblocks failed partway; running it again finishes the job.
  */
 export async function adoptTrips(guestId: string, accountId: string): Promise<boolean> {
-  const lb = liveblocks();
   try {
+    const lb = liveblocks();
     for await (const room of lb.iterRooms({ userId: guestId })) {
       if (!room.id.startsWith("trip:")) continue;
+      // Storage first, then access: the guest keeps access until their things have moved, so a failure in between
+      // leaves this room where the next try finds it. Moving the Storage again does nothing new.
+      await lb.mutateStorage(room.id, ({ root }) => {
+        if (root.get("members")) adoptInStorage(root, guestId, accountId);
+      });
       const raw = room.metadata.members;
       const members = Array.isArray(raw) ? raw : raw ? [raw] : [];
       // the account takes the guest's place in join order, so it keeps the guest's colour
@@ -68,9 +114,6 @@ export async function adoptTrips(guestId: string, accountId: string): Promise<bo
           // a trip passed on to the guest (trips/leave.ts) stays theirs
           ...(room.metadata.owner === guestId ? { owner: accountId } : {}),
         },
-      });
-      await lb.mutateStorage(room.id, ({ root }) => {
-        if (root.get("members")) adoptInStorage(root, guestId, accountId);
       });
     }
     return true;

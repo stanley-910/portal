@@ -109,6 +109,8 @@ const FIT = 0.9; // share of the view a framed route spans
 const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
+/** Parked vehicles closer than this, in radians (about 1 km), share a stop. */
+const PARK_SAME = 1.5e-4;
 /** Two tags with the same name for places closer than this on screen, in px, name one place. */
 const TAG_SAME = 40;
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
@@ -401,6 +403,8 @@ export class GlobeEngine {
   }>();
 
   // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
+  /** Parked vehicles grouped by stop (groupParked), so fanning them out doesn't regroup every frame. */
+  private parked: { n: Vec3; e1: Vec3; e2: Vec3; pls: Plane[] }[] = [];
   /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
   private tagBoxes: { text: string; at: { x: number; y: number }; l: number; t: number; r: number; b: number }[] = [];
   /** A place searched for: marked on the ground with its name until the next click on the globe. */
@@ -1377,6 +1381,7 @@ export class GlobeEngine {
       }
     }
     for (const id of this.remotes.keys()) if (!seen.has(id)) this.remotes.delete(id);
+    this.groupParked();
   }
 
   /** Replaces the other members' pointers; null `at` hides one. They move steadily between updates. */
@@ -1708,31 +1713,40 @@ export class GlobeEngine {
   /**
    * Vehicles parked at the same stop (two friends landing in one city, legs that end where another starts) would sit
    * on top of each other. They fan out round the stop instead, a vehicle's length away; this viewer's own stays on it.
+   * Only the vehicle moves: its route still ends at the stop. Groups are made when the flights change (setRemoteFlights).
    */
   private fanParked() {
-    const groups = new Map<string, { n: Vec3; pls: Plane[] }>();
-    const key = (v: Vec3) => v.map((x) => x.toFixed(3)).join(",");
-    for (const [, r] of [...this.remotes].sort(([a], [b]) => (a < b ? -1 : 1))) {
-      if (!r.landed) continue;
-      const g = groups.get(key(r.target)) ?? { n: r.target, pls: [] };
-      g.pls.push(r.pl);
-      groups.set(key(r.target), g);
-    }
-    const own = this.mode === "landed" && this.pl ? groups.get(key(this.pl.n)) : undefined;
+    if (!this.parked.length) return;
+    const ownAt = this.mode === "landed" && this.pl ? this.pl.n : null;
     const spread = S_PLANE * this.planeScale * 0.9;
-    for (const g of groups.values()) {
+    for (const g of this.parked) {
       // with no plane of ours there, the first keeps the stop and the rest ring it
-      const ring = g === own ? g.pls.length : g.pls.length - 1;
+      const own = !!ownAt && angle(ownAt, g.n) < PARK_SAME;
+      const ring = own ? g.pls.length : g.pls.length - 1;
       if (ring < 1) continue;
-      const e1 = tangent([0, 1, 0], g.n);
-      const e2 = cross(g.n, e1);
       g.pls.forEach((pl, i) => {
-        const slot = g === own ? i : i - 1;
+        const slot = own ? i : i - 1;
         if (slot < 0) return;
         const a = (2 * Math.PI * slot) / ring - Math.PI / 2;
-        pl.n = norm(add(g.n, add(mul(e1, Math.cos(a) * spread), mul(e2, Math.sin(a) * spread))));
+        pl.n = norm(add(g.n, add(mul(g.e1, Math.cos(a) * spread), mul(g.e2, Math.sin(a) * spread))));
       });
     }
+  }
+
+  /** Parked vehicles grouped by the stop they share, in a stable order, for fanParked. */
+  private groupParked() {
+    const groups: { n: Vec3; e1: Vec3; e2: Vec3; pls: Plane[] }[] = [];
+    for (const [, r] of [...this.remotes].sort(([a], [b]) => (a < b ? -1 : 1))) {
+      if (!r.landed) continue;
+      const g = groups.find((x) => angle(x.n, r.target) < PARK_SAME);
+      if (g) g.pls.push(r.pl);
+      else {
+        const e1 = tangent([0, 1, 0], r.target);
+        groups.push({ n: r.target, e1, e2: cross(r.target, e1), pls: [r.pl] });
+      }
+    }
+    // a lone vehicle only matters if ours lands beside it, which fanParked checks each frame
+    this.parked = groups;
   }
 
   /** Where a label under a plane goes: centred below it, clear of its wings whichever way it points. */
@@ -2510,7 +2524,8 @@ export class GlobeEngine {
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
       const stroke = this.routeColor(r.color);
-      this.route(ctx, r.o, r.pl.n, r.pl, stroke, false);
+      // a parked vehicle may be fanned out beside its stop (fanParked); the route still ends at the stop
+      this.route(ctx, r.o, r.landed ? r.target : r.pl.n, r.pl, stroke, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
         this.startMark(ctx, r.o, op.x, op.y, stroke);

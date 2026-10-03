@@ -86,6 +86,18 @@ describe("editPlan", () => {
   });
 });
 
+describe("editPlan, members", () => {
+  it("refuses a handle the run kept for someone who has since left", async () => {
+    const h = handlesFor(plan);
+    const gone: PlanJson = { ...plan, members: {} };
+    const result = await editPlan("room", gone, handlesFor(gone, h), [
+      { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { stop: h.stop.get("bt")! }, date: "2026-10-05", riders: ["M1"] },
+    ], "agent:pip");
+    expect(result.refused[0]).toMatchObject({ code: "UNKNOWN_HANDLE" });
+    expect(result.applied).toEqual([]);
+  });
+});
+
 describe("handlesFor", () => {
   it("keeps handles the run already gave out, and never reuses a removed one", () => {
     const first = handlesFor(plan);
