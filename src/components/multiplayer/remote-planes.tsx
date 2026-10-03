@@ -13,9 +13,9 @@ import { storedFlights } from "./stored-flights";
  * globe engine, and labels are positioned after every frame, so a moving plane never re-renders React. React only
  * re-renders when someone takes off or stops, or the plan changes.
  *
- * `hideLeg` is the leg you just landed, which your own plane is still showing.
+ * `hideLegs` are the legs you just landed, which your own globe is still showing.
  */
-export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHandle | null>; hideLeg: string | null }) {
+export function RemotePlanes({ globe, hideLegs }: { globe: RefObject<TripGlobeHandle | null>; hideLegs: string[] }) {
   const room = useRoom();
   const legs = useStorage((root) => storedFlights(root), shallowFlights);
   // only while in the air: once they land, their cursor and its label come back
@@ -29,11 +29,12 @@ export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHan
     const handle = globe.current;
     if (!handle) return;
     const push = () => {
-      const flights: RemoteFlight[] = (legs ?? []).filter((l) => l.id !== `leg:${hideLeg}`);
+      const flights: RemoteFlight[] = (legs ?? []).filter((l) => !hideLegs.some((id) => l.id === `leg:${id}`));
       // a landed trip is stored as a leg straight away, so only trips still in the air come from presence
       for (const o of room.getOthers()) {
         const f = o.presence.flight;
-        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f });
+        // the room numbers colours from 1; the design system's slots count from 0
+        if (f && !f.landed) flights.push({ id: String(o.connectionId), ...f, color: o.info.color - 1 });
       }
       handle.setRemoteFlights(flights);
     };
@@ -51,7 +52,7 @@ export function RemotePlanes({ globe, hideLeg }: { globe: RefObject<TripGlobeHan
       stopFrames();
       handle.setRemoteFlights([]);
     };
-  }, [globe, room, legs, hideLeg]);
+  }, [globe, room, legs, hideLegs]);
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">

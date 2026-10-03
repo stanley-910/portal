@@ -1,6 +1,6 @@
 import type { LiveList, LiveMap, LiveObject } from "@liveblocks/client";
 
-import type { AgentEvent, AgentRun, Changeset, ThreadMessage } from "@/lib/agent/types";
+import type { AgentEvent, AgentRun, AgentUsage, Changeset, ThreadMessage } from "@/lib/agent/types";
 
 // Shared shapes for the trip room.
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
@@ -24,6 +24,22 @@ export type MemberInfo = {
   name: string;
   /** 1 to MEMBER_COLORS, in join order. Rendered as `var(--member-<n>)`. */
   color: number;
+};
+
+/** A member as the trip stores them: what others see, plus their plan. */
+export type TripMember = MemberInfo & {
+  /** YYYY-MM-DD they leave the trip; the last night they pay for is the one before. Unset means they stay to the end. */
+  leaves?: string | null;
+};
+
+/** What a stop's lodging costs the group: typed in by a member or Pip, or the hotel picked when saving from `/`. */
+export type Stay = {
+  /** For the whole group per night, split among whoever is there that night. Null means not known yet. */
+  nightly: { amount: number; currency: string } | null;
+  /** e.g. "Shinjuku apartment". */
+  label: string | null;
+  /** True when `nightly` is the hotel search's estimate rather than a price someone gave. */
+  estimated?: boolean;
 };
 
 /** An exact clicked place legs start or end at; preview hubs never move the point. */
@@ -82,13 +98,19 @@ export type Leg = {
 
 export type TripStorage = {
   /** Everyone who has joined, including people who are offline, so riders and the cost split can name them. */
-  members: LiveMap<string, LiveObject<MemberInfo>>;
+  members: LiveMap<string, LiveObject<TripMember>>;
   stops: LiveMap<string, LiveObject<Stop>>;
   legs: LiveMap<string, LiveObject<Leg>>;
+  /** Stop id → its lodging cost. Missing in older rooms and for stops nobody has priced. */
+  stays?: LiveMap<string, LiveObject<Stay>>;
+  /** YYYY-MM-DD the trip ends: the morning after its last night. Unset means the latest leg or leave date. */
+  ends?: string | null;
   /** The trip's one thread, people and Pip. Missing in rooms made before it; created on first message. */
   thread?: LiveList<LiveObject<ThreadMessage>>;
   /** Pip's current run, if any. */
   agentRun?: AgentRun | null;
+  /** Pip's model runs today, for the daily limit. */
+  agentUsage?: AgentUsage;
   /** Changeset id → the plan before that run changed it. */
   changesets?: LiveMap<string, Changeset>;
 };

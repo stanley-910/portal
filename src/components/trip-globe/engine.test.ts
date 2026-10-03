@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GlobeEngine } from "./engine";
+import { GlobeEngine, type GlobeCursor, type GlobeEvents } from "./engine";
 import { angle, D2R, dot, len, mul, slerp, sub, vecOf, type Vec3 } from "./vec";
 
 function engine() {
@@ -18,8 +18,8 @@ describe("globe hub preview lifecycle", () => {
     globe["takeoff"](point(0, -140));
     expect(onModeChange).toHaveBeenCalledWith("flying", null);
     globe["land"](point(5, -140));
-    expect(onLand).toHaveBeenCalledWith(expect.objectContaining({ from: null, to: null }));
-    const trip = onLand.mock.calls[0][0];
+    expect(onLand).toHaveBeenCalledWith([expect.objectContaining({ from: null, to: null })]);
+    const [trip] = onLand.mock.calls[0][0];
     expect(trip.origin.lng).toBeCloseTo(-140);
     expect(trip.destination.lat).toBeCloseTo(5);
     expect(trip.distanceKm).toBeGreaterThan(550);
@@ -28,10 +28,27 @@ describe("globe hub preview lifecycle", () => {
     const { globe, onLand } = engine();
     globe["takeoff"](point(22.305, 114.165));
     globe["land"](point(31.23, 121.47));
-    const trip = onLand.mock.calls[0][0];
+    const [trip] = onLand.mock.calls[0][0];
     expect(trip.from.mode).toBe("train");
     expect(trip.origin.lat).toBeCloseTo(22.305);
     expect(trip.destination.lng).toBeCloseTo(121.47);
+  });
+  it("lands one leg per stop, each departing a day after the last", () => {
+    const { globe, onLand } = engine();
+    globe["takeoff"](point(22.305, 114.165));
+    globe["addStop"](point(31.23, 121.47));
+    globe["addStop"](point(35.68, 139.77));
+    expect(onLand).not.toHaveBeenCalled();
+    globe["finish"]();
+    const legs = onLand.mock.calls[0][0];
+    expect(legs).toHaveLength(2);
+    expect(legs[0].origin.lat).toBeCloseTo(22.305);
+    expect(legs[0].destination.lat).toBeCloseTo(31.23);
+    expect(legs[1].origin.lat).toBeCloseTo(31.23);
+    expect(legs[1].destination.lng).toBeCloseTo(139.77);
+    expect(legs[1].departDate.getTime() - legs[0].departDate.getTime()).toBeGreaterThan(20 * 3600_000);
+    globe.cancel();
+    expect(globe["via"]).toEqual([]);
   });
   it("only publishes preview changes, clearing immediately on pointer leave", () => {
     const { globe, onPreviewChange } = engine();
@@ -94,7 +111,7 @@ function context() {
   }) as unknown as CanvasRenderingContext2D;
 }
 
-function setup(width = 2560, height = 1440) {
+function setup(width = 2560, height = 1440, events: GlobeEvents = {}) {
   const canvas = () => ({ width: 1, height: 1, getContext: () => context() }) as unknown as HTMLCanvasElement;
   const root = {
     clientWidth: width, clientHeight: height,
@@ -106,7 +123,7 @@ function setup(width = 2560, height = 1440) {
   vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
   const gl = canvas(), hud = canvas();
   const onFrame = vi.fn();
-  const engine = new GlobeEngine(root as unknown as HTMLElement, gl, hud, "", "", "", { onFrame });
+  const engine = new GlobeEngine(root as unknown as HTMLElement, gl, hud, "", "", "", { onFrame, ...events });
   const state = engine as unknown as Internals;
   state.gl = {} as WebGL2RenderingContext;
   state.resize();
@@ -179,6 +196,26 @@ describe("canvas invalidation", () => {
     engine.pointerLeave();
     frames(1);
     expect(drawHud).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops the ground ring and peels the cursor off the globe as it leaves", () => {
+    const changes: GlobeCursor[] = [];
+    const { engine, state, frames } = setup(2560, 1440, { onCursorChange: (c) => changes.push(c) });
+    state.reduceMotion = false;
+    frames(10);
+    engine.pointerMove({ clientX: 1280, clientY: 650 } as PointerEvent);
+    frames(5);
+    expect(changes.at(-1)?.marker).not.toBeNull();
+    expect(state.pick(40, 650)).toBeNull();
+    engine.pointerMove({ clientX: 40, clientY: 650 } as PointerEvent);
+    const before = changes.length;
+    frames(10);
+    const peel = changes.slice(before);
+    expect(peel.every((c) => c.marker === null)).toBe(true);
+    // held back toward the globe, which is to the right
+    expect(peel.some((c) => c.offset[0] > 0)).toBe(true);
+    frames(20);
+    expect(changes.at(-1)).toEqual({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
   });
 
   it("redraws only the HUD when the 80ms surface-hub cache catches up under a still pointer", () => {

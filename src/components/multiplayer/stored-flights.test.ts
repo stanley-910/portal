@@ -5,8 +5,9 @@ const offer = (id: string, mode: "flight" | "train" | "bus" | "ferry") => ({ id,
 const plan = (chosen: string | null): StoredPlan => ({
   stops: { a: { lat: 22.3, lng: 114.17 }, b: { lat: 31.23, lng: 121.47 } },
   legs: {
-    l1: { from: "a", to: "b", chosen, search: { offers: [offer("o1", "flight"), offer("o2", "train")] } },
+    l1: { from: "a", to: "b", createdBy: "u1", chosen, search: { offers: [offer("o1", "flight"), offer("o2", "train")] } },
   },
+  members: { u1: { color: 3 } },
 });
 
 describe("storedFlights", () => {
@@ -19,6 +20,11 @@ describe("storedFlights", () => {
   it("parks a plane when nothing is chosen or the choice is gone", () => {
     expect(storedFlights(plan(null))[0].vehicle).toBe("flight");
     expect(storedFlights(plan("missing"))[0].vehicle).toBe("flight");
+  });
+
+  it("tints each leg in its drawer's colour slot, ink when they've left", () => {
+    expect(storedFlights(plan(null))[0].color).toBe(2);
+    expect(storedFlights({ ...plan(null), members: {} })[0].color).toBeNull();
   });
 
   it("skips legs whose stops are missing", () => {

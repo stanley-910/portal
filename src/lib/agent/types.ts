@@ -66,6 +66,9 @@ export type AgentRun = {
   until: number;
 };
 
+/** Model runs a trip has used today (run.ts limits them). */
+export type AgentUsage = { day: string; runs: number };
+
 /**
  * The plan as it was before a run changed it, so Undo can put it back: JSON of `{ legs, stops }`, each id → the
  * entry's old JSON, or null if the run created it.

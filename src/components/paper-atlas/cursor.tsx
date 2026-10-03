@@ -22,6 +22,8 @@ type Part = { d: string; paint: Paint; dashed?: boolean };
 type ShapeDef = { outline: string; transform?: string; parts: Part[] };
 
 const ARROW = "M0 0 L0 18 L4.6 14 L7.8 21 L11 19.6 L7.9 12.8 L13.6 12.6 Z";
+/** The arrow cursor's outline, tip at 0 0, in CSS px: for drawing its shadow somewhere else. */
+export const CURSOR_ARROW_PATH = ARROW;
 
 const SHAPES: Record<CursorShape, ShapeDef> = {
   // a plain pointer cut from the member's paper
@@ -111,11 +113,70 @@ function token(name: string, theme: ThemeId): string {
   return alias ? token(alias[1], theme) : raw;
 }
 
+// The cursor image's viewBox: wider than BOX on the left and top so a cursor laid on a curve isn't clipped.
+const URL_BOX = { x: -18, y: -18, size: 68 };
+const urls = new Map<string, string>();
+
+/** How a cursor lies on a curved surface: squashed about its tip to `squash` across a long axis `angle` degrees clockwise. */
+export interface CursorLie {
+  angle: number;
+  squash: number;
+}
+
+export interface CursorUrlOptions {
+  /** Lays it on a curve, the way a circle on a globe becomes an ellipse. `squash` runs 0.4 to 1.3. */
+  lie?: CursorLie;
+  /** Draws it this many px off the pointer, within ±8. */
+  offset?: [number, number];
+  /** A ring on the ground around the tip, lying as given; `squash` runs 0 to 1. */
+  marker?: CursorLie | null;
+  /** Leave the shadow out, for a surface that draws its own. */
+  noShadow?: boolean;
+}
+
 /**
  * A CSS `cursor` value that turns the viewer's own pointer into a cursor sticker, e.g.
  * `style={{ cursor: cursorUrl("compass", memberColor(me), theme) }}`. Falls back to the system arrow.
  */
-export function cursorUrl(shape: CursorShape, color: MemberColor, theme: ThemeId = "light"): string {
+export function cursorUrl(
+  shape: CursorShape,
+  color: MemberColor,
+  theme: ThemeId = "light",
+  { lie = { angle: 0, squash: 1 }, offset = [0, 0], marker = null, noShadow = false }: CursorUrlOptions = {},
+): string {
+  const ring = marker ? `${marker.angle} ${marker.squash}` : "-";
+  const key = `${shape} ${color} ${theme} ${lie.angle} ${lie.squash} ${offset} ${ring} ${noShadow}`;
+  let url = urls.get(key);
+  if (!url) urls.set(key, (url = buildCursorUrl(shape, color, theme, lie, offset, marker, noShadow)));
+  return url;
+}
+
+/** The 2D matrix [a, b, c, d] that keeps lengths along the lie's long axis and scales those across it by its squash. */
+export function cursorLieMatrix({ angle, squash }: CursorLie): [number, number, number, number] {
+  const a = (angle * Math.PI) / 180;
+  const c = Math.cos(a), s = Math.sin(a), k = 1 - squash;
+  return [1 - k * s * s, k * c * s, k * c * s, 1 - k * c * c];
+}
+
+/** The ring that marks the ground under the tip: r 8 px, flattened by its lie, with a dot at the centre. */
+function markerSvg(marker: CursorLie, ink: string) {
+  const m = cursorLieMatrix(marker).map((x) => +x.toFixed(4)).join(" ");
+  return (
+    `<g transform="matrix(${m} 0 0)">` +
+    `<circle r="8" fill="none" stroke="${ink}" stroke-opacity="0.7" stroke-width="1.2" vector-effect="non-scaling-stroke"/>` +
+    `<circle r="1.6" fill="${ink}"/></g>`
+  );
+}
+
+function buildCursorUrl(
+  shape: CursorShape,
+  color: MemberColor,
+  theme: ThemeId,
+  lie: CursorLie,
+  offset: [number, number],
+  marker: CursorLie | null,
+  noShadow: boolean,
+): string {
   const def = SHAPES[shape];
   const t = (name: string) => token(name, theme);
   const paint: Record<Paint, string> = {
@@ -125,18 +186,21 @@ export function cursorUrl(shape: CursorShape, color: MemberColor, theme: ThemeId
     ink: `fill="${t("sticker-ink")}"`,
   };
   const dashed = `fill="none" stroke="${t("sticker-ink")}" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.6 1.6"`;
-  const g = def.transform ? ` transform="${def.transform}"` : "";
+  const m = cursorLieMatrix(lie).map((x) => +x.toFixed(4)).join(" ");
+  const g = ` transform="matrix(${m} 0 0)${def.transform ? " " + def.transform : ""}"`;
   const parts = def.parts
     .map((p) => `<path d="${p.d}" ${p.dashed ? dashed : paint[p.paint]}/>`)
     .join("");
   // the shadow of a cursor flying at altitude 0.5, as the .pa-cast rule draws it
   const shadow = `<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>`;
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${BOX.size}" height="${BOX.size}" viewBox="${VIEWBOX}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${URL_BOX.size}" height="${URL_BOX.size}" viewBox="${URL_BOX.x} ${URL_BOX.y} ${URL_BOX.size} ${URL_BOX.size}">` +
+    (marker ? markerSvg(marker, t("ink")) : "") +
+    `<g transform="translate(${offset[0]} ${offset[1]})">` +
     `<defs><clipPath id="c"><path d="${def.outline}"${g}/></clipPath>${shadow}</defs>` +
-    `<g transform="translate(6 8)" filter="url(#s)"><path${g} d="${def.outline}" fill="${t("sticker-shadow")}"/></g>` +
+    (noShadow ? "" : `<g transform="translate(6 8)" filter="url(#s)"><path${g} d="${def.outline}" fill="${t("sticker-shadow")}"/></g>`) +
     `<g clip-path="url(#c)"><g${g}>${parts}</g></g>` +
     `<g${g}><path d="${def.outline}" fill="none" stroke="${t("sticker-ink")}" stroke-width="${parseFloat(t("line-ink"))}" stroke-linejoin="round"/></g>` +
-    `</svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${-BOX.x} ${-BOX.y}, default`;
+    `</g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${-URL_BOX.x} ${-URL_BOX.y}, default`;
 }

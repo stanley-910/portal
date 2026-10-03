@@ -1,21 +1,9 @@
 import { redirect } from "next/navigation";
-import { safeNext } from "@/lib/auth/next";
-import { MAX_NAME } from "@/lib/auth/limits";
-import { getCurrentUser } from "@/lib/supabase/server";
-import { signIn } from "../actions";
-import { AuthForm } from "../auth-form";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ next?: string | string[]; error?: string | string[] }> }) {
-  const { next: raw, error } = await searchParams;
-  const next = safeNext(Array.isArray(raw) ? raw[0] : raw);
-  if (await getCurrentUser()) redirect(next);
-  return (
-    <AuthForm
-      mode="login"
-      action={signIn}
-      next={next}
-      maxName={MAX_NAME}
-      error={error === "google" ? "Google sign-in didn't finish. Try again." : undefined}
-    />
-  );
+import { panelUrl } from "@/lib/auth/panel-url";
+
+/** Sign-in is a panel over the app; this address opens it over the page in `next`. */
+export default async function Page({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
+  const { next } = await searchParams;
+  redirect(panelUrl(Array.isArray(next) ? next[0] : next, "signin"));
 }

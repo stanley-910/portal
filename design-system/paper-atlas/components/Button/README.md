@@ -4,7 +4,7 @@ category: Actions
 
 # Button
 
-The interface button: Instrument Sans on a soft-cornered control, with a clear hover and press.
+The interface button: Barlow Semi Condensed on a soft-cornered control, with a clear hover and press.
 
 - Provide the label as children, a verb plus its object in sentence case (`Search flights`). Optionally pass `icon` (a 16px inline stroke SVG) and `onClick`.
 - `variant="primary"` (ink fill) for the one main action in a view. `secondary` (outlined, on `paper-raised`) for alternatives. `quiet` (text only) for low-stakes actions like "Clear".

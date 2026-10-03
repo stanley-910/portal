@@ -1,8 +1,8 @@
 // Paper Atlas faces (DESIGN.md › Type), self-hosted by next/font. The variables override the
 // zero-specificity stacks in src/design/tokens.css, so --font-fell-sc etc. resolve to these files.
-import { Courier_Prime, IM_Fell_English, IM_Fell_English_SC, Instrument_Sans } from "next/font/google";
+import { Barlow_Semi_Condensed, Courier_Prime, IM_Fell_English, IM_Fell_English_SC } from "next/font/google";
 
-const sans = Instrument_Sans({
+const sans = Barlow_Semi_Condensed({
   weight: ["400", "500", "600"],
   subsets: ["latin"],
   variable: "--font-sans",

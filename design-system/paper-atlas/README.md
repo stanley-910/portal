@@ -4,7 +4,7 @@ Paper Atlas is the look of Portal: a globe printed in halftone ink on paper, wit
 
 It speaks in two registers:
 
-- **Interface** is modern and quiet: Instrument Sans, soft corners, soft shadows, clear button states. Use it for everything you operate: titles, text, buttons, panels, menus, inputs.
+- **Interface** is compact and plain, like transit signage: Barlow Semi Condensed, soft corners, soft shadows, clear button states. Use it for everything you operate: titles, text, buttons, panels, menus, inputs.
 - **Atlas** is printed and stamped: the old-style serif, the typewriter, hard offset shadows, paper stickers. Use it only for the trip itself: places (airport codes, destinations, city names), the ticket, airport tags, stickers and the route.
 
 When unsure, it is Interface. Atlas is the accent.
@@ -31,10 +31,10 @@ When unsure, it is Interface. Atlas is the accent.
 ## Type
 
 - Four faces, all from Google Fonts:
-  - **Instrument Sans** (`sans`): the interface. Styles `title`, `heading`, `body`, `label`, `button`, `caption`.
+  - **Barlow Semi Condensed** (`sans`): the interface. Styles `title`, `heading`, `body`, `label`, `button`, `caption`.
   - **IM Fell English SC** (`fell-sc`) and **IM Fell English** (`fell`): places only. Styles `code` (airport codes), `destination` (a place's name when it is the subject of a screen or card) and `city` (italic city names).
   - **Courier Prime** (`typewriter`): the ticket and tags. Styles `stamp`, `meta`, `tag`.
-- Load them with one link: `https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:wght@400;700&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap`.
+- Load them with one link: `https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap`.
 - Never set interface text (buttons, labels, titles) in the serif, and never set a place name in the sans when it is the subject. Do not mix styles inside one line, except a `city` beside a `code`.
 
 ## Print textures (the globe)

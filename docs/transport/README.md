@@ -92,6 +92,10 @@ curl --get 'http://localhost:3000/api/transport/search' \
 ## Being honest about data
 
 - Every offer says where it came from. Anything that isn't live shows an **Estimated** badge.
+- Hotel results use the same landed city as the transport search. The `/api/hotels/search` route uses the bundled
+  city catalogue when available and a deterministic local fallback otherwise; every hotel is marked estimated.
+  Results can be filtered to 2–5 stars or hostels, support 1–4 occupants, calculate the required rooms, and rank
+  by a weighted nightly price and distance-to-city-centre score.
 - Travelpayouts fares are cached, per passenger, and not confirmed seats. Connecting summaries say intermediate legs
   are unknown rather than inventing airports.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical

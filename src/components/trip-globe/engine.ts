@@ -1,5 +1,6 @@
 // The Trip Globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
+import { CURSOR_ARROW_PATH, cursorLieMatrix, type CursorLie } from "@/components/paper-atlas/cursor";
 import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { CITY_LABELS } from "./cities";
@@ -16,11 +17,24 @@ import {
 
 export type GlobeMode = "idle" | "flying" | "landed";
 
+/**
+ * The viewer's own pointer: how it lies on the globe, how far its image is held back from the pointer while
+ * it peels off, and how the ring marking the ground under it lies, or null for no ring. The ring goes in the
+ * cursor image so it never lags the pointer; the overlay draws the shadow, which trails it on purpose.
+ */
+export interface GlobeCursor {
+  lie: CursorLie;
+  offset: [number, number];
+  marker: CursorLie | null;
+}
+const FLAT: CursorLie = { angle: 0, squash: 1 };
+
 export interface LatLng {
   lat: number;
   lng: number;
 }
 
+/** One leg of a landed trip. A trip with stops lands as several, in order, each starting where the last ended. */
 export interface LandedTrip {
   /** Nearest local preview hub, or null outside coverage. Search still resolves pairs from the clicks. */
   from: Hub | null;
@@ -30,13 +44,13 @@ export interface LandedTrip {
   destination: LatLng;
   /** Great-circle distance between the actual clicked points, not a snapped route. */
   distanceKm: number;
-  /** Earliest departure: tomorrow, local time. */
+  /** Earliest departure, local time: tomorrow for the first leg, a day later for each leg after. */
   departDate: Date;
 }
 
-/** A trip being flown or landed, as other people in the room see it. All places as lat/lng. */
+/** The leg being flown or landed, as other people in the room see it. All places as lat/lng. */
 export interface FlightState {
-  /** Where the trip took off. */
+  /** Where this leg took off. */
   origin: LatLng;
   /** Where the plane is now. */
   at: LatLng;
@@ -50,6 +64,8 @@ export interface RemoteFlight extends FlightState {
   id: string;
   /** What a landed trip parks as. Leave it out for the plane. Ignored in the air. */
   vehicle?: Vehicle;
+  /** Their member colour slot (0 for `member-1`), which tints the route. Unset draws it in ink. */
+  color?: number | null;
 }
 
 export interface GlobeEvents {
@@ -57,14 +73,28 @@ export interface GlobeEvents {
   /** Only when the local hover hub changes. Never triggers a provider search. */
   /** The hub in range of the pointer, and the city the label names. */
   onPreviewChange?: (hub: Hub | null, name: string | null) => void;
-  onLand?: (trip: LandedTrip) => void;
+  /** The trip's legs, in order: one per click while flying, ended by clicking the last stop again. */
+  onLand?: (legs: LandedTrip[]) => void;
   onCancel?: () => void;
+  /** When the pointer's lie on the ground under it changes, so it can be drawn flat on the globe. */
+  onCursorChange?: (cursor: GlobeCursor) => void;
   /** After every frame is drawn. Overlays that track places on the globe reposition here. */
   onFrame?: () => void;
 }
 
 const DG = 3.4; // camera distance from the globe's centre, fully zoomed out
 const ALT = 0.03; // flying altitude, fully zoomed out
+// The pointer's shadow falls toward the globe's middle: CURSOR_SHADOW px to the side at the left and right
+// edges, from CURSOR_DROP + CURSOR_SHADOW below at the top edge to CURSOR_SHADOW - CURSOR_DROP above at the bottom.
+const CURSOR_SHADOW = 8;
+const CURSOR_DROP = 4;
+const CURSOR_CHASE = 0.035; // s for the shadow to close most of the gap when the pointer moves
+// Leaving the globe, the pointer peels off it: it springs back to full width past flat, is held up to
+// CURSOR_PULL px back toward the globe before it lets go, and its shadow springs out CURSOR_FLOAT and fades.
+const CURSOR_PEEL = 0.32; // s
+const CURSOR_PULL = 8;
+const CURSOR_FLOAT = { x: 6, y: 8 };
+const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
 const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cursor
 const SWAP = 0.25; // seconds for one vehicle to shrink away and the next to grow in
 const CENTRE_Y = 0.455; // globe centre, as a fraction of the screen height
@@ -75,6 +105,7 @@ const LAT_MAX = 1.25; // how far the view can turn toward a pole
 const RANGE_MAX = DG - 1; // the whole-globe view
 const RANGE_MIN = 0.2; // about 1,300 km up: the 2048px earth texture still prints cleanly here
 const TILT_MAX = 0.8; // radians from straight down, at RANGE_MIN
+const STOP_HIT = 16; // px: a click this close to the stop the plane just left ends the trip there
 const FLY_SCROLL = 2.5; // two-finger scroll turns the globe this much faster while a route is being plotted
 
 interface Camera {
@@ -294,6 +325,8 @@ export class GlobeEngine {
   private dest: Vec3 | null = null;
   private originHub: Hub | null = null;
   private destinationHub: Hub | null = null;
+  /** Stops before `origin`, from takeoff on: each click while flying ends a leg there and starts the next. */
+  private via: { v: Vec3; hub: Hub | null; name: string | null }[] = [];
   /** The cities the labels name: where the trip starts, where it landed, and what's under the pointer or plane. */
   private originName: string | null = null;
   private destinationName: string | null = null;
@@ -305,9 +338,11 @@ export class GlobeEngine {
   private hi = 0;
   private hiP: Vec3 = [0, 1, 0];
   private pl: Plane | null = null;
+  /** This viewer's member colour slot, which tints their own route. Null draws it in ink. */
+  private color: number | null = null;
   // other members' flights: where presence says they are, and where we draw them (eased toward that)
   private remotes = new Map<string, {
-    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane;
+    o: Vec3; target: Vec3; ft: Vec3; landed: boolean; pl: Plane; color: number | null;
     originHub: Hub | null; destinationHub: Hub | null;
     originName: string | null; destinationName: string | null;
   }>();
@@ -317,6 +352,15 @@ export class GlobeEngine {
   private my = -9999;
   private hasPointer = false;
   private hover: Vec3 | null = null;
+  private cursorLie: CursorLie = FLAT;
+  private cursorMarker: CursorLie | null = null;
+  private shadowAlpha = 1;
+  private cursorOffset: [number, number] = [0, 0];
+  // while the pointer peels off the globe: when it left, how it lay, its shadow's stuck spot and the way back to the globe
+  private peel: { t0: number; lie: CursorLie; from: { x: number; y: number }; back: [number, number] } | null = null;
+  // where the pointer's shadow is drawn, easing after the pointer; null when the overlay isn't drawing it
+  private shadowAt: { x: number; y: number } | null = null;
+  private arrowPath: Path2D | null = null;
   private down: { x: number; y: number; lx: number; ly: number; lt: number; drag: boolean; grab: Vec3 | null } | null = null;
   // touch pointers, for pinch
   private touches = new Map<number, [number, number]>();
@@ -459,10 +503,16 @@ export class GlobeEngine {
     this.hasPointer = true;
     this.lastInteract = this.t;
     if (this.mode === "flying") {
-      // clicking down picks the landing spot
+      // clicking the stop the plane just left (a double click, or a second click later) lands the trip there
+      if (this.nearOrigin(x, y)) {
+        if (this.via.length) this.finish();
+        return;
+      }
       if (this.t - this.tTake < 0.25) return;
+      // any other click ends a leg and flies on; off the globe, it lands at the last stop, or cancels without one
       const hit = this.pick(x, y);
-      if (hit) this.land(hit);
+      if (hit) this.addStop(hit);
+      else if (this.via.length) this.finish();
       else this.cancel();
       return;
     }
@@ -660,6 +710,7 @@ export class GlobeEngine {
     this.mode = "idle";
     this.origin = null;
     this.dest = null;
+    this.via = [];
     this.pl = null;
     this.turn = null;
     this.originHub = this.destinationHub = null;
@@ -675,6 +726,7 @@ export class GlobeEngine {
     this.mode = "flying";
     this.origin = o;
     this.dest = null;
+    this.via = [];
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
@@ -686,9 +738,36 @@ export class GlobeEngine {
     this.events.onModeChange?.("flying", this.originHub);
   }
 
+  /** Whether screen point (x, y) is on the stop the plane is flying from. */
+  private nearOrigin(x: number, y: number) {
+    const p = this.origin && this.proj(this.origin);
+    return !!p && p.vis && Math.hypot(p.x - x, p.y - y) < STOP_HIT;
+  }
+
+  /** Ends the leg being flown at v, and takes off again from there. */
+  private addStop(v: Vec3) {
+    this.via.push({ v: this.origin!, hub: this.originHub, name: this.originName });
+    this.origin = v;
+    this.originHub = nearestPreviewHub(toLatLng(v));
+    this.originName = this.originHub && placeName(toLatLng(v), this.originHub);
+    // the plane touches down and lifts off again, with the takeoff ripple
+    this.tTake = this.t;
+  }
+
+  /** Lands the trip at the last stop, which ends the leg flown into it. */
+  private finish() {
+    const end = this.origin!;
+    const last = this.via.pop()!;
+    this.origin = last.v;
+    this.originHub = last.hub;
+    this.originName = last.name;
+    this.land(end);
+  }
+
   private land(v: Vec3) {
     const pl = this.pl!;
     const origin = this.origin!;
+    const stops = [...this.via.map((s) => s.v), origin, v];
     this.mode = "landed";
     this.tLand = this.t;
     this.dest = v;
@@ -702,27 +781,33 @@ export class GlobeEngine {
     this.hiP = hub ? vecOf(hub.lat * D2R, hub.lng * D2R) : v;
     // turn the globe to frame the whole route
     // and back out if the whole route doesn't fit, rising mid-way like a fly-to
-    const mid = llOf(slerp(origin, v, 0.5));
-    const range = Math.max(this.range, this.fitRange(angle(origin, v)));
+    let span = 0;
+    for (const a of stops) for (const b of stops) span = Math.max(span, angle(a, b));
+    const mid = llOf(stops.length === 2 ? slerp(origin, v, 0.5) : norm(stops.reduce((a, b) => add(a, b))));
+    const range = Math.max(this.range, this.fitRange(span));
     this.zoomAnchor = null;
     this.turn = {
       from: { lon: this.lon0, lat: this.lat0, range: this.range },
       to: { lon: mid.lon, lat: clamp(mid.lat, -1, 1), range },
-      hop: this.range < 1.2 && !this.reduceMotion ? Math.min(0.5, 0.25 * angle(origin, v) + 0.08) : 0,
+      hop: this.range < 1.2 && !this.reduceMotion ? Math.min(0.5, 0.25 * span + 0.08) : 0,
       t0: this.t + (this.reduceMotion ? 0 : 0.5),
       dur: this.reduceMotion ? 0.001 : 1.5,
     };
-    const depart = new Date();
-    depart.setDate(depart.getDate() + 1);
-    this.events.onModeChange?.("landed", this.originHub);
-    this.events.onLand?.({
-      from: this.originHub,
-      to: this.destinationHub,
-      origin: toLatLng(origin),
-      destination: toLatLng(v),
-      distanceKm: Math.round(EARTH_RADIUS_KM * angle(origin, v)),
-      departDate: depart,
-    });
+    const hubs = [...this.via.map((s) => s.hub), this.originHub, this.destinationHub];
+    this.events.onModeChange?.("landed", hubs[0]);
+    this.events.onLand?.(stops.slice(1).map((b, i) => {
+      const a = stops[i];
+      const depart = new Date();
+      depart.setDate(depart.getDate() + 1 + i);
+      return {
+        from: hubs[i],
+        to: hubs[i + 1],
+        origin: toLatLng(a),
+        destination: toLatLng(b),
+        distanceKm: Math.round(EARTH_RADIUS_KM * angle(a, b)),
+        departDate: depart,
+      };
+    }));
   }
 
   // ---------- GL setup ----------
@@ -909,6 +994,113 @@ export class GlobeEngine {
     return out;
   }
 
+  /**
+   * Lays the pointer flat on the ground under it, like the hover ring, in steps coarse enough to cache,
+   * and eases its shadow after it. The shadow falls toward the globe's middle. Leaving the globe, it peels
+   * off. True when the shadow needs redrawing.
+   */
+  private updateCursor(dt: number, t: number) {
+    const before = this.shadowAt && { ...this.shadowAt };
+    let lie = FLAT;
+    let offset: [number, number] = [0, 0];
+    let marker: CursorLie | null = null;
+    const hover = this.mode !== "flying" ? this.hover : null;
+    if (hover) this.peel = null;
+    this.shadowAlpha = 1;
+    if (hover) {
+      // the ring flattens all the way to the horizon, as the route's ground marks do
+      const { rot, minor } = this.groundTilt(hover);
+      const squash = Math.round(minor * 20) / 20;
+      const angle = ((Math.round((rot / D2R) / 5) * 5) % 180 + 180) % 180;
+      marker = squash < 1 ? { angle, squash } : FLAT;
+    }
+    if (hover && !this.reduceMotion) {
+      const { rot, minor } = this.groundTilt(hover);
+      const squash = Math.round(Math.max(CURSOR_SQUASH, minor) * 20) / 20;
+      // the long axis is a line, so 0° and 180° are the same lie
+      const angle = ((Math.round((rot / D2R) / 5) * 5) % 180 + 180) % 180;
+      if (squash < 1) lie = { angle, squash };
+    }
+    if (hover) {
+      const d = this.disc();
+      const sx = clamp((this.mx - d.x) / d.r, -1, 1);
+      const sy = clamp((this.my - d.y) / d.r, -1, 1);
+      const x = this.mx - CURSOR_SHADOW * sx;
+      const y = this.my + CURSOR_DROP - CURSOR_SHADOW * sy;
+      if (!this.shadowAt || this.reduceMotion) this.shadowAt = { x, y };
+      else {
+        const k = 1 - Math.exp(-dt / CURSOR_CHASE);
+        this.shadowAt.x += (x - this.shadowAt.x) * k;
+        this.shadowAt.y += (y - this.shadowAt.y) * k;
+      }
+    } else if (this.shadowAt && this.hasPointer && this.mode !== "flying" && !this.down?.drag && !this.pinch &&
+        !this.reduceMotion) {
+      if (!this.peel) {
+        const d = this.disc();
+        const bx = d.x - this.mx, by = d.y - this.my;
+        const l = Math.hypot(bx, by) || 1;
+        this.peel = { t0: t, lie: this.cursorLie, from: { ...this.shadowAt }, back: [bx / l, by / l] };
+      }
+      const p = this.peel;
+      const k = (t - p.t0) / CURSOR_PEEL;
+      if (k >= 1) {
+        this.peel = null;
+        this.shadowAt = null;
+      } else {
+        // a damped spring from the squash it had on the globe, through flat and past it
+        const spring = Math.exp(-5 * k) * Math.cos(3 * Math.PI * k);
+        const squash = Math.round(clamp(1 + (p.lie.squash - 1) * spring, CURSOR_SQUASH, 1.3) * 20) / 20;
+        if (squash !== 1) lie = { angle: p.lie.angle, squash };
+        // held back toward the globe, then let go
+        const pull = CURSOR_PULL * Math.sin(Math.PI * k) * (1 - k);
+        offset = [Math.round(p.back[0] * pull), Math.round(p.back[1] * pull)];
+        // the shadow springs out from where it was stuck, overshooting a little, and fades as the pointer lifts away
+        const e = 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
+        this.shadowAlpha = 1 - k * k;
+        this.shadowAt = {
+          x: p.from.x + (this.mx + CURSOR_FLOAT.x - p.from.x) * e,
+          y: p.from.y + (this.my + CURSOR_FLOAT.y - p.from.y) * e,
+        };
+      }
+    } else {
+      this.peel = null;
+      this.shadowAt = null;
+    }
+
+    const now = this.shadowAt;
+    let redraw = !before || !now ? before !== now : Math.abs(now.x - before.x) + Math.abs(now.y - before.y) > 0.02;
+    const same = (a: CursorLie | null, b: CursorLie | null) =>
+      a === b || (!!a && !!b && a.angle === b.angle && a.squash === b.squash);
+    if (!same(lie, this.cursorLie) || !same(marker, this.cursorMarker) ||
+        offset[0] !== this.cursorOffset[0] || offset[1] !== this.cursorOffset[1]) {
+      this.cursorLie = lie;
+      this.cursorMarker = marker;
+      this.cursorOffset = offset;
+      this.events.onCursorChange?.({ lie, offset, marker });
+      redraw = true;
+    }
+    return redraw;
+  }
+
+  /** The pointer's shadow, on top of the overlay: the cursor image itself has none. */
+  private cursorShadow() {
+    const s = this.shadowAt;
+    if (!s || typeof Path2D === "undefined") return;
+    const ctx = this.hud;
+    const dpr = this.hudEl.width / this.W;
+    const [a, b, c, d] = cursorLieMatrix(this.cursorLie);
+    this.arrowPath ??= new Path2D(CURSOR_ARROW_PATH);
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(s.x + this.cursorOffset[0], s.y + this.cursorOffset[1]);
+    ctx.transform(a, b, c, d, 0, 0);
+    ctx.filter = "blur(1.2px)";
+    ctx.globalAlpha = this.shadowAlpha;
+    ctx.fillStyle = this.P.cursorShadow;
+    ctx.fill(this.arrowPath);
+    ctx.restore();
+  }
+
   private pos(e: { clientX: number; clientY: number }): [number, number] {
     const r = this.root.getBoundingClientRect();
     return [(e.clientX - r.left) * (this.W / (r.width || 1)), (e.clientY - r.top) * (this.H / (r.height || 1))];
@@ -939,6 +1131,18 @@ export class GlobeEngine {
     if (this.mode === "landed" && this.pl) retarget(this.pl, v);
   }
 
+  /** Sets the member colour slot this viewer's own route is drawn in; null for ink. */
+  setColor(slot: number | null) {
+    this.color = slot;
+    this.hudDirty = true;
+  }
+
+  /** A member's route colour for a slot, wrapping past the last like `memberColor`; ink when there's no slot. */
+  private routeColor(slot: number | null) {
+    const c = this.P.memberRoutes;
+    return slot === null || !c.length ? this.P.ink : c[((Math.trunc(slot) % c.length) + c.length) % c.length];
+  }
+
   /** Replaces the other members' flights. Planes ease toward each update rather than jumping. */
   setRemoteFlights(flights: RemoteFlight[]) {
     const seen = new Set<string>();
@@ -960,11 +1164,12 @@ export class GlobeEngine {
       const originName = originHub && (r?.originHub === originHub ? r.originName : placeName(f.origin, originHub));
       const destinationName = destinationHub &&
         (r?.destinationHub === destinationHub ? r.destinationName : placeName(f.at, destinationHub));
+      const color = f.color ?? null;
       if (r) {
-        Object.assign(r, { o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName });
+        Object.assign(r, { o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName });
         retarget(r.pl, vehicle);
       } else this.remotes.set(f.id, {
-        o, target, ft, landed: f.landed, originHub, destinationHub, originName, destinationName,
+        o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName,
         pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
       });
     }
@@ -1104,6 +1309,7 @@ export class GlobeEngine {
     const plane = (pl: Plane) => state.push(...pl.n, ...pl.f, pl.alt, pl.bank, pl.pitch, VEHICLES.indexOf(pl.vehicle), pl.swap);
     if (this.pl) plane(this.pl);
     if (this.origin) state.push(...this.origin);
+    for (const s of this.via) state.push(...s.v);
     for (const r of this.remotes.values()) {
       state.push(...r.o, Number(r.landed));
       plane(r.pl);
@@ -1128,11 +1334,12 @@ export class GlobeEngine {
     // Use the surface raycast after the camera moves, not the elevated plane's
     // normal or a clamped horizon point. Pan/zoom under a still cursor also updates.
     this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
+    const shadowMoved = this.updateCursor(dt, t);
     if (this.sceneChanged()) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && (hover || this.mode === "landed" ||
+    const animated = !this.reduceMotion && (this.mode === "landed" ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
-    if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated ||
+    if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
     if (this.glDirty) {
       this.drawGL();
@@ -1140,6 +1347,7 @@ export class GlobeEngine {
     }
     if (this.hudDirty) {
       this.drawHud(t);
+      this.cursorShadow();
       this.hudDirty = false;
       this.hudHover = hover;
       this.hudAnimated = animated;
@@ -1757,33 +1965,44 @@ export class GlobeEngine {
     ctx.restore();
   }
 
+  /**
+   * How a small circle lying flat on the ground at n looks on screen: an ellipse whose
+   * short axis points at the globe's centre and shrinks toward the horizon.
+   */
+  private groundTilt(n: Vec3) {
+    const c = this.cam!;
+    let e1 = cross(sub(n, c.C), n);
+    e1 = len(e1) < 1e-6 ? tangent(c.R, n) : norm(e1);
+    const e2 = cross(n, e1);
+    const eps = 1e-3;
+    const p0 = this.proj(n);
+    const p1 = this.proj(add(n, mul(e1, eps)));
+    const p2 = this.proj(add(n, mul(e2, eps)));
+    if (!p0 || !p1 || !p2) return { rot: 0, minor: 1 };
+    const ax = p1.x - p0.x, ay = p1.y - p0.y;
+    const s = Math.hypot(ax, ay) || 1;
+    // the part of e2's screen step across the long axis
+    const minor = Math.abs((p2.x - p0.x) * -ay + (p2.y - p0.y) * ax) / (s * s);
+    return { rot: Math.atan2(ay, ax), minor: Math.max(0.12, Math.min(1, minor)) };
+  }
+
+  /** Adds a circle of radius r px lying on the ground at n, centred on its screen point x, y. */
+  private groundCircle(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number, r: number) {
+    const { rot, minor } = this.groundTilt(n);
+    ctx.ellipse(x, y, r, r * minor, rot, 0, Math.PI * 2);
+  }
+
   /** The route's start: a small ring at the foot of the line. */
-  private startMark(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  private startMark(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number, stroke: string) {
     const P = this.P;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    this.groundCircle(ctx, n, x, y, 4.5);
     ctx.fillStyle = P.raised;
     ctx.fill();
     ctx.lineWidth = 2; // line-route
-    ctx.strokeStyle = P.ink;
+    ctx.strokeStyle = stroke;
     ctx.stroke();
-    ctx.restore();
-  }
-
-  private ring(ctx: CanvasRenderingContext2D, x: number, y: number, t: number) {
-    const P = this.P;
-    const r = this.reduceMotion ? 8 : 8 + Math.sin(t * 4) * 1.5;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = `rgba(${P.inkRGB},0.7)`;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, y, 1.6, 0, Math.PI * 2);
-    ctx.fillStyle = P.ink;
-    ctx.fill();
     ctx.restore();
   }
 
@@ -1824,15 +2043,20 @@ export class GlobeEngine {
     return out;
   }
 
-  /** A trip's route: a great-circle arc that lifts off the surface, and its dotted ground track. */
-  private route(ctx: CanvasRenderingContext2D, origin: Vec3, pl: Plane, marching: boolean, t = 0) {
+  /**
+   * A leg's route: a great-circle arc that lifts off the surface, and its dotted ground track. With a plane at the
+   * end, the arc rises to its altitude and stops just short of it.
+   */
+  private route(
+    ctx: CanvasRenderingContext2D, origin: Vec3, end: Vec3, pl: Plane | null, stroke: string, marching: boolean, t = 0,
+  ) {
     const P = this.P;
-    const end = pl.n;
+    const alt = pl ? pl.alt : 0;
     const ground = this.arc(origin, end, 0, 0, this.groundArc);
-    const air = this.arc(origin, end, 1, pl.alt, this.airArc);
+    const air = this.arc(origin, end, 1, alt, this.airArc);
     // stop the dashes just short of the plane
-    const cut = S_PLANE * this.planeScale * 0.45;
-    const tip = mul(end, 1 + pl.alt);
+    const cut = pl ? S_PLANE * this.planeScale * 0.45 : 0;
+    const tip = mul(end, 1 + alt);
     for (let i = air.length - 1; i >= 0; i--) {
       const w = air[i]?.w;
       if (!w || Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]) >= cut) break;
@@ -1847,7 +2071,7 @@ export class GlobeEngine {
     ctx.setLineDash([7, 6]); // dash-route; marches while the search runs
     ctx.lineDashOffset = marching ? -t * 22 : 0;
     ctx.lineWidth = 2; // line-route
-    ctx.strokeStyle = P.ink;
+    ctx.strokeStyle = stroke;
     this.strokePts(ctx, air);
     ctx.restore();
   }
@@ -1871,22 +2095,23 @@ export class GlobeEngine {
       mark(mul(r.pl.n, 1 + r.pl.alt));
     }
     if (this.mode !== "idle" && this.pl) {
+      for (const s of this.via) mark(s.v);
       mark(this.origin);
       mark(mul(this.pl.n, 1 + this.pl.alt));
     }
     this.countryNames(ctx, clear, t);
     this.cityNames(ctx, clear, t);
 
-    if (this.mode !== "flying" && this.hover && !this.down?.drag) this.ring(ctx, this.mx, this.my, t);
 
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
-      this.route(ctx, r.o, r.pl, false);
+      const stroke = this.routeColor(r.color);
+      this.route(ctx, r.o, r.pl.n, r.pl, stroke, false);
       const op = this.proj(r.o);
       if (op && op.vis) {
-        this.startMark(ctx, op.x, op.y);
+        this.startMark(ctx, r.o, op.x, op.y, stroke);
         if (r.originName) this.tag(ctx, op.x, op.y - 30, r.originName);
       }
       const rp = r.landed ? this.proj(mul(r.pl.n, 1 + r.pl.alt)) : null;
@@ -1899,23 +2124,33 @@ export class GlobeEngine {
     const pl = this.pl;
     const origin = this.origin;
     if (!origin || !pl || this.mode === "idle") return;
-    this.route(ctx, origin, pl, this.mode === "landed" && !this.reduceMotion, t);
+    // legs already flown, each from a stop to the next, under the one ending at the plane
+    const marching = this.mode === "landed" && !this.reduceMotion;
+    const stroke = this.routeColor(this.color);
+    this.via.forEach((s, i) => this.route(ctx, s.v, this.via[i + 1]?.v ?? origin, null, stroke, marching, t));
+    this.route(ctx, origin, pl.n, pl, stroke, marching, t);
 
-    const ripple = (p: ScreenPoint | null, t0: number) => {
+    const ripple = (n: Vec3, p: ScreenPoint | null, t0: number) => {
       const k = (t - t0) / 0.7;
       if (this.reduceMotion || !p || !p.vis || k < 0 || k > 1) return;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6 + k * 34, 0, Math.PI * 2);
+      this.groundCircle(ctx, n, p.x, p.y, 6 + k * 34);
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = `rgba(${P.inkRGB},${(0.6 * (1 - k)).toFixed(3)})`;
       ctx.stroke();
       ctx.restore();
     };
+    for (const s of this.via) {
+      const sp = this.proj(s.v);
+      if (!sp || !sp.vis) continue;
+      this.startMark(ctx, s.v, sp.x, sp.y, stroke);
+      if (s.name) this.tag(ctx, sp.x, sp.y - 30, s.name);
+    }
     const op = this.proj(origin);
-    ripple(op, this.tTake);
+    ripple(origin, op, this.tTake);
     if (op && op.vis) {
-      this.startMark(ctx, op.x, op.y);
+      this.startMark(ctx, origin, op.x, op.y, stroke);
       // Keep the origin label above its pin; the moving/landing preview is below
       // the plane, so short hops do not immediately stack the longer hub names.
       if (this.originName) this.tag(ctx, op.x, op.y - 30, this.originName);
@@ -1928,7 +2163,7 @@ export class GlobeEngine {
         this.tag(ctx, at.x, at.y, this.hoverName);
       }
     } else if (this.mode === "landed") {
-      ripple(pp, this.tLand);
+      ripple(pl.n, pp, this.tLand);
       if (pp && pp.vis && this.destinationName) {
         const at = this.underPlane(pl, pp);
         this.tag(ctx, at.x, at.y, this.destinationName);

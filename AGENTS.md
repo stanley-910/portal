@@ -4,7 +4,7 @@ A multiplayer globe for getting between places in Asia, built for the HKU Hackat
 
 ## What it does
 
-You click a point to take off. A paper plane follows your cursor with a dashed great-circle route. You land it somewhere, and the app finds the best flights, trains and buses between the nearest relevant hubs. Friends join the same trip from different origins. The app suggests where and when to meet, and splits costs by who is present for each leg and each night.
+You click a point to take off. A paper plane follows your cursor with a dashed great-circle route. Each click on the way drops a stop and starts the next leg; clicking the last stop again (a double click) lands the trip, and the app finds the best flights, trains and buses for each leg between the nearest relevant hubs. Friends join the same trip from different origins. The app suggests where and when to meet, and splits costs by who is present for each leg and each night.
 
 We solve how to get between places. We are not a trip guide or an event planner, so don't add itineraries, sights or reviews.
 
@@ -17,7 +17,7 @@ We solve how to get between places. We are not a trip guide or an event planner,
 ## How it fits together
 
 - `/` is the globe screen: a custom WebGL2 globe (`<TripGlobe>`, `src/components/trip-globe`). Landing resolves the exact clicked points to transport hubs and searches providers through `/api/transport/search`. `docs/transport/README.md` covers how search works, coverage, credentials and estimated data.
-- `/t/<id>` is a shared trip. Its URL is the invite. The plan, presence and thread live in a Liveblocks room (`src/lib/liveblocks`, `src/lib/trip`).
+- `/t/<id>` is a shared trip. Its URL is the invite. The plan, presence and thread live in a Liveblocks room (`src/lib/liveblocks`, `src/lib/trip`). `docs/trip/README.md` covers the plan's shape, who sleeps where and the cost split.
 - Pip is the shared agent in a trip's thread (`src/lib/agent`, `src/components/agent`). It edits the plan with Undo and finds meet-up cities. It runs on DeepSeek V4.1 Flash and needs `DEEPSEEK_API_KEY` in `.env.local`; without it, Pip only answers meet-up questions from its own tools.
 - Identity (`src/lib/identity.ts`) is a Supabase account (`src/lib/supabase`, `/login`, `/signup`) or else a guest cookie with a display name (`src/lib/guest.ts`). Guests can use the globe and join a trip from its link; saving a trip, "Plan with friends" and asking Pip need an account. Supabase off or down leaves everyone a guest. The profile menu at the end of the nav bar holds who you are and the app's settings.
 - `/design` is the Paper Atlas gallery. The rules are in `DESIGN.md` and the tokens in `src/design/tokens.json`.

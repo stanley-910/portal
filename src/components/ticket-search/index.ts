@@ -1,1 +1,1 @@
-export { TicketSearch, type TicketSearchProps } from "./ticket-search";
+export { TicketSearch, type PickedStay, type TicketSearchProps } from "./ticket-search";
