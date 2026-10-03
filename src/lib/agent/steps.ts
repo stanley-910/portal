@@ -12,6 +12,8 @@ export function stepLabel(tool: string, output: unknown = null): { doing: string
   switch (tool) {
     case "get_leg_options":
       return { doing: "Checking fares", done: failed ? "Couldn't find that leg" : `Checked ${n(o.total, "fare", "fares")}` };
+    case "check_entry":
+      return { doing: "Checking entry rules", done: failed ? "Couldn't check that" : "Checked entry rules" };
     case "get_split":
       return { doing: "Working out who pays what", done: "Worked out who pays what" };
     case "find_meetup":
