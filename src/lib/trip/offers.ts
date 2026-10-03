@@ -4,6 +4,16 @@ import { transfersOf, type Offer } from "@/lib/transport/types";
 /** How many options a leg keeps. Rooms are capped at 10 MB, and nobody reads past this many. */
 export const MAX_OFFERS = 20;
 
+/** Only web links: rooms render `bookingUrl` as a link, so a `javascript:` or `data:` URL must never be stored. */
+export function webUrlOrNull(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Trims a search result to what the plan shows (M13). */
 export function toStoredOffer(offer: Offer): StoredOffer {
   const first = offer.segments[0]!;
@@ -21,7 +31,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     arrive: last.arrive,
     durationMin: Number.isFinite(span) && span > 0 ? Math.round(span) : offer.segments.reduce((sum, s) => sum + s.durationMin, 0),
     stops: transfersOf(offer),
-    bookingUrl: offer.bookingUrl ?? null,
+    bookingUrl: webUrlOrNull(offer.bookingUrl),
     attribution: offer.attribution ?? null,
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { AccountChip } from "@/components/account-chip";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
@@ -11,16 +11,28 @@ import { CurrencySelector } from "@/components/transport/currency-selector";
 import { TripGlobe, type LandedTrip, type TripGlobeHandle } from "@/components/trip-globe";
 import { CURRENCIES, type Currency, type ExchangeRates } from "@/lib/currency";
 import type { CurrentUser } from "@/lib/supabase/server";
+import type { Offer } from "@/lib/transport/types";
+import { MAX_OFFERS } from "@/lib/trip/offers";
 import type { TripSummary } from "@/lib/trip/server";
+import { stopFromPoint } from "@/lib/trip/stops";
 
 import { createTrip } from "./t/actions";
+import { saveSoloTrip } from "./t/save-actions";
+
+/** The options saved with the leg: the search's own order, cut to what a room keeps, always including the pick. */
+function savedOptions(offer: Offer, offers: Offer[]): Offer[] {
+  const kept = offers.slice(0, MAX_OFFERS);
+  if (!kept.some((o) => o.id === offer.id)) kept[kept.length ? kept.length - 1 : 0] = offer;
+  return kept;
+}
 
 export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; trips?: TripSummary[] }) {
   const { resolvedTheme } = useTheme();
   const globe = useRef<TripGlobeHandle>(null);
   const [trip, setTrip] = useState<LandedTrip | null>(null);
-  // the option added from the popover; there is no trip storage on this screen, so it only marks the button done
-  const [addedId, setAddedId] = useState<string | null>(null);
+  // Save trip makes a new trip room and opens it (ADR-P08); signed out, the action sends you to login
+  const [saving, startSaving] = useTransition();
+  const [saveFailed, setSaveFailed] = useState(false);
   const [currency, setCurrency] = useState<Currency>("USD");
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [rateError, setRateError] = useState(false);
@@ -47,7 +59,7 @@ export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; tr
       onTakeoff={() => setTrip(null)}
       onLand={(landed) => {
         setTrip(landed);
-        setAddedId(null);
+        setSaveFailed(false);
       }}
       onCancel={() => setTrip(null)}
     />
@@ -69,8 +81,21 @@ export function GlobeScreen({ user, trips = [] }: { user: CurrentUser | null; tr
         globe={globe}
         currency={currency}
         rates={rates}
-        addedId={addedId}
-        onAdd={({ offer }) => setAddedId(offer.id)}
+        saving={saving}
+        error={saveFailed ? "Couldn't save the trip. Please try again." : null}
+        onAdd={({ offer, offers, depart }) => {
+          setSaveFailed(false);
+          startSaving(async () => {
+            const result = await saveSoloTrip({
+              from: stopFromPoint(trip.origin, trip.from),
+              to: stopFromPoint(trip.destination, trip.to),
+              date: depart,
+              offers: savedOptions(offer, offers),
+              chosen: offer.id,
+            }).catch(() => ({ error: "failed" as const }));
+            if (result?.error) setSaveFailed(true);
+          });
+        }}
         onDismiss={() => globe.current?.cancel()}
       />
     ) : null}

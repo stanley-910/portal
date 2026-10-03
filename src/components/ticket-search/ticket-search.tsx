@@ -137,16 +137,20 @@ export interface TicketSearchProps {
   globe: RefObject<TripGlobeHandle | null>;
   currency: Currency;
   rates: ExchangeRates | null;
-  /** Called with the selected option and its dates when someone presses Add to trip. */
-  onAdd: (choice: { offer: Offer; depart: string; return: string | null }) => void;
+  /** Called with the selected option, every outbound option shown, and the dates when someone presses Save trip. */
+  onAdd: (choice: { offer: Offer; offers: Offer[]; depart: string; return: string | null }) => void;
   /** The offer already added, which turns the button into a done state. */
   addedId?: string | null;
+  /** A save is in flight: the button waits and says so. */
+  saving?: boolean;
+  /** Shown under the button when the last save failed. */
+  error?: string | null;
   /** Esc, with no date strip open. A click outside is the globe's own cancel. */
   onDismiss: () => void;
 }
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
-export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, onDismiss }: TicketSearchProps) {
+export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, saving = false, error, onDismiss }: TicketSearchProps) {
   const card = useRef<HTMLElement>(null);
   const [firstDay] = useState(() => localIso(trip.departDate));
   const [depart, setDepart] = useState(firstDay);
@@ -306,11 +310,17 @@ export function TicketSearch({ trip, globe, currency, rates, onAdd, addedId, onD
 
           <Button
             block
-            disabled={!choice || choice.offer.id === addedId}
-            onClick={() => choice && onAdd({ offer: choice.offer, depart, return: returnDate })}
+            disabled={!choice || choice.offer.id === addedId || saving}
+            aria-busy={saving || undefined}
+            onClick={() => choice && onAdd({ offer: choice.offer, offers, depart, return: returnDate })}
           >
-            {choice && choice.offer.id === addedId ? "Added to trip" : "Add to trip"}
+            {saving ? "Saving trip…" : choice && choice.offer.id === addedId ? "Saved" : "Save trip"}
           </Button>
+          {error && !saving ? (
+            <p className="ts-empty" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
       </section>
     </div>
