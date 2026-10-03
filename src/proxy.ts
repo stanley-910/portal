@@ -2,8 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseConfig } from "@/lib/supabase/config";
 
-// Refreshes the Supabase session cookie on every page request. Access decisions still call
-// getUser() where they happen; this only keeps the cookie fresh. No-op when Supabase isn't configured.
+// Refreshes the Supabase session cookie on every request. Access decisions are made where they happen; this only
+// keeps the cookie fresh. getClaims refreshes an expired session like getUser does, but checks the token against the
+// project's cached signing keys instead of asking Supabase, so it adds no round trip to every page, action and
+// search. No-op when Supabase isn't configured.
 export async function proxy(request: NextRequest) {
   const config = supabaseConfig();
   if (!config) return NextResponse.next({ request });
@@ -22,7 +24,7 @@ export async function proxy(request: NextRequest) {
   });
 
   try {
-    await supabase.auth.getUser();
+    await supabase.auth.getClaims();
   } catch {
     // Supabase unreachable: serve the page anyway; the demo never blocks on auth.
   }

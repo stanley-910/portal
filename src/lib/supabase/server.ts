@@ -59,6 +59,22 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
+/** The name on a user's profile, or null when they have none or Supabase can't say. Never throws. */
+export async function profileName(id: string): Promise<string | null> {
+  const supabase = await createSupabaseServer();
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", id)
+      .maybeSingle<{ display_name: string }>();
+    return data?.display_name?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Who's signed in, from the session's verified token claims: no profile lookup, and with asymmetric signing keys no
  * network call at all. For hot paths that only need to know it's an account and what to call them, like each message

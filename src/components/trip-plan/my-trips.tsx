@@ -37,6 +37,8 @@ export function MyTrips({ trips }: { trips: TripSummary[] }) {
                 <span className="type-meta text-ink-muted">{meta(trip)}</span>
               </summary>
               <div className="grid gap-(--space-3) px-(--space-3) pb-(--space-3)">
+                {/* no breakdown: the plan wasn't read in time, which isn't the same as nothing picked */}
+                {trip.breakdown ? <>
                 <CostGroup title="Flights and transport">
                   {trip.breakdown?.fares.length ? trip.breakdown.fares.map((fare, index) => (
                     <CostRow key={`${fare.label}-${index}`} label={fare.label} value={money(fare.price)} detail={fare.kind === "estimated" ? "Estimated" : fare.kind ?? undefined} />
@@ -47,6 +49,7 @@ export function MyTrips({ trips }: { trips: TripSummary[] }) {
                     <CostRow key={`${night.stop}-${night.date}`} label={`${night.stop} · ${night.date}`} value={money(night.share)} />
                   )) : <p className="type-meta text-ink-muted">No hotel nights selected.</p>}
                 </CostGroup>
+                </> : <p className="type-meta text-ink-muted">Costs didn&apos;t load. Open the trip to see them.</p>}
                 <div className="flex flex-wrap items-center gap-(--space-3)">
                   <Link href={`/t/${trip.id}`} className="type-meta text-ink underline underline-offset-4">Open trip</Link>
                   <LeaveTripButton tripId={trip.id} />
