@@ -177,8 +177,8 @@ export const soloLegSchema = z
   .refine((v) => new Set(v.offers.map((o) => o.id)).size === v.offers.length, "duplicate offers")
   .refine((v) => JSON.stringify(v.offers).length <= MAX_OFFERS_CHARS, "options too large");
 
-/** The most legs one save takes: far more stops than anyone clicks in one go. */
-export const MAX_SOLO_LEGS = 8;
+/** The most legs one save takes: eight flown, far more stops than anyone clicks in one go, and the way back home. */
+export const MAX_SOLO_LEGS = 9;
 
 /** A trip landed on `/`: its legs in order, each departing no earlier than the one before. */
 export const soloSaveSchema = z
