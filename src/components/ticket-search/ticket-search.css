@@ -200,6 +200,8 @@
 .ts-track { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
 .ts-time { flex: none; font-size: 11px; line-height: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 .ts-time-end { color: var(--ink); }
+/* no timetable (an estimated fare): a muted --:-- at each end, so the line keeps its shape without a made-up time */
+.ts-time-none { color: var(--ink-muted); font-weight: 500; }
 .ts-time sup { margin-left: 1px; font-size: 8.5px; font-weight: 600; color: var(--ink-muted); }
 .ts-seg { flex: 1 1 0px; min-width: 30px; display: flex; align-items: center; gap: 4px; }
 .ts-seg-wait { min-width: 8px; }

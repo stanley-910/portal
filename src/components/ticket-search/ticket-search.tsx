@@ -159,7 +159,7 @@ function OptionList({
               {priceText(price, currency)}
             </span>
             <span className="ts-desc">{row.description}</span>
-            <Timeline legs={row.legs} clock={row.clock} />
+            <Timeline legs={row.legs} clock={row.clock} unscheduled={row.estimated} />
           </button>
         );
       })}

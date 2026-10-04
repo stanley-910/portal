@@ -395,12 +395,25 @@ export function DayStrip({
  * rest), layovers as a dotted line, each as wide as its minutes. With a `clock`, it leaves at the left end's time and
  * gets in at the right's; a worked-out arrival reads "~19:40".
  */
-export function Timeline({ legs, clock = null }: { legs: TimelineLeg[]; clock?: Clock | null }) {
+/** Shown at each end of the line for a fare with no timetable: its times aren't known, so none are made up. */
+const NO_TIME = "--:--";
+const NO_TIME_TITLE = "Estimated fare: no timetable, so no set time";
+
+/**
+ * The route's line with when it leaves on the left and arrives on the right. `unscheduled`: a fare with no timetable
+ * (an estimate), so the ends hold a muted --:-- instead of times nobody gave.
+ */
+export function Timeline({ legs, clock = null, unscheduled = false }: { legs: TimelineLeg[]; clock?: Clock | null; unscheduled?: boolean }) {
+  const none = !clock && unscheduled;
   return (
     <span className="ts-timeline">
       {clock ? (
         <span className="ts-time" title="Leaves">
           {clock.departs}
+        </span>
+      ) : none ? (
+        <span className="ts-time ts-time-none" title={NO_TIME_TITLE}>
+          {NO_TIME}
         </span>
       ) : null}
       <span className="ts-track" aria-hidden>
@@ -432,6 +445,10 @@ export function Timeline({ legs, clock = null }: { legs: TimelineLeg[]; clock?: 
           {clock.approx ? "~" : null}
           {clock.arrives}
           {clock.days !== 0 ? <sup>{clock.days > 0 ? `+${clock.days}` : clock.days}</sup> : null}
+        </span>
+      ) : none ? (
+        <span className="ts-time ts-time-end ts-time-none" title={NO_TIME_TITLE}>
+          {NO_TIME}
         </span>
       ) : null}
     </span>

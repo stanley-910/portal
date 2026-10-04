@@ -47,13 +47,12 @@ const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
 };
 
 /**
- * "W4 flight, 1 stop", or "train, from Shenzhen North". Its times ride on the timeline; a modelled option has no
- * schedule, so it says "any time".
+ * "W4 flight, 1 stop", or "train, from Shenzhen North". Its times ride on the timeline, which shows --:-- for a
+ * modelled option with no schedule.
  */
 const describe = (o: StoredOffer) =>
   [
     carrierLabel(o.carrier, o.mode),
-    clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated") ? null : "any time",
     o.departs ? `from ${o.departs}` : null,
     o.stops ? `${o.stops} stop${o.stops > 1 ? "s" : ""}` : null,
   ]
@@ -360,6 +359,7 @@ function LegCard({
                   <Timeline
                     legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]}
                     clock={clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated")}
+                    unscheduled={o.kind === "estimated"}
                   />
                 </button>
                 <button
