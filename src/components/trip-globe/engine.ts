@@ -197,6 +197,7 @@ const DRAW = 1.2;
 const PIP_DRAW = 1.6; // slower under the saucer, so it can be followed
 const RIDE = 0.15; // radians from the pen within which the saucer holds to it rather than gliding after it
 const HOLD_MAX = 8; // seconds the globe holds changes for Pip's saucer before playing them anyway
+const VIEW_ROOM = 2; // a trip framed after Pip spans this much more than itself, so the panels at the sides don't hide it
 /** How `showTrip` puts a trip down: see there. */
 export type ShowTrip = "land" | "quiet" | "draw";
 const FOLLOW_EASE = 2.4;
@@ -490,8 +491,11 @@ export class GlobeEngine {
     dur: number;
     /** What to frame, worked out as the turn starts: ground point p, w radians of arc, no closer than minRange. */
     frame?: { p: Vec3; w: number; minRange: number };
-    /** the view turning back to where it was before Pip's saucer came out */
-    home?: boolean;
+    /**
+     * the view settling after Pip's saucer: back to where it was before, or onto the trip it built. If the saucer comes
+     * out again meanwhile, it comes back to where this was headed
+     */
+    settle?: boolean;
   } | null = null;
   // The landed route, kept framed in the open part of the screen as panels open and grow, until someone moves the
   // globe themselves. `area` is the open area it was last framed in.
@@ -2111,13 +2115,13 @@ export class GlobeEngine {
       const dur = this.reduceMotion ? 0.001 : clamp(0.9 + far * 0.5, 0.9, 2);
       this.zoomAnchor = null;
       this.vlon = this.vlat = 0;
-      this.turn = { from: { lon: this.lon0, lat: this.lat0, range: this.range }, to: home, hop: 0, t0: this.t, dur, home: true };
+      this.turn = { from: { lon: this.lon0, lat: this.lat0, range: this.range }, to: home, hop: 0, t0: this.t, dur, settle: true };
       this.lastInteract = this.t + dur;
       return;
     }
     this.followBuilt = null;
-    // coming out again while the view's still turning back, it goes back to the same place after
-    if (this.turn?.home) {
+    // coming out again while the view's still settling, it goes back to where that was headed after
+    if (this.turn?.settle) {
       this.followHome = { ...this.turn.to };
       this.turn = null;
     } else this.followHome = { lon: this.lon0, lat: this.lat0, range: this.range };
@@ -2137,13 +2141,16 @@ export class GlobeEngine {
     this.events.onFollowEnd?.();
   }
 
-  /** The view centred on these places, fitting them all on the screen with some room round them. */
+  /**
+   * The view centred on these places, fitting them in about half the screen: the panels at its sides (Pip's, the
+   * trip's) cover the rest, and the view doesn't move to dodge them.
+   */
   private viewOf(points: Vec3[]) {
     let span = 0;
     for (const a of points) for (const b of points) span = Math.max(span, angle(a, b));
     const midV = points.length === 2 ? slerp(points[0], points[1], 0.5) : norm(points.reduce((a, b) => add(a, b)));
     const mid = llOf(midV);
-    return { lon: mid.lon, lat: clamp(mid.lat, -LAT_MAX, LAT_MAX), range: Math.max(RANGE_MIN, this.fitRange(Math.max(FOLLOW_SPAN, span * 1.3))) };
+    return { lon: mid.lon, lat: clamp(mid.lat, -LAT_MAX, LAT_MAX), range: Math.max(RANGE_MIN, this.fitRange(Math.max(FOLLOW_SPAN, span * VIEW_ROOM))) };
   }
 
   /** This viewer's trip as its stops, in order. */
@@ -2157,7 +2164,7 @@ export class GlobeEngine {
     const dur = this.reduceMotion ? 0.001 : 1.2;
     this.zoomAnchor = null;
     this.vlon = this.vlat = 0;
-    this.turn = { from: { lon: this.lon0, lat: this.lat0, range: this.range }, to: this.viewOf(this.ownStops()), hop: 0, t0: this.t, dur };
+    this.turn = { from: { lon: this.lon0, lat: this.lat0, range: this.range }, to: this.viewOf(this.ownStops()), hop: 0, t0: this.t, dur, settle: true };
     this.lastInteract = this.t + dur;
   }
 

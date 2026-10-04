@@ -31,7 +31,8 @@ const brandName = (b: string) => (b === "amex" ? "Amex" : b === "mastercard" ? "
 
 const stripes = new Map<string, Promise<Stripe | null>>();
 const stripeFor = (key: string) => {
-  if (!stripes.has(key)) stripes.set(key, import("@stripe/stripe-js").then(({ loadStripe }) => loadStripe(key)));
+  // no test-mode assistant (Stripe's "Developers" panel) over the checkout: the demo runs on test keys in front of people
+  if (!stripes.has(key)) stripes.set(key, import("@stripe/stripe-js").then(({ loadStripe }) => loadStripe(key, { developerTools: { assistant: { enabled: false } } })));
   return stripes.get(key)!;
 };
 

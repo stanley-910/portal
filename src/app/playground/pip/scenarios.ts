@@ -33,6 +33,7 @@ export const STOPS = {
   sha: { name: "Shanghai Hongqiao", lat: 31.196, lng: 121.3161, hub: null, code: null },
   tyo: { name: "Tokyo", lat: 35.6808, lng: 139.7669, hub: null, code: null },
   sel: { name: "Seoul Incheon", lat: 37.4691, lng: 126.451, hub: null, code: null },
+  tpe: { name: "Taipei Taoyuan", lat: 25.0777, lng: 121.233, hub: null, code: null },
 } satisfies Record<string, Stop>;
 
 const day = (offset: number) => {
@@ -130,6 +131,23 @@ export const SCENARIOS: Scenario[] = [
     ask: "Make the second stop Seoul instead of Tokyo.",
     before: twoLegs,
     beats: planTrip(twoLegs, toSeoul, "Swapped Tokyo for Seoul: HK West Kowloon → Shanghai Hongqiao tomorrow, then Shanghai Hongqiao → Seoul Incheon two days later."),
+  },
+  {
+    // two tools in one reply: the trip goes on, then its fares are searched, as Pip often does
+    id: "add-search",
+    label: "Add, then search",
+    tool: "plan_trip + search_routes",
+    ask: "Cheap flight from Hong Kong to Taipei next week?",
+    before: [],
+    beats: [
+      ...planTrip([], [{ from: STOPS.hkg, to: STOPS.tpe, date: day(7) }], "I'll get that on your globe and hunt the cheap fare.").slice(0, -1),
+      ...look(
+        "search_routes",
+        [{ label: "checking HK West Kowloon to Taipei Taoyuan", at: midpoint(STOPS.hkg, STOPS.tpe), wait: 0 }],
+        "Found 27 routes",
+        "Flying straight is cheapest: HB702 at 08:50, USD 124.",
+      ).map((b, i) => (i ? b : { ...b, wait: 2600, event: { ...b.event, id: "c2" } as typeof b.event })),
+    ].map((b) => (b.event.t === "step" && b.event.label === "Found 27 routes" ? { ...b, event: { ...b.event, id: "c2" } } : b)),
   },
   {
     id: "search",

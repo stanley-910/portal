@@ -147,7 +147,9 @@
 .pip-step-detail { font-weight: 400; }
 .pip-thinking { display: flex; align-items: center; gap: var(--space-3); min-height: 28px; }
 /* Pip's first steps take the thinking saucer's slot (28px, its height), centred in it, and grow it only when more stack up */
-.pip-thinking-steps { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
+.pip-thinking-steps { flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; }
+/* stacked here they space by the gap, not the tighter pull the reply's own step lines take */
+.pip-thinking-steps .pip-step + .pip-step { margin-top: 0; }
 
 /* Meet-up options: flat mini-tickets */
 .pip-options { display: flex; flex-direction: column; gap: var(--space-3); }
