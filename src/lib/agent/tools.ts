@@ -11,7 +11,7 @@ import { computeSplit } from "@/lib/trip/split";
 import { describePlan, type Handles, type PlanJson } from "@/lib/agent/snapshot";
 import type { MeetupOption, ThreadCard } from "@/lib/agent/types";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
-import { cancelSettle, settleLeg } from "@/lib/booking/flow";
+import { bookWithSaved, cancelSettle, settleLeg, type SavedBooking } from "@/lib/booking/flow";
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegBooking } from "@/lib/liveblocks/types";
 import { isBookable } from "@/lib/trip/offers";
@@ -263,7 +263,7 @@ export function agentTools(ctx: ToolContext) {
 
     book_leg: tool({
       description:
-        "Books a leg for its riders in the app. Picks the option when one is named (its number from get_leg_options; only options marked bookable), settles the group on it at today's fare, and posts a checkout card where each rider confirms their own details and pays their own share without leaving the app. Call it as soon as a rider asks; the card shows the price. A leg already being booked just gets its card again. If the fare moved since it was found, it comes back PRICE_CHANGED: tell them the new price, and call again with accept_price once someone says go.",
+        "Books a leg for its riders in the app. Picks the option when one is named (its number from get_leg_options; only options marked bookable), settles the group on it at today's fare, then books the asker's own seat with their saved details and saved card in one go, and posts a checkout card for anything left (their details or card if none is saved, a bank check, other riders' shares). Call it as soon as a rider asks to book: that's their go-ahead. A leg already being booked gets its card again, and the asker's seat finished if it can be. If the fare moved since it was found, it comes back PRICE_CHANGED: tell them the new price, and call again with accept_price once someone says go.",
       inputSchema: z.object({
         leg: z.string().describe("Leg handle from get_trip, e.g. L2"),
         option: z.number().int().min(1).max(8).optional().describe("Option number from get_leg_options, when they named one; omit to book the option already chosen"),
@@ -275,11 +275,13 @@ export function agentTools(ctx: ToolContext) {
         const legId = handles.id.get(leg);
         const l = legId ? plan.legs?.[legId] : undefined;
         if (!legId || !l) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
-        if (l.booking) {
-          await ctx.addCard({ type: "checkout", legId });
-          return { status: "already_settled", booking: bookingLine(l.booking, plan, handles), note: "The checkout card is up again. Each rider confirms their own details and share there." };
-        }
         const asker = { id: ctx.askedBy, name: plan.members?.[ctx.askedBy]?.name ?? null, email: null };
+        if (l.booking) {
+          const own = l.booking.seats[asker.id] ? await bookWithSaved(ctx.roomId, legId, asker) : null;
+          await ctx.addCard({ type: "checkout", legId });
+          const now = (await ctx.load({ fresh: true })).plan.legs?.[legId]?.booking ?? l.booking;
+          return { status: "already_settled", booking: bookingLine(now, plan, handles), your_seat: own ? seatNote(own) : "not on this leg", note: "The checkout card is up again." };
+        }
         if (!l.riders.includes(asker.id)) return { refused: "NOT_A_RIDER", reason: "Only someone riding this leg can book it.", next: "Say a rider needs to ask, or add them with set_riders first." };
         let chosen = l.search.offers.find((o) => o.id === l.chosen) ?? null;
         if (option !== undefined) {
@@ -300,12 +302,15 @@ export function agentTools(ctx: ToolContext) {
           if ("now" in result) return { status: "PRICE_CHANGED", was: result.was, now: result.now, note: "Per seat. Say the new price and ask whether to go ahead; then call book_leg again with accept_price." };
           return { refused: result.code, reason: result.message, next: result.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option from get_leg_options." : "Tell them plainly." };
         }
+        // their asking is the go-ahead: their own seat, with what they keep on file
+        const own = await bookWithSaved(ctx.roomId, legId, asker, accept);
         await ctx.addCard({ type: "checkout", legId });
         const after = (await ctx.load({ fresh: true })).plan.legs?.[legId]?.booking;
         return {
           status: "settled",
           booking: after ? bookingLine(after, plan, handles) : result.mode,
-          note: "The checkout card is up. Each rider confirms their own details (saved ones are one tap) and holds their share on their card there; nobody is charged until every seat is held, then the airline books it. You can't enter details or pay for anyone.",
+          your_seat: seatNote(own),
+          note: "The checkout card is up with the bill. Other riders confirm their own seats there; nobody is charged until every seat is held, then the airline books it. You can't enter details or pay for anyone else.",
         };
       },
     }),
@@ -701,4 +706,21 @@ export function groupOps(
     ops.push(left.size ? { op: "set_riders", leg: h, riders: [...left].map((id) => handles.member.get(id)!) } : { op: "remove_leg", leg: h });
   }
   return ops;
+}
+
+/** What became of the asker's own seat, for Pip to say in a sentence. */
+export function seatNote(r: SavedBooking | { ok: false; message?: string; now?: unknown }): string {
+  if (!r.ok) return "now" in r ? "the fare moved before their card was held: say the new price from the card" : `not done: ${r.message ?? "it failed"}; they finish in the card`;
+  if ("done" in r) {
+    return r.done === "booked" ? "booked and paid; the reference is on the card"
+      : r.done === "ticketed" ? "their ticket is bought (separate tickets)"
+      : "their card is held for their share; the airline books once everyone's is";
+  }
+  return {
+    details: "they have no saved details: they enter them once in the card",
+    passport: "the airline wants a passport they haven't saved: they add it in the card",
+    card: "they have no saved card: they add one in the card",
+    authentication: `their bank wants to confirm ${r.card ?? "the card"}: one tap in the card`,
+    others: "waiting for the other riders' details before cards are held",
+  }[r.needs];
 }

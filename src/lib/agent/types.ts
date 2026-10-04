@@ -48,7 +48,7 @@ export type ThreadCard = (
   /** What one run changed on the trip, with Undo. */
   | { type: "changes"; changesetId: string; lines: string[]; undone: boolean }
   /** A leg's checkout: each rider's share and state, read live from the leg, and the viewer's own details and card. */
-  | { type: "checkout"; legId: string }
+  | { type: "checkout"; legId: string; /** Home-globe Pip's: the trip it saved, which this chat isn't in. */ tripId?: string }
   /**
    * Something Pip noticed in the trip (lib/agent/issues.ts), with one-tap fixes. `key` is the issue's, so it's said
    * once; `state` is what became of it.

@@ -28,14 +28,12 @@ import { arrivalDate } from "@/lib/transport/arrival";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
-import { isBookable, refundNote, shownOffers } from "@/lib/trip/offers";
+import { isBookable, refundNote } from "@/lib/trip/offers";
 import { stopCountry } from "@/lib/trip/stops";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
 
-/** Every option a leg keeps (MAX_OFFERS), scrolling in their own box past the first few. */
-const SHOWN = 20;
 
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
@@ -204,8 +202,8 @@ function LegCard({
   const findStay = useBeside(`stay:${leg.id}`);
   const findButton = useRef<HTMLButtonElement>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  // the pick shows even when it's further down the options
-  const offers = shownOffers(leg.search.offers, leg.chosen?.id, SHOWN);
+  // every option the leg kept, scrolling in their own box (OptionRows)
+  const offers = leg.search.offers;
   const hotelDates = hotelDatesFor(leg.chosen);
 
   /** Picks an option for everyone straight from the list. */
