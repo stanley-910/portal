@@ -6,7 +6,8 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 // A drop-down in Paper Atlas print, in place of the browser's own select. The list opens in a layer over the page, so
-// a card that clips or scrolls can't cut it off. It takes part in forms like a select: `name` posts its value, and
+// a card that clips or scrolls can't cut it off; inside a modal dialog it opens in the dialog, as the rest of the page
+// sits under the dialog's layer and takes no clicks. It takes part in forms like a select: `name` posts its value, and
 // `required` stops a submit with nothing picked.
 
 export type SelectOption = { value: string; label: string; icon?: ReactNode };
@@ -58,6 +59,8 @@ export function Select({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [frame, setFrame] = useState<CSSProperties | null>(null);
+  // where the list opens: the page, or the modal dialog the select is in
+  const [host, setHost] = useState<Element | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -78,6 +81,7 @@ export function Select({
     if (disabled) return;
     setQuery("");
     setActive(Math.max(0, options.findIndex((o) => o.value === current)));
+    setHost(button.current?.closest("dialog[open]") ?? document.body);
     setOpen(true);
   };
 
@@ -201,7 +205,7 @@ export function Select({
           }}
         />
       ) : null}
-      {open && frame
+      {open && frame && host
         ? createPortal(
             <div ref={list} className="pa-select-list" style={frame} onKeyDown={keys}>
               {searchable ? (
@@ -244,7 +248,7 @@ export function Select({
                 {shown.length ? null : <p className="pa-select-empty">Nothing matches “{query}”</p>}
               </div>
             </div>,
-            document.body,
+            host,
           )
         : null}
     </span>

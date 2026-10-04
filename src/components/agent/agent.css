@@ -263,7 +263,8 @@
 .pip-traveller { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--space-3); margin: 0; font-size: 13px; line-height: 18px; }
 .pip-traveller dt { color: var(--ink-muted); }
 .pip-traveller dd { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
-.pip-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: var(--space-6); overflow: auto; background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--line); border-radius: var(--radius-ticket); box-shadow: var(--shadow-ticket); }
+/* centred over the page: the base reset takes away the margin a modal dialog centres itself with */
+.pip-dialog { margin: auto; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: var(--space-6); overflow: auto; background: var(--paper-raised); color: var(--ink); border: var(--line-control) solid var(--line); border-radius: var(--radius-ticket); box-shadow: var(--shadow-ticket); }
 .pip-dialog::backdrop { background: color-mix(in srgb, var(--ink) 30%, transparent); }
 .pip-dialog-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-3); }
 .pip-newcard { display: flex; flex-direction: column; gap: var(--space-3); }
