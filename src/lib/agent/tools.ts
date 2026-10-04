@@ -599,6 +599,8 @@ export function agentTools(ctx: ToolContext) {
         const o = card?.options.find((x) => x.id === option) ?? ctx.meetups.get(option);
         if (!o) return { refused: "UNKNOWN_HANDLE", reason: `No meet-up card has ${option}.`, next: "Call find_meetup first." };
         if (card?.applied && !card.undone) return { refused: "ALREADY_APPLIED", reason: `${card.applied} from that card is already on the trip.`, next: "Tell them; Undo on the card takes it off." };
+        // the saucer heads for where they meet, and plays the new legs into it there
+        look("putting the meet-up on the trip", o.place);
         const result = await editPlan(ctx.roomId, plan, handles, meetupOps(o, handles), ctx.agentId, ctx.until);
         ctx.marks(result.marks);
         if (result.changesetId && message) await ctx.markMeetup(message.id, option, result.changesetId);

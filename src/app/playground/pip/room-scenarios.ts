@@ -46,7 +46,8 @@ export const PLAN_GROUP: RoomScript = {
   stops,
   before: direct,
   beats: [
-    { wait: 1000, event: { t: "presence", activity: "planning everyone's way there", at: at(stops.tyo) }, note: "model calls plan_group; look() at where they meet" },
+    { wait: 300, event: { t: "presence", activity: "reading the trip", at: null }, note: "the run starts: Pip's presence says it's working" },
+    { wait: 700, event: { t: "presence", activity: "planning everyone's way there", at: at(stops.tyo) }, note: "model calls plan_group; look() at where they meet" },
     { wait: 3500, event: { t: "presence", activity: "putting everyone's routes on the trip", at: at(stops.tyo) }, note: "search done; applying" },
     {
       wait: 150,
@@ -93,18 +94,19 @@ export const EDIT_PLAN: RoomScript = {
   stops,
   before: trip,
   beats: [
-    { wait: 1200, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "model calls edit_plan; op 1, set_date: look() at the leg's end" },
-    { wait: 150, event: { t: "marks", marks: [{ text: "Moved Shanghai Hongqiao → Tokyo to Sat 10 Oct", at: at(stops.tyo) }] }, note: "op 1 written" },
+    { wait: 300, event: { t: "presence", activity: "reading the trip", at: null }, note: "the run starts: Pip's presence says it's working" },
+    { wait: 900, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "model calls edit_plan; op 1, set_date: look() at the leg's end" },
+    { wait: 20, event: { t: "marks", marks: [{ text: "Moved Shanghai Hongqiao → Tokyo to Sat 10 Oct", at: at(stops.tyo) }] }, note: "op 1 written" },
     { wait: 60, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "op 2, set_riders" },
     {
-      wait: 150,
+      wait: 20,
       event: { t: "legs", legs: [trip[0], { ...trip[1], riders: ["mei", "ada", "joon"] }, trip[2]] },
       note: "op 2 written",
     },
     { wait: 20, event: { t: "marks", marks: [{ text: "Put Joon on Shanghai Hongqiao → Tokyo", at: at(stops.tyo) }] } },
     { wait: 60, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "op 3, add_leg: look() at its start" },
     {
-      wait: 150,
+      wait: 20,
       event: {
         t: "legs",
         legs: [trip[0], { ...trip[1], riders: ["mei", "ada", "joon"] }, trip[2], { id: "l4", from: "tyo", to: "sel", riders: ["mei", "ada"], by: "mei" }],
@@ -113,6 +115,44 @@ export const EDIT_PLAN: RoomScript = {
     },
     { wait: 20, event: { t: "marks", marks: [{ text: "Added Tokyo → Seoul Incheon", at: at(stops.sel), leg: { from: at(stops.tyo), to: at(stops.sel) } }] } },
     { wait: 2000, event: { t: "presence", activity: null, at: null }, note: "searches done, reply written; presence clears" },
+    { wait: 0, event: { t: "done" } },
+  ],
+};
+
+/**
+ * apply_meetup, the way it runs in a room: someone presses Go with this on a meet-up card (or asks Pip to), Pip
+ * looks at the meeting place, and writes every group's leg there in one change, then broadcasts the marks.
+ */
+export const APPLY_MEETUP: RoomScript = {
+  members: { mei: { name: "Mei", color: 2 }, joon: { name: "Joon", color: 4 } },
+  stops,
+  before: [],
+  beats: [
+    { wait: 300, event: { t: "presence", activity: "reading the trip", at: null }, note: "the run starts: Pip's presence says it's working" },
+    { wait: 700, event: { t: "presence", activity: "putting the meet-up on the trip", at: at(stops.sha) }, note: "model calls apply_meetup; look() at where they meet" },
+    {
+      wait: 20,
+      event: {
+        t: "legs",
+        legs: [
+          { id: "l2", from: "hkg", to: "sha", riders: ["mei"], by: "mei" },
+          { id: "l3", from: "sel", to: "sha", riders: ["joon"], by: "joon" },
+        ],
+      },
+      note: "editPlan writes both legs",
+    },
+    {
+      wait: 20,
+      event: {
+        t: "marks",
+        marks: [
+          { text: "Added HK West Kowloon → Shanghai Hongqiao", at: at(stops.sha), leg: { from: at(stops.hkg), to: at(stops.sha) } },
+          { text: "Added Seoul Incheon → Shanghai Hongqiao", at: at(stops.sha), leg: { from: at(stops.sel), to: at(stops.sha) } },
+        ],
+      },
+      note: "agent-marks broadcast",
+    },
+    { wait: 1500, event: { t: "presence", activity: null, at: null }, note: "reply written; presence clears" },
     { wait: 0, event: { t: "done" } },
   ],
 };

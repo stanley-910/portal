@@ -9,7 +9,7 @@ import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { useCursorPref } from "@/lib/cursor-pref";
 import { stopFromPoint } from "@/lib/trip/stops";
 
-import { EDIT_PLAN, PLAN_GROUP, type RoomScript } from "./room-scenarios";
+import { APPLY_MEETUP, EDIT_PLAN, PLAN_GROUP, type RoomScript } from "./room-scenarios";
 import { describeRoom, RoomStage } from "./room-stage";
 import { SCENARIOS, type Scenario } from "./scenarios";
 
@@ -26,6 +26,7 @@ type LabScenario = Scenario | RoomScenario;
 const ALL: LabScenario[] = [
   ...SCENARIOS,
   { id: "group", label: "Plan the group (room)", tool: "plan_group", ask: "Sort out the cheapest way for everyone to get to Tokyo.", room: PLAN_GROUP },
+  { id: "meet", label: "Go with a meet-up (room)", tool: "apply_meetup", ask: "Let's do Shanghai.", room: APPLY_MEETUP },
   { id: "edit", label: "Edit the trip (room)", tool: "edit_plan", ask: "Move Tokyo to Saturday, put Joon on it, and add Tokyo to Seoul for Mei and Ada.", room: EDIT_PLAN },
 ];
 

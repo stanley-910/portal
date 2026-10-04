@@ -577,8 +577,10 @@ export class GlobeEngine {
   // the saucer changed legs while it was followed, this viewer's own or the room's: once it leaves, the view frames
   // them instead of turning back
   private followBuilt: "own" | "room" | null = null;
-  // while it draws legs out: the view that frames every leg still to draw, for the set of draws it was worked out for
+  // while it draws legs out: the view that frames every leg it has changed since it came out, for the set of draws it
+  // was worked out for, and the ends of those legs
   private drawFrame: { key: string; to: { lon: number; lat: number; range: number } } | null = null;
+  private drawnEnds: Vec3[] = [];
 
   // input and time
   private mx = -9999;
@@ -1993,6 +1995,7 @@ export class GlobeEngine {
       if ("reel" in h) h.reel.t0 = start;
       else h.remote.drawn = start;
     }
+    if (this.held.length && this.follow) this.followBuilt = "room";
     this.held = [];
     let fresh = 0;
     for (const p of this.pins.values()) if (p.t0 === Infinity) p.t0 = Math.max(now, this.landingDone(p.g)) + PIN_STAGGER * fresh++;
@@ -2093,6 +2096,7 @@ export class GlobeEngine {
     if (on === this.follow) return;
     this.follow = on;
     this.drawFrame = null;
+    this.drawnEnds = [];
     if (!on) {
       // the saucer's gone: the view frames the trip it built, or goes back to where it was before it came
       const home = this.followHome;
@@ -2158,9 +2162,10 @@ export class GlobeEngine {
   }
 
   /**
-   * While the saucer draws legs out: the view that frames them all, with the rest of this viewer's trip when they're
-   * its own. Once it has drawn any, the view holds there until the saucer leaves, framed as the trip will be after,
-   * so it doesn't swing back in to the saucer and out again. Null when it hasn't drawn any.
+   * While the saucer draws legs out or reels them in: the view that frames every leg it has changed since it came
+   * out, with the rest of this viewer's trip when they're its own, so it never closes in as the later ones play. Once
+   * it has changed any, the view holds there until the saucer leaves, so it doesn't swing back in to the saucer and
+   * out again. Null when it hasn't changed any.
    */
   private drawFraming(t: number) {
     const own = this.ownDraws.filter((d) => t - d.t0 < d.d);
@@ -2173,7 +2178,8 @@ export class GlobeEngine {
     if (!draws.length) return this.followBuilt ? (this.drawFrame?.to ?? null) : null;
     const key = draws.map((d) => d.t0.toFixed(3)).join(",");
     if (this.drawFrame?.key !== key) {
-      const points = [...draws.flatMap((d) => [d.a, d.b]), ...(own.length || back.length ? this.ownStops() : [])];
+      this.drawnEnds.push(...draws.flatMap((d) => [d.a, d.b]));
+      const points = [...this.drawnEnds, ...(own.length || back.length ? this.ownStops() : [])];
       this.drawFrame = { key, to: this.viewOf(points) };
     }
     return this.drawFrame.to;
@@ -2207,8 +2213,12 @@ export class GlobeEngine {
       for (const d of draws) {
         const k = (t - d.t0) / d.d;
         if (k >= 0 && k < 1) {
-          a.target = slerp(d.a, d.b, ease(k));
-          riding = angle(a.n, a.target) < RIDE;
+          // already where the line ends (where people meet), it waits there and the line draws in to it
+          if (angle(a.n, d.b) < RIDE && angle(a.n, d.a) > RIDE) a.target = d.b;
+          else {
+            a.target = slerp(d.a, d.b, ease(k));
+            riding = angle(a.n, a.target) < RIDE;
+          }
           busy = true;
         } else if (k >= 1 && k < 1.2) {
           a.target = d.b;

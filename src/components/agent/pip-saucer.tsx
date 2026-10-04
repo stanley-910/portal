@@ -144,6 +144,12 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       const wanted = (!!place && t - lastBusy < LINGER_MS) || expect;
       // Pip goes through its portal before the saucer comes out, and comes back once the saucer has gone
       const away = getAway();
+      // While Pip works, what changes on the globe waits for the saucer to get there, as it may go there; if Pip's
+      // done and the saucer isn't coming, it plays at once (the globe also stops waiting after a while)
+      if (!still && away.phase === "home") {
+        if (busy || expect) handle.holdForAgent(true);
+        else if (!wanted) handle.holdForAgent(false);
+      }
       if (still) setAway("home");
       else if (away.phase === "home" && wanted) {
         setAway("leaving");
