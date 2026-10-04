@@ -23,7 +23,7 @@ import { FloatingTripPlan, type LegFocus } from "@/components/multiplayer/trip-p
 import { TripDock, type DockSpot } from "@/components/multiplayer/trip-dock";
 import { Button } from "@/components/paper-atlas";
 import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
-import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
+import { ClickHint, TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
 import { initialTripStorage, useMemberColor, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
 import { usePlanIssueWatch } from "@/lib/trip/issue-watch";
@@ -80,6 +80,8 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   const planReady = usePlanReady();
   // the leg you just landed: your own plane already shows it, so it isn't drawn twice until you move on
   const [landedLegs, setLandedLegs] = useState<string[]>([]);
+  // the date picked in the From and To search, which the route it draws lands on
+  const searchDate = useRef<string | null>(null);
   // whether those legs are all still on the trip, with their stops: Pip or a friend may have taken one off
   const landedOnTrip = useStorage((root) =>
     landedLegs.every((id) => {
@@ -151,9 +153,17 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
         theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
         onPointerLatLng={(cursor) => updateMyPresence({ cursor })}
         onFlightChange={(flight) => updateMyPresence({ flight })}
-        onLand={(legs) => planReady && setLandedLegs(legs.map(addLeg))}
+        onLand={(legs) => {
+          const date = searchDate.current;
+          searchDate.current = null;
+          const landed = date ? legs.map((l) => ({ ...l, departDate: new Date(`${date}T00:00`) })) : legs;
+          if (planReady) setLandedLegs(landed.map(addLeg));
+        }}
         onTakeoff={() => setLandedLegs([])}
-        onCancel={() => setLandedLegs([])}
+        onCancel={() => {
+          searchDate.current = null;
+          setLandedLegs([]);
+        }}
         onRouteClick={(id) => openLeg(id?.startsWith("leg:") ? id.slice("leg:".length) : undefined)}
       />
       <RemotePlanes globe={globe} hideLegs={landedLegs} />
@@ -183,7 +193,14 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
           </>
         }
       >
-        <PlaceSearch globe={globe} />
+        <PlaceSearch
+          globe={globe}
+          onRoute={(from, to, date) => {
+            // the route draws out to the two places and lands on the picked date, like a flown leg
+            searchDate.current = date;
+            globe.current?.showTrip([from, to], "draw");
+          }}
+        />
         <AvatarStack />
         <InviteButton />
       </NavBar>
@@ -192,8 +209,6 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       <Activity mode={planOpen ? "visible" : "hidden"}>
         <FloatingTripPlan
           globe={globe}
-          email={email}
-          nationalities={nationalities}
           bookLeg={bookLeg}
           focus={focus}
           bill={{ open: billOpen, set: setBillOpen }}
@@ -207,6 +222,8 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
       {!planOpen && planReady ? (
         <TripDock spot={dockSpot} onMove={setDockSpot} bill={{ open: billOpen, set: setBillOpen }} onExpand={() => setPlanOpen(true)} />
       ) : null}
+      {/* how to draw a leg, in the bottom-left corner */}
+      <ClickHint color={color} />
       <AgentChat initialOpen={pipOpen} />
       {leaving ? (
         <LeaveTripDialog
