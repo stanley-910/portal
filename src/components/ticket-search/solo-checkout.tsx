@@ -163,7 +163,7 @@ function InAppCheckout({ tripId, legId, read }: { tripId: string; legId: string;
   return (
     <section className="ts-checkout" aria-label="Checkout">
       {snap ? (
-        <CheckoutBody tripId={tripId} legId={legId} me={snap.me} leg={snap.leg} members={snap.members} />
+        <CheckoutBody tripId={tripId} legId={legId} me={snap.me} leg={snap.leg} members={snap.members} solo />
       ) : lost ? (
         <p className="ts-checkout-note" role="alert">Couldn&apos;t load the booking. <a href={`/t/${tripId}?book=${encodeURIComponent(legId)}`} className="ts-oneway">Open trip</a></p>
       ) : (

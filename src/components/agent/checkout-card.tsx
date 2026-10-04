@@ -93,6 +93,7 @@ export function CheckoutBody({
   leg,
   members,
   actions = SERVER,
+  solo = false,
 }: {
   tripId: string;
   legId: string;
@@ -100,6 +101,11 @@ export function CheckoutBody({
   leg: CheckoutLeg | null;
   members: Record<string, { name?: string; color?: number }> | null;
   actions?: CheckoutCardActions;
+  /**
+   * Booking alone, in the home globe's fare card: no bill of riders or group talk, just a header with your price and
+   * where you are, under the fare card's own divider.
+   */
+  solo?: boolean;
 }) {
   const from = leg?.from ?? "";
   const to = leg?.to ?? "";
@@ -178,34 +184,45 @@ export function CheckoutBody({
   const inApp = !!wallet?.publishableKey;
   const left = booking.deadline && booking.status !== "booked" ? new Date(booking.deadline) : null;
 
+  const when = (d: Date) => d.toLocaleString("en", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const stage = booking.status === "booked" ? "Booked" : seat?.paid ? "Card held" : needsDetails ? "Your details" : canPay ? "Payment" : "Checking";
   return (
-    <div className="pip-checkout">
-      <p className="pip-caption">
-        {from} → {to} · {booking.status === "booked" ? "Booked" : booking.mode === "group" ? "Group booking" : "Separate tickets"}
-      </p>
-      <ul className="pip-bill">
-        {seats.map(([id, s]) => {
-          const info = members?.[id];
-          const state = s.paid ? (booking.status === "booked" ? "Paid" : booking.mode === "separate" ? "Ticketed" : "Card held") : s.details ? "Details in" : "Waiting";
-          return (
-            <li key={id}>
-              <span className="tp-rider" aria-hidden style={{ borderColor: memberColor(info?.color ?? 1) }}>
-                {(info?.name ?? "?").slice(0, 1).toUpperCase()}
-              </span>
-              <span className="pip-bill-who">
-                {info?.name ?? "Someone"}
-                {id === me ? " (you)" : ""}
-              </span>
-              <span className="pip-bill-share">{fmt(s.share)}</span>
-              <span className="pip-bill-state" data-done={s.paid || undefined}>
-                {state}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+    <div className={solo ? "ts-checkout-body" : "pip-checkout"}>
+      {solo ? (
+        <div className="tp-book-head">
+          <span>Checkout</span>
+          <span>{seat ? `${fmt(seat.share)} · ${stage}` : stage}</span>
+        </div>
+      ) : (
+        <>
+          <p className="pip-caption">
+            {from} → {to} · {booking.status === "booked" ? "Booked" : booking.mode === "group" ? "Group booking" : "Separate tickets"}
+          </p>
+          <ul className="pip-bill">
+            {seats.map(([id, s]) => {
+              const info = members?.[id];
+              const state = s.paid ? (booking.status === "booked" ? "Paid" : booking.mode === "separate" ? "Ticketed" : "Card held") : s.details ? "Details in" : "Waiting";
+              return (
+                <li key={id}>
+                  <span className="tp-rider" aria-hidden style={{ borderColor: memberColor(info?.color ?? 1) }}>
+                    {(info?.name ?? "?").slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="pip-bill-who">
+                    {info?.name ?? "Someone"}
+                    {id === me ? " (you)" : ""}
+                  </span>
+                  <span className="pip-bill-share">{fmt(s.share)}</span>
+                  <span className="pip-bill-state" data-done={s.paid || undefined}>
+                    {state}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       {booking.status === "booked" && booking.reference ? <p className="pip-changes-note">Reference {booking.reference}</p> : null}
-      {left ? <p className="pip-changes-note">Everyone has until {left.toLocaleString("en", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.</p> : null}
+      {left ? <p className="pip-changes-note">{solo ? `Fare held until ${when(left)}.` : `Everyone has until ${when(left)}.`}</p> : null}
       {leg.bookingNotice ? <p className="pip-changes-note" role="status">{leg.bookingNotice}</p> : null}
       {error ? <p className="pip-checkout-error" role="alert">{error}{!wallet ? <> <button type="button" className="pip-action" onClick={refresh}>Try again</button></> : null}</p> : null}
       {uncertain ? <a className="pip-action" href={`/t/${tripId}?book=${encodeURIComponent(legId)}&pip=open`}>Check booking</a> : null}

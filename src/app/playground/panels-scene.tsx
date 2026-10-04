@@ -119,6 +119,8 @@ export function PanelsScene({ party }: { party: boolean }) {
                 </section>
               </div>
             </section>
+            {/* in the home fare card, booking alone with the in-app checkout: each step walks on to the next */}
+            <SoloCheckoutDemo />
           </div>
         </Section>
 
@@ -461,5 +463,28 @@ function PlanCard({ party }: { party: boolean }) {
         <NoParty className="grid gap-(--space-1)" />
       )}
     </Section>
+  );
+}
+
+/** The home fare card's in-app checkout, booking alone, at each of its steps. */
+function SoloCheckoutDemo() {
+  const [step, setStep] = useState<CheckoutScenario>("details");
+  return (
+    <div className="grid gap-(--space-2)">
+      <section className="ts pa-cast w-[360px]">
+        <div className="ts-bottom">
+          <section className="ts-checkout" aria-label="Checkout">
+            <StandInCheckoutCard key={step} scenario={step} solo />
+          </section>
+        </div>
+      </section>
+      <div className="flex flex-wrap gap-(--space-1)">
+        {CHECKOUT_SCENARIOS.map((c) => (
+          <Button key={c.id} variant={c.id === step ? "primary" : "secondary"} onClick={() => setStep(c.id)}>
+            {c.label}
+          </Button>
+        ))}
+      </div>
+    </div>
   );
 }

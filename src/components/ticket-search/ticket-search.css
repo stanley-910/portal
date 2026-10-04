@@ -139,6 +139,8 @@
 .ts-checkout { display: grid; gap: 10px; margin-top: 10px; padding-top: 12px; border-top: var(--line-hair) solid var(--line); }
 .ts-checkout .tp-book-head { padding: 0; }
 .ts-checkout-step { display: grid; gap: 8px; }
+/* the in-app checkout, booking alone: its steps straight under the fare card's divider, no box of its own */
+.ts-checkout-body { display: grid; gap: 8px; }
 .ts-checkout-note { margin: 0; color: var(--ink); font-size: 12.5px; line-height: 17px; }
 .ts-checkout-note .ts-oneway { margin-left: 2px; vertical-align: middle; }
 .ts-checkout-actions { display: flex; justify-content: flex-end; gap: 6px; }
