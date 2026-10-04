@@ -81,27 +81,22 @@
 .pip-head[data-dragging] { cursor: grabbing; }
 .pip-panel[data-placed] { transform-origin: 50% 50%; }
 /* the resize grip: three steps of pixels in the bottom-right corner, inside the frame */
-.pip-grip { position: absolute; right: 5px; bottom: 5px; z-index: 1; width: 12px; height: 12px; cursor: nwse-resize; touch-action: none; color: var(--ink-muted); background:
-  linear-gradient(currentColor, currentColor) 8px 0 / 2px 2px no-repeat,
-  linear-gradient(currentColor, currentColor) 4px 4px / 2px 2px no-repeat,
-  linear-gradient(currentColor, currentColor) 8px 4px / 2px 2px no-repeat,
-  linear-gradient(currentColor, currentColor) 0 8px / 2px 2px no-repeat,
-  linear-gradient(currentColor, currentColor) 4px 8px / 2px 2px no-repeat,
-  linear-gradient(currentColor, currentColor) 8px 8px / 2px 2px no-repeat; }
-.pip-grip::before { content: ""; position: absolute; inset: -8px; }
-.pip-grip:hover, .pip-grip[data-dragging] { color: var(--ink); }
-/* the rest of the window's edges and corners resize it too: strips along each side, squares at the corners */
+/* the window resizes from its edges and corners, like a window: strips along its frame (4px, about the frame's
+   width, so the scrollbar inside stays grabbable) and squares at the corners */
 .pip-edge { position: absolute; z-index: 2; touch-action: none; }
-.pip-edge[data-edge="n"], .pip-edge[data-edge="s"] { left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
-.pip-edge[data-edge="e"], .pip-edge[data-edge="w"] { top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.pip-edge[data-edge="n"], .pip-edge[data-edge="s"] { left: 12px; right: 12px; height: 4px; cursor: ns-resize; }
+.pip-edge[data-edge="e"], .pip-edge[data-edge="w"] { top: 12px; bottom: 12px; width: 4px; cursor: ew-resize; }
 .pip-edge[data-edge="n"] { top: 0; }
 .pip-edge[data-edge="s"] { bottom: 0; }
 .pip-edge[data-edge="e"] { right: 0; }
 .pip-edge[data-edge="w"] { left: 0; }
-.pip-edge[data-edge="ne"], .pip-edge[data-edge="nw"], .pip-edge[data-edge="sw"] { width: 12px; height: 12px; }
+.pip-edge[data-edge="ne"], .pip-edge[data-edge="nw"], .pip-edge[data-edge="se"], .pip-edge[data-edge="sw"] { width: 12px; height: 12px; }
 .pip-edge[data-edge="ne"] { top: 0; right: 0; cursor: nesw-resize; }
 .pip-edge[data-edge="nw"] { top: 0; left: 0; cursor: nwse-resize; }
 .pip-edge[data-edge="sw"] { bottom: 0; left: 0; cursor: nesw-resize; }
+.pip-edge[data-edge="se"] { bottom: 0; right: 0; cursor: nwse-resize; }
+/* the panel's scrolling parts keep their scrollbar clear of the resize strip on the right */
+.pip-panel .pip-messages { margin-right: 4px; }
 .pip-head-name { font-size: 14px; line-height: 18px; font-weight: 600; }
 .pip-head-sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pip-close { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: var(--radius-control); background: none; color: var(--ink-muted); cursor: pointer; }
