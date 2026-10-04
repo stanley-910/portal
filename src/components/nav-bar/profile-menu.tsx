@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { Button, Cursor, MEMBER_COLORS, type CursorShape } from "@/components/paper-atlas";
+import { setAlienPref, useAlienPref } from "@/lib/alien-pref";
 import { setCursorPref, useCursorPref } from "@/lib/cursor-pref";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
 import { saveColor, saveNationalities } from "@/app/profile-actions";
@@ -120,6 +121,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
               )}
               <CursorSetting trip={tripColor} />
               <ThemeSetting />
+              <AlienSetting />
               {children}
             </>
           )}
@@ -291,6 +293,21 @@ function ThemeSetting() {
   return (
     <MenuSection title="Theme">
       <MenuChoices name="theme" label="Theme" value={theme ?? "system"} options={THEMES} onChange={setTheme} />
+    </MenuSection>
+  );
+}
+
+const ALIEN: readonly MenuChoice<"on" | "off">[] = [
+  { value: "on", label: "On" },
+  { value: "off", label: "Off" },
+];
+
+/** Alien mode: Pip's replies stream in as alien glyphs that translate into English just behind. */
+function AlienSetting() {
+  const on = useAlienPref();
+  return (
+    <MenuSection title="Alien mode">
+      <MenuChoices name="alien" label="Alien mode" value={on ? "on" : "off"} options={ALIEN} onChange={(v) => setAlienPref(v === "on")} />
     </MenuSection>
   );
 }

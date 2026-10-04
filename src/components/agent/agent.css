@@ -104,11 +104,13 @@
 .pip-step > span:not(.pip-step-mark) { text-box: trim-both cap alphabetic; }
 /* done: a solid pixel; running: a starlight one in an ink ring, blinking */
 .pip-step-mark { width: 6px; height: 6px; flex: none; margin-left: 1px; background: var(--ink-muted); }
-.pip-step-running { color: var(--ink); }
-.pip-step-running .pip-step-mark { width: 8px; height: 8px; margin-left: 0; background: var(--star-light); box-shadow: 0 0 0 1px var(--sticker-ink); animation: pip-blink 600ms steps(1) infinite; }
+/* running, a step looks as it will once done, so it doesn't shrink as it settles: only its mark blinks starlight */
+.pip-step-running .pip-step-mark { background: var(--star-light); box-shadow: inset 0 0 0 1px var(--sticker-ink); animation: pip-blink 600ms steps(1) infinite; }
 .pip-step + .pip-step { margin-top: -4px; }
 .pip-step-detail { font-weight: 400; }
-.pip-thinking { display: flex; align-items: center; gap: var(--space-3); }
+.pip-thinking { display: flex; align-items: center; gap: var(--space-3); min-height: 28px; }
+/* Pip's first steps take the thinking saucer's slot (28px, its height), centred in it, and grow it only when more stack up */
+.pip-thinking-steps { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
 
 /* Meet-up options: flat mini-tickets */
 .pip-options { display: flex; flex-direction: column; gap: var(--space-3); }
@@ -146,7 +148,6 @@
 .pip-action:disabled { opacity: 0.45; cursor: default; }
 .pip-action:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Stop reply sits over the composer, on its right */
-.pip-stop { align-self: flex-end; margin: 0 var(--space-3) -4px; }
 .pip-changes-undone ul { text-decoration: line-through; color: var(--ink-muted); }
 
 /* Composer */
@@ -175,11 +176,17 @@
 /* a text box shows focus on every click, not just from the keyboard; its own border carries it instead of a ring */
 .pip-input:focus { outline: none; }
 
-/* Pip's saucer on the globe (pip-saucer.tsx): the beam it drops when a change pops, and the pops */
-.pip-beam { position: absolute; top: 0; left: -18px; width: 36px; pointer-events: none; will-change: transform; clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%); background-image: repeating-conic-gradient(var(--star-light) 0 25%, transparent 0 50%); background-size: 4px 4px; animation: pip-blink 160ms steps(1) infinite; }
+/* Alien mode (alien-text.tsx): the untranslated tail of a streaming reply, each letter laid out but hidden under its
+   glyph so nothing reflows, and each letter flipping out of it into English, a stepped flash like a pixel cell
+   turning over */
+.pip-alien { position: relative; color: transparent; }
+.pip-alien::before { content: attr(data-glyph); position: absolute; left: 50%; top: 0; translate: -50% 0; color: var(--ink-muted); pointer-events: none; }
+.pip-alien-flip { animation: pip-alien-flip 140ms steps(1, end) both; }
+@keyframes pip-alien-flip { 0% { background: var(--ink); color: var(--paper-raised); } 50% { background: var(--ink-muted); color: var(--paper-raised); } 100% { background: transparent; color: inherit; } }
+/* Pip's saucer on the globe (pip-saucer.tsx): the changes it pops */
 .pip-pop { position: absolute; top: 0; left: 0; pointer-events: none; will-change: transform; }
 /* a pop looks like the globe's own place tags (engine.ts tag()): typewriter on raised paper, ink edge */
-.pip-pop-inner { display: block; max-width: 280px; padding: 2px 7px; background: var(--paper-raised); color: var(--ink); border: var(--line-hair) solid var(--ink); border-radius: var(--radius-tag); box-shadow: var(--shadow-tag); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: translate(-50%, -100%); animation: pip-pop-rise 1800ms steps(3) both; }
+.pip-pop-inner { display: block; max-width: 280px; padding: 2px 7px; background: var(--paper-raised); color: var(--ink); border: var(--line-hair) solid var(--ink); border-radius: var(--radius-tag); box-shadow: var(--shadow-tag); font-family: var(--font-typewriter); font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: translate(-50%, -100%); animation: pip-pop-rise 2200ms both; }
 /* Follow Pip again, after moving the globe away from it: a starlight tag at the bottom of the globe */
 .pip-follow { position: absolute; left: 50%; bottom: var(--space-6); z-index: 20; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 6px; border: 0; background: var(--star-light); color: var(--sticker-ink); box-shadow: var(--shadow-pixel); font-family: var(--font-typewriter); font-size: 13px; line-height: 16px; font-weight: 700; cursor: pointer; translate: -50% 0; animation: pip-suggest-in 160ms steps(4) both; }
 .pip-follow::before { content: ""; position: absolute; inset: -6px 0; }
@@ -190,19 +197,18 @@
 @keyframes pip-open { from { transform: translateY(8px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pip-suggest-in { from { transform: translateY(-4px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pip-blink { 50% { opacity: 0; } }
-/* a hit in a game: punches in big, settles, floats up and fades */
+/* a hit in a game: punches in with a little overshoot, settles, floats up steadily and fades */
 @keyframes pip-pop-rise {
-  0% { transform: translate(-50%, -100%) translateY(10px) scale(0.6); opacity: 0; }
-  8% { transform: translate(-50%, -100%) translateY(-4px) scale(1.08); opacity: 1; }
-  16% { transform: translate(-50%, -100%) translateY(-6px) scale(1); opacity: 1; }
-  70% { transform: translate(-50%, -100%) translateY(-28px) scale(1); opacity: 1; }
-  100% { transform: translate(-50%, -100%) translateY(-44px) scale(1); opacity: 0; }
+  0% { transform: translate(-50%, -100%) translateY(10px) scale(0.5); opacity: 0; animation-timing-function: cubic-bezier(0.2, 1.6, 0.4, 1); }
+  12% { transform: translate(-50%, -100%) translateY(0) scale(1); opacity: 1; animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+  75% { transform: translate(-50%, -100%) translateY(-26px) scale(1); opacity: 1; animation-timing-function: ease-in; }
+  100% { transform: translate(-50%, -100%) translateY(-40px) scale(1); opacity: 0; }
 }
 @keyframes pip-pop-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .pip-launcher, .pip-panel { animation: none; }
-  .pip-caret, .pip-step-running .pip-step-mark, .pip-suggestion, .pip-beam, .pip-follow { animation: none; }
+  .pip-caret, .pip-step-running .pip-step-mark, .pip-suggestion, .pip-follow, .pip-alien-flip { animation: none; }
   .pip-pop-inner { animation-name: pip-pop-fade; }
 }
 

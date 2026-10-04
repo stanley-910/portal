@@ -353,12 +353,7 @@ function PipPanels() {
             <CardActionsContext value={actions}>
               <ThreadLog thread={thread} me="g_mei" members={MEMBERS} activity="checking fares" footer={<Suggestions composer={composer} chips={CHIPS} />} />
             </CardActionsContext>
-            {replying ? (
-              <button type="button" className="pip-action pip-stop" onClick={() => setReplying(false)}>
-                Stop reply
-              </button>
-            ) : null}
-            <Composer composer={composer} />
+            <Composer composer={composer} onStop={replying ? () => setReplying(false) : undefined} />
           </section>
         </div>
         <div className="flex flex-col gap-(--space-2)">

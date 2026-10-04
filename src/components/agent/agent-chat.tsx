@@ -9,6 +9,7 @@ const CheckoutCard = dynamic(() => import("@/components/agent/checkout-card").th
 import { useOpenAuth } from "@/components/auth/links";
 import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
 import { usePipFrame } from "@/components/agent/pip-frame";
+import { AlienText, useTranslated } from "@/components/agent/alien-text";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
 import { Button, PixelIcon } from "@/components/paper-atlas";
 import { tripContext } from "@/lib/agent/context";
@@ -121,7 +122,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
         onPointerEnter={() => setHover(true)}
         onPointerLeave={() => setHover(false)}
       >
-        <PipSprite size={40} mood={hover ? "talk" : "idle"} className={hidden ? "pip-hidden" : undefined} />
+        <PipSprite size={40} mood={hover ? "talk" : "idle"} className={hidden ? "pip-hidden" : undefined} portal />
         {unread ? <span aria-label="New reply" className="pip-unread" /> : null}
       </button>
     </div>
@@ -228,7 +229,7 @@ function Panel({ onClose }: { onClose: () => void }) {
   return (
     <section ref={framed} style={frameStyle} data-placed={placed || undefined} data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Trip chat with ${AGENT_NAME}`}>
       <header className="pip-head" data-draggable="" onPointerDown={onMove}>
-        <PipSprite size={32} mood={mood} />
+        <PipSprite size={32} mood={mood} portal />
         <div className="min-w-0 flex-1">
           <p className="pip-head-name">{AGENT_NAME}</p>
           <p className="pip-head-sub">{context.line}</p>
@@ -306,28 +307,36 @@ const NO_MEMBERS: Members = {};
 
 // Memoised: a streamed token changes only the streaming message, so the rest of the thread doesn't re-render.
 const Message = memo(function Message({ message: m, me, members, activity }: { message: ThreadMessage; me: string | undefined; members: Members; activity: string | null }) {
+  // in alien mode, how much of a streaming reply has translated
+  const translated = useTranslated(m.text.length, m.state === "streaming", m.author.kind === "agent");
   if (m.author.kind === "agent") {
     const streaming = m.state === "streaming";
-    const parts = inOrder(m.text, m.cards);
-    const working = m.cards.some((c) => c.type === "status" && !c.done);
+    const all = inOrder(m.text, m.cards);
+    // the step lines Pip starts with, before any words or other card, share the thinking saucer's slot
+    const lead = all.findIndex((p) => p.kind !== "card" || p.card.type !== "status");
+    const steps = all.slice(0, lead < 0 ? all.length : lead);
+    const parts = all.slice(steps.length);
+    const part = (p: (typeof all)[number]) =>
+      p.kind === "text" ? (
+        <AlienText key={`t${p.at}`} className="pip-text" text={p.text} translated={translated - p.at} />
+      ) : (
+        <Card key={p.index} card={p.card} messageId={m.id} members={members} activity={activity} />
+      );
     return (
       <div className="pip-msg-agent">
         <div className="pip-msg-agent-body">
           <span className="pip-label">{AGENT_NAME}</span>
-          {parts.map((part) =>
-            part.kind === "text" ? (
-              <p key={`t${part.at}`} className="pip-text">{part.text}</p>
-            ) : (
-              <Card key={part.index} card={part.card} messageId={m.id} members={members} activity={activity} />
-            ),
-          )}
-          {/* before its first tool or word: the saucer, and what Pip is doing once it says */}
-          {streaming && !working && !parts.length ? (
+          {/* before its first tool or word, the saucer and what Pip's doing; then its first steps, centred in the
+              same slot, so the reply doesn't shrink as they take over */}
+          {steps.length ? (
+            <div className="pip-thinking pip-thinking-steps">{steps.map(part)}</div>
+          ) : streaming && !parts.length ? (
             <div className="pip-thinking">
               <PipUfo size={44} />
               {activity ? <Step label={activity} running /> : null}
             </div>
           ) : null}
+          {parts.map(part)}
           {m.state === "failed" ? <FailedReply messageId={m.id} /> : null}
           {m.state === "queued" ? <Step label="Next in line" /> : null}
         </div>
@@ -514,11 +523,15 @@ export function useComposer(send: (text: string) => Promise<void>) {
 export type ComposerState = ReturnType<typeof useComposer>;
 
 /** Suggested messages, last in the thread so they scroll away with it. They go while you type. */
+/**
+ * The suggestion over the message box: only the first of `chips`, so the thread's bottom stays one row tall and doesn't
+ * jump when the suggestions change as a reply comes in.
+ */
 export function Suggestions({ composer, chips }: { composer: ComposerState; chips: string[] }) {
   if (!chips.length || composer.draft) return null;
   return (
     <div className="pip-suggest" role="menu" aria-label="Suggested messages">
-      {chips.map((chip, i) => (
+      {chips.slice(0, 1).map((chip, i) => (
         <button
           key={chip}
           type="button"
@@ -535,7 +548,8 @@ export function Suggestions({ composer, chips }: { composer: ComposerState; chip
   );
 }
 
-export function Composer({ composer, placeholder = `Message ${AGENT_NAME}` }: { composer: ComposerState; placeholder?: string }) {
+/** The message box. With `onStop`, a reply is coming in, and its button stops the reply instead of sending. */
+export function Composer({ composer, placeholder = `Message ${AGENT_NAME}`, onStop }: { composer: ComposerState; placeholder?: string; onStop?: () => void }) {
   const { draft, setDraft, error, pending, submit } = composer;
   const openAuth = useOpenAuth();
   return (
@@ -566,11 +580,19 @@ export function Composer({ composer, placeholder = `Message ${AGENT_NAME}` }: { 
             maxLength={2000}
           />
         </span>
-        <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
-          <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-            <path d="M3 8 H13 M9 4 L13 8 L9 12" />
-          </svg>
-        </button>
+        {onStop ? (
+          <button type="button" className="pip-send" aria-label="Stop reply" onClick={onStop}>
+            <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+              <rect x={4.5} y={4.5} width={7} height={7} fill="currentColor" />
+            </svg>
+          </button>
+        ) : (
+          <button type="submit" className="pip-send" aria-label="Send" disabled={pending || !draft.trim()}>
+            <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+              <path d="M3 8 H13 M9 4 L13 8 L9 12" />
+            </svg>
+          </button>
+        )}
       </label>
     </form>
   );
