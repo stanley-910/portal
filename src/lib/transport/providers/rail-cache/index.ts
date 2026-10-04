@@ -2,6 +2,7 @@ import "server-only";
 import { ProviderFailure, type Place, type SearchQuery, type TransportProvider, type Offer } from "../../types";
 import { distanceKm } from "../gtfs/geo";
 import { matchRadiusKm } from "../match-radius";
+import { publishedFare } from "./fares";
 import { createScheduleSearch } from "./search";
 import type { ScheduleCache } from "./schema";
 import cacheJson from "./cache.json";
@@ -33,11 +34,15 @@ export function createRailCacheProvider(cache: ScheduleCache): TransportProvider
       if (!found.length) throw new ProviderFailure("UNSUPPORTED_ROUTE");
       return found.map((j): Offer => {
         const source = cache.sources[j.trip.source];
+        const names = (id: string) => [cache.stations[id].name, ...cache.stations[id].aliases];
+        const fare = publishedFare({ country: j.trip.country, operator: j.trip.operator, from: names(j.from), to: names(j.to),
+          calls: j.trip.stops.flatMap((s) => names(s.station)) });
         return {
           id: `rail-cache:${j.trip.id}:${j.from}:${j.to}:${j.depart}`, provider: "rail-cache", mode: "train", kind: j.demoReuse ? "estimated" : "timetable",
           segments: [{ mode: "train", carrier: j.trip.operator, number: j.trip.number || undefined,
             from: place(j.from), to: place(j.to), depart: j.depart, arrive: j.arrive, durationMin: j.durationMin }],
-          attribution: `${j.demoReuse ? `Demo schedule reused from ${j.trip.calendar.dates?.join(", ")}; operating date unverified` : j.trip.calendar.kind === "typical" ? "Typical timetable; confirm operating day" : "Cached published schedule"} — ${source.group}; captured ${source.retrievedAt?.slice(0, 10) ?? "date unrecorded"}; ${source.url ?? source.path}. Fares and seats not checked.${j.trip.notes ? ` ${j.trip.notes}` : ""}`,
+          ...(fare ? { price: fare.price } : {}),
+          attribution: `${j.demoReuse ? `Demo schedule reused from ${j.trip.calendar.dates?.join(", ")}; operating date unverified` : j.trip.calendar.kind === "typical" ? "Typical timetable; confirm operating day" : "Cached published schedule"} — ${source.group}; captured ${source.retrievedAt?.slice(0, 10) ?? "date unrecorded"}; ${source.url ?? source.path}. ${fare ? fare.note : "Fares and seats not checked."}${j.trip.notes ? ` ${j.trip.notes}` : ""}`,
         };
       });
     },

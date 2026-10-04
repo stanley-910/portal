@@ -13,7 +13,8 @@ tracks rail across China, Taiwan, Japan, Korea and Southeast Asia, plus buses, f
 
 [Current rail source capture](findings/rail-capture.md) records the October 3–4 collection of published fares, PDFs,
 spreadsheets, GTFS, HTML timetables and dated China/Japan samples. `python3 scripts/capture-rail.py` refreshes local source evidence;
-timetable captures are integrated through `rail-cache`; fare-only evidence remains separate.
+timetable captures are integrated through `rail-cache`. The fare tables whose layout is known (THSR, KTX/SRT, Korail's
+ITX and Saemaeul, and smartEX for the Tokaido, Sanyo and Kyushu shinkansen) price those trains; the OCR'd MTR charts don't.
 
 ## The pipeline
 
@@ -147,6 +148,14 @@ curl --get 'http://localhost:3000/api/transport/search' \
 - China rail seed trains can carry a published second-class fare (`fare` in the seed; the low end where the source gives a range). Priced rows show the
   fare with the Estimated badge, because real fares vary by train and date; rows without a source stay unpriced.
   A Hong Kong search also returns trains from Shenzhen North and Futian, a border crossing away.
+- Timetabled trains in `rail-cache` and `tdx` carry the published fare for a standard seat, one adult, one way, from
+  `rail-cache/fares.json` (built by `scripts/rail/fares.py`). It's a published fare, not a quote: seats, seasons and
+  discounts aren't checked, and the source line says so. A shinkansen is priced only when every stop it makes is on
+  the line, so a limited express sharing a station isn't given a shinkansen fare; where KTX routes differ in price,
+  the one through the stations the train calls at is used. Mugunghwa, KTMB, Thai and Vietnamese trains have no
+  fare table yet and stay unpriced.
+- An offer whose clock times contradict its own duration by more than two hours is dropped (a cached fare with a
+  wrong arrival date); it isn't counted against the provider.
 - `cross-border` models frequent ground links no timetable covers: Hong Kong (Admiralty) ↔ Shenzhen North by MTR
   East Rail, the Lo Wu checkpoint and Shenzhen Metro. Typical fare and times, always **estimated**, with the
   crossing time stated. `CONNECTORS` is also what Pip's route composer uses to reach a cheaper gateway.

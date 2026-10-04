@@ -12,7 +12,7 @@ vi.mock("@/lib/env.server", () => ({ env }));
 import { duffel } from "./providers/duffel";
 import { DUFFEL_TIMEOUT_MS } from "./providers/duffel/client";
 import { travelpayouts } from "./providers/travelpayouts";
-import { fanOut, PROVIDER_TIMEOUT_MS, rankFareOffers, rankOffers, searchTransport } from "./search";
+import { fanOut, PROVIDER_TIMEOUT_MS, rankFareOffers, rankOffers, searchTransport, timesAgree } from "./search";
 
 const query: SearchQuery = {
   from: { name: "Hong Kong", lat: 22.3, lng: 113.9, iata: "HKG" },
@@ -509,13 +509,13 @@ describe("fanOut", () => {
         fake("travelpayouts", ["flight"], async () => [{
           ...offer("travelpayouts", "2026-10-20T09:00:00Z"),
           price: { amount: 91, currency: "USD" },
-          segments: [{ ...offer("travelpayouts", "2026-10-20T09:00:00Z").segments[0], durationMin: 125 }],
+          segments: [{ ...offer("travelpayouts", "2026-10-20T09:00:00Z").segments[0], arrive: "2026-10-20T11:05:00Z", durationMin: 125 }],
         }]),
         fake("china-rail", ["train"], async () => [{
           ...offer("china-rail", "2026-10-20T08:00:00+08:00"),
           price: { amount: 553, currency: "CNY" },
           mode: "train",
-          segments: [{ ...offer("china-rail", "2026-10-20T08:00:00+08:00").segments[0], mode: "train", durationMin: 277 }],
+          segments: [{ ...offer("china-rail", "2026-10-20T08:00:00+08:00").segments[0], mode: "train", arrive: "2026-10-20T12:37:00+08:00", durationMin: 277 }],
         }]),
       ],
     });
@@ -599,5 +599,21 @@ describe("progressive provider results", () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(await work).toHaveLength(20);
     expect(peak).toBe(6);
+  });
+});
+
+describe("timesAgree", () => {
+  const at = (depart: string, arrive: string, durationMin: number): Offer => ({
+    id: "x", provider: "travelpayouts", mode: "flight", kind: "cached",
+    segments: [{ mode: "flight", from: { name: "Singapore", lat: 1.36, lng: 103.99 }, to: { name: "Subang", lat: 3.13, lng: 101.55 }, depart, arrive, durationMin }],
+  });
+
+  it("refuses a fare whose arrival contradicts its duration", () => {
+    // 19:55 to 13:00 the next day, said to take 1h05
+    expect(timesAgree(at("2026-10-17T19:55:00+08:00", "2026-10-18T13:00:00+08:00", 65))).toBe(false);
+  });
+
+  it("tolerates a time zone off by an hour", () => {
+    expect(timesAgree(at("2026-10-17T19:55:00+08:00", "2026-10-17T22:00:00+08:00", 65))).toBe(true);
   });
 });

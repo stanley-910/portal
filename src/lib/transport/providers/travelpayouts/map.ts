@@ -49,6 +49,7 @@ export function mapFlights(rows: readonly unknown[], query: SearchQuery, marker?
     if (!Number.isFinite(arrivalMs) || !Number.isFinite(new Date(arrivalMs).getTime())) {
       throw new ProviderFailure("BAD_RESPONSE");
     }
+    const to = airportPlace(toCode, query.to);
     offers.push({
       id: `travelpayouts:${fromCode}-${toCode}-${row.departure_at}-${row.airline}-${row.flight_number}`,
       provider: "travelpayouts",
@@ -59,9 +60,9 @@ export function mapFlights(rows: readonly unknown[], query: SearchQuery, marker?
         ...(/^[A-Z0-9]{2}$/.test(row.airline) ? { carrierCode: row.airline } : {}),
         number: `${row.airline}${row.flight_number}`,
         from: airportPlace(fromCode, query.from),
-        to: airportPlace(toCode, query.to),
+        to,
         depart: row.departure_at,
-        arrive: localIso(arrivalMs, zoneOf(toCode)),
+        arrive: localIso(arrivalMs, zoneOf(toCode, to.country)),
         durationMin,
       }],
       // cached fares include connections but don't list the legs, so the count is all we have

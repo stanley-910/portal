@@ -14,7 +14,7 @@ function responses(...bodies: unknown[]) {
   return vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify(bodies.shift()), { status: 200 }));
 }
 describe("TDX official dated timetable contract", () => {
-  it("uses documented OAuth, forwards cancellation, caches timetable and omits fares", async () => {
+  it("uses documented OAuth, forwards cancellation, caches timetable and adds the published fare", async () => {
     const fetcher = responses({ access_token: "test-token", expires_in: 3600 }, fixture);
     const client = createDailyClient(creds, fetcher), abort = signal();
     const rows = await client(q.date, abort);
@@ -24,7 +24,8 @@ describe("TDX official dated timetable contract", () => {
     expect(fetcher.mock.calls[0][1]?.signal?.aborted).toBe(false);
     expect(fetcher.mock.calls[1][1]?.signal?.aborted).toBe(false);
     const offer = mapDaily(rows, q, "1000", "1070", q.from, q.to)[0];
-    expect(offer.kind).toBe("timetable"); expect(offer.price).toBeUndefined();
+    expect(offer.kind).toBe("timetable"); expect(offer.price).toEqual({ amount: 1490, currency: "TWD" });
+    expect(offer.attribution).toMatch(/Published standard car, reserved fare/);
     expect(offer.segments[0].arrive).toBe("2026-10-14T09:30:00+08:00");
     expect(offer.segments[0].durationMin).toBe(90);
   });

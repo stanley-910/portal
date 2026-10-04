@@ -1,4 +1,5 @@
 import "server-only";
+import { publishedFare } from "../rail-cache/fares";
 import { createInFlight } from "../../../in-flight.ts";
 import { z } from "zod";
 import { ProviderFailure, type Offer, type Place, type SearchQuery } from "../../types.ts";
@@ -93,11 +94,13 @@ export function mapDaily(rows: Daily, q: SearchQuery, fromId: string, toId: stri
     if (!depart.startsWith(q.date)) return [];
     const durationMin = (Date.parse(arrive) - Date.parse(depart)) / 60_000;
     if (durationMin <= 0 || !Number.isInteger(durationMin)) throw new ProviderFailure("BAD_RESPONSE");
+    const fare = publishedFare({ country: "TW", operator: "THSR", from: [from.name], to: [to.name] });
     return [{
       id: `tdx:daily:${row.DailyTrainInfo.TrainNo}:${fromId}:${q.date}`, provider: "tdx", mode: "train", kind: "timetable",
       segments: [{ mode: "train", carrier: "THSR", number: row.DailyTrainInfo.TrainNo, from, to, depart, arrive, durationMin }],
+      ...(fare ? { price: fare.price } : {}),
       bookingUrl: "https://irs.thsrc.com.tw/IMINT/",
-      attribution: `TDX / THSR — dated timetable, source updated ${row.UpdateTime}: ${DAILY_URL}${row.TrainDate}; fares and seats not checked`,
+      attribution: `TDX / THSR — dated timetable, source updated ${row.UpdateTime}: ${DAILY_URL}${row.TrainDate}; ${fare ? fare.note : "fares and seats not checked"}`,
     }];
   });
 }

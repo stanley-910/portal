@@ -108,7 +108,8 @@ describe("tdx (THSR) provider", () => {
         },
       ],
     });
-    expect(t0803?.price).toBeUndefined();
+    // the published standard-car fare, Taipei → Zuoying
+    expect(t0803?.price).toEqual({ amount: 1490, currency: "TWD" });
   });
 
   it("Zuoying → Taipei returns northbound trains only", async () => {

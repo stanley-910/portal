@@ -79,9 +79,19 @@ const ZONES: Record<string, string[]> = {
 
 const zoneByCode = new Map(Object.entries(ZONES).flatMap(([zone, codes]) => codes.map((c) => [c, zone] as const)));
 
-/** The airport or city code's time zone, or null when we don't know it. */
-export function zoneOf(code: string): string | null {
-  return zoneByCode.get(code.toUpperCase()) ?? null;
+/**
+ * Countries on one clock, for airports the table doesn't list (Subang, Seletar). Countries with several zones
+ * (Indonesia, Australia) aren't here: there, an unlisted airport stays in UTC.
+ */
+const COUNTRY_ZONES: Record<string, string> = {
+  HK: "Asia/Hong_Kong", MO: "Asia/Macau", CN: "Asia/Shanghai", TW: "Asia/Taipei", JP: "Asia/Tokyo", KR: "Asia/Seoul",
+  PH: "Asia/Manila", TH: "Asia/Bangkok", VN: "Asia/Ho_Chi_Minh", SG: "Asia/Singapore", MY: "Asia/Kuala_Lumpur",
+  KH: "Asia/Phnom_Penh", LA: "Asia/Vientiane", MM: "Asia/Yangon", BN: "Asia/Brunei", IN: "Asia/Kolkata",
+};
+
+/** The airport or city code's time zone, else its country's when the country has one, or null when we don't know. */
+export function zoneOf(code: string, country?: string | null): string | null {
+  return zoneByCode.get(code.toUpperCase()) ?? (country ? COUNTRY_ZONES[country.toUpperCase()] ?? null : null);
 }
 
 /** An instant as ISO 8601 in the zone's local time, e.g. "2026-11-15T10:45:00+07:00". UTC without a zone. */
