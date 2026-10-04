@@ -120,7 +120,9 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       const t = performance.now();
       const { at, busy, expect, pops } = live.current;
       if (!current && queue.current.length) current = { ...queue.current.shift()!, since: t, popped: null };
-      if (current || busy) lastBusy = t;
+      // it stays out for work on the globe: changes to play, a globe tool running, or Pip looking somewhere; Pip
+      // writing its reply doesn't keep it
+      if (current || expect || (busy && at)) lastBusy = t;
       // each new place Pip looks at is a stop; changes it makes take over from them
       const key = at ? `${at.lat},${at.lng}` : "";
       if (at && key !== looked) {

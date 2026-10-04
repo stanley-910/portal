@@ -11,6 +11,8 @@ import { useAlienPref } from "@/lib/alien-pref";
 
 /** How far the translation trails the stream, in characters. */
 const LAG = 10;
+/** A stream quiet this long (Pip off doing something, or a slow connection) translates the rest rather than stall. */
+const IDLE_MS = 400;
 /** How fast it translates at least, in characters a second, so it never stalls behind a burst. */
 const MIN_RATE = 45;
 /** How fast it closes the gap: the share of it closed in a second, as an exponential rate. */
@@ -54,9 +56,9 @@ export function useTranslated(length: number, streaming: boolean, agent: boolean
   const [streamed] = useState(streaming);
   const [n, setN] = useState(0);
   const at = useRef(0);
-  const live = useRef({ length, streaming });
+  const live = useRef({ length, streaming, grew: 0 });
   useEffect(() => {
-    live.current = { length, streaming };
+    live.current = { length, streaming, grew: performance.now() };
   }, [length, streaming]);
 
   const still = useSyncExternalStore(subscribeMotion, () => window.matchMedia(REDUCE).matches, () => false);
@@ -68,13 +70,14 @@ export function useTranslated(length: number, streaming: boolean, agent: boolean
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      const { length, streaming } = live.current;
-      const target = streaming ? Math.max(0, length - LAG) : length;
+      const { length, streaming, grew } = live.current;
+      const target = streaming && now - grew < IDLE_MS ? Math.max(0, length - LAG) : length;
       const gap = target - at.current;
       if (gap > 0) {
         at.current = Math.min(target, at.current + Math.max(gap * (1 - Math.exp(-CATCH_UP * dt)), MIN_RATE * dt));
         setN(at.current);
       }
+      // streaming, it keeps watching for the stream to go quiet
       if (streaming || at.current < length) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

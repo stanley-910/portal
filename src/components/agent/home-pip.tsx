@@ -218,7 +218,8 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
       } else if (event.t === "card") patch(id, (m) => ({ ...m, cards: [...m.cards, event.card] }));
       else if (event.t === "activity") {
         setActivity(event.label);
-        if (event.at) setAt(event.at);
+        // a tool looks somewhere while it works; done, it isn't looking there any more
+        setAt(event.label ? (event.at ?? null) : null);
       } else if (event.t === "trip") {
         setAppliedReplies((ids) => new Set(ids).add(id));
         if (planned) putDown(planned);

@@ -95,6 +95,17 @@ export const SCENARIOS: Scenario[] = [
     beats: planTrip([], oneLeg, "HK West Kowloon → Shanghai Hongqiao is on your globe for tomorrow. The card's searching fares now."),
   },
   {
+    // a spotty connection: the reply trickles in and stalls halfway, long after the trip's gone on the globe
+    id: "slow",
+    label: "Slow connection",
+    tool: "plan_trip",
+    ask: "Hong Kong to Shanghai tomorrow",
+    before: [],
+    beats: planTrip([], oneLeg, "HK West Kowloon → Shanghai Hongqiao is on your globe for tomorrow. The card's searching fares now.").map((b) =>
+      b.event.t !== "text" ? b : { ...b, wait: b.event.d.includes("globe") ? 2500 : 300 },
+    ),
+  },
+  {
     id: "add-two",
     label: "Add a 2-leg trip",
     tool: "plan_trip",

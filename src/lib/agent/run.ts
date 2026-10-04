@@ -339,6 +339,9 @@ export async function runAgent(roomId: string, { messageId, replyId, requester }
               did.problems.push(`${part.toolName.replace("_", " ")} failed on my side.`);
               console.error("AGENT_TOOL_ERROR", part.toolName, part.error instanceof Error ? part.error.message : part.error);
             }
+            // done, the tool isn't looking anywhere: the saucer can go once it has played what the tool changed
+            lastAt = null;
+            void presence(doing || null, null);
             const label = stepLabel(part.toolName, part.type === "tool-result" ? part.output : null);
             if (label) {
               const id = part.toolCallId;
