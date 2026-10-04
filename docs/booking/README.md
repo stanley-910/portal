@@ -98,7 +98,9 @@ whether to switch flights.
 
 ## Pip's checkout card
 
-`src/components/agent/checkout-card.tsx`, a `checkout` thread card. Everyone sees the bill, read live from the leg:
+`src/components/agent/checkout-card.tsx`, a `checkout` thread card. The same checkout is a settled leg's booking in
+the plan panel (`LegBooking`, drawn with the card's buttons), and the home fare card's checkout without the bill
+(`SoloCheckout`). Everyone sees the bill, read live from the leg:
 each rider's share and whether they're waiting, have details in, have a card held or have paid. Each viewer gets
 buttons only for their own seat, with their details and cards fetched by the server for them alone
 (`myWalletAction`), never through the room:
@@ -148,8 +150,8 @@ Only the server writes `booking`: clients can't mark themselves paid.
   search is matched to the chosen flight (flight numbers, airports and departure minute).
 - `src/lib/booking/ready.ts`: whether a leg can be settled (a rider, a live Duffel pick, not settled yet), and the
   flights a stored pick was for. Pure, so the flow, the panel and Pip agree.
-- `src/app/t/booking-actions.ts`: the server actions the plan panel calls (settle, cancel settle, submit details,
-  pay share, dismiss notice). Each checks the caller is a member of the room first.
+- `src/app/t/booking-actions.ts`: the server actions the plan panel and the checkout card call (settle, cancel
+  settle, details, card holds, pay share, dismiss notice). Each checks the caller is a member of the room first.
 - **Stripe**: Checkout Sessions with `payment_intent_data[capture_method]=manual`. `/api/booking/return` is where
   Checkout sends the rider back; it confirms the hold with Stripe and returns them to the trip. `/api/booking/stripe`
   is the webhook (`checkout.session.completed`, `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`, `payment_intent.canceled`), verified by hand against

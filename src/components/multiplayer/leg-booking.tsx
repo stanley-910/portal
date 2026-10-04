@@ -1,32 +1,30 @@
 "use client";
 
 import { useRoom, useSelf } from "@liveblocks/react";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
-import { cancelSettleAction, dismissBookingNoticeAction, payShareAction, settleLegAction, submitDetailsAction } from "@/app/t/booking-actions";
+import { cancelSettleAction, dismissBookingNoticeAction, settleLegAction } from "@/app/t/booking-actions";
 import { Button, Select } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import type { TravellerDetails } from "@/lib/booking/offer";
 import { dialCode, formatPhone, phoneCountry } from "@/lib/booking/phone";
 import { iso2 } from "@/lib/entry/iso";
-import { memberColor, type Money, type StoredOffer } from "@/lib/liveblocks/types";
+import type { Money, StoredOffer } from "@/lib/liveblocks/types";
 import { countries } from "@/lib/nationality";
 import { isBookable, webUrlOrNull } from "@/lib/trip/offers";
-import { usePlanActions, usePlanMembers, type PlanLeg } from "@/lib/trip/plan";
+import { usePlanActions, type PlanLeg } from "@/lib/trip/plan";
 
 // Buying a leg from the plan panel (docs/booking/README.md). Everything here is status the server wrote; the
-// buttons call its actions. Names, birthdays and passports go straight to the server and never into the room.
+// buttons call its actions. Names, birthdays and passports go straight to the server and never into the room. Once
+// the leg is settled, its checkout is the same one Pip's chat and the home fare card show.
+
+// loaded when a leg is settled, like Pip's checkout card, and kept out of this module's imports (it uses DetailsForm)
+const CheckoutCard = dynamic(() => import("@/components/agent/checkout-card").then((m) => m.CheckoutCard), {
+  loading: () => <p className="ts-checkout-note" role="status">Loading checkout…</p>,
+});
 
 const fmt = (m: Money) => new Intl.NumberFormat("en", { style: "currency", currency: m.currency }).format(m.amount);
-
-/** "31 h left", "40 min left", "past" */
-function timeLeft(deadline: string, now: number): string {
-  const ms = Date.parse(deadline) - now;
-  if (!Number.isFinite(ms)) return "";
-  if (ms <= 0) return "past";
-  const h = Math.floor(ms / 3_600_000);
-  return h >= 1 ? `${h} h left` : `${Math.max(1, Math.round(ms / 60_000))} min left`;
-}
 
 /** Where a pick that can't be bought in the app is booked: its provider's name, or the link's host. */
 function providerName(offer: StoredOffer, url: string): string {
@@ -35,21 +33,17 @@ function providerName(offer: StoredOffer, url: string): string {
 }
 
 /** `focus` brings the leg's booking into view with its first control focused, once, e.g. after Book on the globe. */
-export function LegBooking({ leg, email, nationalities, focus = false }: { leg: PlanLeg; email: string | null; nationalities: string[]; focus?: boolean }) {
+export function LegBooking({ leg, focus = false }: { leg: PlanLeg; focus?: boolean }) {
   const room = useRoom();
   const tripId = room.id.slice("trip:".length);
   const me = useSelf((s) => s.id);
-  const members = usePlanMembers();
   const { retrySearch } = usePlanActions();
   const [busy, start] = useTransition();
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
   const [price, setPrice] = useState<PriceChange | null>(null);
-  const [form, setForm] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
   const booking = leg.booking;
   const rider = !!me && leg.riders.includes(me);
-  const seat = me && booking ? booking.seats[me] : null;
   const root = useRef<HTMLDivElement>(null);
   const focused = useRef(false);
 
@@ -64,28 +58,17 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
     control.focus({ preventScroll: true });
   });
 
-  useEffect(() => {
-    if (!booking?.deadline) return;
-    const t = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(t);
-  }, [booking?.deadline]);
-
-  const run = (task: () => Promise<{ ok: true } | { ok: true; url?: string | null } | PriceChange | Failure>) =>
+  const run = (task: () => Promise<{ ok: true } | PriceChange | Failure>) =>
     start(async () => {
       setError(null);
       setPrice(null);
       const result = await task().catch((): Failure => { setUncertain(true); return { ok: false, code: "UPSTREAM_ERROR", message: "Connection lost. Check the booking status before trying again." }; });
-      if (!result.ok) {
-        if ("now" in result) setPrice(result);
-        else setError(result);
-        return;
-      }
-      if ("url" in result && result.url) window.location.assign(result.url);
-      else setForm(false);
+      if (result.ok) return;
+      if ("now" in result) setPrice(result);
+      else setError(result);
     });
 
   const settle = (accept?: Money) => run(() => settleLegAction(tripId, leg.id, accept));
-  const pay = (accept?: Money) => run(() => payShareAction(tripId, leg.id, accept));
 
   const notice = leg.bookingNotice ? (
     <p className="tp-notice" role="status">
@@ -115,7 +98,7 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
         {price.was ? `Now ${fmt(price.now)} a seat, was ${fmt(price.was)}.` : `${fmt(price.now)} a seat.`}
       </span>
       <span className="tp-notice-actions">
-        <button type="button" className="ts-oneway" disabled={busy || uncertain} onClick={() => (booking ? pay(price.now) : settle(price.now))}>
+        <button type="button" className="ts-oneway" disabled={busy || uncertain} onClick={() => settle(price.now)}>
           Continue
         </button>
         <button type="button" className="ts-oneway" onClick={() => setPrice(null)}>
@@ -148,80 +131,11 @@ export function LegBooking({ leg, email, nationalities, focus = false }: { leg: 
     );
   }
 
-  const seats = Object.entries(booking.seats);
-  const paid = seats.filter(([, s]) => s.paid).length;
-  const detailsIn = seats.filter(([, s]) => s.details).length;
-  const nobodyPaid = paid === 0;
-  const status =
-    booking.status === "booked"
-      ? "Booked"
-      : booking.mode === "separate"
-        ? `${paid} of ${seats.length} bought`
-        : booking.status === "details"
-          ? `Details ${detailsIn} of ${seats.length}`
-          : `${paid} of ${seats.length} paid`;
-  const left = booking.deadline && booking.status !== "booked" ? timeLeft(booking.deadline, now) : null;
-
-  const needsDetails = !!seat && !seat.details && !seat.paid && (booking.mode === "separate" || booking.status === "details");
-  const canPay = !!seat && seat.details && !seat.paid && booking.status === "paying";
-
+  const nobodyPaid = Object.values(booking.seats).every((s) => !s.paid);
   return (
     <section className="tp-book" aria-label="Booking" ref={root}>
-      <div className="tp-book-head">
-        <span>{booking.mode === "separate" ? "Separate tickets" : "Group booking"}</span>
-        <span>
-          {status}
-          {left ? ` · ${left}` : ""}
-        </span>
-      </div>
-      {notice}
       {problem}
-      {moved}
-      <ul className="tp-seats">
-        {seats.map(([id, s]) => {
-          const info = members?.[id];
-          const state = s.paid ? (booking.mode === "separate" ? (s.reference ? `ticket ${s.reference}` : "bought") : booking.status === "booked" ? "paid" : "held") : s.details ? "details in" : "waiting";
-          return (
-            <li key={id} className="tp-seat">
-              <span className="tp-rider" aria-hidden style={{ borderColor: memberColor(info?.color ?? 1) }}>
-                {(info?.name ?? "?").slice(0, 1).toUpperCase()}
-              </span>
-              <span>
-                {info?.name ?? "Someone"}
-                {id === me ? " (you)" : ""} · {fmt(s.share)}
-              </span>
-              <span className="tp-seat-state" data-done={s.paid || undefined}>
-                {state}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      {booking.status === "booked" && booking.reference ? <p className="tp-book-ref">Reference {booking.reference}</p> : null}
-
-      {needsDetails && !form ? (
-        <Button variant="secondary" block disabled={busy || uncertain} onClick={() => setForm(true)}>
-          Enter my details
-        </Button>
-      ) : null}
-      {needsDetails && form ? (
-        <DetailsForm
-          documents={booking.documents}
-          email={email}
-          passportCountry={nationalities[0] ? (iso2(nationalities[0]) ?? "") : ""}
-          busy={busy || uncertain}
-          invalid={error?.fields ?? []}
-          onCancel={() => setForm(false)}
-          onSubmit={(details) => run(() => submitDetailsAction(tripId, leg.id, details))}
-        />
-      ) : null}
-      {canPay && !price ? (
-        <Button block disabled={busy || uncertain} onClick={() => pay()}>
-          {booking.mode === "separate" ? `Buy my seat · ${fmt(seat.share)}` : `Pay my share · ${fmt(seat.share)}`}
-        </Button>
-      ) : null}
-      {seat?.paid && booking.status === "paying" && booking.mode === "group" ? <p className="ts-empty">Your card is held until everyone has paid.</p> : null}
-
+      <CheckoutCard legId={leg.id} inCard />
       {rider && booking.status !== "booked" && nobodyPaid ? (
         <button type="button" className="ts-oneway tp-remove" disabled={busy || uncertain} onClick={() => run(() => cancelSettleAction(tripId, leg.id))}>
           Cancel settle

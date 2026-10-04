@@ -67,7 +67,8 @@ const SERVER: CheckoutCardActions = {
 /** The leg as the card reads it from the room. Null when the leg is gone. */
 export type CheckoutLeg = { from: string; to: string; booking: LegBooking | null; bookingNotice: string | null };
 
-export function CheckoutCard({ legId }: { legId: string }) {
+/** `inCard` draws it in the trip plan's leg card instead of Pip's chat. */
+export function CheckoutCard({ legId, inCard = false }: { legId: string; inCard?: boolean }) {
   const tripId = useRoom().id.slice("trip:".length);
   const me = useSelf((s) => s.id);
   const leg = useStorage((root) => root.legs[legId] ?? null);
@@ -82,6 +83,7 @@ export function CheckoutCard({ legId }: { legId: string }) {
       // the booking is plain JSON in Storage, so its read-only snapshot is the same shape
       leg={leg ? { from: from ?? "", to: to ?? "", booking: (leg.booking ?? null) as LegBooking | null, bookingNotice: leg.bookingNotice ?? null } : null}
       members={members}
+      inCard={inCard}
     />
   );
 }
@@ -95,6 +97,7 @@ export function CheckoutBody({
   members,
   actions = SERVER,
   solo = false,
+  inCard = solo,
 }: {
   tripId: string;
   legId: string;
@@ -107,6 +110,11 @@ export function CheckoutBody({
    * where you are, under the fare card's own divider.
    */
   solo?: boolean;
+  /**
+   * Drawn in a fare or trip card rather than Pip's chat: the card's own buttons and header. The trip plan's leg card
+   * keeps the bill of riders; the home fare card (`solo`) drops it.
+   */
+  inCard?: boolean;
 }) {
   const from = leg?.from ?? "";
   const to = leg?.to ?? "";
@@ -171,7 +179,7 @@ export function CheckoutBody({
   if (!leg) return <p className="pip-changes-note">That leg is gone.</p>;
   if (!booking) {
     return (
-      <div className={solo ? "ts-checkout-body" : "pip-checkout"}>
+      <div className={inCard ? "ts-checkout-body" : "pip-checkout"}>
         <div className="pip-checkout-head">
           <span>
             {from} → {to}
@@ -190,12 +198,38 @@ export function CheckoutBody({
   const when = (d: Date) => d.toLocaleString("en", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   const stage = booking.status === "booked" ? "Booked" : seat?.paid ? "Card held" : needsDetails ? "Your details" : canPay ? "Payment" : "Checking";
   return (
-    <div className={solo ? "ts-checkout-body" : "pip-checkout"}>
+    <div className={inCard ? "ts-checkout-body" : "pip-checkout"}>
       {solo ? (
         <div className="tp-book-head">
           <span>Checkout</span>
           <span>{seat ? `${fmt(seat.share)} · ${stage}` : stage}</span>
         </div>
+      ) : inCard ? (
+        <>
+          <div className="tp-book-head">
+            <span>{booking.mode === "group" ? "Group booking" : "Separate tickets"}</span>
+            <span>{seat ? `${fmt(seat.share)} · ${stage}` : stage}</span>
+          </div>
+          <ul className="tp-seats">
+            {seats.map(([id, s]) => {
+              const info = members?.[id];
+              return (
+                <li key={id} className="tp-seat">
+                  <span className="tp-rider" aria-hidden style={{ borderColor: memberColor(info?.color ?? 1) }}>
+                    {(info?.name ?? "?").slice(0, 1).toUpperCase()}
+                  </span>
+                  <span>
+                    {info?.name ?? "Someone"}
+                    {id === me ? " (you)" : ""} · {fmt(s.share)}
+                  </span>
+                  <span className="tp-seat-state" data-done={s.paid || undefined}>
+                    {seatState(booking, s)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       ) : (
         <>
           <div className="pip-checkout-head">
@@ -207,7 +241,7 @@ export function CheckoutBody({
           <ul className="pip-bill">
             {seats.map(([id, s]) => {
               const info = members?.[id];
-              const state = s.paid ? (booking.status === "booked" ? "Paid" : booking.mode === "separate" ? "Ticketed" : "Card held") : s.details ? "Details in" : "Waiting";
+              const state = seatState(booking, s);
               return (
                 <li key={id}>
                   <span className="tp-rider" aria-hidden style={{ borderColor: memberColor(info?.color ?? 1) }}>
@@ -235,7 +269,7 @@ export function CheckoutBody({
       {price ? (
         <div className="pip-checkout-actions" role="alert">
           <span className="pip-changes-note">Now {fmt(price.now)} for your seat{price.was ? `, was ${fmt(price.was)}` : ""}.</span>
-          <Act solo={solo} variant="secondary" disabled={busy || uncertain} onClick={() => (card && inApp ? confirmSaved(card.id, price.now) : inApp ? setModal("card") : checkoutPage(price.now))}>
+          <Act inCard={inCard} variant="secondary" disabled={busy || uncertain} onClick={() => (card && inApp ? confirmSaved(card.id, price.now) : inApp ? setModal("card") : checkoutPage(price.now))}>
             Continue
           </Act>
         </div>
@@ -247,7 +281,7 @@ export function CheckoutBody({
             <p className="pip-checkout-sub">Your details</p>
             <TravellerSummary details={wallet.traveller} passport={booking.documents} />
             <div className="pip-checkout-actions">
-              <Act solo={solo} disabled={busy || uncertain} onClick={() => run(async () => { const r = await actions.submitSaved(tripId, legId); if (!r.ok) fail(r); })}>
+              <Act inCard={inCard} disabled={busy || uncertain} onClick={() => run(async () => { const r = await actions.submitSaved(tripId, legId); if (!r.ok) fail(r); })}>
                 Looks good
               </Act>
               <button type="button" className="pip-action" disabled={busy || uncertain} onClick={() => setModal("details")}>
@@ -256,7 +290,7 @@ export function CheckoutBody({
             </div>
           </div>
         ) : (
-          <Act solo={solo} block disabled={busy || uncertain} onClick={() => setModal("details")}>
+          <Act inCard={inCard} block disabled={busy || uncertain} onClick={() => setModal("details")}>
             {wallet.traveller ? "Add my passport" : "Enter my details"}
           </Act>
         )
@@ -265,7 +299,7 @@ export function CheckoutBody({
       {canPay && wallet && !price ? (
         card && inApp ? (
           <div className="pip-checkout-actions">
-            <Act solo={solo} disabled={busy || uncertain} onClick={() => confirmSaved(card.id)}>
+            <Act inCard={inCard} disabled={busy || uncertain} onClick={() => confirmSaved(card.id)}>
               {busy ? "Holding…" : `Confirm · ${fmt(seat!.share)} on ${brandName(card.brand)} ·${card.last4}`}
             </Act>
             <button type="button" className="pip-action" disabled={busy || uncertain} onClick={() => setModal("card")}>
@@ -273,7 +307,7 @@ export function CheckoutBody({
             </button>
           </div>
         ) : (
-          <Act solo={solo} block disabled={busy || uncertain} onClick={() => (inApp ? setModal("card") : checkoutPage())}>
+          <Act inCard={inCard} block disabled={busy || uncertain} onClick={() => (inApp ? setModal("card") : checkoutPage())}>
             {inApp ? `Add a card · ${fmt(seat!.share)}` : `Pay my share · ${fmt(seat!.share)}`}
           </Act>
         )
@@ -326,12 +360,16 @@ export function CheckoutBody({
   );
 }
 
+/** Where one rider's seat is, for the bill. */
+const seatState = (booking: LegBooking, s: LegBooking["seats"][string]) =>
+  s.paid ? (booking.status === "booked" ? "Paid" : booking.mode === "separate" ? "Ticketed" : "Card held") : s.details ? "Details in" : "Waiting";
+
 /**
- * One of checkout's actions: a button in the home fare card, where the fare card's buttons are; one of Pip's small
+ * One of checkout's actions: a button in a fare or trip card, where the card's buttons are; one of Pip's small
  * pixel chips in its chat, like the replies it suggests.
  */
-function Act({ solo, block = false, variant, disabled, onClick, children }: { solo: boolean; block?: boolean; variant?: "secondary"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
-  if (solo) {
+function Act({ inCard, block = false, variant, disabled, onClick, children }: { inCard: boolean; block?: boolean; variant?: "secondary"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
+  if (inCard) {
     return (
       <Button block={block} variant={variant} disabled={disabled} onClick={onClick}>
         {children}

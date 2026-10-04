@@ -68,7 +68,7 @@ function Room({ globe, compact }: { globe: RefObject<TripGlobeHandle | null>; co
       <RiderPins globe={globe} onOpen={openLeg} />
       <LegTags globe={globe} onOpen={openLeg} />
       {planOpen ? (
-        <FloatingTripPlan globe={globe} nationalities={["HKG"]} focus={focus} bill={{ open: billOpen, set: setBillOpen }} onMinimise={() => {
+        <FloatingTripPlan globe={globe} focus={focus} bill={{ open: billOpen, set: setBillOpen }} onMinimise={() => {
             setPlanOpen(false);
             setFocus(null);
           }}

@@ -121,6 +121,8 @@ export function PanelsScene({ party }: { party: boolean }) {
             </section>
             {/* in the home fare card, booking alone with the in-app checkout: each step walks on to the next */}
             <SoloCheckoutDemo />
+            {/* a settled leg in the trip plan: the same checkout with everyone's share */}
+            <SoloCheckoutDemo group />
           </div>
         </Section>
 
@@ -453,7 +455,7 @@ function PlanCard({ party }: { party: boolean }) {
             <div className="flex flex-wrap items-start gap-(--space-6)">
               <div className="relative">
                 <BesideProvider bill={{ open: bill, set: setBill }}>
-                  <TripPlan nationalities={["HKG"]} onMinimise={() => {}} />
+                  <TripPlan onMinimise={() => {}} />
                 </BesideProvider>
               </div>
             </div>
@@ -466,16 +468,22 @@ function PlanCard({ party }: { party: boolean }) {
   );
 }
 
-/** The home fare card's in-app checkout, booking alone, at each of its steps. */
-function SoloCheckoutDemo() {
+/** The home fare card's in-app checkout, booking alone, at each of its steps; `group`, a settled leg in the trip plan. */
+function SoloCheckoutDemo({ group = false }: { group?: boolean }) {
   const [step, setStep] = useState<CheckoutScenario>("details");
   return (
     <div className="grid gap-(--space-2)">
       <section className="ts pa-cast w-[360px]">
         <div className="ts-bottom">
-          <section className="ts-checkout" aria-label="Checkout">
-            <StandInCheckoutCard key={step} scenario={step} solo />
-          </section>
+          {group ? (
+            <section className="tp-book" aria-label="Booking">
+              <StandInCheckoutCard key={step} scenario={step} inCard />
+            </section>
+          ) : (
+            <section className="ts-checkout" aria-label="Checkout">
+              <StandInCheckoutCard key={step} scenario={step} solo />
+            </section>
+          )}
         </div>
       </section>
       <div className="flex flex-wrap gap-(--space-1)">

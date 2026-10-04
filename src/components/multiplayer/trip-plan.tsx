@@ -70,7 +70,7 @@ function stripStart(date: string, after: string | null | undefined) {
 
 /** A leg someone asked to see, from its route, ticket stub or pins on the globe; `n` tells one ask from the next. */
 export type LegFocus = { leg: string; n: number } | null;
-type TripPlanProps = { email?: string | null; nationalities?: string[]; bookLeg?: string | null; focus?: LegFocus; onMinimise?: () => void };
+type TripPlanProps = { bookLeg?: string | null; focus?: LegFocus; onMinimise?: () => void };
 /** The header is a handle that moves the card; see `FloatingTripPlan`. */
 type DragProps = { onDrag?: (event: PointerEvent<HTMLElement>) => void };
 
@@ -93,7 +93,7 @@ export function FloatingTripPlan({ globe, bill, ...props }: TripPlanProps & { gl
 
 /** The plan panel. `onMinimise` folds it away, leaving each leg's ticket stub on its route (`LegTags`). */
 /** `bookLeg` is a leg to open at its booking, as Book on the home globe asks. */
-export function TripPlan({ email = null, nationalities = [], bookLeg = null, focus = null, onMinimise, onDrag }: TripPlanProps & DragProps) {
+export function TripPlan({ bookLeg = null, focus = null, onMinimise, onDrag }: TripPlanProps & DragProps) {
   const legs = usePlanLegs();
   const stays = usePlanStays();
   const currency = useCurrencyPref();
@@ -137,8 +137,6 @@ export function TripPlan({ email = null, nationalities = [], bookLeg = null, foc
             hotelDatesFor={(offer) => stayDates(legDates, { to: leg.to.id, date: leg.date, arrival: arrivalDate(leg.date, offer), riders: leg.riders })}
             currency={currency}
             rates={rates}
-            email={email}
-            nationalities={nationalities}
             focusBooking={leg.id === bookLeg}
             focus={focus?.leg === leg.id ? focus.n : undefined}
           />
@@ -155,8 +153,6 @@ function LegCard({
   hotelDatesFor,
   currency,
   rates,
-  email,
-  nationalities,
   focusBooking = false,
   focus,
 }: {
@@ -168,8 +164,6 @@ function LegCard({
   hotelDatesFor: (offer: StoredOffer | null) => { checkIn: string; checkOut: string; people: number };
   currency: Currency;
   rates: ExchangeRates | null;
-  email: string | null;
-  nationalities: string[];
   focusBooking?: boolean;
   /** Set (to a new value each time) when this leg is asked for on the globe: it opens and scrolls into view. */
   focus?: number;
@@ -418,7 +412,7 @@ function LegCard({
           </BesidePanel>
         ) : null}
 
-        <LegBooking leg={leg} email={email} nationalities={nationalities} focus={focusBooking} />
+        <LegBooking leg={leg} focus={focusBooking} />
 
         {/* the leg's actions, in one row: what it takes to get in, somewhere to sleep, and taking it off the trip */}
         <div className="tp-actions">

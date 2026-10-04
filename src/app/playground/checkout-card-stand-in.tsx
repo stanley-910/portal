@@ -57,8 +57,8 @@ function bookingFor(scenario: CheckoutScenario): LegBooking | null {
   };
 }
 
-/** `solo`: booking alone in the home fare card, so only your seat. */
-export function StandInCheckoutCard({ scenario, solo = false }: { scenario: CheckoutScenario; solo?: boolean }) {
+/** `solo`: booking alone in the home fare card, so only your seat. `inCard`: a settled leg in the trip plan. */
+export function StandInCheckoutCard({ scenario, solo = false, inCard = solo }: { scenario: CheckoutScenario; solo?: boolean; inCard?: boolean }) {
   const [booking, setBooking] = useState<LegBooking | null>(() => {
     const b = bookingFor(scenario);
     return b && solo ? { ...b, seats: { [ME]: b.seats[ME] } } : b;
@@ -105,5 +105,5 @@ export function StandInCheckoutCard({ scenario, solo = false }: { scenario: Chec
     booking,
     bookingNotice: scenario === "ended" ? "The booking lapsed: not everyone's card was held in time." : null,
   };
-  return <CheckoutBody tripId="playground" legId="l3" me={ME} leg={leg} members={MEMBERS} actions={actions} solo={solo} />;
+  return <CheckoutBody tripId="playground" legId="l3" me={ME} leg={leg} members={MEMBERS} actions={actions} solo={solo} inCard={inCard} />;
 }
