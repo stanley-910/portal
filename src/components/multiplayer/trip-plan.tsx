@@ -14,7 +14,7 @@ import { legOffer } from "@/components/multiplayer/leg-tags";
 import { RoundButton } from "@/components/paper-atlas";
 import { dragAnchor, reveal, useAnchor } from "@/components/ticket-search/anchor";
 import type { TripGlobeHandle } from "@/components/trip-globe";
-import { addDays, dateLabel, DateField, DayStrip, localIso, RouteHeader, Timeline } from "@/components/ticket-search/parts";
+import { addDays, dateLabel, DateField, DayStrip, localIso, OptionRows, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { AirlineLogo } from "@/components/ticket-search/airline-logo";
 import { Glyph } from "@/components/ticket-search/glyphs";
 import { carrierLabel, clockOf, duration } from "@/components/ticket-search/options";
@@ -34,7 +34,8 @@ import { stopCountry } from "@/lib/trip/stops";
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
 
-const SHOWN = 3;
+/** Every option a leg keeps (MAX_OFFERS), scrolling in their own box past the first few. */
+const SHOWN = 20;
 
 const LEG_LABEL: Record<StoredOffer["mode"], string> = { flight: "Flight", train: "Train", bus: "Bus", ferry: "Ferry" };
 
@@ -330,62 +331,64 @@ function LegCard({
             </p>
           ) : null}
           {leg.search.status === "done" && offers.length === 0 ? <p className="ts-empty">No routes found.</p> : null}
-          {offers.map((o) => {
-            const voters = leg.votes[o.id] ?? [];
-            const chosen = leg.chosen?.id === o.id;
-            const price = money(o);
-            return (
-              <div key={o.id} className="tp-offer">
-                <button
-                  type="button"
-                  className="ts-row"
-                  aria-pressed={chosen}
-                  title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
-                  disabled={locked}
-                  onClick={() => pick(chosen ? null : o.id)}
-                >
-                  <span className="ts-head">
-                    <AirlineLogo code={o.carrierCode} />
-                    {duration(o.durationMin)}
-                    {chosen ? <span className="ts-badge">Picked</span> : null}
-                    {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
-                    {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
-                    {o.refund ? <span className="ts-badge ts-badge-quiet" title={refundNote(o)}>Refundable</span> : null}
-                  </span>
-                  <span className="ts-price" data-none={!price || undefined}>
-                    {price ?? "No fare"}
-                  </span>
-                  <span className="ts-desc">{describe(o)}</span>
-                  <Timeline
-                    legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]}
-                    clock={clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated")}
-                    unscheduled={o.kind === "estimated"}
-                  />
-                </button>
-                <button
-                  type="button"
-                  className="tp-vote"
-                  aria-pressed={!!me && voters.includes(me)}
-                  aria-label={`Vote, ${voters.length} so far`}
-                  title={voters.length ? voters.map((v) => members?.[v]?.name ?? "Someone").join(", ") : "Vote"}
-                  onClick={() => vote(leg.id, o.id)}
-                >
-                  <svg width={12} height={12} viewBox="0 0 16 16" aria-hidden>
-                    <path d="M3.5 10.5L8 6l4.5 4.5" />
-                  </svg>
-                  <span className="tp-vote-n">{voters.length}</span>
-                  {/* who voted, in their colours, a few at most */}
-                  {voters.length ? (
-                    <span className="tp-voters" aria-hidden>
-                      {voters.slice(0, 3).map((v) => (
-                        <i key={v} style={{ background: memberColor(members?.[v]?.color ?? 1) }} />
-                      ))}
+          <OptionRows picked={leg.chosen?.id}>
+            {offers.map((o) => {
+              const voters = leg.votes[o.id] ?? [];
+              const chosen = leg.chosen?.id === o.id;
+              const price = money(o);
+              return (
+                <div key={o.id} className="tp-offer">
+                  <button
+                    type="button"
+                    className="ts-row"
+                    aria-pressed={chosen}
+                    title={`${chosen ? "Picked" : "Pick"} for everyone. From ${o.provider}`}
+                    disabled={locked}
+                    onClick={() => pick(chosen ? null : o.id)}
+                  >
+                    <span className="ts-head">
+                      <AirlineLogo code={o.carrierCode} />
+                      {duration(o.durationMin)}
+                      {chosen ? <span className="ts-badge">Picked</span> : null}
+                      {o.kind !== "live" ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+                      {isBookable(o) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
+                      {o.refund ? <span className="ts-badge ts-badge-quiet" title={refundNote(o)}>Refundable</span> : null}
                     </span>
-                  ) : null}
-                </button>
-              </div>
-            );
-          })}
+                    <span className="ts-price" data-none={!price || undefined}>
+                      {price ?? "No fare"}
+                    </span>
+                    <span className="ts-desc">{describe(o)}</span>
+                    <Timeline
+                      legs={[{ kind: o.mode, minutes: o.durationMin, label: `${LEG_LABEL[o.mode]} ${duration(o.durationMin)}` }]}
+                      clock={clockOf(o.depart, o.arrive, o.durationMin, o.kind === "estimated")}
+                      unscheduled={o.kind === "estimated"}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className="tp-vote"
+                    aria-pressed={!!me && voters.includes(me)}
+                    aria-label={`Vote, ${voters.length} so far`}
+                    title={voters.length ? voters.map((v) => members?.[v]?.name ?? "Someone").join(", ") : "Vote"}
+                    onClick={() => vote(leg.id, o.id)}
+                  >
+                    <svg width={12} height={12} viewBox="0 0 16 16" aria-hidden>
+                      <path d="M3.5 10.5L8 6l4.5 4.5" />
+                    </svg>
+                    <span className="tp-vote-n">{voters.length}</span>
+                    {/* who voted, in their colours, a few at most */}
+                    {voters.length ? (
+                      <span className="tp-voters" aria-hidden>
+                        {voters.slice(0, 3).map((v) => (
+                          <i key={v} style={{ background: memberColor(members?.[v]?.color ?? 1) }} />
+                        ))}
+                      </span>
+                    ) : null}
+                  </button>
+                </div>
+              );
+            })}
+          </OptionRows>
         </div>
 
         {stays.map((stay) => (

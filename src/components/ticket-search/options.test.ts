@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Mode, Offer, Segment } from "@/lib/transport/types";
 
-import { clockOf, credits, rowPrice, rowsFor, shortPlace, timeline, tripPrice, visibleTabs } from "./options";
+import { clockOf, credits, rowPrice, rowsFor, shortPlace, SHOWN, timeline, tripPrice, visibleTabs } from "./options";
 
 const place = (name: string) => ({ name, lat: 0, lng: 0 });
 const seg = (mode: Mode, from: string, to: string, depart: string, arrive: string, durationMin: number): Segment => ({
@@ -28,11 +28,12 @@ const direct = (id: string, mode: Mode, amount: number | null) =>
 
 describe("ticket search options", () => {
   it("keeps the selected fare visible when a later batch outranks it", () => {
-    const chosen = direct("chosen", "flight", 200);
-    const late = [direct("new-best", "flight", 100), direct("cheap", "train", 40), direct("third", "flight", 120), chosen];
+    const chosen = direct("chosen", "flight", 900);
+    // more ranked above it than a tab lists
+    const late = [...Array.from({ length: SHOWN }, (_, i) => direct(`o${i}`, "flight", 100 + i)), chosen];
     expect(rowsFor(late, "best", null).map((r) => r.offer.id)).not.toContain(chosen.id);
     const rows = rowsFor(late, "best", null, chosen.id);
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(SHOWN);
     expect(rows.map((r) => r.offer.id)).toContain(chosen.id);
     expect(rows.find((r) => r.offer.id === chosen.id)?.offer).toBe(chosen);
   });
@@ -42,6 +43,7 @@ describe("ticket search options", () => {
       ["a", "Best"],
       ["c", "Lowest"],
       ["b", undefined],
+      ["d", undefined],
     ]);
   });
 

@@ -14,7 +14,8 @@ export const TABS: { id: Tab; label: string }[] = [
   { id: "ferry", label: "Boats" },
 ];
 
-export const SHOWN = 3;
+/** How many options a tab lists; past the first few they scroll in their own box (OptionRows). */
+export const SHOWN = 20;
 
 export interface TimelineLeg {
   kind: Mode | "wait";

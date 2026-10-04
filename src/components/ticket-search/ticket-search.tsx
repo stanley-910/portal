@@ -19,7 +19,7 @@ import { isBookable, refundNote } from "@/lib/trip/offers";
 import { credits, formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
 import { AirlineLogo } from "./airline-logo";
 import { Glyph } from "./glyphs";
-import { addDays, DateField, DayStrip, localIso, RouteHeader, Timeline } from "./parts";
+import { addDays, DateField, DayStrip, localIso, OptionRows, RouteHeader, Timeline } from "./parts";
 import { TripTag, useTagOnRoute } from "./trip-tag";
 import { useOffers } from "./use-offers";
 import { dragAnchor, reveal, useAnchor } from "./anchor";
@@ -136,33 +136,35 @@ function OptionList({
         </p>
       ) : null}
       {status === "done" && rows.length === 0 ? <p className="ts-empty">{empty}</p> : null}
-      {rows.map((row, i) => {
-        const price = rowPrice(row.offer, currency, rates);
-        return (
-          <button
-            key={row.offer.id}
-            type="button"
-            className="ts-row"
-            aria-pressed={row === choice}
-            title={row.source}
-            onClick={() => onPick(i)}
-          >
-            <span className="ts-head">
-              <AirlineLogo code={row.offer.segments[0].carrierCode} />
-              {row.headline}
-              {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
-              {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
-            {isBookable(row.offer) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
-            {row.offer.refund ? <span className="ts-badge ts-badge-quiet" title={refundNote(row.offer)}>Refundable</span> : null}
-            </span>
-            <span className="ts-price" data-none={price === null || undefined}>
-              {priceText(price, currency)}
-            </span>
-            <span className="ts-desc">{row.description}</span>
-            <Timeline legs={row.legs} clock={row.clock} unscheduled={row.estimated} />
-          </button>
-        );
-      })}
+      <OptionRows picked={choice?.offer.id}>
+        {rows.map((row, i) => {
+          const price = rowPrice(row.offer, currency, rates);
+          return (
+            <button
+              key={row.offer.id}
+              type="button"
+              className="ts-row"
+              aria-pressed={row === choice}
+              title={row.source}
+              onClick={() => onPick(i)}
+            >
+              <span className="ts-head">
+                <AirlineLogo code={row.offer.segments[0].carrierCode} />
+                {row.headline}
+                {row.badge ? <span className="ts-badge">{row.badge}</span> : null}
+                {row.estimated ? <span className="ts-badge ts-badge-quiet">Estimated</span> : null}
+              {isBookable(row.offer) ? <span className="ts-badge ts-badge-quiet">Bookable</span> : null}
+              {row.offer.refund ? <span className="ts-badge ts-badge-quiet" title={refundNote(row.offer)}>Refundable</span> : null}
+              </span>
+              <span className="ts-price" data-none={price === null || undefined}>
+                {priceText(price, currency)}
+              </span>
+              <span className="ts-desc">{row.description}</span>
+              <Timeline legs={row.legs} clock={row.clock} unscheduled={row.estimated} />
+            </button>
+          );
+        })}
+      </OptionRows>
       {credited.length ? (
         <p className="ts-credit">
           Source:{" "}

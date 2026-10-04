@@ -454,3 +454,24 @@ export function Timeline({ legs, clock = null, unscheduled = false }: { legs: Ti
     </span>
   );
 }
+
+/**
+ * A list of options that scrolls in its own box once there are more than fit (about three and a half, so the next one
+ * shows there's more), keeping the picked one in view when it's further down.
+ */
+export function OptionRows({ picked, children }: { picked?: string | null; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    const row = el?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!el || !row) return;
+    // only the box scrolls, never the page around it
+    const top = row.offsetTop;
+    if (top < el.scrollTop || top + row.offsetHeight > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, top - 4);
+  }, [picked]);
+  return (
+    <div ref={box} className="ts-scroll">
+      {children}
+    </div>
+  );
+}

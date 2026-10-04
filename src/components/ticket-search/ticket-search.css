@@ -165,6 +165,9 @@
 
 /* Result rows: the list bleeds 6px each side so the text lines up with the tabs */
 .ts-rows { display: flex; flex-direction: column; margin: 0 -6px; }
+/* the options themselves, in their own scrolling box once there are more than three and a half: the next one peeks
+   out to say there's more, and scrolling stops at the box rather than carrying on into the page */
+.ts-scroll { position: relative; display: flex; flex-direction: column; gap: inherit; max-height: 240px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
 .ts-row { width: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 8px; padding: 6px; text-align: left; border: none; border-radius: var(--radius-tag); background: transparent; }
 .ts-row:hover, .ts-row[aria-pressed="true"] { background: var(--control-hover); }
 .ts-head { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 12.5px; line-height: 16px; font-weight: 600; }
