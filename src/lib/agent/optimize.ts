@@ -14,7 +14,8 @@ const at = (iso: string, start: string) => {
 };
 const hours = (min: number) => `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
 
-function describe(r: Route): string {
+/** One route as the model reads it: each part with its times, fare and source, then the total and what it saves. */
+export function describeRoute(r: Route): string {
   const parts = r.parts.map((p) => {
     const what = [p.carrier, p.number].filter(Boolean).join(" ") || p.mode;
     const price = p.price ? `${p.price.currency} ${p.price.amount}` : "fare unknown";
@@ -35,8 +36,8 @@ function describe(r: Route): string {
 /** What the model reads: the direct baseline, then up to three alternatives. */
 export function describeRoutes(c: Composed): { baseline: string | null; routes: string[]; note: string } {
   return {
-    baseline: c.baseline ? describe(c.baseline) : null,
-    routes: c.routes.map(describe),
+    baseline: c.baseline ? describeRoute(c.baseline) : null,
+    routes: c.routes.map(describeRoute),
     note: [
       c.routes.length ? "" : "No alternative route was found.",
       c.gateways.length ? `Tried leaving from: ${c.gateways.map((g) => g.name).join(", ")}.` : "No nearby station to leave from instead.",
