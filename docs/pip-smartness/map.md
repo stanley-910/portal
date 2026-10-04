@@ -83,6 +83,15 @@ applies when asked to sort it out and only answers when asked a question. Real-s
 [group-results.md](group-results.md). Unpriced or test-only fares (Duffel test mode) leave a member unplanned,
 named as such.
 
+### T9 · Pip speaks up, with fix-it buttons — `done`
+
+`lib/agent/issues.ts` spots problems in the plan: the same trip on two legs with different services picked
+(fix: everyone on one, either way round), friends from different cities arriving in one city over three hours apart
+(fix: "Line us up" asks Pip in the clicker's name, which reaches `plan_group`), and someone leaving early with no leg
+out (fix: a leg home). One member's client (`lib/trip/issue-watch.ts`, lowest connection, after the plan sits still
+for four seconds) calls `notePlanIssues`, which re-checks the plan on the server and posts each problem once as a Pip
+message with a `fix` card. `applyFix` re-checks before applying, as one undoable change.
+
 ### T7 · Fewer Storage round-trips — `done`
 
 Tools reuse a loaded plan within a run until a write invalidates it, instead of a full
