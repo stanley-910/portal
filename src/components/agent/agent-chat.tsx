@@ -10,6 +10,7 @@ import { useOpenAuth } from "@/components/auth/links";
 import { arrival, ARRIVAL_MS, HOP_MS, PipArrival, PipHop, pipPlace, usePipCorner } from "@/components/agent/pip-arrival";
 import { usePipFrame } from "@/components/agent/pip-frame";
 import { AlienText, useTranslated } from "@/components/agent/alien-text";
+import { PipEdges } from "@/components/agent/pip-edges";
 import { PipSprite, PipUfo, type PipMood } from "@/components/agent/pip-sprite";
 import { Button, PixelIcon } from "@/components/paper-atlas";
 import { tripContext } from "@/lib/agent/context";
@@ -280,8 +281,8 @@ function Panel({ tab, onTab, onClose }: { tab: PipTab; onTab: (tab: PipTab) => v
       </CardActionsContext>
 
       {tab === "chat" ? <Composer composer={composer} /> : null}
-      {/* drag to resize */}
-      <span className="pip-grip" aria-hidden onPointerDown={onSize} />
+      {/* drag any edge or corner to resize */}
+      <PipEdges onSize={onSize} />
     </section>
   );
 }

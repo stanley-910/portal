@@ -6,6 +6,7 @@ import { CardActionsContext, Composer, Launcher, PipClose, Suggestions, ThreadLo
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { pipPlace } from "@/components/agent/pip-arrival";
 import { usePipFrame } from "@/components/agent/pip-frame";
+import { PipEdges } from "@/components/agent/pip-edges";
 import { PipSaucer, type PipSaucerHandle, type SaucerBuild } from "@/components/agent/pip-saucer";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
@@ -112,8 +113,8 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
           </ThreadLog>
         </CardActionsContext>
         <Composer composer={composer} placeholder={`Tell ${AGENT_NAME} where you're going`} onStop={busy ? stop : undefined} />
-        {/* drag to resize */}
-        <span className="pip-grip" aria-hidden onPointerDown={onSize} />
+        {/* drag any edge or corner to resize */}
+        <PipEdges onSize={onSize} />
       </section>
       </Activity>
     </>

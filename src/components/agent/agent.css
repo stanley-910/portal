@@ -53,7 +53,9 @@
 .pip-panel::before, .pip-panel::after { content: ""; position: absolute; z-index: -1; clip-path: var(--pip-px-round-lg); pointer-events: none; }
 .pip-panel::before { inset: 0; background: var(--pip-px-frame); }
 .pip-panel::after { inset: 2px; background: var(--paper-raised); }
-.pip-head { position: relative; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 var(--space-2) 0 var(--space-3); border-bottom: var(--line-control) solid var(--line); flex: none; }
+/* Pip sits 12px in from the panel's left and top: centred in the 56px header (12px above its 32px sprite), and 9px of
+   padding plus the 3px its canvas leaves round it on the left */
+.pip-head { position: relative; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 var(--space-2) 0 9px; border-bottom: var(--line-control) solid var(--line); flex: none; }
 /* Chat and Observations: two small text tabs under the header, the picked one in ink and underlined */
 /* the tabs take over the header's rule */
 .pip-head:has(+ .pip-tabs) { border-bottom: 0; }
@@ -63,8 +65,12 @@
 .pip-tab:hover { color: var(--ink); }
 .pip-tab[aria-selected="true"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
 .pip-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-/* open observations: a small starlight count, like the launcher's new-reply dot */
-.pip-tab-count { min-width: 14px; height: 14px; padding: 0 3px; border-radius: var(--radius-tag); background: var(--star-light); color: var(--sticker-ink); font-size: 10px; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums; }
+/* open observations: a starlight count in a pixel box with stepped corners like the launcher's new-reply dot,
+   framed like Pip's panel so it reads in both themes */
+.pip-tab-count { --pip-px-box: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 2px 2px); position: relative; isolation: isolate; min-width: 18px; height: 16px; padding: 0 5px; color: var(--sticker-ink); font-size: 10px; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; filter: drop-shadow(1px 1px 0 var(--sticker-shadow)); }
+.pip-tab-count::before, .pip-tab-count::after { content: ""; position: absolute; z-index: -1; clip-path: var(--pip-px-box); }
+.pip-tab-count::before { inset: 0; background: var(--pip-px-frame); }
+.pip-tab-count::after { inset: 2px; background: var(--star-light); }
 /* the list of what Pip noticed: open ones first, answered ones quieter */
 .pip-observations { display: flex; flex-direction: column; gap: var(--space-3); }
 .pip-observation { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 0 var(--space-3); border-bottom: var(--line-hair) solid var(--rule); }
@@ -84,6 +90,18 @@
   linear-gradient(currentColor, currentColor) 8px 8px / 2px 2px no-repeat; }
 .pip-grip::before { content: ""; position: absolute; inset: -8px; }
 .pip-grip:hover, .pip-grip[data-dragging] { color: var(--ink); }
+/* the rest of the window's edges and corners resize it too: strips along each side, squares at the corners */
+.pip-edge { position: absolute; z-index: 2; touch-action: none; }
+.pip-edge[data-edge="n"], .pip-edge[data-edge="s"] { left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.pip-edge[data-edge="e"], .pip-edge[data-edge="w"] { top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.pip-edge[data-edge="n"] { top: 0; }
+.pip-edge[data-edge="s"] { bottom: 0; }
+.pip-edge[data-edge="e"] { right: 0; }
+.pip-edge[data-edge="w"] { left: 0; }
+.pip-edge[data-edge="ne"], .pip-edge[data-edge="nw"], .pip-edge[data-edge="sw"] { width: 12px; height: 12px; }
+.pip-edge[data-edge="ne"] { top: 0; right: 0; cursor: nesw-resize; }
+.pip-edge[data-edge="nw"] { top: 0; left: 0; cursor: nwse-resize; }
+.pip-edge[data-edge="sw"] { bottom: 0; left: 0; cursor: nesw-resize; }
 .pip-head-name { font-size: 14px; line-height: 18px; font-weight: 600; }
 .pip-head-sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pip-close { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: var(--radius-control); background: none; color: var(--ink-muted); cursor: pointer; }

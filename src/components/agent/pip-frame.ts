@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 
-// Pip's panel, moved and sized by hand: dragged by its header, resized from the grip in its bottom-right corner. Until
-// either is touched it sits where its CSS puts it; after, it keeps its place and size while the page is open, kept
-// inside the screen as the window changes.
+// Pip's panel, moved and sized by hand like a window: dragged by its header, resized from any edge or corner (the grip
+// in the bottom-right corner shows where). Until either is touched it sits where its CSS puts it; after, it keeps its
+// place and size while the page is open, kept inside the screen as the window changes.
 
 type Frame = { x: number; y: number; w: number; h: number };
+
+/** Which edges a resize moves: n, s, e, w, or a corner (ne, nw, se, sw). */
+export type PipEdge = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 /** Keep at least this far inside the screen. */
 const EDGE = 8;
@@ -35,7 +38,7 @@ export function usePipFrame() {
     return () => window.removeEventListener("resize", refit);
   }, [frame]);
 
-  const start = (event: PointerEvent<HTMLElement>, kind: "move" | "size") => {
+  const start = (event: PointerEvent<HTMLElement>, kind: "move" | PipEdge) => {
     // the header's own buttons (close) are theirs, not drags
     if (event.button !== 0 || (kind === "move" && (event.target as Element).closest("button, a, input, textarea"))) return;
     const el = panel.current;
@@ -54,8 +57,22 @@ export function usePipFrame() {
     const move = (e: globalThis.PointerEvent) => {
       const dx = e.clientX - from.x;
       const dy = e.clientY - from.y;
-      const next = kind === "move" ? { ...begin, x: begin.x + dx, y: begin.y + dy } : { ...begin, w: begin.w + dx, h: begin.h + dy };
-      setFrame(fit(next, box.clientWidth, box.clientHeight));
+      if (kind === "move") return setFrame(fit({ ...begin, x: begin.x + dx, y: begin.y + dy }, box.clientWidth, box.clientHeight));
+      // the edges it's dragged by move; the opposite ones stay put, down to its smallest and inside the screen
+      const right = begin.x + begin.w;
+      const bottom = begin.y + begin.h;
+      let { x, y, w, h } = begin;
+      if (kind.includes("e")) w = Math.min(Math.max(MIN_W, begin.w + dx), box.clientWidth - EDGE - begin.x);
+      if (kind.includes("s")) h = Math.min(Math.max(MIN_H, begin.h + dy), box.clientHeight - EDGE - begin.y);
+      if (kind.includes("w")) {
+        x = Math.min(Math.max(EDGE, begin.x + dx), right - MIN_W);
+        w = right - x;
+      }
+      if (kind.includes("n")) {
+        y = Math.min(Math.max(EDGE, begin.y + dy), bottom - MIN_H);
+        h = bottom - y;
+      }
+      setFrame(fit({ x, y, w, h }, box.clientWidth, box.clientHeight));
     };
     const end = () => {
       delete handle.dataset.dragging;
@@ -77,6 +94,7 @@ export function usePipFrame() {
     /** Set once it's been moved or sized by hand. */
     placed: !!frame,
     onMove: (e: PointerEvent<HTMLElement>) => start(e, "move"),
-    onSize: (e: PointerEvent<HTMLElement>) => start(e, "size"),
+    /** Resizes from the given edge or corner. */
+    onSize: (edge: PipEdge) => (e: PointerEvent<HTMLElement>) => start(e, edge),
   };
 }
