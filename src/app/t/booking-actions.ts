@@ -9,7 +9,9 @@ import type { SavedCard } from "@/lib/booking/stripe";
 import { env } from "@/lib/env.server";
 import { currentPerson } from "@/lib/identity";
 import { liveblocks } from "@/lib/liveblocks/server";
-import { TRIP_ID, tripRoomId, type Money } from "@/lib/liveblocks/types";
+import { TRIP_ID, tripRoomId, type LegBooking, type Money } from "@/lib/liveblocks/types";
+import type { PlanJson } from "@/lib/agent/snapshot";
+import type { CheckoutLeg } from "@/components/agent/checkout-card";
 
 // Booking a leg (docs/booking/README.md), as the plan panel calls it. Each action checks the caller is a member of
 // the room, then hands over to the flow; what comes back is shaped for the leg to show, never a provider's record.
@@ -98,6 +100,24 @@ export async function finishSoloBookingAction(tripId: string, legId: string, det
   const price = accept === undefined ? undefined : moneySchema.safeParse(accept);
   if (price && !price.success) return { ok: false, code: "INVALID", message: "Bad price." };
   return startPayment(m.roomId, legId, m.actor, await siteOrigin(), price?.data as Money | undefined);
+}
+
+export type SoloLeg = { me: string; leg: CheckoutLeg | null; members: Record<string, { name?: string; color?: number }> };
+
+/**
+ * The leg's booking as checkout shows it, read on the server: the home globe books without joining the trip's room,
+ * so its checkout asks for this instead of reading Storage live.
+ */
+export async function soloLegAction(tripId: string, legId: string): Promise<SoloLeg | null> {
+  const m = await member(tripId, legId);
+  if (!m) return null;
+  const plan = (await liveblocks().getStorageDocument(m.roomId, "json")) as PlanJson;
+  const l = plan.legs?.[legId];
+  const leg = l ? {
+    from: plan.stops?.[l.from]?.name ?? "", to: plan.stops?.[l.to]?.name ?? "",
+    booking: (l.booking ?? null) as LegBooking | null, bookingNotice: l.bookingNotice ?? null,
+  } : null;
+  return { me: m.actor.id, leg, members: plan.members ?? {} };
 }
 
 export type Wallet = { traveller: TravellerDetails | null; cards: SavedCard[]; publishableKey: string | null; email: string | null; nationalities: string[] };

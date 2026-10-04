@@ -332,10 +332,11 @@ function TravellerSummary({ details: d, passport }: { details: TravellerDetails;
 /** A native modal dialog: Esc and the close button dismiss it. */
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // No close() on cleanup: a dialog leaves the top layer when it's removed, and closing it fires `close`, which would
+  // call onClose and shut the modal straight after opening it wherever effects run twice (React's dev mode).
   useEffect(() => {
     const el = ref.current;
     if (el && !el.open) el.showModal();
-    return () => el?.close();
   }, []);
   return (
     <dialog ref={ref} data-globe-obstacle className="pip-dialog" aria-label={title} onClose={onClose} onCancel={onClose} onKeyDown={(e) => e.stopPropagation()}>
