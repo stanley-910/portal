@@ -29,7 +29,11 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
   const at = useRef<{ x: number; y: number } | null>(null);
   const manual = useRef<{ x: number; y: number } | null>(null);
   const placeNow = useRef<() => void>(() => {});
-  const placed = useRef(false);
+  /** The card element last revealed: a card that unmounts and mounts again (a trip's last leg removed, then a new
+   * one drawn) is a new element, hidden until it's placed, so it's revealed again. */
+  const placed = useRef<HTMLDivElement | null>(null);
+  const resize = useRef<ResizeObserver | null>(null);
+  const observed = useRef<HTMLDivElement | null>(null);
   const placedCb = useRef(onPlaced);
   const pointsRef = useRef(points);
   useEffect(() => {
@@ -103,8 +107,8 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
       const clampY = (y: number) => Math.min(Math.max(y, top), Math.max(top, bottom - height));
       const y = side === "pinLeft" || side === "pinRight" ? top : clampY((minY + maxY) / 2 - height / 2);
       put(x, y);
-      if (!placed.current) {
-        placed.current = true;
+      if (placed.current !== el) {
+        placed.current = el;
         el.style.visibility = "visible";
         placedCb.current(el);
       }
@@ -112,13 +116,27 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
     placeNow.current = place;
     place();
     const off = g.onFrame(place);
-    const resize = new ResizeObserver(place);
-    if (root.current) resize.observe(root.current);
+    resize.current = new ResizeObserver(place);
+    observed.current = root.current;
+    if (root.current) resize.current.observe(root.current);
     return () => {
       off();
-      resize.disconnect();
+      resize.current?.disconnect();
+      resize.current = null;
     };
   }, [globe, key]);
+  // A card mounted again where the last one was (same points, so the effect above doesn't run) is placed and watched
+  // at once; an idle globe draws no frame that would place it.
+  useEffect(() => {
+    const el = root.current;
+    if (el === observed.current) return;
+    if (observed.current) resize.current?.unobserve(observed.current);
+    observed.current = el;
+    if (el) {
+      resize.current?.observe(el);
+      placeNow.current();
+    }
+  });
   const moveTo = useCallback((x: number, y: number) => {
     manual.current = { x, y };
     placeNow.current();
