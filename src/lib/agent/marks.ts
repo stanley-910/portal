@@ -18,19 +18,6 @@ export type AgentMark = {
 
 const R = Math.PI / 180;
 
-/**
- * How long Pip gives its saucer to reach a place before changing the trip there, so the change lands under it rather
- * than ahead of it.
- */
-export const SAUCER_FLY_MS = 900;
-
-/** The same, when the saucer first comes out and flies in from off the screen (engine.ts UFO_ENTER, plus a beat). */
-export const SAUCER_ENTER_MS = 1600;
-
-/** How long a new leg takes to draw out behind the saucer, or a removed one to reel in (engine.ts PIP_DRAW). */
-export const SAUCER_DRAW_MS = 1600;
-
-
 /** How long the saucer stays over a change once it lands, before Pip flies on to the next. */
 export const SAUCER_STAY_MS = 800;
 

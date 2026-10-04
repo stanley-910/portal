@@ -156,3 +156,45 @@ export const APPLY_MEETUP: RoomScript = {
     { wait: 0, event: { t: "done" } },
   ],
 };
+
+const meiDirect: RoomLeg = { id: "l1", from: "hkg", to: "tyo", riders: ["mei"], by: "mei" };
+
+/**
+ * apply_route, the way it runs in a room: Pip looks at where the leg starts ("rerouting"), then writes the via route
+ * in one change: the direct leg off, the two via legs on. The direct line reels in to the saucer at its start, then
+ * the via legs draw out from there.
+ */
+export const APPLY_ROUTE: RoomScript = {
+  members: { mei: { name: "Mei", color: 2 } },
+  stops,
+  before: [meiDirect],
+  beats: [
+    { wait: 300, event: { t: "presence", activity: "reading the trip", at: null }, note: "the run starts: Pip's presence says it's working" },
+    { wait: 700, event: { t: "presence", activity: "rerouting", at: at(stops.hkg) }, note: "model calls apply_route; look() at where the leg starts" },
+    {
+      wait: 20,
+      event: {
+        t: "legs",
+        legs: [
+          { id: "l2", from: "hkg", to: "sha", riders: ["mei"], by: "mei" },
+          { id: "l3", from: "sha", to: "tyo", riders: ["mei"], by: "mei" },
+        ],
+      },
+      note: "editPlan writes the reroute in one change",
+    },
+    {
+      wait: 20,
+      event: {
+        t: "marks",
+        marks: [
+          { text: "Added HK West Kowloon → Shanghai Hongqiao", at: at(stops.sha), leg: { from: at(stops.hkg), to: at(stops.sha) } },
+          { text: "Added Shanghai Hongqiao → Tokyo", at: at(stops.tyo), leg: { from: at(stops.sha), to: at(stops.tyo) } },
+          { text: "Removed HK West Kowloon → Tokyo", at: at(stops.hkg), leg: { from: at(stops.hkg), to: at(stops.tyo), gone: true } },
+        ],
+      },
+      note: "agent-marks broadcast",
+    },
+    { wait: 1500, event: { t: "presence", activity: null, at: null }, note: "reply written; presence clears" },
+    { wait: 0, event: { t: "done" } },
+  ],
+};

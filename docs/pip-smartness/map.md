@@ -95,7 +95,8 @@ message with a `fix` card. `applyFix` re-checks before applying, as one undoable
 ### T7 · Fewer Storage round-trips — `done`
 
 Tools reuse a loaded plan within a run until a write invalidates it, instead of a full
-`getStorageDocument` per tool call. The saucer animation waits stay; they are deliberate UX.
+`getStorageDocument` per tool call. The server doesn't wait for the saucer: each globe holds Pip's changes and
+plays them under the saucer once it gets there (`components/agent/pip-saucer.tsx`, `trip-globe/engine.ts`).
 Blocked by: none.
 
 ### T8 · Pip eval suite — `done`
