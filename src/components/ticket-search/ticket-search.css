@@ -52,8 +52,9 @@
 .ts-route { display: grid; grid-template-columns: minmax(0, max-content) minmax(36px, 1fr) minmax(0, max-content); align-items: start; gap: 6px; padding: 0 2px 2px; }
 .ts-place { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .ts-place-end { align-items: flex-end; text-align: right; }
-/* each end's flag: a Pip pixel sticker (pixel-flag.tsx) that pops in on Pip's stepped timing */
-.ts-flag { flex: none; image-rendering: pixelated; filter: drop-shadow(1px 1px 0 var(--sticker-shadow)); margin: 0 0 -3px; transform-origin: 0 50%; animation: ts-flag-pop 200ms steps(4) both; }
+/* each end's flag: a Pip pixel sticker (pixel-flag.tsx) that pops in on Pip's stepped timing. Its 10px of flag sit on
+   the city's baseline, centred on its capitals; the bottom margin lifts the 13px canvas (flutter row, shadow) to there */
+.ts-flag { flex: none; image-rendering: pixelated; filter: drop-shadow(1px 1px 0 var(--sticker-shadow)); margin: 0 0 1px; transform-origin: 0 50%; animation: ts-flag-pop 200ms steps(4) both; }
 .ts-place-end .ts-flag { transform-origin: 100% 50%; }
 /* the flag on the city's line, on the outer side: a flag, the name, the route, the name, a flag */
 .ts-place-line { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
