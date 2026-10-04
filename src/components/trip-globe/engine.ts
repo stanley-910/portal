@@ -436,6 +436,10 @@ export class GlobeEngine {
   private get hudDirty() { return this._hudDirty; }
   private set hudDirty(value: boolean) { this._hudDirty = value; if (value) this.requestFrame(); }
   private inFrame = false;
+  // a frame asked for while one is running (an overlay's onFrame wanting another), started once it ends
+  private again = false;
+  // when the room's legs that Pip is reeling in and drawing out, one after another under its saucer, are all done
+  private pipQueue = 0;
   private obscured = false;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -565,8 +569,9 @@ export class GlobeEngine {
   private followSet = RANGE_MAX;
   // the view from before the saucer came out, to turn back to once it leaves, unless someone moves the globe meanwhile
   private followHome: { lon: number; lat: number; range: number } | null = null;
-  // the saucer drew legs out while it was followed: once it leaves, the view frames the trip instead of turning back
-  private followBuilt = false;
+  // the saucer changed legs while it was followed, this viewer's own or the room's: once it leaves, the view frames
+  // them instead of turning back
+  private followBuilt: "own" | "room" | null = null;
   // while it draws legs out: the view that frames every leg still to draw, for the set of draws it was worked out for
   private drawFrame: { key: string; to: { lon: number; lat: number; range: number } } | null = null;
 
@@ -803,7 +808,11 @@ export class GlobeEngine {
 
   /** Request one update; the loop continues only while the scene is changing. */
   requestFrame = () => {
-    if (!this.gl || this.raf || this.inFrame || this.obscured ||
+    if (this.inFrame) {
+      this.again = true;
+      return;
+    }
+    if (!this.gl || this.raf || this.obscured ||
         (typeof document !== "undefined" && document.visibilityState === "hidden")) return;
     if (this.idleTimer !== null) clearTimeout(this.idleTimer);
     this.idleTimer = null;
@@ -1221,7 +1230,7 @@ export class GlobeEngine {
       const lift = removed.length ? PIN_RISE : 0;
       removed.forEach((leg, i) => this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t + lift + i * PIP_DRAW, back: true, d: PIP_DRAW }));
       added.forEach((leg, i) => this.ownDraws.push({ a: leg[0], b: leg[1], t0: t + lift + (removed.length + i) * PIP_DRAW, d: PIP_DRAW }));
-      if ((added.length || removed.length) && this.follow) this.followBuilt = true;
+      if ((added.length || removed.length) && this.follow) this.followBuilt = "own";
     }
     this.tLand = t - TOUCHDOWN - VANISH;
     // drawn out, the view keeps its turn to frame the trip
@@ -1893,10 +1902,28 @@ export class GlobeEngine {
   setRemoteFlights(flights: RemoteFlight[]) {
     this.requestFrame();
     const now = performance.now() / 1000;
-    const seen = new Set<string>();
+    // While Pip's saucer is out, the legs it changes play one after another under it, also across updates that come
+    // close together: the ones that went reel back in to their starts, then the new ones draw out. Otherwise a landed
+    // leg that went reels in where it is, and a new one is just there.
+    const pip = !!this.agent?.on && !this.reduceMotion;
+    const queue = () => {
+      const start = Math.max(now, this.pipQueue);
+      this.pipQueue = start + PIP_DRAW;
+      if (this.follow) this.followBuilt = "room";
+      return start;
+    };
+    const ids = new Set(flights.map((f) => f.id));
+    for (const [id, r] of this.remotes) {
+      if (ids.has(id)) continue;
+      // a plane still in the air settles and shrinks away rather than vanishing; a landed leg's route reels in
+      if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: now, color: r.color });
+      if (r.landed && !this.reduceMotion) {
+        this.reels.push(pip ? { o: r.o, target: r.target, color: r.color, t0: queue(), back: true, d: PIP_DRAW } : { o: r.o, target: r.target, color: r.color, t0: now });
+      }
+      this.remotes.delete(id);
+    }
     for (const f of flights) {
       const vehicle = f.vehicle ?? "flight";
-      seen.add(f.id);
       const target = vecOf(f.at.lat * D2R, f.at.lng * D2R);
       const ahead = vecOf(f.ahead.lat * D2R, f.ahead.lng * D2R);
       const ft = tangent(sub(ahead, target), target);
@@ -1920,10 +1947,10 @@ export class GlobeEngine {
       } else {
         const track = new Track();
         track.push(target, now);
-        // a leg Pip adds while its saucer is out is drawn out behind it, and the pins at its end wait for it
-        const drawn = f.landed && this.agent?.on && !this.reduceMotion ? now : -Infinity;
+        // a leg Pip adds while its saucer is out is drawn out behind it in its turn, and the pins at its end wait for it
+        const drawn = f.landed && pip ? queue() : -Infinity;
         if (drawn > -Infinity) {
-          for (const p of this.pins.values()) if (angle(p.g, target) < 0.01 && p.t0 > now - 0.3) p.t0 = Math.max(p.t0, now + PIP_DRAW);
+          for (const p of this.pins.values()) if (angle(p.g, target) < 0.01 && p.t0 > now - 0.3) p.t0 = Math.max(p.t0, drawn + PIP_DRAW);
         }
         this.remotes.set(f.id, {
           o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName, drawn,
@@ -1931,13 +1958,23 @@ export class GlobeEngine {
         });
       }
     }
-    for (const [id, r] of this.remotes) {
-      if (seen.has(id)) continue;
-      // a plane still in the air settles and shrinks away rather than vanishing; a landed leg's route reels in
-      if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: performance.now() / 1000, color: r.color });
-      if (r.landed && !this.reduceMotion) this.reels.push({ o: r.o, target: r.target, color: r.color, t0: performance.now() / 1000 });
-      this.remotes.delete(id);
+  }
+
+  /**
+   * Where a leg from a to b is on the globe: drawing out, shown, reeling in, or gone. This viewer's own legs and the
+   * room's stored ones both count, so Pip's saucer can pop a change as its line finishes.
+   */
+  legState(a: LatLng, b: LatLng): "drawing" | "shown" | "reeling" | "gone" {
+    const t = this.t;
+    const va = vecOf(a.lat * D2R, a.lng * D2R);
+    const vb = vecOf(b.lat * D2R, b.lng * D2R);
+    const same = (x: Vec3, y: Vec3) => angle(x, va) < 1e-5 && angle(y, vb) < 1e-5;
+    if (this.reels.some((r) => same(r.o, r.target) && t - r.t0 < (r.d ?? REEL))) return "reeling";
+    if (this.ownLegs().some(([x, y]) => same(x, y))) {
+      return this.ownDraws.some((d) => same(d.a, d.b) && t - d.t0 < d.d) ? "drawing" : "shown";
     }
+    for (const r of this.remotes.values()) if (r.landed && same(r.o, r.target)) return t - r.drawn < PIP_DRAW ? "drawing" : "shown";
+    return "gone";
   }
 
   /** Replaces the other members' pointers; null `at` hides one. They move steadily between updates. */
@@ -2022,9 +2059,11 @@ export class GlobeEngine {
       const home = this.followHome;
       const built = this.followBuilt;
       this.followHome = null;
-      this.followBuilt = false;
+      this.followBuilt = null;
       if (!home) return;
-      if (built && this.mode === "landed") return this.frameTrip();
+      // this viewer's own trip it frames; a room's legs it changed are framed already, so the view stays
+      if (built === "own") return this.frameTrip();
+      if (built === "room") return;
       const far = angle(vecOf(this.lat0, this.lon0), vecOf(home.lat, home.lon));
       const dur = this.reduceMotion ? 0.001 : clamp(0.9 + far * 0.5, 0.9, 2);
       this.zoomAnchor = null;
@@ -2033,7 +2072,7 @@ export class GlobeEngine {
       this.lastInteract = this.t + dur;
       return;
     }
-    this.followBuilt = false;
+    this.followBuilt = null;
     // coming out again while the view's still turning back, it goes back to the same place after
     if (this.turn?.home) {
       this.followHome = { ...this.turn.to };
@@ -2051,7 +2090,7 @@ export class GlobeEngine {
     this.follow = false;
     // they've moved the globe themselves: it stays where they put it
     this.followHome = null;
-    this.followBuilt = false;
+    this.followBuilt = null;
     this.events.onFollowEnd?.();
   }
 
@@ -2071,6 +2110,7 @@ export class GlobeEngine {
 
   /** Turns the view to centre this viewer's whole trip, fitting it on the screen. */
   private frameTrip() {
+    if (!this.ownStops().length) return;
     const dur = this.reduceMotion ? 0.001 : 1.2;
     this.zoomAnchor = null;
     this.vlon = this.vlat = 0;
@@ -2436,6 +2476,7 @@ export class GlobeEngine {
     if (!this.gl) return;
     this.raf = 0;
     this.inFrame = true;
+    this.again = false;
     const t = ts / 1000;
     const dt = this.t ? clamp(t - this.t, 0, 0.05) : 0.016;
     this.t = t;
@@ -2488,7 +2529,7 @@ export class GlobeEngine {
     const drifting = this.mode === "idle" && !this.reduceMotion && this.pins.size === 0 && this.remotes.size === 0 && !this.agent;
     const tracksMoving = !this.reduceMotion && ([...this.cursors.values()].some((r) => r.track.active(t)) ||
       [...this.remotes.values()].some((r) => !r.landed && r.track.active(t)));
-    if (this.glDirty || this.hudDirty || changed || painted || animated || shadowMoved || this.namesMoving || tracksMoving || this.turn || this.mode === "flying" || this.agent) {
+    if (this.glDirty || this.hudDirty || changed || painted || animated || shadowMoved || this.namesMoving || tracksMoving || this.turn || this.mode === "flying" || this.agent || this.again) {
       this.requestFrame();
     } else {
       this.sleeping = true;

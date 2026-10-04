@@ -62,6 +62,8 @@ export interface TripGlobeHandle {
   setAgent(at: LatLng | null): void;
   /** Where Pip's saucer is on screen. Null when it isn't out. */
   agentSpot(): AgentSpot | null;
+  /** Where a leg from a to b is on the globe: drawing out, shown, reeling in, or gone. */
+  legState(from: LatLng, to: LatLng): "drawing" | "shown" | "reeling" | "gone";
   /**
    * Turns the view to follow Pip's saucer. Dragging, scrolling or pinching the globe stops it and calls `onEnd`;
    * zooming doesn't.
@@ -316,6 +318,7 @@ export function TripGlobe({
       },
       setAgent: (at) => engineRef.current?.setAgent(at),
       agentSpot: () => engineRef.current?.agentSpot() ?? null,
+      legState: (from, to) => engineRef.current?.legState(from, to) ?? "gone",
       followAgent: (on, onEnd) => {
         followEnd.current = on ? (onEnd ?? null) : null;
         engineRef.current?.setFollow(on);

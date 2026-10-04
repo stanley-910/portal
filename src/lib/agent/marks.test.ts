@@ -35,10 +35,10 @@ describe("legMarks", () => {
   it("orders the legs that went from the end back, then the ones that came, and starts where the last went", () => {
     const before = [{ from: hk, to: sh }, { from: sh, to: tk }, { from: tk, to: hk }];
     const after = [{ from: hk, to: sh }, { from: sh, to: hk }];
-    expect(legMarks(before, after).map((m) => [m.text, m.drawn])).toEqual([
-      ["Removed Tokyo → Hong Kong", 0],
-      ["Removed Shanghai → Tokyo", 1],
-      ["Added Shanghai → Hong Kong", 2],
+    expect(legMarks(before, after).map((m) => [m.text, m.leg?.gone ?? false])).toEqual([
+      ["Removed Tokyo → Hong Kong", true],
+      ["Removed Shanghai → Tokyo", true],
+      ["Added Shanghai → Hong Kong", false],
     ]);
     expect(changeStart(before, after)).toEqual({ lat: hk.lat, lng: hk.lng });
   });

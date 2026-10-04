@@ -11,7 +11,7 @@ import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import { readSoloEvents } from "./solo-stream";
 import { recordTiming } from "@/lib/performance";
-import { changeStart, legChanges, type AgentMark } from "@/lib/agent/marks";
+import { changeStart, type AgentMark } from "@/lib/agent/marks";
 import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { AGENT_NAME, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { SIGN_IN_TO_ASK } from "@/lib/agent/use-thread";
@@ -225,11 +225,8 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
       } else if (event.t === "marks") {
         const legs = planned;
         planned = null;
-        const from = event.marks.some((m) => m.drawn !== undefined) && legs ? changeStart(tripRef.current.trip, legs) : null;
-        if (legs && from) {
-          const lift = legChanges(tripRef.current.trip, legs).removed.length > 0;
-          tripRef.current.onMarks(event.marks, { from, lift, run: () => putDown(legs) });
-        }
+        const from = event.marks.some((m) => m.leg) && legs ? changeStart(tripRef.current.trip, legs) : null;
+        if (legs && from) tripRef.current.onMarks(event.marks, { from, run: () => putDown(legs) });
         else {
           if (legs) putDown(legs);
           tripRef.current.onMarks(event.marks);

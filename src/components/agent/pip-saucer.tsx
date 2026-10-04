@@ -5,7 +5,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObj
 import { getAway, PORTAL_MS, setAway } from "@/components/agent/pip-away";
 import { PipSprite } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
-import { SAUCER_DRAW_MS, SAUCER_LIFT_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 import { AGENT_NAME } from "@/lib/agent/types";
 
 // Pip at work on the globe: its saucer (the globe draws it, trip-globe/ufo-model.ts) flies to whatever Pip is
@@ -25,6 +25,8 @@ const POP_MS = 2200;
 const HOLD_MS = SAUCER_STAY_MS;
 /** The longest it waits to reach a place before popping anyway. */
 const REACH_MS = 3500;
+/** The longest it waits for a leg's line to finish drawing or reeling in before popping anyway. */
+const LEG_MS = 10_000;
 /** How long the saucer stays out after Pip stops, so it doesn't flicker between steps. */
 const LINGER_MS = 1000;
 /** Pops float this far above the saucer. */
@@ -32,15 +34,15 @@ const POP_RISE = 30;
 
 /**
  * Changes the legs on the globe once the saucer is at `from`, where the first change starts (lib/agent/marks.ts
- * changeStart). `lift`: a leg goes, so its pin rises into the saucer before anything reels in or draws out.
+ * changeStart).
  */
-export type SaucerBuild = { from: LatLng; run: () => void; lift?: boolean };
+export type SaucerBuild = { from: LatLng; run: () => void };
 
 export type PipSaucerHandle = {
   /**
-   * Plays what an edit changed: the saucer visits each place in turn and pops the change there. With `build`, it
-   * first flies to where the new legs start and puts them down there, and each mark with `drawn` pops as its leg's
-   * line reaches its end.
+   * Plays what an edit changed: the saucer visits each place in turn and pops the change there. A change to a leg
+   * pops once the globe has finished reeling its line in or drawing it out, legs that went before legs that came, as
+   * the globe plays them. With `build`, it first flies to where the changes start and makes them there.
    */
   play: (marks: AgentMark[], build?: SaucerBuild) => void;
 };
@@ -77,10 +79,10 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
 
   useImperativeHandle(ref, () => ({
     play: (marks, build) => {
-      // the legs it draws first, in the order they draw, then the rest
-      const drawn = build ? marks.filter((m) => m.drawn !== undefined) : [];
-      const rest = marks.filter((m) => !drawn.includes(m));
-      queue.current.push(...(build ? [{ build }] : []), ...[...drawn, ...rest].map((mark) => ({ mark })));
+      // legs that went, then legs that came, in the order the globe reels them in and draws them out; then the rest
+      const rank = (m: AgentMark) => (m.leg ? (m.leg.gone ? 0 : 1) : 2);
+      const ordered = [...marks].sort((a, b) => rank(a) - rank(b));
+      queue.current.push(...(build ? [{ build }] : []), ...ordered.map((mark) => ({ mark })));
       globe.current?.requestFrame();
     },
   }), [globe]);
@@ -89,9 +91,6 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
     const handle = globe.current;
     if (!handle) return;
     let current: (Step & { since: number; popped: number | null }) | null = null;
-    // when the last build put its legs down, and how long its pins took to rise first
-    let built = -Infinity;
-    let lifted = 0;
     let place: LatLng | null = null;
     let sent = "";
     let shown = false;
@@ -145,13 +144,13 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       // there to build: the legs go down, and the saucer rides them out
       if (current?.build && (spot?.arrived || t - current.since > REACH_MS)) {
         current.build.run();
-        built = t;
-        lifted = current.build.lift ? SAUCER_LIFT_MS : 0;
         current = null;
       }
-      // a leg it's reeling in or drawing out pops as its line gets there; anything else once the saucer's there
-      const drawing = current?.mark?.drawn;
-      const ready = drawing !== undefined ? t - built > lifted + (drawing + 1) * SAUCER_DRAW_MS : !current?.mark?.at || spot?.arrived || t - current.since > REACH_MS;
+      // a leg it's reeling in or drawing out pops once its line is done; anything else once the saucer's there
+      const leg = current?.mark?.leg;
+      const ready = leg
+        ? handle.legState(leg.from, leg.to) === (leg.gone ? "gone" : "shown") || t - current!.since > LEG_MS
+        : !current?.mark?.at || spot?.arrived || (!!current && t - current.since > REACH_MS);
       if (current?.mark && current.popped === null && ready) {
         current.popped = t;
         const pop = { id: ++seq, mark: current.mark };

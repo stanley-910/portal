@@ -10,10 +10,10 @@ export type AgentMark = {
   /** Where on the globe it happened. Null pops it wherever the saucer is. */
   at: Point | null;
   /**
-   * A leg the saucer reels in or draws out: its place in the order it does them, legs that went first (from the
-   * trip's end back), then legs that came (in trip order). See `legChanges`.
+   * The leg this change put on the globe, or took off it (`gone`): the saucer pops it once the globe has finished
+   * drawing its line out, or reeling it in.
    */
-  drawn?: number;
+  leg?: { from: Point; to: Point; gone?: boolean };
 };
 
 const R = Math.PI / 180;
@@ -30,8 +30,6 @@ export const SAUCER_ENTER_MS = 1600;
 /** How long a new leg takes to draw out behind the saucer, or a removed one to reel in (engine.ts PIP_DRAW). */
 export const SAUCER_DRAW_MS = 1600;
 
-/** How long a removed leg's pin takes to rise into the saucer, before its route reels in (engine.ts PIN_RISE). */
-export const SAUCER_LIFT_MS = 500;
 
 /** How long the saucer stays over a change once it lands, before Pip flies on to the next. */
 export const SAUCER_STAY_MS = 800;
@@ -75,8 +73,9 @@ export function changeStart(before: Leg[], after: Leg[]): Point | null {
 export function legMarks(before: Leg[], after: Leg[]): AgentMark[] {
   const { removed, added } = legChanges(before, after);
   const text = (did: string, l: Leg) => `${did} ${l.from.name} → ${l.to.name}`;
+  const p = (x: Point) => ({ lat: x.lat, lng: x.lng });
   return [
-    ...removed.map((l, i) => ({ text: text("Removed", l), at: { lat: l.from.lat, lng: l.from.lng }, drawn: i })),
-    ...added.map((l, i) => ({ text: text("Added", l), at: { lat: l.to.lat, lng: l.to.lng }, drawn: removed.length + i })),
+    ...removed.map((l) => ({ text: text("Removed", l), at: p(l.from), leg: { from: p(l.from), to: p(l.to), gone: true } })),
+    ...added.map((l) => ({ text: text("Added", l), at: p(l.to), leg: { from: p(l.from), to: p(l.to) } })),
   ];
 }

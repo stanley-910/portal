@@ -32,3 +32,4 @@
 .pl-log li[data-kind="note"] { color: var(--ink-muted); font-style: italic; }
 .pl-log li[data-kind="saucer"] { font-weight: 600; }
 .pl-t { flex: none; width: 44px; color: var(--ink-muted); font-variant-numeric: tabular-nums; text-align: right; }
+.pl-panel .pg-group { flex-wrap: wrap; }

@@ -138,15 +138,18 @@ describe("editPlan", () => {
     expect(json().stops?.bt).toBeUndefined();
   });
 
-  it("marks each change for the globe, over where its leg ends", async () => {
+  it("marks each change for the globe: a new leg where it ends, a removed one where it reels back to", async () => {
     const h = handlesFor(plan);
     const result = await editPlan("room", plan, h, [
       { op: "remove_leg", leg: "L3" },
       { op: "add_leg", from: { stop: h.stop.get("hk")! }, to: { stop: h.stop.get("bj")! }, date: "2026-10-05", riders: ["M1"] },
     ], "agent:pip");
     expect(result.marks.map((m) => m.text)).toEqual(["Removed Taichung (Qingshui) → Bintulu", "Added Hong Kong → Beijing"]);
-    // at Bintulu, though it went with the leg, and at Beijing: never out at sea between
-    expect(result.marks.map((m) => m.at)).toEqual([{ lat: 3.12, lng: 113.02 }, { lat: 39.9, lng: 116.4 }]);
+    // at Taichung, though it went with the leg, and at Beijing: never out at sea between
+    expect(result.marks.map((m) => m.at)).toEqual([{ lat: 24.26, lng: 120.62 }, { lat: 39.9, lng: 116.4 }]);
+    // each carries its leg, for the globe to tell when its line is done
+    expect(result.marks[0].leg).toEqual({ from: { lat: 24.26, lng: 120.62 }, to: { lat: 3.12, lng: 113.02 }, gone: true });
+    expect(result.marks[1].leg).toEqual({ from: { lat: 22.3, lng: 114.2 }, to: { lat: 39.9, lng: 116.4 } });
   });
 
   it("knows where an edit starts before making it, so the saucer can get there first: a new leg at its start", () => {

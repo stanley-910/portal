@@ -9,13 +9,24 @@ import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { useCursorPref } from "@/lib/cursor-pref";
 import { stopFromPoint } from "@/lib/trip/stops";
 
+import { PLAN_GROUP, type RoomScript } from "./room-scenarios";
+import { describeRoom, RoomStage } from "./room-stage";
 import { SCENARIOS, type Scenario } from "./scenarios";
 
-// Pip's tool calls played on the real globe: the home globe with Pip's panel, and /api/pip answered from a script
-// (scenarios.ts), so each tool's saucer and globe transitions can be watched, replayed and slowed down. The log reads
-// out each streamed event and what the saucer does, with when, from the moment the question is sent.
+// Pip's tool calls played on the real globe, so each tool's saucer and globe transitions can be watched, replayed and
+// slowed down. Home scenarios run on the home globe with Pip's panel, /api/pip answered from a script (scenarios.ts);
+// room scenarios play a trip room's presence, stored legs and marks from a script (room-scenarios.ts). The log reads
+// out each event and what the saucer does, with when, from the moment the question is sent.
 
 const SPEEDS = [0.5, 1, 2];
+
+type RoomScenario = { id: string; label: string; tool: string; ask: string; room: RoomScript };
+type LabScenario = Scenario | RoomScenario;
+
+const ALL: LabScenario[] = [
+  ...SCENARIOS,
+  { id: "group", label: "Plan the group (room)", tool: "plan_group", ask: "Sort out the cheapest way for everyone to get to Tokyo.", room: PLAN_GROUP },
+];
 
 type Line = { t: number; kind: "event" | "saucer" | "globe" | "note"; text: string };
 
@@ -41,7 +52,7 @@ export function PipLab() {
   const pip = useRef<HomePipHandle>(null);
   const { resolvedTheme } = useTheme();
   const cursorPref = useCursorPref();
-  const [scenario, setScenario] = useState<Scenario>(SCENARIOS[0]);
+  const [scenario, setScenario] = useState<LabScenario>(ALL[0]);
   const [speed, setSpeed] = useState(1);
   const [run, setRun] = useState(0);
   const [legs, setLegs] = useState<SoloLeg[]>([]);
@@ -62,6 +73,7 @@ export function PipLab() {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (new URL(url, location.href).pathname !== "/api/pip") return real(input, init);
       const { scenario, speed, run } = live.current;
+      if ("room" in scenario) return real(input, init);
       const encoder = new TextEncoder();
       let i = 0;
       const stream = new ReadableStream<Uint8Array>({
@@ -98,7 +110,7 @@ export function PipLab() {
 
   // each run starts from the scenario's globe and asks its question
   useEffect(() => {
-    if (!run) return;
+    if (!run || "room" in live.current.scenario) return;
     const g = globe.current;
     const { before, ask } = live.current.scenario;
     g?.cancel();
@@ -133,20 +145,38 @@ export function PipLab() {
         onLand={onLand}
         onCancel={() => setLegs([])}
       />
-      <HomePip
-        key={run}
-        ref={pip}
-        globe={globe}
-        account
-        trip={legs}
-        onTrip={(planned) => {
-          pipDates.current = planned.map((l) => l.date);
-          globe.current?.showTrip([planned[0].from, ...planned.map((l) => l.to)]);
-        }}
-      />
+      {"room" in scenario ? (
+        <RoomStage
+          key={scenario.id}
+          globe={globe}
+          script={scenario.room}
+          run={run}
+          speed={speed}
+          onStart={() => {
+            started.current = performance.now();
+            setLog([{ t: 0, kind: "note", text: `asks: “${scenario.ask}”` }]);
+          }}
+          onEvent={(text, e) => {
+            if (text) note("note", text);
+            note("event", describeRoom(e));
+          }}
+        />
+      ) : (
+        <HomePip
+          key={run}
+          ref={pip}
+          globe={globe}
+          account
+          trip={legs}
+          onTrip={(planned) => {
+            pipDates.current = planned.map((l) => l.date);
+            globe.current?.showTrip([planned[0].from, ...planned.map((l) => l.to)]);
+          }}
+        />
+      )}
       <aside className="pl-panel" data-globe-obstacle aria-label="Pip lab">
         <div className="pg-group" role="group" aria-label="Scenario">
-          {SCENARIOS.map((s) => (
+          {ALL.map((s) => (
             <button key={s.id} type="button" className="pg-chip" aria-pressed={scenario.id === s.id} onClick={() => setScenario(s)}>
               {s.label}
             </button>

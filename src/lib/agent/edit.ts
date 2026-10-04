@@ -300,7 +300,14 @@ export async function editPlan(
       const b = l && stopAt(l.get("to"));
       return b ? { lat: b.lat, lng: b.lng } : null;
     };
-    const mark = (text: string, at: AgentMark["at"]) => marks.push({ text, at });
+    const mark = (text: string, at: AgentMark["at"], leg?: AgentMark["leg"]) => marks.push(leg ? { text, at, leg } : { text, at });
+    // a leg's ends, for the globe to tell when its line has drawn out or reeled in
+    const legEnds = (id: string) => {
+      const l = legs.get(id);
+      const a = l && stopAt(l.get("from"));
+      const b = l && stopAt(l.get("to"));
+      return a && b ? { from: { lat: a.lat, lng: a.lng }, to: { lat: b.lat, lng: b.lng } } : undefined;
+    };
     const stopFor = (s: string | Stop) => {
       if (typeof s === "string") {
         // someone removed it since the snapshot: put it back rather than point a leg at nothing
@@ -442,7 +449,7 @@ export async function editPlan(
         );
         searches.push({ legId: id, searchId: search.id });
         applied.push(`Added ${stopName(from)} → ${stopName(to)} on ${showDate(p.date)}`);
-        mark(`Added ${stopName(from)} → ${stopName(to)}`, legAt(id));
+        mark(`Added ${stopName(from)} → ${stopName(to)}`, legAt(id), legEnds(id));
         continue;
       }
       const leg = legs.get(p.leg);
@@ -499,7 +506,9 @@ export async function editPlan(
             `No change to who rides ${label}`,
         );
       } else {
-        mark(`Removed ${label}`, legAt(p.leg));
+        // it reels back in to its start under the saucer, and pops there
+        const ends = legEnds(p.leg);
+        mark(`Removed ${label}`, ends?.from ?? legAt(p.leg), ends && { ...ends, gone: true });
         legs.delete(p.leg);
         freed.add(leg.get("from")).add(leg.get("to"));
         applied.push(`Removed ${label}`);
