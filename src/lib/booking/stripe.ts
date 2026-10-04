@@ -194,6 +194,13 @@ export async function listCards(customerId: string): Promise<SavedCard[]> {
 export type HoldIntent = { id: string; client_secret: string; status: string };
 
 /**
+ * Confirms a hold on a saved card from the server, for a rider who asked Pip to book. A bank that wants 3-D Secure
+ * leaves it `requires_action`, for the rider to finish in the app.
+ */
+export const confirmSavedHold = (id: string, paymentMethod: string) =>
+  stripe<HoldIntent>("POST", `/payment_intents/${id}/confirm`, { payment_method: paymentMethod });
+
+/**
  * A card hold for the rider's share, for the browser to confirm: on `paymentMethod` when they picked a saved card, or
  * on what they type, which is then saved to `customer` for next time.
  */

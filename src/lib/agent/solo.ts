@@ -24,6 +24,10 @@ import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { isBookable, toStoredOffer } from "@/lib/trip/offers";
 import { soloSaveInput } from "@/lib/trip/solo-input";
 import { saveSoloTrip } from "@/app/t/save-actions";
+import { bookWithSaved, settleLeg } from "@/lib/booking/flow";
+import { getAccountClaims } from "@/lib/supabase/server";
+import { tripRoomId } from "@/lib/liveblocks/types";
+import { seatNote } from "@/lib/agent/tools";
 import type { Offer } from "@/lib/transport/types";
 import { stopToPlace } from "@/lib/trip/stops";
 
@@ -75,7 +79,7 @@ How to work:
 - For visa, passport or entry questions, call check_entry for each leg it's about (by its number on their globe), or for a place they name. It covers every passport they've saved. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When their passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. If they've saved no passport, say so: they add them under Passports in the profile menu. Mention estimated rules as estimates, and end with the official-source reminder.
 - For "where should we meet", call find_meetup. Its card has a button that puts their own leg on the globe.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
-- When they ask to book, call book_leg straight away with the leg's number, and the option's number from search_routes if they named one (only options marked bookable; without one it takes the cheapest bookable fare). It saves the leg as a trip in their account and posts a checkout card in this chat: the card checks today's fare and shows it, then they confirm their details and card there, without leaving the globe. Don't ask first, and never say you can't book. Fares marked estimated, cached or timetable can't be bought in the app: say so and offer a bookable one.
+- When they ask to book, call book_leg straight away with the leg's number, and the option's number from search_routes if they named one (only options marked bookable; without one it takes the cheapest bookable fare). It saves the leg as a trip in their account and books their seat with their saved details and card in one go; the checkout card it posts shows where it stands and anything left for them, without leaving the globe. Don't ask first, and never say you can't book. Fares marked estimated, cached or timetable can't be bought in the app: say so and offer a bookable one.
 - To keep a trip or bring friends in, they press Save trip on the card; once saved it's in their trips, and its link invites friends.
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Get every number from tools before you write; your words stream as you write them, so never correct yourself mid-reply.
@@ -166,7 +170,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
 
     book_leg: tool({
       description:
-        "Books one leg on their globe in the app: saves it as a trip in their account with the fare picked, and posts a checkout card in this chat where the fare is checked, then they confirm their details and card. Call it as soon as they ask to book. Only fares marked bookable can be bought.",
+        "Books one leg on their globe in the app: saves it as a trip in their account with the fare picked, settles it at today's fare and books their seat with their saved details and saved card in one go, then posts a checkout card in this chat showing where it stands and anything left for them (details or a card if none is saved, a bank check). Call it as soon as they ask to book: that's their go-ahead. Only fares marked bookable can be bought.",
       inputSchema: z.object({
         leg: z.number().int().min(1).describe("The leg's number on their globe"),
         option: z.number().int().min(1).max(MAX_OPTIONS).optional().describe("The option's number from search_routes for this leg, when they named one; omit for the cheapest bookable fare"),
@@ -191,12 +195,26 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
             [{ offer: pick.offer, offers: options.map((o) => o.offer), depart: onGlobe.date, stay: null }],
           )).catch(() => ({ error: "failed" as const }));
           if ("error" in saved || !saved.legs[0]) return { refused: "SAVE_FAILED", next: "Say saving the trip failed; they can try Book on the leg's card." };
-          emit({ t: "card", card: { type: "checkout", legId: saved.legs[0], tripId: saved.id } });
           const o = pick.stored;
+          const fare = `${o.carrier ?? o.mode} ${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}, ${o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "price at checkout"}`;
+          // their asking is the go-ahead: settle at today's fare, then their seat with what they keep on file
+          emit({ t: "activity", label: "booking your seat", at: { lat: onGlobe.to.lat, lng: onGlobe.to.lng } });
+          const account = await getAccountClaims();
+          const roomId = tripRoomId(saved.id), legId = saved.legs[0];
+          let seat = "they finish in the card";
+          if (account) {
+            const actor = { id: account.id, name: account.name, email: account.email };
+            const settled = await settleLeg(roomId, legId, actor);
+            if (!settled.ok && "now" in settled) seat = "the fare moved since the search: the card shows the new price to accept";
+            else if (!settled.ok) return { refused: settled.code, reason: settled.message, next: settled.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option." : "Tell them plainly." };
+            else seat = seatNote(await bookWithSaved(roomId, legId, actor));
+          }
+          emit({ t: "card", card: { type: "checkout", legId, tripId: saved.id } });
           return {
             status: "checkout_up",
-            fare: `${o.carrier ?? o.mode} ${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}, ${o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "price at checkout"}`,
-            note: "The checkout card is in the chat: it checks today's fare and shows it, then they confirm their details and card there. The leg is saved in their trips too. Say this in a sentence; don't repeat the card.",
+            fare,
+            your_seat: seat,
+            note: "The checkout card is in the chat with where it stands; the leg is saved in their trips. Say in a sentence what happened to their seat; don't repeat the card.",
           };
         } finally {
           emit({ t: "activity", label: null });

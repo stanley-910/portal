@@ -205,7 +205,7 @@ function LegCard({
   const findButton = useRef<HTMLButtonElement>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // the pick shows even when it's further down the options
-  const offers = shownOffers(leg.search.offers, leg.chosen?.id, SHOWN);
+  const offers = shownOffers(leg.search.offers, leg.chosen?.id, SHOWN, isBookable);
   const hotelDates = hotelDatesFor(leg.chosen);
 
   /** Picks an option for everyone straight from the list. */

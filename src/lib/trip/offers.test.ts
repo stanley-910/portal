@@ -112,6 +112,10 @@ describe("shownOffers", () => {
     expect(shownOffers(offers, "e:4", 3).map((o) => o.id)).toEqual(["a:0", "b:1", "e:4"]);
     expect(shownOffers(offers, "b:1", 3).map((o) => o.id)).toEqual(["a:0", "b:1", "c:2"]);
     expect(shownOffers(offers, null, 3)).toHaveLength(3);
+    // a bookable fare further down takes the last slot, or the one before the pick's
+    const bookable = (o: { id: string }) => o.id === "d:3";
+    expect(shownOffers(offers, null, 3, bookable).map((o) => o.id)).toEqual(["a:0", "b:1", "d:3"]);
+    expect(shownOffers(offers, "e:4", 3, bookable).map((o) => o.id)).toEqual(["a:0", "d:3", "e:4"]);
   });
 });
 

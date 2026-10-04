@@ -11,7 +11,7 @@ import { offerExpired, perSeat, travellerSchema, type BookableOffer, type Travel
 import { refusedPassenger, settleReady, storedFlights } from "./ready";
 import { allDetailsIn, allPaid, anyonePaid, bookingDeadline, openSeats, priceRose, splitShares } from "./shares";
 import { bookingStore, type PaymentRow } from "./store";
-import { bookingModes, cancelPayment, capturePayment, captureBefore, createCustomer, createHoldCheckout, createHoldIntent, getCheckoutSession, getPaymentIntent, listCards, stripeConfigured, testCheckoutAllowed, type SavedCard } from "./stripe";
+import { bookingModes, cancelPayment, capturePayment, captureBefore, confirmSavedHold, createCustomer, createHoldCheckout, createHoldIntent, getCheckoutSession, getPaymentIntent, listCards, stripeConfigured, testCheckoutAllowed, type SavedCard } from "./stripe";
 
 // The booking flow from docs/booking/README.md. Every step reads the leg from the room, decides, calls Duffel or
 // Stripe, then writes status back. Only this module writes `booking`; clients and Pip only read it.
@@ -724,4 +724,52 @@ export async function seatStep(roomId: string, legId: string, actorId: string): 
 /** Why a leg went back to planning, when it did. */
 export async function bookingNoticeOf(roomId: string, legId: string): Promise<string | null> {
   return (await readLeg(roomId, legId)).leg?.bookingNotice ?? null;
+}
+
+/** How far `bookWithSaved` got: the seat bought or held, or the step that needs the rider. */
+export type SavedBooking =
+  | { ok: true; done: "booked" | "held" | "ticketed" }
+  | { ok: true; needs: "details" | "passport" | "card" | "authentication" | "others"; card?: string };
+
+/**
+ * Books the rider's own seat in one go with what they keep on file, as when they ask Pip to book: their saved
+ * details go in, then their saved card is held, confirmed here rather than in the browser. It stops at the first step
+ * that needs them (nothing saved, a passport the airline wants, a bank asking for 3-D Secure, or others on the leg
+ * still to pay) and says which; the checkout card carries on from there. A moved fare comes back first.
+ */
+export async function bookWithSaved(roomId: string, legId: string, actor: Actor, accept?: Money): Promise<SavedBooking | PriceChange | Failure> {
+  try {
+    let at = await seatStep(roomId, legId, actor.id);
+    if (!at) return { ok: false, code: "WRONG_STATE", message: "This leg isn't settled." };
+    if (at.step === "details") {
+      const saved = await savedTraveller(actor.id).catch(() => null);
+      if (!saved) return { ok: true, needs: "details" };
+      if (at.documents && !saved.passport) return { ok: true, needs: "passport" };
+      const sent = await submitDetails(roomId, legId, actor, saved);
+      if (!sent.ok) return sent;
+      at = await seatStep(roomId, legId, actor.id);
+    }
+    if (!at || at.step === "done") return done(roomId, legId);
+    if (at.step === "wait") return { ok: true, needs: "others" };
+    const [card] = await savedCards(actor.id);
+    if (!card) return { ok: true, needs: "card" };
+    const started = await startCardHold(roomId, legId, actor, card.id, accept);
+    if (!started.ok) return started;
+    if (started.clientSecret) {
+      const intent = await pendingIntent(roomId, legId, actor.id);
+      if (!intent) return { ok: false, code: "PAYMENT_FAILED", message: "The card wasn't held. Try again in the checkout." };
+      const confirmed = await confirmSavedHold(intent, card.id);
+      if (confirmed.status === "requires_action") return { ok: true, needs: "authentication", card: `${card.brand} ·${card.last4}` };
+      if (!(await confirmCardHold(intent))) return { ok: false, code: "PAYMENT_FAILED", message: "The card was declined. Try another in the checkout." };
+    }
+    return done(roomId, legId);
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+async function done(roomId: string, legId: string): Promise<SavedBooking> {
+  const booking = (await readLeg(roomId, legId)).leg?.booking;
+  if (booking?.status === "booked") return { ok: true, done: "booked" };
+  return { ok: true, done: booking?.mode === "separate" ? "ticketed" : "held" };
 }

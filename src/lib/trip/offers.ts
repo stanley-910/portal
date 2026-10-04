@@ -34,11 +34,21 @@ export function keepOffers<T extends { id: string; provider: string }>(ranked: r
   return ranked.filter((o) => kept.has(o));
 }
 
-/** The options a leg shows: the first `n`, with the pick swapped in for the last when it's further down. */
-export function shownOffers<T extends { id: string }>(offers: readonly T[], pick: string | null | undefined, n: number): T[] {
+/**
+ * The options a leg shows: the first `n`, with the pick swapped in for the last when it's further down. With `keep`,
+ * the first option it matches is shown too (in the slot before the pick's), so a fare that can be bought in the app
+ * isn't hidden under cheaper estimates.
+ */
+export function shownOffers<T extends { id: string }>(offers: readonly T[], pick: string | null | undefined, n: number, keep?: (o: T) => boolean): T[] {
   const shown = offers.slice(0, n);
   const picked = pick ? offers.find((o) => o.id === pick) : undefined;
   if (picked && !shown.includes(picked)) shown[Math.max(0, shown.length - 1)] = picked;
+  const kept = keep && !shown.some(keep) ? offers.find(keep) : undefined;
+  if (kept && shown.length) {
+    // the last slot unless the pick holds it, then the one before
+    const slot = picked && shown.at(-1) === picked && shown.length > 1 ? shown.length - 2 : shown.length - 1;
+    if (shown[slot] !== picked) shown[slot] = kept;
+  }
   return shown;
 }
 
