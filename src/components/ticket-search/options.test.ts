@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Mode, Offer, Segment } from "@/lib/transport/types";
 
-import { clockOf, credits, rowPrice, rowsFor, shortPlace, SHOWN, sourceName, timeline, tripPrice, visibleTabs } from "./options";
+import { clockOf, rowPrice, rowsFor, shortPlace, SHOWN, timeline, tripPrice, visibleTabs } from "./options";
 
 const place = (name: string) => ({ name, lat: 0, lng: 0 });
 const seg = (mode: Mode, from: string, to: string, depart: string, arrive: string, durationMin: number): Segment => ({
@@ -47,13 +47,6 @@ describe("ticket search options", () => {
     ]);
   });
 
-  it("names a source by its short name, without its links or when it was checked", () => {
-    expect(sourceName("Typical China rail timetable, checked 2026-10-04: https://www.travelchinaguide.com/guangzhou-to-shanghai-trains.htm. Second-class fare as published at https://www.travelchinaguide.com/x.htm; real fares vary")).toBe("Typical China rail timetable");
-    expect(sourceName("Travelpayouts / Aviasales — distance-based estimate; availability unverified")).toBe("Travelpayouts / Aviasales");
-    expect(sourceName("Duffel")).toBe("Duffel");
-    expect(sourceName("A source with a very long name that goes on and on past forty")).toHaveLength(40);
-  });
-
   it("shows only Best and the modes with results", () => {
     expect(visibleTabs([direct("a", "flight", 1), direct("b", "train", 1)])).toEqual(["best", "flight", "train"]);
   });
@@ -84,7 +77,7 @@ describe("ticket search options", () => {
     }
   });
 
-  it("keeps row text short and credits the provider once under the list", () => {
+  it("keeps row text short and says where each row is from", () => {
     const tp = "Travelpayouts / Aviasales — distance-based estimate; availability unverified";
     const to = (id: string, airport: string) =>
       offer(id, "flight", 165, [seg("flight", "Hong Kong", airport, "2026-10-04T09:00:00+08:00", "2026-10-04T13:00:00+09:00", 168)], {
@@ -94,9 +87,6 @@ describe("ticket search options", () => {
     const rows = rowsFor([to("a", "Incheon International Airport"), to("b", "Seoul Gimpo International Airport")], "best", null);
     expect(rows.map((r) => r.description)).toEqual(["Flight to Incheon", "Flight to Seoul Gimpo"]);
     expect(rows[0].source).toContain(tp);
-    expect(credits(rows)).toMatchObject([{ label: "Travelpayouts / Aviasales" }]);
-    rows[1].offer.bookingUrl = "https://www.aviasales.com/search/b";
-    expect(credits(rows, rows[1])).toMatchObject([{ label: "Travelpayouts / Aviasales", url: "https://www.aviasales.com/search/b" }]);
     expect(shortPlace("Airport")).toBe("Airport");
     expect(shortPlace("Shanghai Hongqiao")).toBe("Shanghai Hongqiao");
   });

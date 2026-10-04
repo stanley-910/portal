@@ -31,7 +31,7 @@ export interface OptionRow {
   badge?: "Best" | "Lowest";
   /** Not live data (AGENTS.md: anything that isn't live shows as estimated). */
   estimated: boolean;
-  /** Who runs it and where it goes, e.g. "Flight to Seoul Gimpo, 1 stop". The provider's credit goes under the list. */
+  /** Who runs it and where it goes, e.g. "Flight to Seoul Gimpo, 1 stop". Where it's from is in `source`. */
   description: string;
   legs: TimelineLeg[];
   /** When it leaves and gets in, at either end of the timeline. Null for a modelled option with no schedule. */
@@ -128,41 +128,6 @@ function describe(offer: Offer): string {
   const unlisted = transfersOf(offer);
   if (!stops.length && unlisted) parts.push(`${unlisted} stop${unlisted > 1 ? "s" : ""}`);
   return parts.join(", ");
-}
-
-export interface Credit {
-  /** "Travelpayouts / Aviasales": the source's short name. */
-  label: string;
-  /** The source's whole note, links and all, for its tooltip. */
-  note?: string;
-  /** The source's own page for a shown row, the selected one first. */
-  url?: string;
-}
-
-/**
- * The credits a provider's terms want near its results, once each for the rows shown, linked to the source.
- * What follows a " — " qualifies the fare, which the Estimated badge and the row's tooltip already say.
- */
-/**
- * A source's short name from its note: "Typical China rail timetable, checked 2026-10-04: https://…; real fares
- * vary" is "Typical China rail timetable". Up to a dash, colon or semicolon, without links or when it was checked.
- */
-export function sourceName(note: string): string {
-  const name = note.split(" — ")[0].replace(/https?:\/\/\S+/g, "").split(/[:;]/)[0].replace(/,?\s*checked\s.*$/i, "").trim();
-  return name.length > 40 ? `${name.slice(0, 39).trimEnd()}…` : name;
-}
-
-export function credits(rows: OptionRow[], selected?: OptionRow): Credit[] {
-  const out = new Map<string, Credit>();
-  for (const r of selected ? [selected, ...rows] : rows) {
-    const note = r.offer.attribution?.trim();
-    const label = note ? sourceName(note) : "";
-    if (!label) continue;
-    const credit = out.get(label) ?? { label, note };
-    credit.url ??= r.offer.bookingUrl;
-    out.set(label, credit);
-  }
-  return [...out.values()];
 }
 
 const SOURCE: Record<Offer["kind"], string> = {

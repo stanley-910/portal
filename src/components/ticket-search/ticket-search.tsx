@@ -16,7 +16,7 @@ import type { Mode, Offer } from "@/lib/transport/types";
 import type { LegPick, PickedStay, ReturnPick } from "@/lib/trip/solo-input";
 import { isBookable, refundNote } from "@/lib/trip/offers";
 
-import { credits, formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
+import { formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
 import { AirlineLogo } from "./airline-logo";
 import { Glyph } from "./glyphs";
 import { addDays, DateField, DayStrip, localIso, OptionRows, RouteHeader, Timeline } from "./parts";
@@ -91,8 +91,8 @@ const placeEnd = (hub: Hub | null, point: LatLng) => ({
 });
 
 /**
- * One direction's options: placeholder rows while searching, the three best rows for the tab, and the providers
- * credited under them. Every row says where its data came from and marks anything that isn't live.
+ * One direction's options: placeholder rows while searching, then the tab's rows in their own scrolling box. Every
+ * row says where its data came from (its tooltip) and marks anything that isn't live.
  */
 function OptionList({
   status, slow = false, rows, choice, currency, rates, onPick, onRetry, empty,
@@ -108,7 +108,6 @@ function OptionList({
   onRetry: () => void;
   empty: ReactNode;
 }) {
-  const credited = credits(rows, choice);
   return (
     <div className="ts-rows" role="tabpanel">
       {(status === "searching" || status === "idle") && !rows.length
@@ -165,23 +164,6 @@ function OptionList({
           );
         })}
       </OptionRows>
-      {credited.length ? (
-        <p className="ts-credit">
-          Source:{" "}
-          {credited.map((c, i) => (
-            <span key={c.label}>
-              {i ? " · " : null}
-              {c.url ? (
-                <a href={c.url} target="_blank" rel="noopener noreferrer" title={c.note}>
-                  {c.label}
-                </a>
-              ) : (
-                <span title={c.note}>{c.label}</span>
-              )}
-            </span>
-          ))}
-        </p>
-      ) : null}
     </div>
   );
 }

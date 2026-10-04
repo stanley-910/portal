@@ -176,11 +176,6 @@
 .ts-price { text-align: right; font-size: 12.5px; line-height: 16px; font-weight: 600; white-space: nowrap; }
 .ts-price[data-none] { font-weight: 400; color: var(--ink-muted); }
 .ts-desc { grid-column: 1 / -1; font-size: 11px; line-height: 14px; color: var(--ink-muted); }
-/* where the fares came from: each source by its short name (the whole note on hover), two lines at most */
-.ts-credit { margin: 0; padding: 4px 6px 0; font-size: 10px; line-height: 13px; color: var(--ink-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
-.ts-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.ts-credit a:hover { color: var(--ink); }
-.ts-credit a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-tag); }
 /* Buttons in a card are compact, with the tags' square corners; the 44px tap area stays, unseen */
 .ts .pa-btn { position: relative; height: 32px; padding: 0 14px; border-radius: var(--radius-tag); font-size: 13px; line-height: 16px; }
 .ts .pa-btn::after { content: ""; position: absolute; inset: -6px 0; }
