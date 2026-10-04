@@ -54,6 +54,19 @@
 .pip-panel::before { inset: 0; background: var(--pip-px-frame); }
 .pip-panel::after { inset: 2px; background: var(--paper-raised); }
 .pip-head { position: relative; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 var(--space-2) 0 var(--space-3); border-bottom: var(--line-control) solid var(--line); flex: none; }
+/* Chat and Observations: a quiet two-way switch under the header, the picked side in ink */
+.pip-tabs { display: flex; gap: 2px; margin: var(--space-2) var(--space-3) 0; padding: 2px; flex: none; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper); }
+.pip-tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 28px; border: 0; border-radius: calc(var(--radius-control) - 2px); background: transparent; color: var(--ink-muted); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.pip-tab:hover:not([aria-selected="true"]) { background: var(--control-hover); color: var(--ink); }
+.pip-tab[aria-selected="true"] { background: var(--ink); color: var(--on-ink); }
+.pip-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* open observations: a small starlight count, like the launcher's new-reply dot */
+.pip-tab-count { min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-tag); background: var(--star-light); color: var(--sticker-ink); font-size: 11px; line-height: 16px; font-variant-numeric: tabular-nums; }
+/* the list of what Pip noticed: open ones first, answered ones quieter */
+.pip-observations { display: flex; flex-direction: column; gap: var(--space-3); }
+.pip-observation { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 0 var(--space-3); border-bottom: var(--line-hair) solid var(--rule); }
+.pip-observation:last-child { border-bottom: 0; }
+.pip-observation:not([data-open]) .pip-text { color: var(--ink-muted); }
 /* the header moves the panel; a panel moved or sized by hand opens from its own spot */
 .pip-head[data-draggable] { cursor: grab; touch-action: none; user-select: none; }
 .pip-head[data-dragging] { cursor: grabbing; }

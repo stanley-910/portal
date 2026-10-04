@@ -4,7 +4,7 @@ import { shallow, useEventListener, useOthers, useRoom, useStorage } from "@live
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { abandoned, LOST_REPLY, QUEUE_BEAT_MS, QUEUED_STALE_MS, waiting } from "@/lib/agent/queue";
-import { AGENT_ID, type ThreadMessage } from "@/lib/agent/types";
+import { AGENT_ID, isObservation, type ThreadMessage } from "@/lib/agent/types";
 import { readCurrencyPref } from "@/lib/currency-pref";
 
 // The trip's thread as the chat panel reads it. Messages live in Storage; Pip's text streams by broadcast
@@ -42,8 +42,13 @@ export function useThread(): ThreadMessage[] {
  * until the room has loaded.
  */
 export function usePipReplies(): number | null {
-  // queued and streaming replies aren't finished yet
-  return useStorage((root) => root.thread?.filter((m) => m.author.kind === "agent" && (m.state === "done" || m.state === "failed")).length ?? 0);
+  // queued and streaming replies aren't finished yet; observations aren't replies
+  return useStorage((root) => root.thread?.filter((m) => m.author.kind === "agent" && (m.state === "done" || m.state === "failed") && !isObservation(m)).length ?? 0);
+}
+
+/** How many of Pip's observations are still open: noticed, and nobody has answered them yet. */
+export function usePipObservations(): number | null {
+  return useStorage((root) => root.thread?.filter((m) => isObservation(m) && m.cards.some((c) => c.type === "fix" && c.state === "open")).length ?? 0);
 }
 
 /** What Pip is doing right now, from the presence the server sets for it; null when it's idle or away. */

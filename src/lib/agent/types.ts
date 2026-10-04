@@ -76,6 +76,12 @@ export type ThreadMessage = {
   cards: ThreadCard[];
 };
 
+/**
+ * One of Pip's observations (lib/agent/issues.ts): a note with fixes it posted about the plan. The trip's Pip panel
+ * keeps these under Observations, out of the chat.
+ */
+export const isObservation = (m: Pick<ThreadMessage, "author" | "cards">) => m.author.kind === "agent" && m.cards.some((c) => c.type === "fix");
+
 /** The one run a room can have at a time (harness G9). */
 export type AgentRun = {
   id: string;

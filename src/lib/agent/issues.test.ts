@@ -19,7 +19,7 @@ describe("planIssues", () => {
       l2: leg("hk", "pvg", ["b"], offer("o2", "MU506", "2026-10-20T19:10:00+08:00", "2026-10-20T21:40:00+08:00")),
     } } as never);
     expect(issues).toHaveLength(1);
-    expect(issues[0].text).toBe("Ann and Bo are both going Hong Kong → Shanghai on Tue, Oct 20, but on different services: HX234 18:30 and MU506 19:10.");
+    expect(issues[0].text).toBe("Ann and Bo are both going Hong Kong → Shanghai on Tue, Oct 20, but on different services: HX234 18:30 and MU506 19:10. Should you all take the same one?");
     expect(issues[0].fixes).toEqual([
       { kind: "merge", label: "All on HX234 18:30", keep: "l1", drop: "l2" },
       { kind: "merge", label: "All on MU506 19:10", keep: "l2", drop: "l1" },
@@ -31,8 +31,8 @@ describe("planIssues", () => {
       l1: leg("hk", "sh", ["a", "b"], offer("o1", "HX234", "2026-10-20T08:30:00+08:00", "2026-10-20T11:00:00+08:00")),
       l2: leg("sel", "sh", ["c"], offer("o2", "MF878", "2026-10-20T20:35:00+09:00", "2026-10-20T23:55:00+08:00", "SHA")),
     } } as never);
-    expect(issues.map((i) => i.text)).toEqual(["Ann and Bo get to Shanghai at 11:00 (PVG) and Cy at 23:55 (SHA), 12h55 apart."]);
-    expect(issues[0].fixes[0]).toMatchObject({ kind: "ask", label: "Line us up" });
+    expect(issues.map((i) => i.text)).toEqual(["Ann and Bo get to Shanghai at 11:00 (PVG) and Cy at 23:55 (SHA), 12h55 apart. Want me to line the arrivals up?"]);
+    expect(issues[0].fixes[0]).toMatchObject({ kind: "ask", label: "Line them up" });
   });
 
   it("says nothing when arrivals are close or nothing's picked", () => {
@@ -49,7 +49,7 @@ describe("planIssues", () => {
     } } as never);
     expect(issues).toEqual([{
       key: "home:b:2026-10-23:sh:hk",
-      text: "Bo leaves Shanghai on Fri, Oct 23 but has no way home to Hong Kong yet.",
+      text: "Bo leaves Shanghai on Fri, Oct 23 but has no way home to Hong Kong yet. Should I add one?",
       fixes: [{ kind: "home", label: "Add Bo's way home", member: "b", from: "sh", to: "hk", date: "2026-10-23" }],
     }]);
   });

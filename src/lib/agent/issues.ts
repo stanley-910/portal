@@ -3,7 +3,9 @@ import type { StoredOffer } from "@/lib/liveblocks/types";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 
 // Things in a trip worth Pip speaking up about, each with a fix someone can apply in one tap. Pure, so the room's
-// clients spot them as the plan changes and the server checks them again before posting or fixing anything.
+// clients spot them as the plan changes and the server checks them again before posting or fixing anything. Each reads
+// as what Pip noticed, then a question its fixes answer; the trip's Pip panel keeps them under Observations, out of
+// the chat.
 
 /** Arrivals into one city further apart than this are worth a word. */
 export const APART_MIN = 180;
@@ -18,6 +20,7 @@ export type Fix =
   /** Needs judgement: asks Pip in the clicker's name. */
   | { kind: "ask"; label: string; prompt: string };
 
+/** `text` is what Pip noticed and then what it asks: "… on different trains. Should you all take the same one?" */
 export type Issue = { key: string; text: string; fixes: Fix[] };
 
 type Plan = PlanJson;
@@ -52,7 +55,7 @@ export function planIssues(plan: Plan): Issue[] {
       const [first, second] = [aId, bId].sort();
       issues.push({
         key: `split:${first}:${second}:${ca.id}:${cb.id}`,
-        text: `${names(plan, a.riders)} and ${names(plan, b.riders)} are both going ${stops[a.from].name} → ${stops[a.to].name} on ${day(a.date)}, but on different services: ${service(ca)} and ${service(cb)}.`,
+        text: `${names(plan, a.riders)} and ${names(plan, b.riders)} are both going ${stops[a.from].name} → ${stops[a.to].name} on ${day(a.date)}, but on different services: ${service(ca)} and ${service(cb)}. Should you all take the same one?`,
         fixes: [
           { kind: "merge", label: `All on ${service(ca)}`, keep: aId, drop: bId },
           { kind: "merge", label: `All on ${service(cb)}`, keep: bId, drop: aId },
@@ -81,8 +84,8 @@ export function planIssues(plan: Plan): Issue[] {
     const at = (a: typeof first) => `${hhmm(a.offer.arrive)}${landsAt(a.offer) ? ` (${landsAt(a.offer)})` : ""}`;
     issues.push({
       key: `apart:${key}:${sorted.map((a) => a.offer.id).join(",")}`,
-      text: `${names(plan, first.leg.riders)} get${first.leg.riders.length > 1 ? "" : "s"} to ${city} at ${at(first)} and ${names(plan, last.leg.riders)} at ${at(last)}, ${Math.floor(gap / 60)}h${String(gap % 60).padStart(2, "0")} apart.`,
-      fixes: [{ kind: "ask", label: "Line us up", prompt: `Line up everyone's arrivals into ${city} on ${date} so we get in close together, as cheaply as you can.` }],
+      text: `${names(plan, first.leg.riders)} get${first.leg.riders.length > 1 ? "" : "s"} to ${city} at ${at(first)} and ${names(plan, last.leg.riders)} at ${at(last)}, ${Math.floor(gap / 60)}h${String(gap % 60).padStart(2, "0")} apart. Want me to line the arrivals up?`,
+      fixes: [{ kind: "ask", label: "Line them up", prompt: `Line up everyone's arrivals into ${city} on ${date} so we get in close together, as cheaply as you can.` }],
     });
   }
 
@@ -97,7 +100,7 @@ export function planIssues(plan: Plan): Issue[] {
     if (!there || near(there, home)) continue;
     issues.push({
       key: `home:${member}:${m.leaves}:${there}:${home}`,
-      text: `${m.name} leaves ${stops[there].name} on ${day(m.leaves)} but has no way home to ${stops[home].name} yet.`,
+      text: `${m.name} leaves ${stops[there].name} on ${day(m.leaves)} but has no way home to ${stops[home].name} yet. Should I add one?`,
       fixes: [{ kind: "home", label: `Add ${m.name}'s way home`, member, from: there, to: home, date: m.leaves }],
     });
   }

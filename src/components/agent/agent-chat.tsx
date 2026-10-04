@@ -15,8 +15,8 @@ import { Button, PixelIcon } from "@/components/paper-atlas";
 import { tripContext } from "@/lib/agent/context";
 import { inOrder } from "@/lib/agent/parts";
 import { showDate } from "@/lib/agent/snapshot";
-import { AGENT_NAME, type MeetupLeg, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
-import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, usePipReplies, useSendMessage, useThread } from "@/lib/agent/use-thread";
+import { AGENT_NAME, isObservation, type MeetupLeg, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
+import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, usePipObservations, usePipReplies, useSendMessage, useThread } from "@/lib/agent/use-thread";
 import { memberColor } from "@/lib/liveblocks/types";
 
 // The trip's thread with Pip in it, rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
@@ -36,28 +36,38 @@ const nudged = new Set<string>();
 const picked = new Map<string, string>();
 const TYPE_MS = 34;
 
+export type PipTab = "chat" | "observations";
+
 export function AgentChat({ initialOpen = false }: { initialOpen?: boolean }) {
   const [open, setOpen] = useState(initialOpen);
   const [visited, setVisited] = useState(initialOpen);
-  // the thread is only read with the panel open; closed, a count of finished replies is enough for the dot
+  const [tab, setTab] = useState<PipTab>("chat");
+  // the thread is only read with the panel open; closed, counts of finished replies and open observations are enough
+  // for the dot
   const replies = usePipReplies();
-  // replies seen when the panel last closed; whatever was there when the room loaded counts as seen
-  const [seen, setSeen] = useState<number | null>(null);
-  if (seen === null && replies !== null) setSeen(replies);
-  const unread = !open && replies !== null && seen !== null && replies > seen;
+  const noted = usePipObservations();
+  // what was there when the panel last closed; whatever was there when the room loaded counts as seen
+  const [seen, setSeen] = useState<{ replies: number; noted: number } | null>(null);
+  if (seen === null && replies !== null && noted !== null) setSeen({ replies, noted });
+  const newReply = !!seen && replies !== null && replies > seen.replies;
+  const newNote = !!seen && noted !== null && noted > seen.noted;
   const toggle = (next: boolean) => {
     setOpen(next);
-    if (next) setVisited(true);
-    setSeen(replies);
+    if (next) {
+      setVisited(true);
+      // opened for something Pip noticed, and nothing said in the chat: straight to it
+      if (newNote && !newReply) setTab("observations");
+    }
+    setSeen({ replies: replies ?? 0, noted: noted ?? 0 });
   };
 
   return <>
-    {visited ? <Activity mode={open ? "visible" : "hidden"}><Panel onClose={() => toggle(false)} /></Activity> : null}
-    {!open ? <Launcher unread={unread} onOpen={() => toggle(true)} /> : null}
+    {visited ? <Activity mode={open ? "visible" : "hidden"}><Panel tab={tab} onTab={setTab} onClose={() => toggle(false)} /></Activity> : null}
+    {!open ? <Launcher unread={newReply || newNote} unreadLabel={newReply ? "New reply" : "New observation"} onOpen={() => toggle(true)} /> : null}
   </>;
 }
 
-export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean; onOpen: () => void; nudges?: readonly string[] }) {
+export function Launcher({ unread, unreadLabel = "New reply", onOpen, nudges = NUDGES }: { unread: boolean; unreadLabel?: string; onOpen: () => void; nudges?: readonly string[] }) {
   // the text only renders after mount (typing starts in an effect), so a random pick can't mismatch the server's
   const [nudge] = useState(() => {
     const key = nudges.join("\n");
@@ -123,7 +133,7 @@ export function Launcher({ unread, onOpen, nudges = NUDGES }: { unread: boolean;
         onPointerLeave={() => setHover(false)}
       >
         <PipSprite size={40} mood={hover ? "talk" : "idle"} className={hidden ? "pip-hidden" : undefined} portal />
-        {unread ? <span aria-label="New reply" className="pip-unread" /> : null}
+        {unread ? <span aria-label={unreadLabel} className="pip-unread" /> : null}
       </button>
     </div>
   );
@@ -180,8 +190,12 @@ function useTyping(text: string | null): string | null {
   return n === null || text === null ? null : text.slice(0, n);
 }
 
-function Panel({ onClose }: { onClose: () => void }) {
-  const thread = useThread();
+function Panel({ tab, onTab, onClose }: { tab: PipTab; onTab: (tab: PipTab) => void; onClose: () => void }) {
+  const all = useThread();
+  // the chat is what people and Pip say; what Pip noticed about the plan waits under Observations
+  const thread = useMemo(() => all.filter((m) => !isObservation(m)), [all]);
+  const observations = useMemo(() => all.filter(isObservation), [all]);
+  const open = observations.filter((m) => m.cards.some((c) => c.type === "fix" && c.state === "open")).length;
   // moved by its header, sized from its corner
   const { panel: framed, style: frameStyle, placed, onMove, onSize } = usePipFrame();
   // a trip that opens with the chat showing has no entrance to play when it's closed
@@ -216,10 +230,13 @@ function Panel({ onClose }: { onClose: () => void }) {
       apply: (messageId, option) => applyMeetup(tripId, messageId, option),
       undo: (messageId, changesetId) => undoAgentChange(tripId, messageId, changesetId),
       checkout: (legId) => <CheckoutCard legId={legId} />,
-      // an "ask" fix comes back as a message to send Pip in your name
+      // an "ask" fix comes back as a message to send Pip in your name, and the chat is where it answers
       fix: async (messageId, index) => {
         const r = await applyFix(tripId, messageId, index);
-        if (r?.ask) await send(r.ask);
+        if (r?.ask) {
+          onTab("chat");
+          await send(r.ask);
+        }
       },
     }),
     [tripId], // eslint-disable-line react-hooks/exhaustive-deps -- send is a fresh closure each render; it only posts
@@ -242,13 +259,27 @@ function Panel({ onClose }: { onClose: () => void }) {
         <PipClose onClick={onClose} />
       </header>
 
+      <div className="pip-tabs" role="tablist" aria-label={`${AGENT_NAME}'s panel`}>
+        <button type="button" role="tab" id="pip-tab-chat" aria-selected={tab === "chat"} aria-controls="pip-pane" className="pip-tab" onClick={() => onTab("chat")}>
+          Chat
+        </button>
+        <button type="button" role="tab" id="pip-tab-observations" aria-selected={tab === "observations"} aria-controls="pip-pane" className="pip-tab" onClick={() => onTab("observations")}>
+          Observations
+          {open ? <span className="pip-tab-count" aria-label={`${open} open`}>{open}</span> : null}
+        </button>
+      </div>
+
       <CardActionsContext value={actions}>
-        <ThreadLog thread={shown} me={me} members={members ?? NO_MEMBERS} activity={activity} footer={<Suggestions composer={composer} chips={context.chips} />}>
-          <p className="pip-empty">Ask {AGENT_NAME} how to get somewhere, or where everyone should meet. Everyone in the trip sees the chat.</p>
-        </ThreadLog>
+        {tab === "chat" ? (
+          <ThreadLog thread={shown} me={me} members={members ?? NO_MEMBERS} activity={activity} footer={<Suggestions composer={composer} chips={context.chips} />}>
+            <p className="pip-empty">Ask {AGENT_NAME} how to get somewhere, or where everyone should meet. Everyone in the trip sees the chat.</p>
+          </ThreadLog>
+        ) : (
+          <Observations list={observations} />
+        )}
       </CardActionsContext>
 
-      <Composer composer={composer} />
+      {tab === "chat" ? <Composer composer={composer} /> : null}
       {/* drag to resize */}
       <span className="pip-grip" aria-hidden onPointerDown={onSize} />
     </section>
@@ -388,6 +419,29 @@ function Card({ card, messageId, members, activity }: { card: ThreadCard; messag
 }
 
 const FIX_STATE = { fixed: "Fixed", asked: "Asked Pip", gone: "Already sorted" } as const;
+
+/**
+ * What Pip noticed about the plan, each with the fixes that answer it: open ones first, newest first, then the ones
+ * someone answered. Everyone in the trip sees the same list.
+ */
+function Observations({ list }: { list: ThreadMessage[] }) {
+  const isOpen = (m: ThreadMessage) => m.cards.some((c) => c.type === "fix" && c.state === "open");
+  const sorted = [...list].sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)) || b.at - a.at);
+  return (
+    <div id="pip-pane" role="tabpanel" aria-labelledby="pip-tab-observations" className="pip-messages pip-observations">
+      {sorted.length ? (
+        sorted.map((m) => (
+          <article key={m.id} className="pip-observation" data-open={isOpen(m) || undefined}>
+            <p className="pip-text">{m.text}</p>
+            {m.cards.map((card, i) => (card.type === "fix" ? <FixCard key={i} card={card} messageId={m.id} /> : null))}
+          </article>
+        ))
+      ) : (
+        <p className="pip-empty">Nothing to flag. When something in the plan doesn&apos;t add up, like friends on different trains for the same trip, {AGENT_NAME} notes it here.</p>
+      )}
+    </div>
+  );
+}
 
 /** Something Pip noticed, with its fixes: one tap applies one, as a change people can undo. */
 function FixCard({ card, messageId }: { card: Extract<ThreadCard, { type: "fix" }>; messageId: string }) {
