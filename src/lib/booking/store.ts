@@ -289,7 +289,10 @@ const globalStore = globalThis as unknown as { __bookingStore?: BookingStore };
 
 /** The store for this server. Memory is a dev convenience; it logs once so nobody mistakes it for durable. */
 export function bookingStore(): BookingStore {
-  if (globalStore.__bookingStore) return globalStore.__bookingStore;
+  const cached = globalStore.__bookingStore;
+  // kept across dev reloads so the memory store's data survives them; a store made before a method was added is
+  // rebuilt rather than called without it
+  if (cached && current(cached)) return cached;
   const config = supabaseConfig();
   if (env.SUPABASE_SECRET_KEY && config) {
     if (!env.BOOKING_ENCRYPTION_KEY) throw new Error("BOOKING_ENCRYPTION_KEY is required with SUPABASE_SECRET_KEY: traveller details are sealed before they're stored.");
@@ -300,6 +303,13 @@ export function bookingStore(): BookingStore {
     globalStore.__bookingStore = new MemoryStore();
   }
   return globalStore.__bookingStore;
+}
+
+/** The cached store has every method this build's store class has. */
+function current(store: BookingStore): boolean {
+  const proto = Object.getPrototypeOf(store) as object;
+  const now = proto.constructor.name === "MemoryStore" ? MemoryStore.prototype : SupabaseStore.prototype;
+  return Object.getOwnPropertyNames(now).every((name) => typeof (store as unknown as Record<string, unknown>)[name] === "function");
 }
 
 /** For tests: a fresh in-memory store. */

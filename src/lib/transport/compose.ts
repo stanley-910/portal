@@ -129,6 +129,30 @@ const known = (o: Offer) => !o.sandbox && (o.kind !== "estimated" || o.provider 
   Date.parse(o.segments.at(-1)!.arrive) > Date.parse(o.segments[0].depart);
 /** Ending further than this from where they're going isn't getting there: that's another city. */
 const THERE_KM = 50;
+/**
+ * A train or bus that ends this much further from where they're going than another of its mode stops short: Taipei
+ * to Kaohsiung isn't the cheaper train to Tainan, 40 km before Zuoying. The same at the start: it isn't the cheaper
+ * train from Taoyuan either, when trains leave from Taipei itself. Flights use the airports there are.
+ */
+const SHORT_KM = 20;
+
+/**
+ * Offers that get as close to `to` (and, given `from`, start as close to it) as their mode can, dropping ground
+ * services that stop short of or start further out than the others.
+ */
+export function closest(offers: Offer[], to: Place, from?: Place): Offer[] {
+  const gap = (o: Offer) => ({ end: km(o.segments.at(-1)!.to, to), start: from ? km(o.segments[0].from, from) : 0 });
+  const best = new Map<Mode, { end: number; start: number }>();
+  for (const o of offers) {
+    const g = gap(o), b = best.get(o.mode);
+    best.set(o.mode, { end: Math.min(b?.end ?? Infinity, g.end), start: Math.min(b?.start ?? Infinity, g.start) });
+  }
+  return offers.filter((o) => {
+    if (o.mode === "flight") return true;
+    const g = gap(o), b = best.get(o.mode)!;
+    return g.end <= b.end + SHORT_KM && g.start <= b.start + SHORT_KM;
+  });
+}
 
 /**
  * Minutes from `target` to `arrive`. A target with no UTC offset ("22:40" as someone said it) is a wall-clock time
@@ -221,7 +245,8 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
   const nextDay = new Date(Date.parse(`${input.date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   let searched = 1;
   const arrives = (o: Offer) => km(o.segments.at(-1)!.to, input.to) <= THERE_KM;
-  const direct = (await search(q(input.from, input.to))).filter((o) => o.segments.length && known(o) && arrives(o));
+  // everything that gets there, from wherever it leaves: other stations here are where gateways come from
+  const direct = closest((await search(q(input.from, input.to))).filter((o) => o.segments.length && known(o) && arrives(o)), input.to);
   const home = countryOf(input.from);
 
   // Gateways, best first: where a modelled connector goes, stations the direct search already leaves from that are
@@ -248,7 +273,8 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
   gateways.splice(MAX_GATEWAYS);
 
   const routes: Route[] = [];
-  for (const o of direct) if (here(o.segments[0].from, input.from, home)) routes.push(route("direct", [part(o)], input, null));
+  // direct means from here, and from as close as the mode gets: not the cheaper train from a station 30 km out
+  for (const o of closest(direct, input.to, input.from)) if (here(o.segments[0].from, input.from, home)) routes.push(route("direct", [part(o)], input, null));
 
   await Promise.all(gateways.map(async (g) => {
     const flight = kinds.get(g) === "flight";
@@ -264,7 +290,7 @@ export async function composeRoutes(input: ComposeInput, search: Search): Promis
       return !!a && !!b && a !== b;
     })();
     // Onward trips must actually leave from this station; a different station or the airport needs its own transfer.
-    const leaving = [...direct, ...onward, ...later].filter((o) => known(o) && arrives(o) && km(o.segments[0].from, g) <= SAME_STATION_KM);
+    const leaving = closest([...direct, ...onward, ...later].filter((o) => known(o) && arrives(o) && km(o.segments[0].from, g) <= SAME_STATION_KM), input.to);
     const seen = new Set<string>();
     const getThere = access.filter((o) => known(o) && o.provider !== "cross-border" &&
       km(o.segments.at(-1)!.to, g) <= SAME_STATION_KM && here(o.segments[0].from, input.from, home));

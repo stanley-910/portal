@@ -63,6 +63,18 @@ const offerSchema = z.object({
   }).optional(),
 });
 
+/** Hours off between a segment's clock times and its own duration before the offer's times can't be planned on. */
+const TIMES_SLACK_MIN = 120;
+
+/**
+ * Each segment's departure and arrival agree with its duration. A cached fare can carry a wrong arrival date
+ * ("19:55 → 13:00 next day, 1h05"); a time zone off by an hour or two is tolerated.
+ */
+export function timesAgree(offer: Offer): boolean {
+  return offer.segments.every((s) =>
+    Math.abs((Date.parse(s.arrive) - Date.parse(s.depart)) / 60_000 - s.durationMin) <= TIMES_SLACK_MIN);
+}
+
 function errorFor(provider: ProviderId, error: unknown, unknownRetryable: boolean): ProviderError {
   if (error instanceof ProviderFailure) {
     return { provider, code: error.code, retryable: error.retryable };
@@ -198,7 +210,8 @@ async function runSearch(query: SearchQuery, opts: FanOutOptions, best: boolean)
       if (!offerSchema.safeParse(offer).success || offer.provider !== provider.id ||
           !provider.modes.includes(offer.mode)) {
         malformed = true;
-      } else if (!query.modes.length || query.modes.includes(offer.mode)) {
+      } else if ((!query.modes.length || query.modes.includes(offer.mode)) && timesAgree(offer)) {
+        // an offer whose times contradict themselves is left out on its own, not counted against the provider
         offers.push(offer);
       }
     }

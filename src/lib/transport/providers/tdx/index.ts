@@ -1,5 +1,6 @@
 import "server-only";
 import { env } from "../../../env.server";
+import { publishedFare } from "../rail-cache/fares";
 import { createDailyClient, mapDaily, type DailyClient } from "./daily";
 import { distanceKm } from "../gtfs/geo";
 import { matchRadiusKm } from "../match-radius";
@@ -67,6 +68,7 @@ function createThsrSearch(seed: Seed) {
       const found = legsFor(q);
       if (!found) return undefined;
       const { from, to, legs } = found;
+      const fare = publishedFare({ country: "TW", operator: "THSR", from: [seed.stations[from].name], to: [seed.stations[to].name] });
       return legs.flatMap(({ train, departMin, arriveMin }): Offer[] => {
         const base = runsOn(q.date, departMin, train.days);
         if (base === undefined) return [];
@@ -88,8 +90,9 @@ function createThsrSearch(seed: Seed) {
                 durationMin: arriveMin - departMin,
               },
             ],
+            ...(fare ? { price: fare.price } : {}),
             bookingUrl: THSR_BOOKING_URL,
-            attribution: `THSR typical timetable, checked ${seed.checked}: ${train.source}; seats not checked`,
+            attribution: `THSR typical timetable, checked ${seed.checked}: ${train.source}; ${fare ? fare.note : "fares and seats not checked"}`,
           },
         ];
       });

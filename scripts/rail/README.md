@@ -17,7 +17,8 @@ Outputs:
 - `src/lib/transport/providers/rail-cache/cache.json`: normalized station, source, calendar and stop-time records consumed by the server provider.
 - `data/rail-cache/report.json`: counts and document accounting.
 - `data/rail-cache/review.json`: rejected/ambiguous rows and unsupported page layouts. These do not become offers.
-- `data/rail-cache/fares.json`: extracted published fare tables, kept separate from schedules and unquoted until class/conditions are reconciled.
+- `data/rail-cache/fares.json`: extracted published fare tables, kept separate from schedules.
+- `src/lib/transport/providers/rail-cache/fares.json`: the standard-seat fares search uses, from the tables above whose layout is known. `python3 scripts/rail/fares.py` rebuilds it (no dependencies).
 
 Stop times are integer seconds since the train's origin-date midnight, including seconds present in XLSX cells and values over 24 hours. Dated observations are never extrapolated. Published recurring calendars retain start/end bounds, weekdays and explicit overrides. `typical` records have unresolved operating-day details and search labels them accordingly. Holiday PDFs override THSR's base calendar. Matching older SR-hosted services stop at the newer October Korail edition. April ETS tables end before the June revision.
 

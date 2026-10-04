@@ -1,119 +1,115 @@
 # Corridor results
 
-Run 2026-10-03T23:02:39.865Z, trip date 2026-10-17. Regenerate with `pnpm eval:pip evals/corridors.eval.ts`.
+Run 2026-10-04T00:10:11.599Z, trip date 2026-10-18. Regenerate with `pnpm eval:pip evals/corridors.eval.ts`.
 
 ## Route optimizer
 
 ### Hong Kong → Shanghai
-- 5.0 s, 14 searches; gateways: Shenzhen North, Macau International Airport, Shenzhen Bao'an International Airport, Guangzhou South, Futian
-- 3 alternatives, 2 cheaper than direct, 0 without a total
-- baseline: R0 direct on 2026-10-17: FM FM812: Hong Kong International Airport 13:55 → Shanghai Pudong International Airport 17:05, CNY 870 (cached fare). 3h10 from first departure to arrival, total CNY 870, same price.
-- R1 via Macau International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 07:55, about 125 min to Macau International Airport, about CNY 80 (estimated from distance, not a timetable or fare); then 9C 9C8876: Macau International Airport 11:30 → Shanghai Pudong International Airport 14:15, CNY 530 (cached fare). 6h20 from first departure to arrival, total CNY 610, saves CNY 260.
-- R2 via Shenzhen Bao'an International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 17:14, about 126 min to Shenzhen Bao'an International Airport, about CNY 80 (estimated from distance, not a timetable or fare); then 9C 9C8950: Shenzhen Bao'an International Airport 20:50 → Shanghai Hongqiao International Airport 23:20, CNY 572 (cached fare). 6h06 from first departure to arrival, total CNY 652, saves CNY 218.
-- R3 via Shenzhen Bao'an International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 11:24, about 126 min to Shenzhen Bao'an International Airport, about CNY 80 (estimated from distance, not a timetable or fare); then ZH ZH9521: Shenzhen Bao'an International Airport 15:00 → Shanghai Pudong International Airport 17:20, CNY 806 (cached fare). 5h56 from first departure to arrival, total CNY 886, costs CNY 16 more.
+- 6.7 s, 14 searches; gateways: Shenzhen North, Shenzhen Bao'an International Airport, Guangzhou South, Futian, Macau International Airport
+- 3 alternatives, 0 cheaper than direct, 0 without a total
+- baseline: R0 direct on 2026-10-18: HO HO1292: Hong Kong International Airport 20:40 → Shanghai Pudong International Airport 23:20, CNY 913 (cached fare). 2h40 from first departure to arrival, total CNY 913, same price.
+- R1 via Macau International Airport on 2026-10-18: Ground transfer and border from Hong Kong: leave by 06:50, about 125 min to Macau International Airport, about CNY 80 (estimated from distance, not a timetable or fare); then NX NX112: Macau International Airport 10:25 → Shanghai Hongqiao International Airport 13:05, CNY 846 (cached fare). 6h15 from first departure to arrival, total CNY 926, costs CNY 13 more.
+- R2 via Shenzhen North on 2026-10-18: MTR East Rail: leave Admiralty (MTR) by 09:49 (runs every few minutes) → Shenzhen North 11:34, HKD 58 (estimated); then G100: Shenzhen North 11:59 → Shanghai Hongqiao 19:25, CNY 878.5 (timetable fare). 9h36 from first departure to arrival, total about CNY 932, costs CNY 19 more.
+- R3 via Shenzhen North on 2026-10-18: MTR East Rail: leave Admiralty (MTR) by 09:47 (runs every few minutes) → Shenzhen North 11:32, HKD 58 (estimated); then G902: Shenzhen North 11:57 → Shanghai Hongqiao 19:43, CNY 878.5 (timetable fare). 9h56 from first departure to arrival, total about CNY 932, costs CNY 19 more.
 
 ### Seoul → Busan
-- 3.3 s, 16 searches; gateways: PyeongtaekJije, Dongtan, 평택, 서정리, 오산
+- 2.7 s, 16 searches; gateways: 평택, 서정리, 오산, 석불, 지평
 - 3 alternatives, 0 cheaper than direct, 0 without a total
-- baseline: R0 direct on 2026-10-17: Mugunghwa 1151: Seoul 06:37 → Busan 12:53, KRW 28600 (timetable fare). 6h16 from first departure to arrival, total KRW 28600, same price.
-- R1 direct on 2026-10-17: Mugunghwa 1161: Seoul 14:49 → Busan 20:09, KRW 28600 (timetable fare). 5h20 from first departure to arrival, total KRW 28600, same price.
-- R2 direct on 2026-10-17: Mugunghwa 1159: Seoul 14:02 → Busan 19:50, KRW 28600 (timetable fare). 5h48 from first departure to arrival, total KRW 28600, same price.
-- R3 direct on 2026-10-17: Mugunghwa 1153: Seoul 07:15 → Busan 13:04, KRW 28600 (timetable fare). 5h49 from first departure to arrival, total KRW 28600, same price.
+- baseline: R0 direct on 2026-10-18: Mugunghwa 1151: Seoul 06:37 → Busan 12:53, KRW 28600 (timetable fare). 6h16 from first departure to arrival, total KRW 28600, same price.
+- R1 direct on 2026-10-18: Mugunghwa 1161: Seoul 14:49 → Busan 20:09, KRW 28600 (timetable fare). 5h20 from first departure to arrival, total KRW 28600, same price.
+- R2 direct on 2026-10-18: Mugunghwa 1159: Seoul 14:02 → Busan 19:50, KRW 28600 (timetable fare). 5h48 from first departure to arrival, total KRW 28600, same price.
+- R3 direct on 2026-10-18: Mugunghwa 1153: Seoul 07:15 → Busan 13:04, KRW 28600 (timetable fare). 5h49 from first departure to arrival, total KRW 28600, same price.
 
 ### Singapore → Kuala Lumpur
-- 3.0 s, 14 searches; gateways: KULAI, KEMPAS BARU, JB SENTRAL, Hang Nadim International Airport, Senai International Airport
+- 4.2 s, 14 searches; gateways: Kulai, Kempas Baru, JB Sentral, Hang Nadim International Airport, Senai International Airport
 - 3 alternatives, 0 cheaper than direct, 1 without a total
-- baseline: R0 direct on 2026-10-17: AK AK720: Singapore Changi Airport 21:20 → Kuala Lumpur International Airport 22:25, SGD 82 (cached fare). 1h05 from first departure to arrival, total SGD 82, same price.
-- R1 direct on 2026-10-17: OD OD817: Singapore Changi Airport 19:55 → Sultan Abdul Aziz Shah International Airport 13:00, SGD 108 (cached fare). 1h05 from first departure to arrival, total SGD 108, costs SGD 26 more.
-- R2 direct on 2026-10-17: FY FY3133: Seletar Airport 19:00 → Sultan Abdul Aziz Shah International Airport 12:20, SGD 153 (cached fare). 1h20 from first departure to arrival, total SGD 153, costs SGD 71 more.
-- R3 via KEMPAS BARU on 2026-10-17: Ground transfer and border from Singapore: leave by 08:31, about 124 min to KEMPAS BARU, about SGD 15 (estimated from distance, not a timetable or fare); then KTMB 9574: KEMPAS BARU 10:55 → BANGI 14:21, fare unknown (timetable fare). 5h50 from first departure to arrival, total total unknown (a fare is missing).
+- baseline: R0 direct on 2026-10-18: AK AK722: Singapore Changi Airport 23:25 → Kuala Lumpur International Airport 00:30 next day, SGD 86 (cached fare). 1h05 from first departure to arrival, total SGD 86, same price.
+- R1 direct on 2026-10-18: TR TR474: Singapore Changi Airport 12:05 → Sultan Abdul Aziz Shah International Airport 13:10, SGD 116 (cached fare). 1h05 from first departure to arrival, total SGD 116, costs SGD 30 more.
+- R2 direct on 2026-10-18: FY FY3123: Seletar Airport 08:30 → Sultan Abdul Aziz Shah International Airport 09:50, SGD 143 (cached fare). 1h20 from first departure to arrival, total SGD 143, costs SGD 57 more.
+- R3 via JB Sentral on 2026-10-18: Ground transfer and border from Singapore: leave by 07:41, about 114 min to JB Sentral, about SGD 14 (estimated from distance, not a timetable or fare); then KTMB EP9326: JB Sentral 09:55 → BANDAR TASIK SELATAN 13:51, fare unknown (timetable fare). 6h10 from first departure to arrival, total total unknown (a fare is missing).
 
 ### Taipei → Kaohsiung
-- 2.0 s, 8 searches; gateways: Hsinchu, Hualien Chiashan Airport, Taichung International Airport / Ching Chuang Kang Air Base
-- 3 alternatives, 0 cheaper than direct, 3 without a total
-- baseline: none priced
-- R1 direct on 2026-10-17: Taiwan High Speed Rail 295: Taoyuan 22:35 → Tainan 23:48, fare unknown (timetable fare). 1h13 from first departure to arrival, total total unknown (a fare is missing).
-- R2 direct on 2026-10-17: Taiwan High Speed Rail 205: Banqiao 07:59 → Tainan 09:18, fare unknown (timetable fare). 1h19 from first departure to arrival, total total unknown (a fare is missing).
-- R3 direct on 2026-10-17: Taiwan High Speed Rail 207: Banqiao 08:39 → Tainan 09:58, fare unknown (timetable fare). 1h19 from first departure to arrival, total total unknown (a fare is missing).
+- 3.5 s, 8 searches; gateways: Hsinchu, Hualien Chiashan Airport, Taichung International Airport / Ching Chuang Kang Air Base
+- 3 alternatives, 0 cheaper than direct, 0 without a total
+- baseline: R0 direct on 2026-10-18: Taiwan High Speed Rail 803: Banqiao 06:34 → Zuoying 08:40, TWD 1460 (timetable fare). 2h06 from first departure to arrival, total TWD 1460, same price.
+- R1 direct on 2026-10-18: Taiwan High Speed Rail 109: Banqiao 07:39 → Zuoying 09:05, TWD 1460 (timetable fare). 1h26 from first departure to arrival, total TWD 1460, same price.
+- R2 direct on 2026-10-18: Taiwan High Speed Rail 117: Banqiao 09:39 → Zuoying 11:05, TWD 1460 (timetable fare). 1h26 from first departure to arrival, total TWD 1460, same price.
+- R3 direct on 2026-10-18: Taiwan High Speed Rail 121: Banqiao 10:39 → Zuoying 12:05, TWD 1460 (timetable fare). 1h26 from first departure to arrival, total TWD 1460, same price.
 
 ### Bangkok → Chiang Mai
-- 2.8 s, 10 searches; gateways: Ayutthaya, Tha Rua, Ban Phachi Junction
+- 2.0 s, 10 searches; gateways: Ayutthaya, Tha Rua, Ban Phachi Junction
 - 3 alternatives, 0 cheaper than direct, 3 without a total
-- baseline: R0 direct on 2026-10-17: SL SL522: Don Mueang International Airport 20:15 → Chiang Mai International Airport 21:25, THB 1237 (cached fare). 1h10 from first departure to arrival, total THB 1237, same price.
-- R1 direct on 2026-10-17: The Transport Company Limited 18: Small Bus Terminal (Chatuchak) (Mo Chit 2) 20:20 → Chiang Mai Bus Terminal 2 (Arcade) 04:58 next day, fare unknown (timetable fare). 8h38 from first departure to arrival, total total unknown (a fare is missing).
-- R2 direct on 2026-10-17: Busarakam Tour 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 00:01 → Chiang Mai Bus Terminal 2 (Arcade) 08:43, fare unknown (timetable fare). 8h42 from first departure to arrival, total total unknown (a fare is missing).
-- R3 direct on 2026-10-17: The Transport Company Limited 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 18:10 → Chiang Mai Bus Terminal 2 (Arcade) 02:54 next day, fare unknown (timetable fare). 8h44 from first departure to arrival, total total unknown (a fare is missing).
+- baseline: R0 direct on 2026-10-18: SL SL506: Don Mueang International Airport 08:35 → Chiang Mai International Airport 09:50, THB 1344 (cached fare). 1h15 from first departure to arrival, total THB 1344, same price.
+- R1 direct on 2026-10-18: The Transport Company Limited 18: Small Bus Terminal (Chatuchak) (Mo Chit 2) 20:20 → Chiang Mai Bus Terminal 2 (Arcade) 04:58 next day, fare unknown (timetable fare). 8h38 from first departure to arrival, total total unknown (a fare is missing).
+- R2 direct on 2026-10-18: Busarakam Tour 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 00:01 → Chiang Mai Bus Terminal 2 (Arcade) 08:43, fare unknown (timetable fare). 8h42 from first departure to arrival, total total unknown (a fare is missing).
+- R3 direct on 2026-10-18: The Transport Company Limited 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 18:10 → Chiang Mai Bus Terminal 2 (Arcade) 02:54 next day, fare unknown (timetable fare). 8h44 from first departure to arrival, total total unknown (a fare is missing).
 
 ### Hong Kong → Tokyo
-- 1.8 s, 12 searches; gateways: Shenzhen North, Macau International Airport, Shenzhen Bao'an International Airport, Zhuhai Jinwan Airport, Guangzhou Baiyun International Airport
-- 1 alternatives, 0 cheaper than direct, 0 without a total
-- baseline: R0 direct on 2026-10-17: UO UO628: Hong Kong International Airport 20:00 → Tokyo Haneda International Airport 01:20 next day, HKD 1471 (cached fare). 4h20 from first departure to arrival, total HKD 1471, same price.
-- R1 via Guangzhou Baiyun International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 15:57, about 243 min to Guangzhou Baiyun International Airport, about HKD 164 (estimated from distance, not a timetable or fare); then HO HO1852: Guangzhou Baiyun International Airport 21:30 → Tokyo Haneda International Airport 03:40 next day, HKD 2094 (cached fare). 10h43 from first departure to arrival, total HKD 2258, costs HKD 787 more.
+- 8.2 s, 12 searches; gateways: Shenzhen North, Macau International Airport, Shenzhen Bao'an International Airport, Zhuhai Jinwan Airport, Guangzhou Baiyun International Airport
+- 0 alternatives, 0 cheaper than direct, 0 without a total
+- baseline: R0 direct on 2026-10-18: UO UO624: Hong Kong International Airport 23:35 → Tokyo Haneda International Airport 05:00 next day, HKD 1318 (cached fare). 4h25 from first departure to arrival, total HKD 1318, same price.
 
 ## Pip
 
 ### Hong Kong → Shanghai
-- 7.5 s total, first words at 6.7 s, 2 model steps, reasoning tokens per step 263 / 135
+- 7.6 s total, first words at 7.0 s, 2 model steps, reasoning tokens per step 316 / 103
 - tools: plan_trip → optimize_route
-  - plan_trip {"stops":["Hong Kong","Shanghai"],"dates":["2026-10-17"]}
-  - optimize_route {"from":"Hong Kong","to":"Shanghai","date":"2026-10-17","currency":"USD"}
-  - optimizer said: R0 direct on 2026-10-17: FM FM812: Hong Kong International Airport 13:55 → Shanghai Pudong International Airport 17:05, USD 130 (cached fare). 3h10 from first departure to arrival, total USD 130, same price. | R1 via Macau International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 07:55, about 125 min to Macau International Airport, about USD 11 (estimated from distance, not a timetable or fare); then 9C 9C8876: Macau International Airport 11:30 → Shanghai Pudong International Airport 14:15, USD 79 (cached fare). 6h20 from first departure to arrival, total USD 90, saves USD 40. | R2 via Shenzhen Bao'an International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 17:14, about 126 min to Shenzhen Bao'an International Airport, about USD 11 (estimated from distance, not a timetable or fare); then 9C 9C8950: Shenzhen Bao'an International Airport 20:50 → Shanghai Hongqiao International Airport 23:20, USD 85 (cached fare). 6h06 from first departure to arrival, total USD 96, saves USD 34. | R3 via Shenzhen North on 2026-10-17: MTR East Rail: leave Admiralty (MTR) by 09:49 (runs every few minutes) → Shenzhen North 11:34, HKD 58 (estimated); then G100: Shenzhen North 11:59 → Shanghai Hongqiao 19:25, CNY 878.5 (timetable fare). 9h36 from first departure to arrival, total about USD 129, saves USD 1.
+  - plan_trip {"stops":["Hong Kong","Shanghai"],"dates":["2026-10-18"]}
+  - optimize_route {"from":"Hong Kong","to":"Shanghai","date":"2026-10-18","currency":"USD"}
+  - optimizer said: R0 direct on 2026-10-18: G902: Hong Kong West Kowloon 11:35 → Shanghai Hongqiao 19:43, CNY 973 (timetable fare). 8h08 from first departure to arrival, total about USD 134, same price. | R1 via Shenzhen North on 2026-10-18: MTR East Rail: leave Admiralty (MTR) by 09:49 (runs every few minutes) → Shenzhen North 11:34, HKD 58 (estimated); then G100: Shenzhen North 11:59 → Shanghai Hongqiao 19:25, CNY 878.5 (timetable fare). 9h36 from first departure to arrival, total about USD 129, saves USD 5. | R2 via Shenzhen North on 2026-10-18: MTR East Rail: leave Admiralty (MTR) by 09:47 (runs every few minutes) → Shenzhen North 11:32, HKD 58 (estimated); then G902: Shenzhen North 11:57 → Shanghai Hongqiao 19:43, CNY 878.5 (timetable fare). 9h56 from first departure to arrival, total about USD 129, saves USD 5. | R3 via Shenzhen North on 2026-10-18: MTR East Rail: leave Admiralty (MTR) by 12:17 (runs every few minutes) → Shenzhen North 14:02, HKD 58 (estimated); then G386: Shenzhen North 14:27 → Shanghai Hongqiao 22:42, CNY 878.5 (timetable fare). 10h25 from first departure to arrival, total about USD 129, saves USD 5.
 - unsourced money: none
 
-> Good news, Sam. Leave Hong Kong by 07:55 for Macau airport (about 125 min with the border, roughly USD 11, estimated from distance), then 9C8876 at 11:30, landing Shanghai Pudong 14:15, total about USD 90 — that's USD 40 off the direct USD 130 flight. If you'd rather not cross to Macau, there's a Shenzhen Bao'an version for USD 96 that gets in at 23:20; say the word and I'll put the via stop on your globe.
+> Good news, Sam: that leg isn't actually pricey — the direct G902 from West Kowloon to Hongqiao on Oct 18 is CNY 973, about USD 134. I did check the back doors: crossing to Shenzhen North first and picking up G100 there comes to about USD 129, which saves roughly USD 5 for an extra hour and a half of travel — a classic Earth layover for five dollars, frankly not worth it. Take the direct train.
 
 ### Seoul → Busan
-- 7.0 s total, first words at 6.3 s, 2 model steps, reasoning tokens per step 175 / 150
+- 6.0 s total, first words at 5.5 s, 3 model steps, reasoning tokens per step 108 / 10 / 140
 - tools: plan_trip → optimize_route
-  - plan_trip {"stops":["Seoul","Busan"],"dates":["2026-10-17"]}
-  - optimize_route {"from":"Seoul","to":"Busan","date":"2026-10-17","currency":"USD"}
-  - optimizer said: R0 direct on 2026-10-17: Mugunghwa 1151: Seoul 06:37 → Busan 12:53, KRW 28600 (timetable fare). 6h16 from first departure to arrival, total about USD 21, same price. | R1 direct on 2026-10-17: Express Standard: Seoul Express Bus Terminal (Gyeongbu) 17:20 → Busan Central Bus Terminal (Nopo) 21:20, KRW 29100 (timetable fare). 4h00 from first departure to arrival, total about USD 21, same price. | R2 direct on 2026-10-17: Express Standard: Seoul Express Bus Terminal (Gyeongbu) 18:20 → Busan Central Bus Terminal (Nopo) 22:20, KRW 29100 (timetable fare). 4h00 from first departure to arrival, total about USD 21, same price. | R3 direct on 2026-10-17: Express Standard: Seoul Express Bus Terminal (Gyeongbu) 20:40 → Busan Central Bus Terminal (Nopo) 00:40 next day, KRW 29100 (timetable fare). 4h00 from first departure to arrival, total about USD 21, same price.
+  - plan_trip {"stops":["Seoul","Busan"],"dates":["2026-10-18"]}
+  - optimize_route {"leg":1,"currency":"USD"}
+  - optimizer said: R0 direct on 2026-10-18: Mugunghwa 1151: Seoul 06:37 → Busan 12:53, KRW 28600 (timetable fare). 6h16 from first departure to arrival, total about USD 21, same price. | R1 direct on 2026-10-18: Express Standard: Seoul Express Bus Terminal (Gyeongbu) 17:20 → Busan Central Bus Terminal (Nopo) 21:20, KRW 29100 (timetable fare). 4h00 from first departure to arrival, total about USD 21, same price. | R2 direct on 2026-10-18: Express Standard: Seoul Express Bus Terminal (Gyeongbu) 18:20 → Busan Central Bus Terminal (Nopo) 22:20, KRW 29100 (timetable fare). 4h00 from first departure to arrival, total about USD 21, same price. | R3 direct on 2026-10-18: Express Standard: Seoul Express Bus Terminal (Gyeongbu) 20:40 → Busan Central Bus Terminal (Nopo) 00:40 next day, KRW 29100 (timetable fare). 4h00 from first departure to arrival, total about USD 21, same price.
 - unsourced money: none
 
-> Seoul to Busan is on your globe now. Nothing beats the direct options on price: the Mugunghwa 1151 leaves Seoul at 06:37 and reaches Busan at 12:53 for KRW 28,600, about USD 21 — the cheapest thing going.
-> The trade-off is the express bus: Seoul Express Bus Terminal at 17:20 (also 18:20 and 20:40) to Busan Central, KRW 29,100, only 500 won more but four hours flat instead of six and a bit. Want me to line up a return from Busan too?
+> Nothing beats booking direct here, Sam — the nearby-station hunt came up empty. The cheapest is the Mugunghwa train, Seoul 06:37 to Busan 12:53, KRW 28,600 (about USD 21). If the early start puts you off, the express bus costs KRW 29,100 — literally 500 won more and gets you there in 4 hours, so it's the better trade unless you're counting every won.
 
 ### Singapore → Kuala Lumpur
-- 7.8 s total, first words at 7.2 s, 2 model steps, reasoning tokens per step 189 / 167
+- 7.1 s total, first words at 6.4 s, 2 model steps, reasoning tokens per step 214 / 98
 - tools: plan_trip → optimize_route
-  - plan_trip {"stops":["Singapore","Kuala Lumpur"],"dates":["2026-10-17"]}
-  - optimize_route {"from":"Singapore","to":"Kuala Lumpur","date":"2026-10-17","currency":"USD"}
-  - optimizer said: R0 direct on 2026-10-17: AK AK720: Singapore Changi Airport 21:20 → Kuala Lumpur International Airport 22:25, USD 64 (cached fare). 1h05 from first departure to arrival, total USD 64, same price. | R1 direct on 2026-10-17: OD OD817: Singapore Changi Airport 19:55 → Sultan Abdul Aziz Shah International Airport 13:00, USD 85 (cached fare). 1h05 from first departure to arrival, total USD 85, costs USD 21 more. | R2 direct on 2026-10-17: FY FY3133: Seletar Airport 19:00 → Sultan Abdul Aziz Shah International Airport 12:20, USD 119 (cached fare). 1h20 from first departure to arrival, total USD 119, costs USD 55 more. | R3 via KEMPAS BARU on 2026-10-17: Ground transfer and border from Singapore: leave by 08:31, about 124 min to KEMPAS BARU, about USD 11 (estimated from distance, not a timetable or fare); then KTMB 9574: KEMPAS BARU 10:55 → BANGI 14:21, fare unknown (timetable fare). 5h50 from first departure to arrival, total total unknown (a fare is missing).
+  - plan_trip {"stops":["Singapore","Kuala Lumpur"],"dates":["2026-10-18"]}
+  - optimize_route {"from":"Singapore","to":"Kuala Lumpur","date":"2026-10-18","currency":"USD"}
+  - optimizer said: R0 direct on 2026-10-18: AK AK722: Singapore Changi Airport 23:25 → Kuala Lumpur International Airport 00:30 next day, USD 67 (cached fare). 1h05 from first departure to arrival, total USD 67, same price. | R1 direct on 2026-10-18: TR TR474: Singapore Changi Airport 12:05 → Sultan Abdul Aziz Shah International Airport 13:10, USD 91 (cached fare). 1h05 from first departure to arrival, total USD 91, costs USD 24 more. | R2 direct on 2026-10-18: FY FY3123: Seletar Airport 08:30 → Sultan Abdul Aziz Shah International Airport 09:50, USD 112 (cached fare). 1h20 from first departure to arrival, total USD 112, costs USD 45 more. | R3 via JB Sentral on 2026-10-18: Ground transfer and border from Singapore: leave by 07:41, about 114 min to JB Sentral, about USD 10 (estimated from distance, not a timetable or fare); then KTMB EP9326: JB Sentral 09:55 → BANDAR TASIK SELATAN 13:51, fare unknown (timetable fare). 6h10 from first departure to arrival, total total unknown (a fare is missing).
 - unsourced money: none
 
-> Good news — the optimizer didn't find anything cheaper than the direct flight. AirAsia AK720 leaves Changi at 21:20 and lands at KLIA 22:25 for USD 64 a person, and everything else it tried came out dearer or had an unknown fare (the Kempas Baru train route's fare isn't published, so it can't beat anything).
-> So your best bet is just that evening flight. A classic Earth layover, except this one's only an hour and five minutes.
+> The optimiser put a flight on top: AK722 leaves Changi at 23:25 and lands at KLIA at 00:30, USD 67 — that's the cheapest thing it found, and it beats every other option on the list. The only thing under it is bus to JB Sentral then the 09:55 train to Bandar Tasik Selatan, but its fare is unknown, so I can't call it cheaper or put a number on it.
+> Careful with the 12:05 and 08:30 departures — they fly into Sultan Abdul Aziz Shah (Subang), which is closer to town but costs USD 24 and USD 45 more.
 
 ### Taipei → Kaohsiung
-- 11.8 s total, first words at 11.2 s, 3 model steps, reasoning tokens per step 328 / 138 / 379
-- tools: plan_trip → optimize_route → search_routes
-  - plan_trip {"stops":["Taipei","Kaohsiung"],"dates":["2026-10-17"]}
-  - optimize_route {"from":"Taipei","to":"Kaohsiung","date":"2026-10-17","currency":"USD"}
-  - search_routes {"from":"Taipei","to":"Kaohsiung","date":"2026-10-17"}
-  - optimizer said: R1 direct on 2026-10-17: Taiwan High Speed Rail 295: Taoyuan 22:35 → Tainan 23:48, fare unknown (timetable fare). 1h13 from first departure to arrival, total total unknown (a fare is missing). | R2 direct on 2026-10-17: Taiwan High Speed Rail 205: Banqiao 07:59 → Tainan 09:18, fare unknown (timetable fare). 1h19 from first departure to arrival, total total unknown (a fare is missing). | R3 direct on 2026-10-17: Taiwan High Speed Rail 207: Banqiao 08:39 → Tainan 09:58, fare unknown (timetable fare). 1h19 from first departure to arrival, total total unknown (a fare is missing).
+- 7.0 s total, first words at 6.3 s, 3 model steps, reasoning tokens per step 194 / 9 / 114
+- tools: plan_trip → optimize_route
+  - plan_trip {"stops":["Taipei","Kaohsiung"],"dates":["2026-10-18"]}
+  - optimize_route {"leg":1,"currency":"USD"}
+  - optimizer said: R0 direct on 2026-10-18: Taiwan High Speed Rail 803: Banqiao 06:34 → Zuoying 08:40, TWD 1460 (timetable fare). 2h06 from first departure to arrival, total about USD 45, same price. | R1 direct on 2026-10-18: Taiwan High Speed Rail 109: Banqiao 07:39 → Zuoying 09:05, TWD 1460 (timetable fare). 1h26 from first departure to arrival, total about USD 45, same price. | R2 direct on 2026-10-18: Taiwan High Speed Rail 117: Banqiao 09:39 → Zuoying 11:05, TWD 1460 (timetable fare). 1h26 from first departure to arrival, total about USD 45, same price. | R3 direct on 2026-10-18: Taiwan High Speed Rail 121: Banqiao 10:39 → Zuoying 12:05, TWD 1460 (timetable fare). 1h26 from first departure to arrival, total about USD 45, same price.
 - unsourced money: none
 
-> I put Taipei → Kaohsiung on your globe for the 17th, and checked leaving from nearby stations too — nothing came back cheaper than the direct options.
-> The only price I can quote is a flight at USD 63 (that one's estimated, 1h03), and the high-speed rail times are running but showing no fares yet — a classic Earth puzzle, even by galactic standards. Want me to dig for rail fares specifically?
+> Nothing beats the direct high-speed train — the optimizer tried nearby stations and couldn't undercut it, even by galactic standards. Taiwan High Speed Rail from Banqiao, TWD 1460 (about USD 45) per person, with departures at 06:34, 07:39, 09:39 and 10:39 into Zuoying.
+> So it's a flat fare all day: 09:39 gets you in at 11:05 in the least time, 06:34 if you fancy an early start. Want me to look at anything cheaper from the Taipei side?
 
 ### Bangkok → Chiang Mai
-- 12.2 s total, first words at 11.4 s, 3 model steps, reasoning tokens per step 324 / 407 / 251
-- tools: plan_trip → optimize_route → search_routes
-  - plan_trip {"stops":["Bangkok","Chiang Mai"],"dates":["2026-10-17"]}
-  - optimize_route {"from":"Bangkok","to":"Chiang Mai","date":"2026-10-17","currency":"USD"}
-  - search_routes {"from":"Bangkok","to":"Chiang Mai","date":"2026-10-17"}
-  - optimizer said: R0 direct on 2026-10-17: SL SL522: Don Mueang International Airport 20:15 → Chiang Mai International Airport 21:25, USD 37 (cached fare). 1h10 from first departure to arrival, total USD 37, same price. | R1 direct on 2026-10-17: The Transport Company Limited 18: Small Bus Terminal (Chatuchak) (Mo Chit 2) 20:20 → Chiang Mai Bus Terminal 2 (Arcade) 04:58 next day, fare unknown (timetable fare). 8h38 from first departure to arrival, total total unknown (a fare is missing). | R2 direct on 2026-10-17: Busarakam Tour 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 00:01 → Chiang Mai Bus Terminal 2 (Arcade) 08:43, fare unknown (timetable fare). 8h42 from first departure to arrival, total total unknown (a fare is missing). | R3 direct on 2026-10-17: The Transport Company Limited 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 18:10 → Chiang Mai Bus Terminal 2 (Arcade) 02:54 next day, fare unknown (timetable fare). 8h44 from first departure to arrival, total total unknown (a fare is missing).
+- 7.6 s total, first words at 7.1 s, 2 model steps, reasoning tokens per step 557 / 376
+- tools: plan_trip → optimize_route
+  - plan_trip {"stops":["Bangkok","Chiang Mai"],"dates":["2026-10-18"]}
+  - optimize_route {"from":"Bangkok","to":"Chiang Mai","date":"2026-10-18","currency":"USD"}
+  - optimizer said: R0 direct on 2026-10-18: SL SL506: Don Mueang International Airport 08:35 → Chiang Mai International Airport 09:50, USD 40 (cached fare). 1h15 from first departure to arrival, total USD 40, same price. | R1 direct on 2026-10-18: The Transport Company Limited 18: Small Bus Terminal (Chatuchak) (Mo Chit 2) 20:20 → Chiang Mai Bus Terminal 2 (Arcade) 04:58 next day, fare unknown (timetable fare). 8h38 from first departure to arrival, total total unknown (a fare is missing). | R2 direct on 2026-10-18: Busarakam Tour 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 00:01 → Chiang Mai Bus Terminal 2 (Arcade) 08:43, fare unknown (timetable fare). 8h42 from first departure to arrival, total total unknown (a fare is missing). | R3 direct on 2026-10-18: The Transport Company Limited 13: Small Bus Terminal (Chatuchak) (Mo Chit 2) 18:10 → Chiang Mai Bus Terminal 2 (Arcade) 02:54 next day, fare unknown (timetable fare). 8h44 from first departure to arrival, total total unknown (a fare is missing).
 - unsourced money: none
 
-> I tried the cheaper angles and none beat the direct option — so yes, beating a Suvarnabhumi fare is easy: the cheapest I can see is USD 37 on SL522 out of Don Mueang, 20:15 to 21:25, a whisker over an hour gate to gate. The other flights sit at USD 77–85 (estimated), and the train runs 9.5 hours with no price listed.
-> The overnight buses from Mo Chit are the real budget play, but the fares aren't published in what I can see, so I can't honestly call them cheaper yet. Want me to dig into those?
+> Nothing beats that with a confirmed price — the flight itself is the cheap one, if you skip Suvarnabhumi and leave from Don Mueang: SL506, 08:35 to 09:50, USD 40. The overnight buses from Mo Chit (around 8½ hours) are likely cheaper, but their fares aren't coming back, so I won't call them a saving.
+> I've put the leg on your globe. Want me to price the buses properly?
 
 ### Hong Kong → Tokyo
-- 8.1 s total, first words at 7.3 s, 2 model steps, reasoning tokens per step 364 / 92
-- tools: plan_trip → optimize_route
-  - plan_trip {"stops":["Hong Kong","Tokyo"],"dates":["2026-10-17"]}
-  - optimize_route {"from":"Hong Kong","to":"Tokyo","date":"2026-10-17","currency":"USD"}
-  - optimizer said: R0 direct on 2026-10-17: UO UO628: Hong Kong International Airport 20:00 → Tokyo Haneda International Airport 01:20 next day, USD 187 (cached fare). 4h20 from first departure to arrival, total USD 187, same price. | R1 via Guangzhou Baiyun International Airport on 2026-10-17: Ground transfer and border from Hong Kong: leave by 15:57, about 243 min to Guangzhou Baiyun International Airport, about USD 21 (estimated from distance, not a timetable or fare); then HO HO1852: Guangzhou Baiyun International Airport 21:30 → Tokyo Haneda International Airport 03:40 next day, USD 267 (cached fare). 10h43 from first departure to arrival, total USD 288, costs USD 101 more.
+- 8.2 s total, first words at 7.8 s, 3 model steps, reasoning tokens per step 65 / 217 / 0
+- tools: optimize_route → plan_trip
+  - optimize_route {"from":"Hong Kong","to":"Tokyo","date":"2026-10-18","currency":"USD"}
+  - plan_trip {"stops":["Hong Kong","Tokyo"],"dates":["2026-10-18"]}
+  - optimizer said: R0 direct on 2026-10-18: UO UO624: Hong Kong International Airport 23:35 → Tokyo Haneda International Airport 05:00 next day, USD 168 (cached fare). 4h25 from first departure to arrival, total USD 168, same price.
 - unsourced money: none
 
-> Short answer: no. The optimizer checked Shenzhen Bao'an, Shenzhen North and Macau, and the direct Hong Kong flight still wins — HK Express UO628 out of HKG at 20:00 on the 17th, landing Haneda 01:20, USD 187, versus USD 288 for the best detour it could chain (via Guangzhou, and that one also uses a distance-estimated ground transfer). The only thing that beats a direct hop is another direct hop, and a classic Earth layover in Guangzhou isn't it. Your leg's on the globe now, so have a look at the fares it's pulling.
+> I checked Shenzhen North, both Shenzhen airports, Macau and Zhuhai for that date, Sam, and nothing beats what you've got: the direct HK Express UO624, Hong Kong 23:35 → Haneda 05:00 next morning, USD 168. That's an overnight hop even I'd call efficient, so your globe's ready with it.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeRoutes, minutesFrom } from "./compose";
+import { closest, composeRoutes, minutesFrom } from "./compose";
 import { approx } from "./fx";
 import chinaRail from "./providers/china-rail";
 import crossBorder from "./providers/cross-border";
@@ -160,5 +160,33 @@ describe("composeRoutes", () => {
   it("converts between known currencies and refuses unknown ones", () => {
     expect(approx(100, "HKD", "CNY")).toBeCloseTo(92.75, 1);
     expect(approx(100, "XXX", "CNY")).toBeNull();
+  });
+});
+
+describe("closest", () => {
+  const KAOHSIUNG = { name: "Kaohsiung", lat: 22.6273, lng: 120.3014 };
+  const end = (id: string, mode: Offer["mode"], to: { name: string; lat: number; lng: number }): Offer => ({
+    id, provider: "rail-cache", mode, kind: "timetable",
+    segments: [{ mode, from: { name: "Taipei", lat: 25.0478, lng: 121.517 }, to, depart: "2026-10-17T08:00:00+08:00", arrive: "2026-10-17T10:00:00+08:00", durationMin: 120 }],
+  });
+
+  it("drops a train that stops short of where another one gets to", () => {
+    const zuoying = end("zuoying", "train", { name: "Zuoying", lat: 22.6873, lng: 120.3076 });
+    const tainan = end("tainan", "train", { name: "Tainan", lat: 22.925, lng: 120.2856 });
+    const airport = end("khh", "flight", { name: "Kaohsiung Airport", lat: 22.5771, lng: 120.35 });
+    expect(closest([tainan, zuoying, airport], KAOHSIUNG).map((o) => o.id)).toEqual(["zuoying", "khh"]);
+  });
+
+  it("drops a train that starts further out than others leave from", () => {
+    const TAIPEI = { name: "Taipei", lat: 25.0478, lng: 121.517 };
+    const zuoying = { name: "Zuoying", lat: 22.6873, lng: 120.3076 };
+    const fromTaipei = end("taipei", "train", zuoying);
+    const fromTaoyuan: Offer = { ...end("taoyuan", "train", zuoying), segments: [{ ...fromTaipei.segments[0], from: { name: "Taoyuan", lat: 25.0129, lng: 121.2149 } }] };
+    expect(closest([fromTaoyuan, fromTaipei], KAOHSIUNG, TAIPEI).map((o) => o.id)).toEqual(["taipei"]);
+  });
+
+  it("keeps the nearest a mode gets when nothing gets closer", () => {
+    const tainan = end("tainan", "train", { name: "Tainan", lat: 22.925, lng: 120.2856 });
+    expect(closest([tainan], KAOHSIUNG).map((o) => o.id)).toEqual(["tainan"]);
   });
 });
