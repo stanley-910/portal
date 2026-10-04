@@ -17,7 +17,7 @@ import { tripContext } from "@/lib/agent/context";
 import { inOrder } from "@/lib/agent/parts";
 import { showDate } from "@/lib/agent/snapshot";
 import { AGENT_NAME, isObservation, type MeetupLeg, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
-import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, usePipObservations, usePipReplies, useSendMessage, useThread } from "@/lib/agent/use-thread";
+import { SIGN_IN_TO_ASK, usePipActivity, usePipBusy, usePipObservations, usePipReplies, usePlanIssueKeys, useSendMessage, useThread } from "@/lib/agent/use-thread";
 import { memberColor } from "@/lib/liveblocks/types";
 
 // The trip's thread with Pip in it, rebuilt from the Pip handoff: a porthole launcher bottom-right that opens
@@ -196,7 +196,9 @@ function Panel({ tab, onTab, onClose }: { tab: PipTab; onTab: (tab: PipTab) => v
   // the chat is what people and Pip say; what Pip noticed about the plan waits under Observations
   const thread = useMemo(() => all.filter((m) => !isObservation(m)), [all]);
   const observations = useMemo(() => all.filter(isObservation), [all]);
-  const open = observations.filter((m) => m.cards.some((c) => c.type === "fix" && c.state === "open")).length;
+  // what's still wrong with the plan: an open observation that isn't any more is no longer counted or answerable
+  const live = usePlanIssueKeys();
+  const open = observations.filter((m) => m.cards.some((c) => c.type === "fix" && c.state === "open" && live.has(c.key))).length;
   // moved by its header, sized from its corner
   const { panel: framed, style: frameStyle, placed, onMove, onSize } = usePipFrame();
   // a trip that opens with the chat showing has no entrance to play when it's closed
@@ -276,7 +278,7 @@ function Panel({ tab, onTab, onClose }: { tab: PipTab; onTab: (tab: PipTab) => v
             <p className="pip-empty">Ask {AGENT_NAME} how to get somewhere, or where everyone should meet. Everyone in the trip sees the chat.</p>
           </ThreadLog>
         ) : (
-          <Observations list={observations} />
+          <Observations list={observations} live={live} />
         )}
       </CardActionsContext>
 
@@ -425,8 +427,8 @@ const FIX_STATE = { fixed: "Fixed", asked: "Asked Pip", gone: "Already sorted" }
  * What Pip noticed about the plan, each with the fixes that answer it: open ones first, newest first, then the ones
  * someone answered. Everyone in the trip sees the same list.
  */
-function Observations({ list }: { list: ThreadMessage[] }) {
-  const isOpen = (m: ThreadMessage) => m.cards.some((c) => c.type === "fix" && c.state === "open");
+function Observations({ list, live }: { list: ThreadMessage[]; live: ReadonlySet<string> }) {
+  const isOpen = (m: ThreadMessage) => m.cards.some((c) => c.type === "fix" && c.state === "open" && live.has(c.key));
   const sorted = [...list].sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)) || b.at - a.at);
   return (
     <div id="pip-pane" role="tabpanel" aria-labelledby="pip-tab-observations" className="pip-messages pip-observations">
@@ -434,7 +436,7 @@ function Observations({ list }: { list: ThreadMessage[] }) {
         sorted.map((m) => (
           <article key={m.id} className="pip-observation" data-open={isOpen(m) || undefined}>
             <p className="pip-text">{m.text}</p>
-            {m.cards.map((card, i) => (card.type === "fix" ? <FixCard key={i} card={card} messageId={m.id} /> : null))}
+            {m.cards.map((card, i) => (card.type === "fix" ? <FixCard key={i} card={card} messageId={m.id} stale={!live.has(card.key)} /> : null))}
           </article>
         ))
       ) : (
@@ -445,10 +447,18 @@ function Observations({ list }: { list: ThreadMessage[] }) {
 }
 
 /** Something Pip noticed, with its fixes: one tap applies one, as a change people can undo. */
-function FixCard({ card, messageId }: { card: Extract<ThreadCard, { type: "fix" }>; messageId: string }) {
+function FixCard({ card, messageId, stale = false }: { card: Extract<ThreadCard, { type: "fix" }>; messageId: string; stale?: boolean }) {
   const actions = use(CardActionsContext);
   const [pending, start] = useTransition();
   if (!actions.fix) return null;
+  // the plan changed and it isn't true any more: nothing to answer
+  if (card.state === "open" && stale) {
+    return (
+      <div className="pip-changes">
+        <span className="pip-changes-note">No longer applies</span>
+      </div>
+    );
+  }
   if (card.state !== "open") {
     return (
       <div className={`pip-changes${card.undone ? " pip-changes-undone" : ""}`}>
@@ -461,12 +471,13 @@ function FixCard({ card, messageId }: { card: Extract<ThreadCard, { type: "fix" 
       </div>
     );
   }
+  // the answers to Pip's question, as the same small pixel chips as the suggested replies
   return (
-    <div className="pip-checkout-actions">
+    <div className="pip-suggest pip-fixes">
       {card.fixes.map((fix, i) => (
-        <Button key={fix.label} variant="secondary" disabled={pending} onClick={() => start(async () => void (await actions.fix!(messageId, i)))}>
-          {fix.label}
-        </Button>
+        <button key={fix.label} type="button" className="pip-suggestion" disabled={pending} onClick={() => start(async () => void (await actions.fix!(messageId, i)))}>
+          <span className="pip-px">{fix.label}</span>
+        </button>
       ))}
     </div>
   );

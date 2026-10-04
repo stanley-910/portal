@@ -4,6 +4,8 @@ import { shallow, useEventListener, useOthers, useRoom, useStorage } from "@live
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { abandoned, LOST_REPLY, QUEUE_BEAT_MS, QUEUED_STALE_MS, waiting } from "@/lib/agent/queue";
+import { planIssues } from "@/lib/agent/issues";
+import type { PlanJson } from "@/lib/agent/snapshot";
 import { AGENT_ID, isObservation, type ThreadMessage } from "@/lib/agent/types";
 import { readCurrencyPref } from "@/lib/currency-pref";
 
@@ -46,9 +48,20 @@ export function usePipReplies(): number | null {
   return useStorage((root) => root.thread?.filter((m) => m.author.kind === "agent" && (m.state === "done" || m.state === "failed") && !isObservation(m)).length ?? 0);
 }
 
-/** How many of Pip's observations are still open: noticed, and nobody has answered them yet. */
+/** What's wrong with the plan right now (lib/agent/issues.ts), by key: an observation not among these no longer applies. */
+export function usePlanIssueKeys(): ReadonlySet<string> {
+  const keys = useStorage((root) => planIssues(root as unknown as PlanJson).map((i) => i.key).join("\n"));
+  return useMemo(() => new Set(keys ? keys.split("\n") : []), [keys]);
+}
+
+/**
+ * How many of Pip's observations are still open: noticed, still true of the plan, and nobody has answered them yet.
+ */
 export function usePipObservations(): number | null {
-  return useStorage((root) => root.thread?.filter((m) => isObservation(m) && m.cards.some((c) => c.type === "fix" && c.state === "open")).length ?? 0);
+  return useStorage((root) => {
+    const live = new Set(planIssues(root as unknown as PlanJson).map((i) => i.key));
+    return root.thread?.filter((m) => isObservation(m) && m.cards.some((c) => c.type === "fix" && c.state === "open" && live.has(c.key))).length ?? 0;
+  });
 }
 
 /** What Pip is doing right now, from the presence the server sets for it; null when it's idle or away. */

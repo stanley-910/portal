@@ -199,6 +199,9 @@
 .pip-px { display: block; padding: 3px 9px; background: var(--pip-px-fill); color: var(--pip-px-ink); clip-path: var(--pip-px-round-sm); font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; white-space: nowrap; }
 .pip-suggestion:hover:not(:disabled) .pip-px { background: var(--pip-px-hover); }
 .pip-suggestion:disabled { cursor: default; }
+/* an observation's answers: the same chips, under its question on the left */
+.pip-fixes { justify-content: flex-start; }
+.pip-fixes .pip-suggestion:disabled { opacity: 0.6; }
 .pip-suggestion:focus-visible { outline: none; background: var(--focus); }
 .pip-input-row { display: flex; gap: 6px; padding: 4px 0; margin: -4px 0; cursor: text; }
 /* the message box: the same pixel bubble, its frame in the focus colour while you type */
