@@ -6,7 +6,7 @@ import { CardActionsContext, Composer, Launcher, PipClose, Suggestions, ThreadLo
 import { setPendingAction, useOpenAuth } from "@/components/auth/links";
 import { pipPlace } from "@/components/agent/pip-arrival";
 import { usePipFrame } from "@/components/agent/pip-frame";
-import { PipSaucer, type PipSaucerHandle } from "@/components/agent/pip-saucer";
+import { PipSaucer, type PipSaucerHandle, type SaucerBuild } from "@/components/agent/pip-saucer";
 import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import { readSoloEvents } from "./solo-stream";
@@ -59,7 +59,10 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   const saucer = useRef<PipSaucerHandle>(null);
   // moved by its header, sized from its corner
   const { panel: framed, style: frameStyle, placed, onMove, onSize } = usePipFrame();
-  const { thread, activity, at, send, apply, busy, stop, retry, appliedReplies } = useSoloPip(trip, onTrip, (marks) => saucer.current?.play(marks));
+  const { thread, activity, at, globeWork, send, apply, busy, stop, retry, appliedReplies } = useSoloPip(trip, onTrip, (marks, build) => {
+    if (saucer.current) saucer.current.play(marks, build);
+    else build?.run();
+  });
 
   const ask = async (text: string) => {
     if (account) return send(text);
@@ -83,7 +86,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
     ? [`What's cheapest from ${trip[0].from.name} to ${trip[0].to.name}?`, `How do I get back to ${trip[0].from.name}?`, "Add another stop"]
     : CHIPS;
 
-  const flying = <PipSaucer ref={saucer} globe={globe} at={at} busy={!!streaming} editing={activity === "planning the trip"} />;
+  const flying = <PipSaucer ref={saucer} globe={globe} at={at} busy={!!streaming} expect={globeWork} />;
   return (
     <>
       {flying}
@@ -91,7 +94,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
       <Activity mode={open ? "visible" : "hidden"}>
       <section ref={framed} style={frameStyle} data-placed={placed || undefined} data-globe-obstacle className={`pip-panel${pipPlace.side === "left" ? " pip-panel-left" : ""}`} aria-label={`Plan a trip with ${AGENT_NAME}`}>
         <header className="pip-head" data-draggable="" onPointerDown={onMove}>
-          <PipSprite size={32} mood={mood} />
+          <PipSprite size={32} mood={mood} portal />
           <div className="min-w-0 flex-1">
             <p className="pip-head-name">{AGENT_NAME}</p>
             <p className="pip-head-sub">{line}</p>
@@ -108,8 +111,7 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
             </div>
           </ThreadLog>
         </CardActionsContext>
-        {busy ? <button type="button" className="pip-action pip-stop" onClick={stop}>Stop reply</button> : null}
-        <Composer composer={composer} placeholder={`Tell ${AGENT_NAME} where you're going`} />
+        <Composer composer={composer} placeholder={`Tell ${AGENT_NAME} where you're going`} onStop={busy ? stop : undefined} />
         {/* drag to resize */}
         <span className="pip-grip" aria-hidden onPointerDown={onSize} />
       </section>
@@ -118,11 +120,18 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   );
 }
 
+/** The legs in `after` that aren't in `before`, in trip order: the ones the saucer draws out. */
+function newLegs(before: SoloLeg[], after: SoloLeg[]) {
+  const key = (l: SoloLeg) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
+  const had = new Set(before.map(key));
+  return after.filter((l) => !had.has(key(l)));
+}
+
 /**
  * The home conversation: sends each message with the recent history and the legs on the globe, and applies the
  * streamed reply as it comes. Text is applied once a frame, so a fast stream doesn't re-render per token.
  */
-function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks: (marks: AgentMark[]) => void) {
+function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks: (marks: AgentMark[], build?: SaucerBuild) => void) {
   const [thread, setThread] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [appliedReplies, setAppliedReplies] = useState<ReadonlySet<string>>(() => new Set());
@@ -132,6 +141,8 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
   const [activity, setActivity] = useState<string | null>(null);
   // where Pip last looked on the globe, this reply
   const [at, setAt] = useState<LatLng | null>(null);
+  // a tool whose work shows on the globe is running: Pip heads out to it before it knows where
+  const [globeWork, setGlobeWork] = useState(false);
   const threadRef = useRef(thread);
   useLayoutEffect(() => { threadRef.current = thread; }, [thread]);
   const tripRef = useRef({ trip, onTrip, onMarks });
@@ -178,6 +189,14 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
   const read = async (body: ReadableStream<Uint8Array>, id: string, signal: AbortSignal, started: number) => {
     let text = "";
     let frame = 0;
+    // globe tool calls still running
+    const running = new Set<string>();
+    // legs Pip planned, held for the saucer to put down once it's where they start (the marks that follow say where)
+    let planned: SoloLeg[] | null = null;
+    const putDown = (legs: SoloLeg[]) => {
+      tripRef.current.onTrip(legs);
+      recordTiming("plan-applied", started);
+    };
     const flushText = () => {
       frame = 0;
       if (signal.aborted) return;
@@ -190,6 +209,11 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
         text += event.d;
         frame ||= requestAnimationFrame(flushText);
       } else if (event.t === "step") {
+        if (event.globe) {
+          if (event.done) running.delete(event.id);
+          else running.add(event.id);
+          setGlobeWork(running.size > 0);
+        }
         const step: ThreadCard = { type: "status", id: event.id, label: event.label, done: event.done, at: event.at };
         patch(id, (m) => ({
           ...m,
@@ -203,23 +227,38 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
         if (event.at) setAt(event.at);
       } else if (event.t === "trip") {
         setAppliedReplies((ids) => new Set(ids).add(id));
-        tripRef.current.onTrip(event.legs); recordTiming("plan-applied", started);
+        if (planned) putDown(planned);
+        planned = event.legs;
+      } else if (event.t === "marks") {
+        const legs = planned;
+        planned = null;
+        const first = event.marks.some((m) => m.drawn !== undefined) && legs ? newLegs(tripRef.current.trip, legs)[0] : undefined;
+        if (legs && first) tripRef.current.onMarks(event.marks, { from: { lat: first.from.lat, lng: first.from.lng }, run: () => putDown(legs) });
+        else {
+          if (legs) putDown(legs);
+          tripRef.current.onMarks(event.marks);
+        }
       }
-      else if (event.t === "marks") tripRef.current.onMarks(event.marks);
       else if (event.t === "done" || event.t === "failed") {
         cancelAnimationFrame(frame);
         setActivity(null);
+        setGlobeWork(false);
         patch(id, (m) => ({ ...m, text: text.trim() || m.text, state: event.t === "done" ? "done" : "failed" }));
       }
     };
     try { await readSoloEvents(body, signal, apply); }
     catch { /* Keep the partial reply and mark it interrupted below. */ }
-    finally { cancelAnimationFrame(frame); }
+    finally {
+      cancelAnimationFrame(frame);
+      // a trip with no marks after it still goes on the globe
+      if (planned && !signal.aborted) putDown(planned);
+    }
     // a stream that ended without saying so
     setThread((t) =>
       t.map((m) => (m.id === id && m.state === "streaming" ? { ...m, text: text.trim() || (signal.aborted ? "Reply stopped." : "I lost the connection. Try again."), state: "failed" } : m)),
     );
     setActivity(null);
+    setGlobeWork(false);
   };
 
   /** "Go with this" on a meet-up: puts your own leg to the meeting place on the globe. */
@@ -240,5 +279,5 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
     const previous = threadRef.current.slice(0, at).findLast((m) => m.author.kind === "member");
     if (previous && !active.current) void sendRef.current(previous.text).catch(() => {});
   }, [appliedReplies]);
-  return { thread, activity, at, send, apply, busy, stop, retry, appliedReplies };
+  return { thread, activity, at, globeWork, send, apply, busy, stop, retry, appliedReplies };
 }

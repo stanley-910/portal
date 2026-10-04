@@ -173,22 +173,26 @@ const PIN_SPLAY = 0.25;
 const VEHICLE_CHECK = 0.1;
 // Pip's saucer: its size against the plane, how high it hovers in plane heights, how fast it glides (a share of
 // the way per second, plus radians per second so the last stretch doesn't crawl), and how close it has to be to count
-// as there. Following it, the view eases this fast and closes in to frame FOLLOW_SPAN around the saucer.
+// as there. Following it, the view eases this fast and closes in to frame FOLLOW_SPAN around the saucer, keeping it
+// in the middle of the screen: panels don't move it, so the view only ever glides.
 const UFO_SCALE = 1; // the same size as the plane and the ground vehicles
 const UFO_TIP = 0.95; // radians it tips toward the viewer, like a pin leans, so its dome and Pip's face show
 const UFO_HOVER = 1.8;
-const UFO_GLIDE = 3;
-const UFO_CRUISE = 0.08;
+const UFO_GLIDE = 2.2;
+const UFO_CRUISE = 0.06;
 const UFO_THERE = 0.003;
 // It flies in from the top of the screen, coming down over UFO_ENTER seconds, and leaves the same way: climbing
 // away toward the top, faster and faster, gone after UFO_EXIT seconds.
-const UFO_ENTER = 1.1;
-const UFO_EXIT = 1.4;
+const UFO_ENTER = 1.4;
+const UFO_EXIT = 1.6;
 const UFO_EXIT_ARC = 0.9; // radians over the globe it comes from and heads off
 // A removed leg's route reels in: it pulls off its start toward its end, where Pip's saucer is, over REEL seconds.
-// One Pip adds draws out from its start behind the saucer over DRAW seconds, and the pins at its end drop after.
+// One Pip adds draws out from its start behind the saucer over PIP_DRAW seconds, and the pins at its end drop after.
+// Several it adds at once draw one after another, in trip order, the saucer riding each pen in turn.
 const REEL = 0.9;
 const DRAW = 1.2;
+const PIP_DRAW = 1.6; // slower under the saucer, so it can be followed
+const RIDE = 0.15; // radians from the pen within which the saucer holds to it rather than gliding after it
 /** How `showTrip` puts a trip down: see there. */
 export type ShowTrip = "land" | "quiet" | "draw";
 const FOLLOW_EASE = 2.4;
@@ -474,6 +478,8 @@ export class GlobeEngine {
     dur: number;
     /** What to frame, worked out as the turn starts: ground point p, w radians of arc, no closer than minRange. */
     frame?: { p: Vec3; w: number; minRange: number };
+    /** the view turning back to where it was before Pip's saucer came out */
+    home?: boolean;
   } | null = null;
   // The landed route, kept framed in the open part of the screen as panels open and grow, until someone moves the
   // globe themselves. `area` is the open area it was last framed in.
@@ -545,10 +551,18 @@ export class GlobeEngine {
   // removed legs' routes reeling in, from when each started
   private reels: { o: Vec3; target: Vec3; color: number | null; t0: number }[] = [];
   // legs of this viewer's own trip that Pip's saucer is drawing out (showTrip), from when each started
-  private ownDraws: { a: Vec3; b: Vec3; t0: number }[] = [];
+  private ownDraws: { a: Vec3; b: Vec3; t0: number; d: number }[] = [];
   // the view following the saucer, and where on screen it keeps it: the middle of the open area, asked now and then
   private follow = false;
-  private followSpot: { x: number; y: number; t: number } | null = null;
+  // the range the view eases to while following, and the range it last set, to tell when someone zooms meanwhile
+  private followRange = RANGE_MAX;
+  private followSet = RANGE_MAX;
+  // the view from before the saucer came out, to turn back to once it leaves, unless someone moves the globe meanwhile
+  private followHome: { lon: number; lat: number; range: number } | null = null;
+  // the saucer drew legs out while it was followed: once it leaves, the view frames the trip instead of turning back
+  private followBuilt = false;
+  // while it draws legs out: the view that frames every leg still to draw, for the set of draws it was worked out for
+  private drawFrame: { key: string; to: { lon: number; lat: number; range: number } } | null = null;
 
   // input and time
   private mx = -9999;
@@ -1121,7 +1135,8 @@ export class GlobeEngine {
     if (wasActive) this.events.onCancel?.();
   }
 
-  private takeoff(o: Vec3) {
+  /** Starts a trip at o. A click takes the view back from Pip's saucer; a trip Pip puts down (`byPip`) doesn't. */
+  private takeoff(o: Vec3, byPip = false) {
     const cam = this.cam ?? this.camera();
     this.mode = "flying";
     this.origin = o;
@@ -1134,7 +1149,7 @@ export class GlobeEngine {
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0, ...parked("flight") };
     this.want = { vehicle: "flight", t: this.t, checked: -Infinity };
     this.tTake = this.t;
-    this.endFollow();
+    if (!byPip) this.endFollow();
     this.vlon = 0;
     this.vlat = 0;
     this.turn = null;
@@ -1173,7 +1188,7 @@ export class GlobeEngine {
     const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
     const before = this.ownLegs();
     if (this.mode !== "idle") this.cancel();
-    this.takeoff(vs[0]);
+    this.takeoff(vs[0], !!this.agent?.on);
     for (const v of vs.slice(1, -1)) this.addStop(v);
     this.magnet = false;
     const pip = !!this.agent?.on && !this.reduceMotion;
@@ -1182,18 +1197,20 @@ export class GlobeEngine {
     const drawing = how === "draw" && !pip && !this.reduceMotion;
     if (drawing) {
       const start = this.t + 0.5 + 1.5 * 0.4;
-      vs.slice(1).forEach((b, i) => this.ownDraws.push({ a: vs[i], b, t0: start + i * DRAW * 0.6 }));
+      vs.slice(1).forEach((b, i) => this.ownDraws.push({ a: vs[i], b, t0: start + i * DRAW * 0.6, d: DRAW }));
     }
     this.land(vs[vs.length - 1]);
     // While Pip's saucer is out it builds the trip itself: no plane lands and the view stays with the saucer. Legs
-    // that are new draw out behind it, and legs that went reel in. A quiet one (a stop dragged to a new place) only
-    // moves the trip, where it is.
+    // that are new draw out behind it one after another, and legs that went reel in. A quiet one (a stop dragged to a
+    // new place) only moves the trip, where it is.
     if (!pip && how === "land") return;
     const t = this.t;
     if (pip) {
       const after = this.ownLegs();
       const same = (x: [Vec3, Vec3], y: [Vec3, Vec3]) => angle(x[0], y[0]) < 1e-6 && angle(x[1], y[1]) < 1e-6;
-      for (const leg of after) if (!before.some((b) => same(b, leg))) this.ownDraws.push({ a: leg[0], b: leg[1], t0: t });
+      const added = after.filter((leg) => !before.some((b) => same(b, leg)));
+      added.forEach((leg, i) => this.ownDraws.push({ a: leg[0], b: leg[1], t0: t + i * PIP_DRAW, d: PIP_DRAW }));
+      if (added.length && this.follow) this.followBuilt = true;
       for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
     }
     this.tLand = t - TOUCHDOWN - VANISH;
@@ -1213,7 +1230,7 @@ export class GlobeEngine {
   /** How far Pip's saucer has drawn out this viewer's own leg from a to b: 1 when it's whole. */
   private ownDrawn(a: Vec3, b: Vec3, t: number) {
     const d = this.ownDraws.find((d) => angle(d.a, a) < 1e-6 && angle(d.b, b) < 1e-6);
-    return d ? ease(clamp((t - d.t0) / DRAW, 0, 1)) : 1;
+    return d ? ease(clamp((t - d.t0) / d.d, 0, 1)) : 1;
   }
 
   /** Lands the trip at the last stop, which ends the leg flown into it. */
@@ -1802,8 +1819,8 @@ export class GlobeEngine {
 
   /** Whether a route Pip added is still drawing out. */
   private drawing(t: number) {
-    this.ownDraws = this.ownDraws.filter((d) => t - d.t0 < DRAW);
-    for (const r of this.remotes.values()) if (t - r.drawn < DRAW) return true;
+    this.ownDraws = this.ownDraws.filter((d) => t - d.t0 < d.d);
+    for (const r of this.remotes.values()) if (t - r.drawn < PIP_DRAW) return true;
     return this.ownDraws.length > 0;
   }
 
@@ -1814,8 +1831,8 @@ export class GlobeEngine {
     if (this.mode === "landed") at = this.tLand + TOUCHDOWN + VANISH;
     for (const g of this.ghosts) if (angle(g.pl.n, v) < 0.01) at = Math.max(at, g.t0 + TOUCHDOWN + VANISH);
     // a route Pip is drawing out to here
-    for (const r of this.remotes.values()) if (angle(r.target, v) < 0.01) at = Math.max(at, r.drawn + DRAW);
-    for (const d of this.ownDraws) if (angle(d.b, v) < 0.01) at = Math.max(at, d.t0 + DRAW);
+    for (const r of this.remotes.values()) if (angle(r.target, v) < 0.01) at = Math.max(at, r.drawn + PIP_DRAW);
+    for (const d of this.ownDraws) if (angle(d.b, v) < 0.01) at = Math.max(at, d.t0 + d.d);
     return at;
   }
 
@@ -1889,7 +1906,7 @@ export class GlobeEngine {
         // a leg Pip adds while its saucer is out is drawn out behind it, and the pins at its end wait for it
         const drawn = f.landed && this.agent?.on && !this.reduceMotion ? now : -Infinity;
         if (drawn > -Infinity) {
-          for (const p of this.pins.values()) if (angle(p.g, target) < 0.01 && p.t0 > now - 0.3) p.t0 = Math.max(p.t0, now + DRAW);
+          for (const p of this.pins.values()) if (angle(p.g, target) < 0.01 && p.t0 > now - 0.3) p.t0 = Math.max(p.t0, now + PIP_DRAW);
         }
         this.remotes.set(f.id, {
           o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName, drawn,
@@ -1982,35 +1999,86 @@ export class GlobeEngine {
     this.requestFrame();
     if (on === this.follow) return;
     this.follow = on;
-    this.followSpot = null;
-    if (!on) return;
+    this.drawFrame = null;
+    if (!on) {
+      // the saucer's gone: the view frames the trip it built, or goes back to where it was before it came
+      const home = this.followHome;
+      const built = this.followBuilt;
+      this.followHome = null;
+      this.followBuilt = false;
+      if (!home) return;
+      if (built && this.mode === "landed") return this.frameTrip();
+      const far = angle(vecOf(this.lat0, this.lon0), vecOf(home.lat, home.lon));
+      const dur = this.reduceMotion ? 0.001 : clamp(0.9 + far * 0.5, 0.9, 2);
+      this.zoomAnchor = null;
+      this.vlon = this.vlat = 0;
+      this.turn = { from: { lon: this.lon0, lat: this.lat0, range: this.range }, to: home, hop: 0, t0: this.t, dur, home: true };
+      this.lastInteract = this.t + dur;
+      return;
+    }
+    this.followBuilt = false;
+    // coming out again while the view's still turning back, it goes back to the same place after
+    if (this.turn?.home) {
+      this.followHome = { ...this.turn.to };
+      this.turn = null;
+    } else this.followHome = { lon: this.lon0, lat: this.lat0, range: this.range };
     this.autoFrame = null;
     this.vlon = this.vlat = 0;
     // closes in from wherever the view is, never pulls back out from closer
-    this.rangeTarget = Math.min(this.rangeTarget, this.fitRange(FOLLOW_SPAN));
+    this.followRange = Math.min(this.rangeTarget, this.fitRange(FOLLOW_SPAN));
+    this.followSet = this.rangeTarget = this.range;
   }
 
   private endFollow() {
     if (!this.follow) return;
     this.follow = false;
+    // they've moved the globe themselves: it stays where they put it
+    this.followHome = null;
+    this.followBuilt = false;
     this.events.onFollowEnd?.();
   }
 
-  /** The view (lon0, lat0) that puts ground point p at the middle of the open area, or centred when it can't. */
-  private followView(p: Vec3, t: number) {
-    if (!this.followSpot || t - this.followSpot.t > 1) {
-      const area = this.events.freeArea?.() ?? null;
-      this.followSpot = { x: area ? area.x + area.w / 2 : this.W / 2, y: area ? area.y + area.h / 2 : this.H / 2, t };
+  /** The view centred on these places, fitting them all on the screen with some room round them. */
+  private viewOf(points: Vec3[]) {
+    let span = 0;
+    for (const a of points) for (const b of points) span = Math.max(span, angle(a, b));
+    const midV = points.length === 2 ? slerp(points[0], points[1], 0.5) : norm(points.reduce((a, b) => add(a, b)));
+    const mid = llOf(midV);
+    return { lon: mid.lon, lat: clamp(mid.lat, -LAT_MAX, LAT_MAX), range: Math.max(RANGE_MIN, this.fitRange(Math.max(FOLLOW_SPAN, span * 1.3))) };
+  }
+
+  /** This viewer's trip as its stops, in order. */
+  private ownStops() {
+    return this.mode === "landed" && this.origin && this.dest ? [...this.via.map((s) => s.v), this.origin, this.dest] : [];
+  }
+
+  /** Turns the view to centre this viewer's whole trip, fitting it on the screen. */
+  private frameTrip() {
+    const dur = this.reduceMotion ? 0.001 : 1.2;
+    this.zoomAnchor = null;
+    this.vlon = this.vlat = 0;
+    this.turn = { from: { lon: this.lon0, lat: this.lat0, range: this.range }, to: this.viewOf(this.ownStops()), hop: 0, t0: this.t, dur };
+    this.lastInteract = this.t + dur;
+  }
+
+  /**
+   * While the saucer draws legs out: the view that frames them all, with the rest of this viewer's trip when they're
+   * its own. Once it has drawn any, the view holds there until the saucer leaves, framed as the trip will be after,
+   * so it doesn't swing back in to the saucer and out again. Null when it hasn't drawn any.
+   */
+  private drawFraming(t: number) {
+    const own = this.ownDraws.filter((d) => t - d.t0 < d.d);
+    const draws = [
+      ...own,
+      ...[...this.remotes.values()].filter((r) => t - r.drawn < PIP_DRAW).map((r) => ({ a: r.o, b: r.target, t0: r.drawn })),
+    ];
+    if (!draws.length) return this.followBuilt ? (this.drawFrame?.to ?? null) : null;
+    const key = draws.map((d) => d.t0.toFixed(3)).join(",");
+    if (this.drawFrame?.key !== key) {
+      const points = [...draws.flatMap((d) => [d.a, d.b]), ...(own.length ? this.ownStops() : [])];
+      this.drawFrame = { key, to: this.viewOf(points) };
     }
-    const ll = llOf(p);
-    const keep = { lon0: this.lon0, lat0: this.lat0 };
-    this.anchor(p, this.followSpot.x, this.followSpot.y);
-    const at = this.proj(p);
-    const reached = !!at && at.vis && Math.hypot(at.x - this.followSpot.x, at.y - this.followSpot.y) < 24;
-    const want = reached ? { lon: this.lon0, lat: this.lat0 } : { lon: ll.lon, lat: ll.lat };
-    Object.assign(this, keep);
-    this.cam = this.camera();
-    return want;
+    return this.drawFrame.to;
   }
 
   private stepAgent(dt: number, t: number, k: (r: number) => number) {
@@ -2025,15 +2093,20 @@ export class GlobeEngine {
       this.agent = null;
       return;
     }
-    // drawing a route out, it rides the route's end as it goes
+    // drawing a route out, it rides the route's end as it goes, held to the pen once it's there so the line stays
+    // attached to it
+    let riding = false;
     if (a.on) {
-      const draws = [...[...this.remotes.values()].map((r) => ({ a: r.o, b: r.target, t0: r.drawn })), ...this.ownDraws];
+      const draws = [...[...this.remotes.values()].map((r) => ({ a: r.o, b: r.target, t0: r.drawn, d: PIP_DRAW })), ...this.ownDraws];
       for (const d of draws) {
-        const k = (t - d.t0) / DRAW;
-        if (k >= 0 && k < 1) a.target = slerp(d.a, d.b, ease(k));
-        else if (k >= 1 && k < 1.2) a.target = d.b;
+        const k = (t - d.t0) / d.d;
+        if (k >= 0 && k < 1) {
+          a.target = slerp(d.a, d.b, ease(k));
+          riding = angle(a.n, a.target) < RIDE;
+        } else if (k >= 1 && k < 1.2) a.target = d.b;
       }
     }
+    if (riding && !still) a.n = a.target;
     const gap = angle(a.n, a.target);
     let bank = 0;
     if (gap > 1e-6) {
@@ -2217,14 +2290,21 @@ export class GlobeEngine {
       this.zoomAnchor = null;
     }
     if (this.follow && this.agent?.on && !this.turn && !this.down?.drag && !this.pinch && this.mode !== "flying") {
-      // keep Pip's saucer in the open part of the screen
+      // keep Pip's saucer in the middle of the screen, gliding there, turning and zooming at one easy pace
       this.zoomAnchor = null;
       this.vlon = this.vlat = 0;
-      // flying in, the view waits where it's coming down rather than chase it in from off the screen
-      const want = this.followView(this.agent.coming > 0 ? this.agent.target : this.agent.n, t);
+      // someone zoomed while following: that's the range it keeps
+      if (Math.abs(Math.log(this.rangeTarget / this.followSet)) > 1e-4) this.followRange = this.rangeTarget;
+      // drawing legs out, it frames all the legs still to draw, so the saucer stays in view riding a long one;
+      // flying in, the view waits where the saucer's coming down rather than chase it in from off the screen
+      const drawn = this.drawFraming(t);
+      const p = llOf(this.agent.coming > 0 ? this.agent.target : this.agent.n);
+      const want = drawn ?? { lon: p.lon, lat: clamp(p.lat, -LAT_MAX, LAT_MAX), range: this.followRange };
       const e = this.reduceMotion ? 1 : k(FOLLOW_EASE);
       this.lon0 += wrapPi(want.lon - this.lon0) * e;
-      this.lat0 += (clamp(want.lat, -LAT_MAX, LAT_MAX) - this.lat0) * e;
+      this.lat0 += (want.lat - this.lat0) * e;
+      this.range = Math.exp(Math.log(this.range) + (Math.log(Math.max(want.range, this.followRange)) - Math.log(this.range)) * e);
+      this.followSet = this.rangeTarget = this.range;
     }
     if (!this.turn && !this.down?.drag && !this.pinch) {
       // the glide waits while scroll events are still moving the globe themselves
@@ -3431,7 +3511,7 @@ export class GlobeEngine {
       const end: RouteEnd = r.landed
         ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0 }
         : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
-      const k = (t - r.drawn) / DRAW;
+      const k = (t - r.drawn) / PIP_DRAW;
       this.route(ctx, this.lifted(r.o), end, this.routeColor(r.color), k < 1, t * 3, 0, k < 1 ? ease(Math.max(0, k)) : 1);
     }
     const pl = this.pl, origin = this.origin;

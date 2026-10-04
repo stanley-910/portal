@@ -1,6 +1,9 @@
 // How each tool call reads in Pip's reply: what Pip's doing, then what it did. Shared by Pip in a trip room and on
 // the home globe.
 
+/** Tools whose work Pip's saucer shows on the globe: Pip heads for its portal as soon as it calls one. */
+export const GLOBE_TOOLS: ReadonlySet<string> = new Set(["plan_trip", "search_routes", "optimize_route", "find_meetup"]);
+
 /**
  * The step line for a tool call, or null for calls not worth a line: reading the trip is bookkeeping, and edit_plan's
  * changes card says it better.

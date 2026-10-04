@@ -86,6 +86,7 @@ type Internals = {
   lat0: number;
   range: number;
   rangeTarget: number;
+  followRange: number;
   reduceMotion: boolean;
   tLand: number;
   lastInteract: number;
@@ -290,13 +291,13 @@ describe("canvas invalidation", () => {
     const { engine, state } = setup(2560, 1440);
     const whole = state.rangeTarget;
     engine.setFollow(true);
-    // a regional view, not halfway: Pip reads at a glance
-    expect(state.rangeTarget).toBeLessThan(whole / 4);
-    const regional = state.rangeTarget;
+    // a regional view, not halfway: Pip reads at a glance (the view eases there as it follows)
+    expect(state.followRange).toBeLessThan(whole / 4);
+    const regional = state.followRange;
     engine.setFollow(false);
     state.rangeTarget = regional / 2;
     engine.setFollow(true);
-    expect(state.rangeTarget).toBe(regional / 2);
+    expect(state.followRange).toBe(regional / 2);
   });
 
   it("treats a click on a saved leg's route as a route click, not a takeoff", () => {

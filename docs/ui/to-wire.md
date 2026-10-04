@@ -26,6 +26,8 @@ These are the playground's, not the app's, and need nothing unless the playgroun
 - Book on the Home scene runs checkout against stand-ins (`checkout-stand-in.ts`): the fare moves once, the details
   want a passport, and paying lands on done. Nothing is settled, held or charged.
 - Pip on the Home scene answers with a canned reply (`/api/pip` is stubbed in the page).
+- The Pip lab (`/playground/pip`) plays Pip's tool calls from scripts (`scenarios.ts`) on the real globe: `/api/pip`
+  is answered from the script, so no model is called. Each script mirrors the events `runSolo` streams for that tool.
 - Pip's checkout card on the Panels page runs against stand-ins (`checkout-card-stand-in.tsx`): each state starts a
   made-up group booking at that point, and its buttons move it on. Nothing is held or charged; adding a new card needs
   Stripe, so that form only fails.

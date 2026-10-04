@@ -1,0 +1,34 @@
+/* The Pip lab's control panel and play-by-play log, top left over the globe. */
+
+.pl-panel {
+  position: fixed;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: min(340px, calc(100vw - 2 * var(--space-3)));
+  max-height: calc(100dvh - 2 * var(--space-3));
+  padding: var(--space-2);
+  border: var(--line-control) dashed var(--ink-muted);
+  border-radius: var(--radius-control);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-control);
+  font-family: var(--font-sans);
+}
+.pl-tool { color: var(--ink-muted); font-size: 12px; }
+.pl-tool code { color: var(--ink); font-family: var(--font-mono); font-weight: 600; }
+.pl-play { color: var(--ink); }
+.pl-log {
+  overflow-y: auto;
+  min-height: 0;
+  padding-top: var(--space-1);
+  border-top: var(--line-hair) solid var(--rule);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.pl-log li { display: flex; gap: var(--space-2); color: var(--ink); }
+.pl-log li[data-kind="note"] { color: var(--ink-muted); font-style: italic; }
+.pl-log li[data-kind="saucer"] { font-weight: 600; }
+.pl-t { flex: none; width: 44px; color: var(--ink-muted); font-variant-numeric: tabular-nums; text-align: right; }

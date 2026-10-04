@@ -14,7 +14,7 @@ import { findMeetup, MAX_MEETUP_GROUPS, type MeetupGroup } from "@/lib/agent/mee
 import { citiesIn, MODEL } from "@/lib/agent/run";
 import { prepareEffort } from "@/lib/agent/effort";
 import { showDate } from "@/lib/agent/snapshot";
-import { stepLabel } from "@/lib/agent/steps";
+import { GLOBE_TOOLS, stepLabel } from "@/lib/agent/steps";
 import { fmt, KIND } from "@/lib/agent/tools";
 import { AGENT_NAME, type MeetupOption, type ThreadCard } from "@/lib/agent/types";
 import { PERSONA, STYLE } from "@/lib/agent/voice";
@@ -32,7 +32,8 @@ import { stopToPlace } from "@/lib/trip/stops";
 export type SoloEvent =
   | { t: "text"; d: string }
   | { t: "card"; card: ThreadCard }
-  | { t: "step"; id: string; label: string; done: boolean; at: number }
+  /** A tool call's line in the reply; `globe` when its work shows on the globe. */
+  | { t: "step"; id: string; label: string; done: boolean; at: number; globe?: boolean }
   /** What Pip is doing, and where on the globe; the saucer goes there. */
   | { t: "activity"; label: string | null; at?: { lat: number; lng: number } }
   | { t: "trip"; legs: SoloLeg[] }
@@ -328,11 +329,11 @@ export async function runSolo(
         else if (part.type === "tool-call") {
           started = true;
           const label = stepLabel(part.toolName);
-          if (label) emit({ t: "step", id: part.toolCallId, label: label.doing, done: false, at: text.length });
+          if (label) emit({ t: "step", id: part.toolCallId, label: label.doing, done: false, at: text.length, ...(GLOBE_TOOLS.has(part.toolName) ? { globe: true } : {}) });
         } else if (part.type === "tool-result" || part.type === "tool-error") {
           if (part.type === "tool-result" && part.toolName === "plan_trip" && !(part.output as { refused?: unknown }).refused) did.planned = true;
           const label = stepLabel(part.toolName, part.type === "tool-result" ? part.output : { refused: "ERROR" });
-          if (label) emit({ t: "step", id: part.toolCallId, label: label.done, done: true, at: text.length });
+          if (label) emit({ t: "step", id: part.toolCallId, label: label.done, done: true, at: text.length, ...(GLOBE_TOOLS.has(part.toolName) ? { globe: true } : {}) });
         } else if (part.type === "error") throw part.error;
         else if (part.type === "abort") did.aborted = true;
         else if (part.type === "finish") did.finish = part.finishReason;
