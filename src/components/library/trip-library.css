@@ -148,13 +148,6 @@
 .lib-note-title { margin: var(--space-2) 0 0; font-size: 14px; line-height: 20px; font-weight: 600; }
 .lib-note-body { margin: var(--space-1) 0 0; color: var(--ink-muted); font-size: 13px; line-height: 18px; }
 
-/* Collapsed: a small tab under the logo brings it back */
-.lib-tab { position: absolute; z-index: 10; top: calc(var(--space-4) * 2 + 36px + var(--space-1)); left: var(--space-5); display: inline-flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-gap); border: var(--line-control) solid var(--control-border); border-radius: var(--radius-control); background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-float); font-family: var(--font-sans); font-size: 14px; font-weight: 600; cursor: pointer; animation: lib-in 160ms ease-out both; }
-.lib-tab::before { content: ""; position: absolute; inset: -4px 0; }
-.lib-tab:hover { background: var(--control-hover); }
-.lib-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
-.lib-tab svg { fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; }
-.lib-tab-n { color: var(--ink-muted); font-family: var(--font-typewriter); font-size: 12px; font-weight: 700; }
 
 /* Over the globe: vehicle stickers at each leg's peak, and the hovered trip's ghost routes */
 .lib-overlay { position: absolute; inset: 0; pointer-events: none; }
@@ -172,5 +165,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lib-wrap, .lib-handle { transition: none; }
-  .lib-tab, .lib-vehicle-in, .lib-bone { animation: none; }
+  .lib-vehicle-in, .lib-bone { animation: none; }
 }

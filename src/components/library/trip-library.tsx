@@ -14,7 +14,8 @@ import { firstDay, isGroup, isPast, lastDay, myLegs, statsOf, type LibraryLeg, t
 // My Trips as a library down the left of the globe: scroll your trips, pick one (a click, or ↑ ↓ in the list) and its
 // routes and riders' pins go onto the globe at once through `draw`; pointing at another ghosts its routes over it.
 // Rename the picked trip in place (its pencil, F2, or a double-click on a title). Escape lets go of the picked trip, then puts the
-// library away; so does a press anywhere outside it, or the tab on its right edge. Put away, it's a small "Trips" tab.
+// library away; so does a press anywhere outside it, or the tab on its right edge. Put away, the nav bar's Trips
+// button brings it back.
 
 export interface TripLibraryProps {
   /** Null while loading (shows the skeleton); [] shows the empty state. */
@@ -326,16 +327,6 @@ export function TripLibrary({ trips, error, userId, today, open, onOpenChange, s
           </svg>
         </button>
       </div>
-
-      {!open ? (
-        <button type="button" className="lib-tab" onClick={() => onOpenChange(true)} aria-label="Show trips">
-          <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
-            <path d="M2.5 4h11M2.5 8h11M2.5 12h7" />
-          </svg>
-          <span>Trips</span>
-          {ready && all.length ? <span className="lib-tab-n">{all.length}</span> : null}
-        </button>
-      ) : null}
     </>
   );
 }
