@@ -9,7 +9,10 @@ export type AgentMark = {
   text: string;
   /** Where on the globe it happened. Null pops it wherever the saucer is. */
   at: Point | null;
-  /** A leg the saucer draws out: which of the legs added at once it is, in the order they draw (trip order). */
+  /**
+   * A leg the saucer reels in or draws out: its place in the order it does them, legs that went first (from the
+   * trip's end back), then legs that came (in trip order). See `legChanges`.
+   */
   drawn?: number;
 };
 
@@ -24,8 +27,11 @@ export const SAUCER_FLY_MS = 900;
 /** The same, when the saucer first comes out and flies in from off the screen (engine.ts UFO_ENTER, plus a beat). */
 export const SAUCER_ENTER_MS = 1600;
 
-/** How long a new leg takes to draw out behind the saucer, from its start to its end (engine.ts DRAW). */
+/** How long a new leg takes to draw out behind the saucer, or a removed one to reel in (engine.ts PIP_DRAW). */
 export const SAUCER_DRAW_MS = 1600;
+
+/** How long a removed leg's pin takes to rise into the saucer, before its route reels in (engine.ts PIN_RISE). */
+export const SAUCER_LIFT_MS = 500;
 
 /** How long the saucer stays over a change once it lands, before Pip flies on to the next. */
 export const SAUCER_STAY_MS = 800;
@@ -40,15 +46,37 @@ export function midpoint(a: Point, b: Point): Point {
   return { lat: Math.asin(y / l) / R, lng: Math.atan2(x, z) / R };
 }
 
-/** The marks for a trip on the home globe changing from one list of legs to another. */
-export function legMarks(before: { from: Point & { name: string }; to: Point & { name: string } }[], after: typeof before): AgentMark[] {
-  const key = (l: (typeof before)[number]) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
+type Leg = { from: Point & { name: string }; to: Point & { name: string } };
+
+/**
+ * The legs that went and the legs that came when a trip changes from `before` to `after`, in the order Pip's saucer
+ * plays them: the ones that went from the trip's end back, so a run of them reels in in one sweep, ending where the
+ * new ones start; then the ones that came, in trip order. The globe engine plays them in the same order.
+ */
+export function legChanges<L extends Leg>(before: L[], after: L[]) {
+  const key = (l: Leg) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
   const had = new Set(before.map(key));
   const has = new Set(after.map(key));
-  // over where the leg ends, where its pin drops
-  const mark = (did: string, l: (typeof before)[number]): AgentMark => ({ text: `${did} ${l.from.name} → ${l.to.name}`, at: { lat: l.to.lat, lng: l.to.lng } });
+  return { removed: before.filter((l) => !has.has(key(l))).reverse(), added: after.filter((l) => !had.has(key(l))) };
+}
+
+/** Where the saucer starts on a trip changing from `before` to `after`: the end of the last leg that went, else the start of the first that came. */
+export function changeStart(before: Leg[], after: Leg[]): Point | null {
+  const { removed, added } = legChanges(before, after);
+  const at = removed[0]?.to ?? added[0]?.from;
+  return at ? { lat: at.lat, lng: at.lng } : null;
+}
+
+/**
+ * The marks for a trip on the home globe changing from one list of legs to another, in the order the saucer plays
+ * them: a leg that went pops at its start, where it has reeled back to, and one that came at its end, where its pin
+ * drops.
+ */
+export function legMarks(before: Leg[], after: Leg[]): AgentMark[] {
+  const { removed, added } = legChanges(before, after);
+  const text = (did: string, l: Leg) => `${did} ${l.from.name} → ${l.to.name}`;
   return [
-    ...before.filter((l) => !has.has(key(l))).map((l) => mark("Removed", l)),
-    ...after.filter((l) => !had.has(key(l))).map((l, i) => ({ ...mark("Added", l), drawn: i })),
+    ...removed.map((l, i) => ({ text: text("Removed", l), at: { lat: l.from.lat, lng: l.from.lng }, drawn: i })),
+    ...added.map((l, i) => ({ text: text("Added", l), at: { lat: l.to.lat, lng: l.to.lng }, drawn: removed.length + i })),
   ];
 }

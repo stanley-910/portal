@@ -5,15 +5,16 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObj
 import { getAway, PORTAL_MS, setAway } from "@/components/agent/pip-away";
 import { PipSprite } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
-import { SAUCER_DRAW_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
+import { SAUCER_DRAW_MS, SAUCER_LIFT_MS, SAUCER_STAY_MS, type AgentMark } from "@/lib/agent/marks";
 import { AGENT_NAME } from "@/lib/agent/types";
 
 // Pip at work on the globe: its saucer (the globe draws it, trip-globe/ufo-model.ts) flies to whatever Pip is
 // looking at, and the view follows it until someone moves the globe themselves.
 // Pip makes its changes one at a time (agent/tools.ts): the saucer flies to where each goes, and the change lands and
-// pops up over the place like a hit in a game as it gets there. Legs Pip adds are built under it: it flies to where the
-// first starts, the trip goes down once it's there, and it rides the end of each new line out to its pin, which drops
-// as the line reaches it and pops "Added". Once Pip is done, the saucer flies off the screen.
+// pops up over the place like a hit in a game as it gets there. Legs Pip changes are played under it: it flies to
+// where the first change starts and the trip goes down once it's there. A leg that went has its pin rise into the
+// saucer, which rides its line back to its start, reeling it in, and pops "Removed"; a leg that came draws out behind
+// it to its pin, which drops as the line reaches it, and pops "Added". Once Pip is done, the saucer flies off.
 // Pip itself goes first: it drops through a portal at its spot in the chat (pip-away.ts), and the saucer flies in once
 // it's through; the portal stays open while the saucer works, and Pip comes back out of it once the saucer has gone.
 // Positions are written to the DOM every frame.
@@ -29,8 +30,11 @@ const LINGER_MS = 1000;
 /** Pops float this far above the saucer. */
 const POP_RISE = 30;
 
-/** Puts new legs on the globe once the saucer is at `from`, where the first of them starts. */
-export type SaucerBuild = { from: LatLng; run: () => void };
+/**
+ * Changes the legs on the globe once the saucer is at `from`, where the first change starts (lib/agent/marks.ts
+ * changeStart). `lift`: a leg goes, so its pin rises into the saucer before anything reels in or draws out.
+ */
+export type SaucerBuild = { from: LatLng; run: () => void; lift?: boolean };
 
 export type PipSaucerHandle = {
   /**
@@ -85,8 +89,9 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
     const handle = globe.current;
     if (!handle) return;
     let current: (Step & { since: number; popped: number | null }) | null = null;
-    // when the last build put its legs down
+    // when the last build put its legs down, and how long its pins took to rise first
     let built = -Infinity;
+    let lifted = 0;
     let place: LatLng | null = null;
     let sent = "";
     let shown = false;
@@ -141,11 +146,12 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       if (current?.build && (spot?.arrived || t - current.since > REACH_MS)) {
         current.build.run();
         built = t;
+        lifted = current.build.lift ? SAUCER_LIFT_MS : 0;
         current = null;
       }
-      // a leg it's drawing pops as its line reaches the end, when the pin drops; anything else once it's there
+      // a leg it's reeling in or drawing out pops as its line gets there; anything else once the saucer's there
       const drawing = current?.mark?.drawn;
-      const ready = drawing !== undefined ? t - built > (drawing + 1) * SAUCER_DRAW_MS : !current?.mark?.at || spot?.arrived || t - current.since > REACH_MS;
+      const ready = drawing !== undefined ? t - built > lifted + (drawing + 1) * SAUCER_DRAW_MS : !current?.mark?.at || spot?.arrived || t - current.since > REACH_MS;
       if (current?.mark && current.popped === null && ready) {
         current.popped = t;
         const pop = { id: ++seq, mark: current.mark };

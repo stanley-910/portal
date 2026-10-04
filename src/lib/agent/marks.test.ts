@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { legMarks, midpoint } from "./marks";
+import { changeStart, legMarks, midpoint } from "./marks";
 
 const hk = { name: "Hong Kong", lat: 22.3, lng: 114.2 };
 const sh = { name: "Shanghai", lat: 31.2, lng: 121.5 };
@@ -26,5 +26,20 @@ describe("legMarks", () => {
 
   it("pops each over where its leg ends, not out at sea between", () => {
     expect(legMarks([], [{ from: hk, to: tk }])[0]!.at).toEqual({ lat: tk.lat, lng: tk.lng });
+  });
+
+  it("pops a leg that went over its start, where it reels back to", () => {
+    expect(legMarks([{ from: sh, to: tk }], [])[0]!.at).toEqual({ lat: sh.lat, lng: sh.lng });
+  });
+
+  it("orders the legs that went from the end back, then the ones that came, and starts where the last went", () => {
+    const before = [{ from: hk, to: sh }, { from: sh, to: tk }, { from: tk, to: hk }];
+    const after = [{ from: hk, to: sh }, { from: sh, to: hk }];
+    expect(legMarks(before, after).map((m) => [m.text, m.drawn])).toEqual([
+      ["Removed Tokyo → Hong Kong", 0],
+      ["Removed Shanghai → Tokyo", 1],
+      ["Added Shanghai → Hong Kong", 2],
+    ]);
+    expect(changeStart(before, after)).toEqual({ lat: hk.lat, lng: hk.lng });
   });
 });

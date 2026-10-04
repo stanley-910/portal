@@ -79,4 +79,13 @@ export const SCENARIOS: Scenario[] = [
     before: [],
     beats: planTrip([], twoLegs, "Both legs are on your globe: HK West Kowloon → Shanghai Hongqiao tomorrow, then on to Tokyo two days later. Each leg's card is searching fares."),
   },
+  {
+    // on the home globe a leg comes off by plan_trip putting the trip down again without it
+    id: "remove",
+    label: "Remove a leg",
+    tool: "plan_trip",
+    ask: "Actually, drop Tokyo. Just Hong Kong to Shanghai.",
+    before: twoLegs,
+    beats: planTrip(twoLegs, oneLeg, "Dropped Shanghai Hongqiao → Tokyo. HK West Kowloon → Shanghai Hongqiao is still on your globe for tomorrow."),
+  },
 ];

@@ -11,7 +11,7 @@ import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import { readSoloEvents } from "./solo-stream";
 import { recordTiming } from "@/lib/performance";
-import type { AgentMark } from "@/lib/agent/marks";
+import { changeStart, legChanges, type AgentMark } from "@/lib/agent/marks";
 import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { AGENT_NAME, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
 import { SIGN_IN_TO_ASK } from "@/lib/agent/use-thread";
@@ -120,13 +120,6 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   );
 }
 
-/** The legs in `after` that aren't in `before`, in trip order: the ones the saucer draws out. */
-function newLegs(before: SoloLeg[], after: SoloLeg[]) {
-  const key = (l: SoloLeg) => `${l.from.lat},${l.from.lng}>${l.to.lat},${l.to.lng}`;
-  const had = new Set(before.map(key));
-  return after.filter((l) => !had.has(key(l)));
-}
-
 /**
  * The home conversation: sends each message with the recent history and the legs on the globe, and applies the
  * streamed reply as it comes. Text is applied once a frame, so a fast stream doesn't re-render per token.
@@ -232,8 +225,11 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
       } else if (event.t === "marks") {
         const legs = planned;
         planned = null;
-        const first = event.marks.some((m) => m.drawn !== undefined) && legs ? newLegs(tripRef.current.trip, legs)[0] : undefined;
-        if (legs && first) tripRef.current.onMarks(event.marks, { from: { lat: first.from.lat, lng: first.from.lng }, run: () => putDown(legs) });
+        const from = event.marks.some((m) => m.drawn !== undefined) && legs ? changeStart(tripRef.current.trip, legs) : null;
+        if (legs && from) {
+          const lift = legChanges(tripRef.current.trip, legs).removed.length > 0;
+          tripRef.current.onMarks(event.marks, { from, lift, run: () => putDown(legs) });
+        }
         else {
           if (legs) putDown(legs);
           tripRef.current.onMarks(event.marks);

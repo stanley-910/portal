@@ -167,6 +167,8 @@ const PIN_LIFT_RATE = 12;
 /** How much of a raised pin's height the routes into its stop rise with it. */
 const ROUTE_LIFT = 0.35;
 const PIN_STAGGER = 0.09;
+// a pin taken off while Pip's saucer is out rises into it, shrinking away, over PIN_RISE seconds
+const PIN_RISE = 0.5;
 const PIN_FAN = 0.8;
 const PIN_FAN_MAX = 2.4;
 const PIN_SPLAY = 0.25;
@@ -186,7 +188,8 @@ const UFO_THERE = 0.003;
 const UFO_ENTER = 1.4;
 const UFO_EXIT = 1.6;
 const UFO_EXIT_ARC = 0.9; // radians over the globe it comes from and heads off
-// A removed leg's route reels in: it pulls off its start toward its end, where Pip's saucer is, over REEL seconds.
+// A removed leg's route reels in: it pulls off its start toward its end over REEL seconds. One Pip removes reels back
+// the other way, its end retracting to its start under the saucer, over PIP_DRAW seconds once its pin has risen.
 // One Pip adds draws out from its start behind the saucer over PIP_DRAW seconds, and the pins at its end drop after.
 // Several it adds at once draw one after another, in trip order, the saucer riding each pen in turn.
 const REEL = 0.9;
@@ -531,6 +534,8 @@ export class GlobeEngine {
   private pins = new Map<string, {
     stop: string; g: Vec3; color: number | null; t0: number;
     fan: number; to: number; h: number; squash: number; head: Vec3 | null;
+    /** When it started rising into Pip's saucer, taken off; how much of its size is left as it does. */
+    up?: number; scale?: number;
   }>();
   private pinsMoving = false;
   /**
@@ -549,7 +554,8 @@ export class GlobeEngine {
   // in (0 to 1), how far round its rim lights have chased, and, once `on` is off, how long it has been flying away
   private agent: { n: Vec3; target: Vec3; alt: number; bank: number; size: number; on: boolean; spin: number; away: number; coming: number } | null = null;
   // removed legs' routes reeling in, from when each started
-  private reels: { o: Vec3; target: Vec3; color: number | null; t0: number }[] = [];
+  // `back` reels its end in to its start, under Pip's saucer, over `d` seconds
+  private reels: { o: Vec3; target: Vec3; color: number | null; t0: number; back?: boolean; d?: number }[] = [];
   // legs of this viewer's own trip that Pip's saucer is drawing out (showTrip), from when each started
   private ownDraws: { a: Vec3; b: Vec3; t0: number; d: number }[] = [];
   // the view following the saucer, and where on screen it keeps it: the middle of the open area, asked now and then
@@ -1208,10 +1214,14 @@ export class GlobeEngine {
     if (pip) {
       const after = this.ownLegs();
       const same = (x: [Vec3, Vec3], y: [Vec3, Vec3]) => angle(x[0], y[0]) < 1e-6 && angle(x[1], y[1]) < 1e-6;
+      // the legs that went reel back in under it from the trip's end back, once their pins have risen into it; then the
+      // legs that came draw out, in trip order (the same order as lib/agent/marks.ts legChanges)
+      const removed = before.filter((leg) => !after.some((a) => same(a, leg))).reverse();
       const added = after.filter((leg) => !before.some((b) => same(b, leg)));
-      added.forEach((leg, i) => this.ownDraws.push({ a: leg[0], b: leg[1], t0: t + i * PIP_DRAW, d: PIP_DRAW }));
-      if (added.length && this.follow) this.followBuilt = true;
-      for (const leg of before) if (!after.some((a) => same(a, leg))) this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t });
+      const lift = removed.length ? PIN_RISE : 0;
+      removed.forEach((leg, i) => this.reels.push({ o: leg[0], target: leg[1], color: this.color, t0: t + lift + i * PIP_DRAW, back: true, d: PIP_DRAW }));
+      added.forEach((leg, i) => this.ownDraws.push({ a: leg[0], b: leg[1], t0: t + lift + (removed.length + i) * PIP_DRAW, d: PIP_DRAW }));
+      if ((added.length || removed.length) && this.follow) this.followBuilt = true;
     }
     this.tLand = t - TOUCHDOWN - VANISH;
     // drawn out, the view keeps its turn to frame the trip
@@ -1805,6 +1815,7 @@ export class GlobeEngine {
       const g = vecOf(p.at.lat * D2R, p.at.lng * D2R);
       const old = this.pins.get(p.key);
       if (old) {
+        old.up = old.scale = undefined;
         // pins being carried stay with the pointer; the stop's new place arrives once they're dropped
         Object.assign(old, { stop: p.stop, g: this.lift?.stop === p.stop ? old.g : g, color: p.color, to });
         continue;
@@ -1812,7 +1823,13 @@ export class GlobeEngine {
       const t0 = this.reduceMotion ? -Infinity : Math.max(t, this.landingDone(g)) + PIN_STAGGER * fresh++;
       this.pins.set(p.key, { stop: p.stop, g, color: p.color, t0, fan: to, to, h: -PIN_SINK, squash: 0, head: null });
     }
-    for (const key of this.pins.keys()) if (!seen.has(key)) this.pins.delete(key);
+    // pins taken off while Pip's saucer is out rise into it; otherwise they go at once
+    const rise = !!this.agent?.on && !this.reduceMotion;
+    for (const [key, p] of this.pins) {
+      if (seen.has(key)) continue;
+      if (rise && p.h !== Infinity) p.up ??= t;
+      else this.pins.delete(key);
+    }
     this.glDirty = true;
     this.hudDirty = true;
   }
@@ -2068,14 +2085,16 @@ export class GlobeEngine {
    */
   private drawFraming(t: number) {
     const own = this.ownDraws.filter((d) => t - d.t0 < d.d);
+    const back = this.reels.filter((r) => r.back && t - r.t0 < (r.d ?? PIP_DRAW));
     const draws = [
       ...own,
+      ...back.map((r) => ({ a: r.o, b: r.target, t0: r.t0 })),
       ...[...this.remotes.values()].filter((r) => t - r.drawn < PIP_DRAW).map((r) => ({ a: r.o, b: r.target, t0: r.drawn })),
     ];
     if (!draws.length) return this.followBuilt ? (this.drawFrame?.to ?? null) : null;
     const key = draws.map((d) => d.t0.toFixed(3)).join(",");
     if (this.drawFrame?.key !== key) {
-      const points = [...draws.flatMap((d) => [d.a, d.b]), ...(own.length ? this.ownStops() : [])];
+      const points = [...draws.flatMap((d) => [d.a, d.b]), ...(own.length || back.length ? this.ownStops() : [])];
       this.drawFrame = { key, to: this.viewOf(points) };
     }
     return this.drawFrame.to;
@@ -2097,14 +2116,26 @@ export class GlobeEngine {
     // attached to it
     let riding = false;
     if (a.on) {
-      const draws = [...[...this.remotes.values()].map((r) => ({ a: r.o, b: r.target, t0: r.drawn, d: PIP_DRAW })), ...this.ownDraws];
+      const draws = [
+        ...[...this.remotes.values()].map((r) => ({ a: r.o, b: r.target, t0: r.drawn, d: PIP_DRAW })),
+        ...this.ownDraws,
+        ...this.reels.filter((r) => r.back).map((r) => ({ a: r.target, b: r.o, t0: r.t0, d: r.d ?? PIP_DRAW })),
+      ];
+      let busy = false;
+      let next: Vec3 | null = null;
       for (const d of draws) {
         const k = (t - d.t0) / d.d;
         if (k >= 0 && k < 1) {
           a.target = slerp(d.a, d.b, ease(k));
           riding = angle(a.n, a.target) < RIDE;
-        } else if (k >= 1 && k < 1.2) a.target = d.b;
+          busy = true;
+        } else if (k >= 1 && k < 1.2) {
+          a.target = d.b;
+          busy = true;
+        } else if (k < 0 && d.t0 - t <= PIN_RISE + 0.01) next = d.a;
       }
+      // about to start, as a removed pin rises into it: it waits over where the line begins
+      if (!busy && next) a.target = next;
     }
     if (riding && !still) a.n = a.target;
     const gap = angle(a.n, a.target);
@@ -2599,12 +2630,25 @@ export class GlobeEngine {
     let moving = false;
     // pins being carried rise, so keep their heads under the pointer as they do
     this.aimLift();
-    for (const p of this.pins.values()) {
+    for (const [key, p] of this.pins) {
       p.fan = this.reduceMotion || Math.abs(p.to - p.fan) < 1e-3 ? p.to : p.fan + (p.to - p.fan) * k(8);
       if (this.lift?.stop === p.stop && p.h !== Infinity) {
         p.g = this.lift.at;
         p.squash = 0;
         p.h = this.reduceMotion ? PIN_LIFT : p.h + (PIN_LIFT - p.h) * k(PIN_LIFT_RATE);
+        moving = true;
+        continue;
+      }
+      if (p.up !== undefined) {
+        // rising into the saucer: up from the ground, faster and faster, shrinking away
+        const q = (t - p.up) / PIN_RISE;
+        if (q >= 1) {
+          this.pins.delete(key);
+          continue;
+        }
+        p.squash = 0;
+        p.h = -PIN_SINK + (PIN_FALL * 2 + PIN_SINK) * q * q;
+        p.scale = 1 - q * q;
         moving = true;
         continue;
       }
@@ -2701,8 +2745,9 @@ export class GlobeEngine {
       const tilt = PIN_LEAN + PIN_SPLAY * Math.abs(p.fan);
       const axis = norm(add(mul(g, Math.cos(tilt)), mul(lean, Math.sin(tilt))));
       const across = tangent(c.R, axis);
-      const tall = size * (1 - p.squash);
-      const wide = size * (1 + p.squash * 0.6);
+      const s = size * (p.scale ?? 1);
+      const tall = s * (1 - p.squash);
+      const wide = s * (1 + p.squash * 0.6);
       const tip = add(g, mul(axis, p.h * size));
       const head = add(tip, mul(axis, PIN_HEAD_Z * tall));
       p.head = head;
@@ -3501,10 +3546,12 @@ export class GlobeEngine {
       ctx.clearRect(0, 0, layer.width, layer.height);
       ctx.setTransform(out.getTransform());
     }
-    this.reels = this.reels.filter((r) => t - r.t0 < REEL);
+    this.reels = this.reels.filter((r) => t - r.t0 < (r.d ?? REEL));
     for (const r of this.reels) {
-      const k = (t - r.t0) / REEL;
-      this.route(ctx, r.o, { v: this.groundEnd(r.target), alt: 0, cut: 0 }, this.routeColor(r.color), true, t * 3, k * k);
+      const k = (t - r.t0) / (r.d ?? REEL);
+      const end = { v: this.groundEnd(r.target), alt: 0, cut: 0 };
+      if (r.back) this.route(ctx, r.o, end, this.routeColor(r.color), true, t * 3, 0, 1 - ease(clamp(k, 0, 1)));
+      else this.route(ctx, r.o, end, this.routeColor(r.color), true, t * 3, k * k);
     }
     for (const r of this.remotes.values()) {
       const target = this.lifted(r.target);
