@@ -26,6 +26,14 @@ describe("planIssues", () => {
     ]);
   });
 
+  it("keys two people on different flights the same whichever order the legs are read in", () => {
+    const l1 = leg("hk", "sh", ["a"], offer("o1", "HX234", "2026-10-20T18:30:00+08:00", "2026-10-20T21:00:00+08:00"));
+    const l2 = leg("hk", "sh", ["b"], offer("o2", "MU506", "2026-10-20T19:10:00+08:00", "2026-10-20T21:40:00+08:00"));
+    const key = (legs: object) => planIssues({ members, stops, legs } as never)[0].key;
+    expect(key({ l1, l2 })).toBe("split:l1:l2:o1:o2");
+    expect(key({ l2, l1 })).toBe("split:l1:l2:o1:o2");
+  });
+
   it("spots friends from different cities landing hours apart, and asks Pip to line them up", () => {
     const issues = planIssues({ members, stops, legs: {
       l1: leg("hk", "sh", ["a", "b"], offer("o1", "HX234", "2026-10-20T08:30:00+08:00", "2026-10-20T11:00:00+08:00")),

@@ -52,9 +52,10 @@ export function planIssues(plan: Plan): Issue[] {
       const ca = chosenOf(a), cb = chosenOf(b);
       if (!ca || !cb || ca.kind === "estimated" || cb.kind === "estimated" || service(ca) === service(cb)) continue;
       merged.add(aId).add(bId);
-      const [first, second] = [aId, bId].sort();
+      // the same in every client and on the server, whichever order each reads the legs in
+      const [first, second] = aId < bId ? [ca, cb] : [cb, ca];
       issues.push({
-        key: `split:${first}:${second}:${ca.id}:${cb.id}`,
+        key: `split:${[aId, bId].sort().join(":")}:${first.id}:${second.id}`,
         text: `${names(plan, a.riders)} and ${names(plan, b.riders)} are both going ${stops[a.from].name} → ${stops[a.to].name} on ${day(a.date)}, but on different services: ${service(ca)} and ${service(cb)}. Should you all take the same one?`,
         fixes: [
           { kind: "merge", label: `All on ${service(ca)}`, keep: aId, drop: bId },
