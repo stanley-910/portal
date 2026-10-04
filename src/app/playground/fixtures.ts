@@ -35,7 +35,7 @@ export const MEMBERS = {
 const DAY = 86_400_000;
 export const day = (n: number) => new Date(Date.now() + n * DAY).toISOString().slice(0, 10);
 
-const meetup: MeetupOption[] = [
+export const meetup: MeetupOption[] = [
   {
     id: "P1",
     place: { name: "Shanghai", code: "SHA", lat: PLACES.sha.lat, lng: PLACES.sha.lng, hub: "train:SHANGHAI-HONGQIAO" },

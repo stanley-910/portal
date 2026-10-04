@@ -29,6 +29,11 @@ const REACH_MS = 3500;
 const LEG_MS = 10_000;
 /** How long the saucer stays out after Pip stops, so it doesn't flicker between steps. */
 const LINGER_MS = 1000;
+/** How long it stays over a place Pip looked at before flying on to the next, and over the last before it leaves. */
+const STOP_MS = 800;
+const LAST_STOP_MS = 1500;
+/** The most places it has still to visit: past this it skips to the latest, so it never falls far behind Pip. */
+const MAX_STOPS = 2;
 /** Pops float this far above the saucer. */
 const POP_RISE = 30;
 
@@ -95,6 +100,9 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
     let sent = "";
     let shown = false;
     let lastBusy = -Infinity;
+    // the places Pip has looked at, in turn: the saucer stops at each, the first being where it is or is headed
+    let stops: { at: LatLng; key: string; since: number; arrived: number | null }[] = [];
+    let looked = "";
     let seq = 0;
     const born = new Map<number, number>();
     const send = (ll: LatLng | null) => {
@@ -113,7 +121,26 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       const { at, busy, expect, pops } = live.current;
       if (!current && queue.current.length) current = { ...queue.current.shift()!, since: t, popped: null };
       if (current || busy) lastBusy = t;
-      place = current?.build?.from ?? current?.mark?.at ?? (current ? place : at) ?? place;
+      // each new place Pip looks at is a stop; changes it makes take over from them
+      const key = at ? `${at.lat},${at.lng}` : "";
+      if (at && key !== looked) {
+        const next = [...stops, { at, key, since: t, arrived: null }];
+        // skipping ahead, it sets off for the one it skips to now
+        if (next.length > MAX_STOPS) next.slice(-MAX_STOPS)[0].since = t;
+        stops = next.slice(-MAX_STOPS);
+      }
+      looked = key;
+      if (current) stops = [];
+      // on to the next once it has stayed long enough here
+      if (stops.length > 1 && stops[0].arrived !== null && t - stops[0].arrived > STOP_MS) {
+        stops = stops.slice(1);
+        // the time to reach it counts from when it sets off for it
+        stops[0].since = t;
+      }
+      const stopAt = stops[0];
+      // it stays out to reach a stop and to stay a while over the last
+      if (stopAt && shown && (stopAt.arrived === null ? t - stopAt.since < REACH_MS : t - stopAt.arrived < LAST_STOP_MS)) lastBusy = Math.max(lastBusy, t - LINGER_MS + 1);
+      place = current?.build?.from ?? current?.mark?.at ?? (current ? place : stopAt?.at) ?? place;
       const wanted = (!!place && t - lastBusy < LINGER_MS) || expect;
       // Pip goes through its portal before the saucer comes out, and comes back once the saucer has gone
       const away = getAway();
@@ -134,6 +161,7 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
           handle.followAgent(false);
           setLost(false);
           place = null;
+          stops = [];
         }
       }
       send(shown ? place : null);
@@ -141,6 +169,8 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       const spot = shown ? handle.agentSpot() : null;
       // the time to reach a place counts from when the saucer is out
       if (current && !shown) current.since = t;
+      if (stops[0] && !shown) stops[0].since = t;
+      if (!current && stops[0] && stops[0].arrived === null && spot?.arrived && sent === stops[0].key) stops[0].arrived = t;
       // there to build: the legs go down, and the saucer rides them out
       if (current?.build && (spot?.arrived || t - current.since > REACH_MS)) {
         current.build.run();

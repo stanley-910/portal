@@ -1,6 +1,8 @@
-import { legMarks } from "@/lib/agent/marks";
+import { legMarks, midpoint } from "@/lib/agent/marks";
 import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import type { Stop } from "@/lib/liveblocks/types";
+
+import { meetup } from "../fixtures";
 
 // Pip's tool calls as scripts: the events /api/pip streams for one reply, in order, each after a wait. Each script
 // mirrors what runSolo (lib/agent/solo.ts) emits for that tool, so the lab plays the real saucer and globe without a
@@ -56,7 +58,28 @@ function planTrip(before: SoloLeg[], after: SoloLeg[], reply: string): Beat[] {
   ];
 }
 
+/**
+ * A tool that only looks, the way runSolo runs search_routes, optimize_route and find_meetup: the step goes up, the
+ * tool says what it's checking and where (the saucer goes there) while it searches, then lets go, and the model
+ * writes its reply.
+ */
+function look(tool: string, steps: { label: string; at: { lat: number; lng: number }; wait: number }[], done: string, reply: string, card?: Beat): Beat[] {
+  return [
+    { wait: 900, event: { t: "step", id: "c1", label: "Searching routes", done: false, at: 0, globe: true }, note: `model calls ${tool}` },
+    ...steps.map((s, i): Beat => ({ wait: i ? s.wait : 60, event: { t: "activity", label: s.label, at: s.at }, note: i ? undefined : "the tool looks at where it's searching" })),
+    { wait: 1200, event: { t: "activity", label: null }, note: "search done" },
+    ...(card ? [card] : []),
+    { wait: 40, event: { t: "step", id: "c1", label: done, done: true, at: 0, globe: true }, note: "tool result back to the model" },
+    ...words(reply).map((b, i) => (i ? b : { ...b, wait: 700, note: "model writes its reply" })),
+    { wait: 60, event: { t: "done" }, note: "reply ends" },
+  ];
+}
+
 const oneLeg: SoloLeg[] = [{ from: STOPS.hkg, to: STOPS.sha, date: day(1) }];
+const toSeoul: SoloLeg[] = [
+  { from: STOPS.hkg, to: STOPS.sha, date: day(1) },
+  { from: STOPS.sha, to: STOPS.sel, date: day(3) },
+];
 const twoLegs: SoloLeg[] = [
   { from: STOPS.hkg, to: STOPS.sha, date: day(1) },
   { from: STOPS.sha, to: STOPS.tyo, date: day(3) },
@@ -87,5 +110,46 @@ export const SCENARIOS: Scenario[] = [
     ask: "Actually, drop Tokyo. Just Hong Kong to Shanghai.",
     before: twoLegs,
     beats: planTrip(twoLegs, oneLeg, "Dropped Shanghai Hongqiao → Tokyo. HK West Kowloon → Shanghai Hongqiao is still on your globe for tomorrow."),
+  },
+  {
+    // a leg that went and one that came in one plan_trip: it reels the old one back, then draws the new one out
+    id: "change",
+    label: "Change a destination",
+    tool: "plan_trip",
+    ask: "Make the second stop Seoul instead of Tokyo.",
+    before: twoLegs,
+    beats: planTrip(twoLegs, toSeoul, "Swapped Tokyo for Seoul: HK West Kowloon → Shanghai Hongqiao tomorrow, then Shanghai Hongqiao → Seoul Incheon two days later."),
+  },
+  {
+    id: "search",
+    label: "Search fares",
+    tool: "search_routes",
+    ask: "What's cheapest from Hong Kong to Shanghai tomorrow?",
+    before: oneLeg,
+    beats: look(
+      "search_routes",
+      [{ label: "checking HK West Kowloon to Shanghai Hongqiao", at: midpoint(STOPS.hkg, STOPS.sha), wait: 0 }],
+      "Found 6 routes",
+      "The cheapest is the G80 high-speed train at HKD 1,013, 8h 20m; flying is quicker but about twice the price.",
+    ),
+  },
+  {
+    id: "meetup",
+    label: "Find a meet-up",
+    tool: "find_meetup",
+    ask: "I'm in Hong Kong, my friend's in Seoul. Where should we meet?",
+    before: [],
+    beats: look(
+      "find_meetup",
+      [
+        { label: "comparing meet-ups for 2 groups", at: STOPS.hkg, wait: 0 },
+        { label: "checking Shanghai", at: STOPS.sha, wait: 1100 },
+        { label: "checking Taipei", at: { lat: 25.0777, lng: 121.233 }, wait: 1100 },
+        { label: "checking Tokyo", at: STOPS.tyo, wait: 1100 },
+      ],
+      "Compared 6 routes",
+      "Shanghai is cheapest for both of you in total; Taipei is close behind and quicker for you.",
+      { wait: 40, event: { t: "card", card: { type: "meetup", title: "Where to meet · cheapest", options: meetup, applied: null, changesetId: null, undone: false } } },
+    ),
   },
 ];

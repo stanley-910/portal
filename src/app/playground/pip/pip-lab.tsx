@@ -131,7 +131,8 @@ export function PipLab() {
     const dates = pipDates.current;
     pipDates.current = null;
     note("globe", `landed ${flown.length} leg${flown.length === 1 ? "" : "s"}`);
-    globe.current?.setPins(flown.map((l, i) => ({ key: `you:${i}`, stop: `stop:${i}`, at: l.destination, color: cursorPref.color })));
+    // keyed by place, as the home globe keys them, so a stop that stays keeps its pin and one that goes rises away
+    globe.current?.setPins(flown.map((l, i) => ({ key: `you:${l.destination.lat.toFixed(5)},${l.destination.lng.toFixed(5)}`, stop: `stop:${i}`, at: l.destination, color: cursorPref.color })));
     setLegs(flown.map((l, i) => ({ from: stopFromPoint(l.origin, l.from), to: stopFromPoint(l.destination, l.to), date: dates?.[i] ?? "" })));
   };
 
