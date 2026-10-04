@@ -401,6 +401,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
     <HomePip
       globe={globe}
       account={account}
+      person={person ? { email: person.email ?? null, nationalities: person.nationalities ?? [] } : undefined}
       trip={soloTrip}
       onTrip={(planned) => {
         pipDates.current = planned.map((l) => l.date);

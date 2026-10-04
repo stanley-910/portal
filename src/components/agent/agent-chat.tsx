@@ -267,7 +267,7 @@ export type CardActions = {
   retry?: (messageId: string) => void;
   appliedReplies?: ReadonlySet<string>;
   /** A leg's checkout, where there's a trip to book in. */
-  checkout?: (legId: string) => ReactNode;
+  checkout?: (legId: string, tripId?: string) => ReactNode;
   /** A fix button on something Pip noticed in the trip. */
   fix?: (messageId: string, index: number) => Promise<unknown>;
 };
@@ -382,7 +382,7 @@ function Step({ label, running = false, detail = null }: { label: string; runnin
 function Card({ card, messageId, members, activity }: { card: ThreadCard; messageId: string; members: Members; activity: string | null }) {
   if (card.type === "meetup") return <MeetupCard card={card} messageId={messageId} members={members} />;
   if (card.type === "changes") return <ChangesCard card={card} messageId={messageId} />;
-  if (card.type === "checkout") return <CheckoutSlot legId={card.legId} />;
+  if (card.type === "checkout") return <CheckoutSlot legId={card.legId} tripId={card.tripId} />;
   if (card.type === "fix") return <FixCard card={card} messageId={messageId} />;
   return <Step label={card.label} running={!card.done} detail={card.done ? null : activity} />;
 }
@@ -417,9 +417,9 @@ function FixCard({ card, messageId }: { card: Extract<ThreadCard, { type: "fix" 
   );
 }
 
-function CheckoutSlot({ legId }: { legId: string }) {
+function CheckoutSlot({ legId, tripId }: { legId: string; tripId?: string }) {
   const actions = use(CardActionsContext);
-  return actions.checkout ? actions.checkout(legId) : null;
+  return actions.checkout ? actions.checkout(legId, tripId) : null;
 }
 
 function MeetupCard({ card, messageId, members }: { card: Extract<ThreadCard, { type: "meetup" }>; messageId: string; members: Members }) {

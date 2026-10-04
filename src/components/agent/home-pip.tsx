@@ -11,6 +11,7 @@ import { PipSprite, type PipMood } from "@/components/agent/pip-sprite";
 import type { LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import { readSoloEvents } from "./solo-stream";
 import { recordTiming } from "@/lib/performance";
+import { SoloCheckout } from "@/components/ticket-search/solo-checkout";
 import { changeStart, type AgentMark } from "@/lib/agent/marks";
 import type { SoloEvent, SoloLeg } from "@/lib/agent/solo";
 import { AGENT_NAME, type ThreadCard, type ThreadMessage } from "@/lib/agent/types";
@@ -47,13 +48,15 @@ type Props = {
   trip: SoloLeg[];
   /** Puts the legs Pip planned on the globe. */
   onTrip: (legs: SoloLeg[]) => void;
+  /** Who's checking out when Pip books a leg: their email and passports prefill the details. */
+  person?: { email: string | null; nationalities: string[] };
   /** `ask` opens the chat and sends a message: the one a guest typed before signing in. */
   ref?: Ref<HomePipHandle>;
 };
 
 export type HomePipHandle = { ask: (text: string) => void };
 
-export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
+export function HomePip({ globe, account, trip, onTrip, person, ref }: Props) {
   const [open, setOpen] = useState(false);
   const openAuth = useOpenAuth();
   const saucer = useRef<PipSaucerHandle>(null);
@@ -78,7 +81,13 @@ export function HomePip({ globe, account, trip, onTrip, ref }: Props) {
   }));
 
   const composer = useComposer(ask);
-  const actions = useMemo<CardActions>(() => ({ apply, retry, appliedReplies, applyLabel: "Go with this" }), [apply, retry, appliedReplies]);
+  const email = person?.email ?? null;
+  const passports = person?.nationalities.join(",") ?? "";
+  const actions = useMemo<CardActions>(() => ({
+    apply, retry, appliedReplies, applyLabel: "Go with this",
+    // a leg Pip booked: the trip it saved, checked out right here in the chat
+    checkout: (legId, tripId) => (tripId ? <ChatCheckout tripId={tripId} legId={legId} email={email} nationalities={passports ? passports.split(",") : []} /> : null),
+  }), [apply, retry, appliedReplies, email, passports]);
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming ? (streaming.text ? "talk" : "think") : "idle";
   const line = trip.length ? [trip[0].from.name, ...trip.map((l) => l.to.name)].join(" → ") : "New trip";
@@ -273,4 +282,11 @@ function useSoloPip(trip: SoloLeg[], onTrip: (legs: SoloLeg[]) => void, onMarks:
     if (previous && !active.current) void sendRef.current(previous.text).catch(() => {});
   }, [appliedReplies]);
   return { thread, activity, at, globeWork, send, apply, busy, stop, retry, appliedReplies };
+}
+
+/** A checkout Pip posted in the chat; closing it leaves a line saying where the trip is. */
+function ChatCheckout(props: { tripId: string; legId: string; email: string | null; nationalities: string[] }) {
+  const [closed, setClosed] = useState(false);
+  if (closed) return <p className="pip-changes-note">Checkout closed. The leg is saved in your trips.</p>;
+  return <SoloCheckout {...props} onClose={() => setClosed(true)} />;
 }

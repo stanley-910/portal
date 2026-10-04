@@ -21,7 +21,10 @@ import { PERSONA, STYLE } from "@/lib/agent/voice";
 import type { Stop } from "@/lib/liveblocks/types";
 import { countryName } from "@/lib/nationality";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
-import { toStoredOffer } from "@/lib/trip/offers";
+import { isBookable, toStoredOffer } from "@/lib/trip/offers";
+import { soloSaveInput } from "@/lib/trip/solo-input";
+import { saveSoloTrip } from "@/app/t/save-actions";
+import type { Offer } from "@/lib/transport/types";
 import { stopToPlace } from "@/lib/trip/stops";
 
 // Pip on the home globe, before there's a trip: no room, no session. The browser sends the conversation and the
@@ -60,7 +63,7 @@ ${PERSONA}
 
 What you do: work out how to get between places. Put legs on their globe, search routes and fares, find where people coming from different places should meet.
 What you don't do: itineraries, sights, hotels, restaurants or reviews. Say so in one sentence if asked.
-You can't book, pay or pick an option for them.
+You can book a leg for them in the app, as Pip does in a shared trip; you can't enter their details or pay for them.
 
 How to work:
 - Whenever a message names where they're going and it isn't on their globe yet, call plan_trip first, straight away, with the stops in order and a date per leg: it puts the legs on their globe and each leg's card searches fares. Never ask whether to put it on the globe. If they give no date, use tomorrow and say so.
@@ -72,6 +75,7 @@ How to work:
 - For visa, passport or entry questions, call check_entry for each leg it's about (by its number on their globe), or for a place they name. It covers every passport they've saved. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When their passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. If they've saved no passport, say so: they add them under Passports in the profile menu. Mention estimated rules as estimates, and end with the official-source reminder.
 - For "where should we meet", call find_meetup. Its card has a button that puts their own leg on the globe.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
+- When they ask to book, call book_leg straight away with the leg's number, and the option's number from search_routes if they named one (only options marked bookable; without one it takes the cheapest bookable fare). It saves the leg as a trip in their account and posts a checkout card in this chat: the card checks today's fare and shows it, then they confirm their details and card there, without leaving the globe. Don't ask first, and never say you can't book. Fares marked estimated, cached or timetable can't be bought in the app: say so and offer a bookable one.
 - To keep a trip or bring friends in, they press Save trip on the card; once saved it's in their trips, and its link invites friends.
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Get every number from tools before you write; your words stream as you write them, so never correct yourself mid-reply.
@@ -83,6 +87,16 @@ const date = z.string().describe("YYYY-MM-DD");
 function place(name: string) {
   const r = resolvePlace(name);
   return "refusal" in r ? { refused: r.refusal.code, reason: r.refusal.reason, next: r.refusal.next } : r.stop;
+}
+
+/** Options listed per search, numbered for book_leg. */
+const MAX_OPTIONS = 8;
+
+/** A search's options cheapest first, numbered the same way by search_routes and book_leg. */
+function rankedOptions(offers: Offer[]): { offer: Offer; stored: ReturnType<typeof toStoredOffer> }[] {
+  const price = (o: ReturnType<typeof toStoredOffer>) => (o.price ? o.price.amount * (usd[o.price.currency] ?? Infinity) : Infinity);
+  return offers.map((offer) => ({ offer, stored: toStoredOffer(offer) }))
+    .sort((x, y) => price(x.stored) - price(y.stored) || x.offer.id.localeCompare(y.offer.id)).slice(0, MAX_OPTIONS);
 }
 
 const usd: Record<string, number> = { USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.0067, KRW: 0.00072, TWD: 0.031, THB: 0.028, MYR: 0.21, SGD: 0.74, EUR: 1.08, CAD: 0.73 };
@@ -138,17 +152,55 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
         ).catch(() => null);
         emit({ t: "activity", label: null });
         if (!result) return { refused: "SEARCH_FAILED", reason: "The search didn't come back.", next: "Say so; the trip card searches too." };
-        const all = result.offers.map(toStoredOffer);
-        const price = (o: (typeof all)[number]) => (o.price ? o.price.amount * (usd[o.price.currency] ?? Infinity) : Infinity);
-        const offers = all.sort((x, y) => price(x) - price(y)).slice(0, 6);
         return {
           found: result.offers.length,
-          options: offers.map((o) => {
+          options: rankedOptions(result.offers).map(({ stored: o }, i) => {
             const cost = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
             const time = o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`;
-            return `${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${cost} (${KIND[o.kind]})`;
+            const extras = [isBookable(o) ? "bookable" : "", o.refund ? (o.refund.fee ? `refundable for a ${o.refund.fee.currency} ${o.refund.fee.amount} fee` : "refundable free") : ""].filter(Boolean).join(", ");
+            return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${cost} (${KIND[o.kind]})${extras ? `, ${extras}` : ""}`;
           }),
         };
+      },
+    }),
+
+    book_leg: tool({
+      description:
+        "Books one leg on their globe in the app: saves it as a trip in their account with the fare picked, and posts a checkout card in this chat where the fare is checked, then they confirm their details and card. Call it as soon as they ask to book. Only fares marked bookable can be bought.",
+      inputSchema: z.object({
+        leg: z.number().int().min(1).describe("The leg's number on their globe"),
+        option: z.number().int().min(1).max(MAX_OPTIONS).optional().describe("The option's number from search_routes for this leg, when they named one; omit for the cheapest bookable fare"),
+      }),
+      execute: async ({ leg, option }) => {
+        const onGlobe = state.trip[leg - 1];
+        if (!onGlobe) return { refused: "UNKNOWN_LEG", next: `They have ${state.trip.length} legs; use one of those numbers.` };
+        emit({ t: "activity", label: "checking bookable fares", at: midpoint(onGlobe.from, onGlobe.to) });
+        try {
+          const result = await searchFromCoordinates(
+            { from: stopToPlace(onGlobe.from), to: stopToPlace(onGlobe.to), date: onGlobe.date, modes: [], passengers: 1, currency: "USD" },
+            AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
+          ).catch(() => null);
+          if (!result) return { refused: "SEARCH_FAILED", next: "Say the search didn't come back; they can press Book on the leg's card." };
+          const options = rankedOptions(result.offers);
+          const pick = option ? options[option - 1] : options.find((o) => isBookable(o.stored));
+          if (!pick) return { refused: option ? "UNKNOWN_OPTION" : "NOTHING_BOOKABLE", next: option ? "Call search_routes and use its numbers." : "Say no fare on this leg can be bought in the app; the estimated ones book on the provider's site." };
+          if (!isBookable(pick.stored)) return { refused: "NOT_BOOKABLE", next: "Say that fare can't be bought in the app, and offer a bookable one." };
+          emit({ t: "activity", label: "saving your trip", at: { lat: onGlobe.from.lat, lng: onGlobe.from.lng } });
+          const saved = await saveSoloTrip(soloSaveInput(
+            [{ from: onGlobe.from, to: onGlobe.to }],
+            [{ offer: pick.offer, offers: options.map((o) => o.offer), depart: onGlobe.date, stay: null }],
+          )).catch(() => ({ error: "failed" as const }));
+          if ("error" in saved || !saved.legs[0]) return { refused: "SAVE_FAILED", next: "Say saving the trip failed; they can try Book on the leg's card." };
+          emit({ t: "card", card: { type: "checkout", legId: saved.legs[0], tripId: saved.id } });
+          const o = pick.stored;
+          return {
+            status: "checkout_up",
+            fare: `${o.carrier ?? o.mode} ${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}, ${o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "price at checkout"}`,
+            note: "The checkout card is in the chat: it checks today's fare and shows it, then they confirm their details and card there. The leg is saved in their trips too. Say this in a sentence; don't repeat the card.",
+          };
+        } finally {
+          emit({ t: "activity", label: null });
+        }
       },
     }),
 
