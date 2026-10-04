@@ -196,6 +196,7 @@ const REEL = 0.9;
 const DRAW = 1.2;
 const PIP_DRAW = 1.6; // slower under the saucer, so it can be followed
 const RIDE = 0.15; // radians from the pen within which the saucer holds to it rather than gliding after it
+const HOLD_MAX = 8; // seconds the globe holds changes for Pip's saucer before playing them anyway
 /** How `showTrip` puts a trip down: see there. */
 export type ShowTrip = "land" | "quiet" | "draw";
 const FOLLOW_EASE = 2.4;
@@ -440,6 +441,10 @@ export class GlobeEngine {
   private again = false;
   // when the room's legs that Pip is reeling in and drawing out, one after another under its saucer, are all done
   private pipQueue = 0;
+  // Pip is on its way (holdForAgent): since when. Changes that come meanwhile wait, unplayed, for its saucer to get
+  // here: their lines (start time Infinity until then) in order, and their pins
+  private pipHold: number | null = null;
+  private held: ({ reel: { t0: number } } | { remote: { drawn: number } })[] = [];
   private obscured = false;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -1829,7 +1834,8 @@ export class GlobeEngine {
         Object.assign(old, { stop: p.stop, g: this.lift?.stop === p.stop ? old.g : g, color: p.color, to });
         continue;
       }
-      const t0 = this.reduceMotion ? -Infinity : Math.max(t, this.landingDone(g)) + PIN_STAGGER * fresh++;
+      // while Pip's on its way, a new pin waits in the air for it
+      const t0 = this.reduceMotion ? -Infinity : this.pipHold !== null ? Infinity : Math.max(t, this.landingDone(g)) + PIN_STAGGER * fresh++;
       this.pins.set(p.key, { stop: p.stop, g, color: p.color, t0, fan: to, to, h: -PIN_SINK, squash: 0, head: null });
     }
     // pins taken off while Pip's saucer is out rise into it; otherwise they go at once
@@ -1905,11 +1911,13 @@ export class GlobeEngine {
     // While Pip's saucer is out, the legs it changes play one after another under it, also across updates that come
     // close together: the ones that went reel back in to their starts, then the new ones draw out. Otherwise a landed
     // leg that went reels in where it is, and a new one is just there.
-    const pip = !!this.agent?.on && !this.reduceMotion;
+    const pip = (!!this.agent?.on || this.pipHold !== null) && !this.reduceMotion;
     const queue = () => {
+      if (this.follow) this.followBuilt = "room";
+      // Pip's still on its way: it waits its turn until the saucer's here
+      if (this.pipHold !== null) return Infinity;
       const start = Math.max(now, this.pipQueue);
       this.pipQueue = start + PIP_DRAW;
-      if (this.follow) this.followBuilt = "room";
       return start;
     };
     const ids = new Set(flights.map((f) => f.id));
@@ -1918,7 +1926,9 @@ export class GlobeEngine {
       // a plane still in the air settles and shrinks away rather than vanishing; a landed leg's route reels in
       if (!r.landed && !this.reduceMotion) this.ghosts.push({ pl: { ...r.pl }, t0: now, color: r.color });
       if (r.landed && !this.reduceMotion) {
-        this.reels.push(pip ? { o: r.o, target: r.target, color: r.color, t0: queue(), back: true, d: PIP_DRAW } : { o: r.o, target: r.target, color: r.color, t0: now });
+        const reel = pip ? { o: r.o, target: r.target, color: r.color, t0: queue(), back: true, d: PIP_DRAW } : { o: r.o, target: r.target, color: r.color, t0: now };
+        this.reels.push(reel);
+        if (reel.t0 === Infinity) this.held.push({ reel });
       }
       this.remotes.delete(id);
     }
@@ -1952,12 +1962,41 @@ export class GlobeEngine {
         if (drawn > -Infinity) {
           for (const p of this.pins.values()) if (angle(p.g, target) < 0.01 && p.t0 > now - 0.3) p.t0 = Math.max(p.t0, drawn + PIP_DRAW);
         }
-        this.remotes.set(f.id, {
+        const remote = {
           o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName, drawn,
           pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
-        });
+        };
+        this.remotes.set(f.id, remote);
+        if (drawn === Infinity) this.held.push({ remote });
       }
     }
+  }
+
+  /**
+   * Pip is on its way to the globe (on), or isn't coming after all (off). Meanwhile the room's leg and pin changes
+   * wait, unplayed; they play in order under the saucer once it first gets somewhere, or once it's off.
+   */
+  holdForAgent(on: boolean) {
+    if (on) this.pipHold ??= performance.now() / 1000;
+    else this.releaseHeld();
+  }
+
+  /** Plays the changes held for Pip's saucer, one after another from now, and drops the pins that waited. */
+  private releaseHeld() {
+    if (this.pipHold === null) return;
+    this.pipHold = null;
+    this.requestFrame();
+    const now = performance.now() / 1000;
+    for (const h of this.held) {
+      const start = Math.max(now, this.pipQueue);
+      this.pipQueue = start + PIP_DRAW;
+      if ("reel" in h) h.reel.t0 = start;
+      else h.remote.drawn = start;
+    }
+    this.held = [];
+    let fresh = 0;
+    for (const p of this.pins.values()) if (p.t0 === Infinity) p.t0 = Math.max(now, this.landingDone(p.g)) + PIN_STAGGER * fresh++;
+    this.glDirty = this.hudDirty = true;
   }
 
   /**
@@ -2142,6 +2181,8 @@ export class GlobeEngine {
 
   private stepAgent(dt: number, t: number, k: (r: number) => number) {
     const a = this.agent;
+    // the changes held for the saucer play once it's here, or after a while if it never comes
+    if (this.pipHold !== null && ((a?.on && a.coming === 0 && angle(a.n, a.target) < UFO_THERE) || performance.now() / 1000 - this.pipHold > HOLD_MAX)) this.releaseHeld();
     if (!a) return;
     const still = this.reduceMotion;
     if (!a.on) a.away += dt;

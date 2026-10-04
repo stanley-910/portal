@@ -62,6 +62,11 @@ export interface TripGlobeHandle {
   setAgent(at: LatLng | null): void;
   /** Where Pip's saucer is on screen. Null when it isn't out. */
   agentSpot(): AgentSpot | null;
+  /**
+   * Pip is on its way to the globe (on), or isn't coming after all (off): the room's leg and pin changes meanwhile
+   * wait, and play under its saucer once it gets here.
+   */
+  holdForAgent(on: boolean): void;
   /** Where a leg from a to b is on the globe: drawing out, shown, reeling in, or gone. */
   legState(from: LatLng, to: LatLng): "drawing" | "shown" | "reeling" | "gone";
   /**
@@ -319,6 +324,7 @@ export function TripGlobe({
       setAgent: (at) => engineRef.current?.setAgent(at),
       agentSpot: () => engineRef.current?.agentSpot() ?? null,
       legState: (from, to) => engineRef.current?.legState(from, to) ?? "gone",
+      holdForAgent: (on) => engineRef.current?.holdForAgent(on),
       followAgent: (on, onEnd) => {
         followEnd.current = on ? (onEnd ?? null) : null;
         engineRef.current?.setFollow(on);

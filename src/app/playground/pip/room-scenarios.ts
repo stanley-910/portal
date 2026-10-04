@@ -76,3 +76,43 @@ export const PLAN_GROUP: RoomScript = {
     { wait: 0, event: { t: "done" } },
   ],
 };
+
+const trip: RoomLeg[] = [
+  { id: "l1", from: "hkg", to: "sha", riders: ["mei", "ada"], by: "mei" },
+  { id: "l2", from: "sha", to: "tyo", riders: ["mei", "ada"], by: "mei" },
+  { id: "l3", from: "sel", to: "sha", riders: ["joon"], by: "joon" },
+];
+
+/**
+ * edit_plan with three ops, the way it runs in a room: for each, Pip looks at where it goes (editTarget), writes it,
+ * and broadcasts its marks, one after another with no waits between. A date and riders change no line; the new leg
+ * draws out under the saucer.
+ */
+export const EDIT_PLAN: RoomScript = {
+  members: { mei: { name: "Mei", color: 2 }, ada: { name: "Ada", color: 3 }, joon: { name: "Joon", color: 4 } },
+  stops,
+  before: trip,
+  beats: [
+    { wait: 1200, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "model calls edit_plan; op 1, set_date: look() at the leg's end" },
+    { wait: 150, event: { t: "marks", marks: [{ text: "Moved Shanghai Hongqiao → Tokyo to Sat 10 Oct", at: at(stops.tyo) }] }, note: "op 1 written" },
+    { wait: 60, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "op 2, set_riders" },
+    {
+      wait: 150,
+      event: { t: "legs", legs: [trip[0], { ...trip[1], riders: ["mei", "ada", "joon"] }, trip[2]] },
+      note: "op 2 written",
+    },
+    { wait: 20, event: { t: "marks", marks: [{ text: "Put Joon on Shanghai Hongqiao → Tokyo", at: at(stops.tyo) }] } },
+    { wait: 60, event: { t: "presence", activity: "editing the trip", at: at(stops.tyo) }, note: "op 3, add_leg: look() at its start" },
+    {
+      wait: 150,
+      event: {
+        t: "legs",
+        legs: [trip[0], { ...trip[1], riders: ["mei", "ada", "joon"] }, trip[2], { id: "l4", from: "tyo", to: "sel", riders: ["mei", "ada"], by: "mei" }],
+      },
+      note: "op 3 written",
+    },
+    { wait: 20, event: { t: "marks", marks: [{ text: "Added Tokyo → Seoul Incheon", at: at(stops.sel), leg: { from: at(stops.tyo), to: at(stops.sel) } }] } },
+    { wait: 2000, event: { t: "presence", activity: null, at: null }, note: "searches done, reply written; presence clears" },
+    { wait: 0, event: { t: "done" } },
+  ],
+};

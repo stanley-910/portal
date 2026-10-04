@@ -185,6 +185,7 @@ export function FakeGlobe({ ref, zoom = 0, onTakeoff, onLand, onCancel, onRouteC
     followAgent: () => {},
     // the flat stand-in draws no legs changing under the saucer
     legState: () => "shown",
+    holdForAgent: () => {},
   }));
 
   // keep the box size, and run every frame callback each frame like the globe does after drawing

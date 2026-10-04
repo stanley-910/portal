@@ -145,9 +145,16 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       // Pip goes through its portal before the saucer comes out, and comes back once the saucer has gone
       const away = getAway();
       if (still) setAway("home");
-      else if (away.phase === "home" && wanted) setAway("leaving");
+      else if (away.phase === "home" && wanted) {
+        setAway("leaving");
+        // what changes on the globe meanwhile waits for the saucer to get there
+        handle.holdForAgent(true);
+      }
       else if (away.phase === "leaving" && t - away.since >= PORTAL_MS) setAway("away");
-      else if (away.phase === "away" && !wanted && !shown && !handle.agentSpot()) setAway("returning");
+      else if (away.phase === "away" && !wanted && !shown && !handle.agentSpot()) {
+        setAway("returning");
+        handle.holdForAgent(false);
+      }
       else if (away.phase === "returning" && t - away.since >= PORTAL_MS) setAway(wanted ? "leaving" : "home");
       const nowOut = !!place && t - lastBusy < LINGER_MS && (still || getAway().phase === "away");
       if (nowOut !== shown) {
@@ -212,6 +219,7 @@ export function PipSaucer({ globe, at, busy, expect = false, ref }: Props) {
       stop();
       handle.setAgent(null);
       handle.followAgent(false);
+      handle.holdForAgent(false);
       setAway("home");
     };
   }, [globe]);
