@@ -1,6 +1,7 @@
 // The shared thread and the agent in it.
 // Type aliases, not interfaces: Liveblocks needs them to be assignable to its JSON object type.
 import type { AgentMark } from "@/lib/agent/marks";
+import type { Fix } from "@/lib/agent/issues";
 
 /** The agent's user id in presence. Never a guest id, so it can't collide with a member. */
 export const AGENT_ID = "agent:pip";
@@ -48,6 +49,11 @@ export type ThreadCard = (
   | { type: "changes"; changesetId: string; lines: string[]; undone: boolean }
   /** A leg's checkout: each rider's share and state, read live from the leg, and the viewer's own details and card. */
   | { type: "checkout"; legId: string }
+  /**
+   * Something Pip noticed in the trip (lib/agent/issues.ts), with one-tap fixes. `key` is the issue's, so it's said
+   * once; `state` is what became of it.
+   */
+  | { type: "fix"; key: string; fixes: Fix[]; state: "open" | "fixed" | "asked" | "gone"; changesetId: string | null; undone: boolean }
 ) & {
   /** Where in the reply's text it goes: the text's length when it was added. Missing: after the text. */
   at?: number;

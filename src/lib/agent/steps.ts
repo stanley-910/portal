@@ -24,6 +24,11 @@ export function stepLabel(tool: string, output: unknown = null): { doing: string
         doing: "Comparing places to meet",
         done: failed ? "Couldn't place everyone" : o.options?.length ? `Compared ${n(o.searched, "route", "routes")}` : "No place works for everyone",
       };
+    case "plan_group":
+      return {
+        doing: "Planning everyone's way there",
+        done: failed ? "Couldn't plan that" : (o as { applied?: unknown[] }).applied?.length ? "Put everyone's routes on the trip" : "Planned everyone's way there",
+      };
     case "apply_meetup":
       return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
     case "book_leg":

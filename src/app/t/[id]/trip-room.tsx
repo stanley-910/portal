@@ -26,6 +26,7 @@ import { EndTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-tri
 import { TripGlobe, type TripGlobeHandle } from "@/components/trip-globe";
 import { tripRoomId } from "@/lib/liveblocks/types";
 import { initialTripStorage, useMemberColor, usePlanActions, usePlanReady, useRecordMember } from "@/lib/trip/plan";
+import { usePlanIssueWatch } from "@/lib/trip/issue-watch";
 
 /** Background tabs disconnect after this long, so forgotten tabs stop using collaboration minutes. */
 const BACKGROUND_TIMEOUT = 2 * 60 * 1000;
@@ -105,6 +106,7 @@ function TripScreen({ tripId, name, email, account, nationalities, hostId }: { t
   const currency = useCurrencyPref();
   const rates = useExchangeRates();
   useRecordMember(nationalities);
+  usePlanIssueWatch(tripId);
 
   useErrorListener((error) => {
     if (error.context.type !== "ROOM_CONNECTION_ERROR") return;

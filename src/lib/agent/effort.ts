@@ -7,7 +7,7 @@ type Effort = NonNullable<DeepSeekLanguageModelChatOptions["reasoningEffort"]>;
  * After one of these, the steps that read the results and put the plan together think hard.
  */
 export const THINK_AFTER = new Set([
-  "find_meetup", "optimize_leg", "optimize_route", "search_routes", "search_nearby_trains", "check_entry", "get_leg_options",
+  "find_meetup", "plan_group", "optimize_leg", "optimize_route", "search_routes", "search_nearby_trains", "check_entry", "get_leg_options",
 ]);
 
 /**

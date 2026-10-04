@@ -3,7 +3,7 @@
 import { useRoom, useSelf, useStorage } from "@liveblocks/react";
 import { Activity, createContext, memo, use, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type ReactNode } from "react";
 
-import { applyMeetup, undoAgentChange } from "@/app/t/actions";
+import { applyFix, applyMeetup, undoAgentChange } from "@/app/t/actions";
 import dynamic from "next/dynamic";
 const CheckoutCard = dynamic(() => import("@/components/agent/checkout-card").then((m) => m.CheckoutCard), { loading: () => <p className="pip-caption" role="status">Loading checkout…</p> });
 import { useOpenAuth } from "@/components/auth/links";
@@ -216,8 +216,13 @@ function Panel({ onClose }: { onClose: () => void }) {
       apply: (messageId, option) => applyMeetup(tripId, messageId, option),
       undo: (messageId, changesetId) => undoAgentChange(tripId, messageId, changesetId),
       checkout: (legId) => <CheckoutCard legId={legId} />,
+      // an "ask" fix comes back as a message to send Pip in your name
+      fix: async (messageId, index) => {
+        const r = await applyFix(tripId, messageId, index);
+        if (r?.ask) await send(r.ask);
+      },
     }),
-    [tripId],
+    [tripId], // eslint-disable-line react-hooks/exhaustive-deps -- send is a fresh closure each render; it only posts
   );
   const streaming = thread.find((m) => m.state === "streaming");
   const mood: PipMood = streaming?.text ? "talk" : busy || activity ? "think" : "idle";
@@ -263,6 +268,8 @@ export type CardActions = {
   appliedReplies?: ReadonlySet<string>;
   /** A leg's checkout, where there's a trip to book in. */
   checkout?: (legId: string) => ReactNode;
+  /** A fix button on something Pip noticed in the trip. */
+  fix?: (messageId: string, index: number) => Promise<unknown>;
 };
 export const CardActionsContext = createContext<CardActions>({ apply: () => {} });
 
@@ -376,7 +383,38 @@ function Card({ card, messageId, members, activity }: { card: ThreadCard; messag
   if (card.type === "meetup") return <MeetupCard card={card} messageId={messageId} members={members} />;
   if (card.type === "changes") return <ChangesCard card={card} messageId={messageId} />;
   if (card.type === "checkout") return <CheckoutSlot legId={card.legId} />;
+  if (card.type === "fix") return <FixCard card={card} messageId={messageId} />;
   return <Step label={card.label} running={!card.done} detail={card.done ? null : activity} />;
+}
+
+const FIX_STATE = { fixed: "Fixed", asked: "Asked Pip", gone: "Already sorted" } as const;
+
+/** Something Pip noticed, with its fixes: one tap applies one, as a change people can undo. */
+function FixCard({ card, messageId }: { card: Extract<ThreadCard, { type: "fix" }>; messageId: string }) {
+  const actions = use(CardActionsContext);
+  const [pending, start] = useTransition();
+  if (!actions.fix) return null;
+  if (card.state !== "open") {
+    return (
+      <div className={`pip-changes${card.undone ? " pip-changes-undone" : ""}`}>
+        <span className="pip-changes-note">{card.undone ? "Undone" : FIX_STATE[card.state]}</span>
+        {card.state === "fixed" && card.changesetId && !card.undone && actions.undo ? (
+          <button type="button" className="pip-undo" aria-label="Undo this fix" title="Undo" disabled={pending} onClick={() => start(async () => void (await actions.undo!(messageId, card.changesetId!)))}>
+            <PixelIcon rows={REWIND} scale={2} />
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+  return (
+    <div className="pip-checkout-actions">
+      {card.fixes.map((fix, i) => (
+        <Button key={fix.label} variant="secondary" disabled={pending} onClick={() => start(async () => void (await actions.fix!(messageId, i)))}>
+          {fix.label}
+        </Button>
+      ))}
+    </div>
+  );
 }
 
 function CheckoutSlot({ legId }: { legId: string }) {

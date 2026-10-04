@@ -17,7 +17,10 @@ import type { LegBooking } from "@/lib/liveblocks/types";
 import { isBookable } from "@/lib/trip/offers";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 import { KIND } from "@/lib/agent/kind";
-import { describeRoutes, optimize } from "@/lib/agent/optimize";
+import { describeRoute, describeRoutes, optimize } from "@/lib/agent/optimize";
+import { planGroup, TOGETHER_MIN, type GroupPick } from "@/lib/agent/group";
+import { sharesStop } from "@/lib/trip/stops";
+import type { Stop } from "@/lib/liveblocks/types";
 import { type AgentMark } from "@/lib/agent/marks";
 
 // Thin wrappers: the work is in edit.ts and meetup.ts, which are tested on their own. Results are short and use
@@ -403,6 +406,92 @@ export function agentTools(ctx: ToolContext) {
       },
     }),
 
+    plan_group: tool({
+      description:
+        "Gets the group to one place they've picked: each member's cheapest way there from where they start (direct, or via a nearby station or airport), chosen together so everyone gets in close together, with the group's total. With apply true it puts those routes on the trip as one change people can undo: new legs, and members moved off legs the plan replaces. Use it when people say where they're meeting and want to know how everyone gets there, the cheapest way for all of them, or to sort it out. Apply when they asked you to change or sort out the trip; leave apply false when they only asked.",
+      inputSchema: z.object({
+        to: z.string().describe("Where they're meeting: a stop handle (S2) or a place name"),
+        date: z.string().optional().describe("YYYY-MM-DD; leave out to use each member's leg there, if they have one"),
+        members: z.array(z.string()).optional().describe("Member handles; leave out for everyone who starts somewhere else"),
+        arrive_by: z.string().optional().describe("Arrive no later than this: 2026-10-20T19:30 local where they meet"),
+        max_fare: z.number().positive().optional().describe("Per-person ceiling in `currency`, only if someone gave a number"),
+        currency: z.string().regex(/^[A-Z]{3}$/).optional().describe("Currency to total in; defaults to the asker's"),
+        apply: z.boolean().describe("Put the routes on the trip now"),
+      }),
+      execute: async (input) => {
+        if (Date.now() >= ctx.until) return OUT_OF_TIME;
+        const { plan, handles } = await ctx.load(input.apply ? { fresh: true } : undefined);
+        // where they meet: a stop on the trip, or a place, which the first leg there adds
+        let meet: { id: string | null; stop: Stop };
+        const stopId = handles.id.get(input.to);
+        if (stopId && plan.stops?.[stopId]) meet = { id: stopId, stop: plan.stops[stopId] };
+        else {
+          const found = resolvePlace(input.to);
+          if ("refusal" in found) return { refused: found.refusal.code, reason: found.refusal.reason, next: found.refusal.next };
+          const onTrip = Object.entries(plan.stops ?? {}).find(([, s]) => sharesStop(s, found.stop));
+          meet = onTrip ? { id: onTrip[0], stop: onTrip[1] } : { id: null, stop: found.stop };
+        }
+        const atMeet = (id: string) => id === meet.id || (!!plan.stops?.[id] && sharesStop(plan.stops[id], meet.stop));
+        const legs = Object.entries(plan.legs ?? {}).sort(([, a], [, b]) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+
+        const ids = input.members?.length ? input.members.map((m) => handles.id.get(m) ?? m) : Object.keys(plan.members ?? {});
+        const unknown = ids.filter((id) => !plan.members?.[id]);
+        if (unknown.length) return { refused: "UNKNOWN_HANDLE", reason: `${unknown.join(", ")} isn't in the trip.`, next: "Call get_trip and use its handles." };
+        const travellers: { id: string; name: string; startId: string; there: string | null; date: string | null }[] = [];
+        const skipped: string[] = [];
+        for (const id of ids) {
+          const name = plan.members![id].name;
+          // where someone starts is where their first leg leaves from
+          const first = legs.find(([, l]) => l.riders.includes(id))?.[1];
+          if (!first) { skipped.push(`${handles.member.get(id)} ${name} (no leg yet, so where they start isn't known)`); continue; }
+          if (atMeet(first.from)) { if (input.members?.length) skipped.push(`${handles.member.get(id)} ${name} (already starts there)`); continue; }
+          const there = legs.find(([, l]) => l.riders.includes(id) && l.from === first.from && atMeet(l.to));
+          travellers.push({ id, name, startId: first.from, there: there?.[0] ?? null, date: input.date ?? there?.[1].date ?? null });
+        }
+        if (!travellers.length) return { refused: "NOBODY", reason: "Nobody here starts somewhere else with a known start.", next: skipped.length ? `Say why: ${skipped.join("; ")}.` : "Ask who's travelling." };
+        const dated = travellers.filter((t) => t.date);
+        if (!dated.length) return { refused: "MISSING_DATE", reason: "No date to travel on.", next: "Ask which day, then call again with date." };
+        const date = input.date ?? dated[0].date!;
+
+        look("planning everyone's way there", meet.stop);
+        let result;
+        try {
+          result = await planGroup({
+            travellers: travellers.map((t) => ({ id: t.id, name: t.name, from: stopToPlace(plan.stops![t.startId]) })),
+            to: stopToPlace(meet.stop), date, currency: input.currency ?? ctx.currency, maxFare: input.max_fare, arriveBy: input.arrive_by,
+          }, (q) => optimize(q, AbortSignal.timeout(Math.max(1, Math.min(25_000, ctx.until - Date.now())))));
+        } catch {
+          return { refused: "SEARCH_FAILED", next: "Say the search failed; don't guess fares." };
+        }
+        if (!result.picks.length) return { refused: "NO_ROUTES", reason: "No way there was found for anyone.", next: "Say so plainly." };
+
+        const line = (p: GroupPick) => `${handles.member.get(p.member.id)} ${p.member.name} from ${plan.stops![travellers.find((t) => t.id === p.member.id)!.startId].name}: ${describeRoute(p.route)}`;
+        const arrivals = result.picks.map((p) => p.route.arrive.slice(11, 16)).sort();
+        const summary = {
+          date,
+          plan: result.picks.map(line),
+          group_total: result.total ? `${result.total.converted ? "about " : ""}${result.total.currency} ${result.total.amount}` : "unknown (a fare is missing)",
+          arrivals: `between ${arrivals[0]} and ${arrivals.at(-1)} (${result.spreadMin} min apart${result.spreadMin > TOGETHER_MIN ? ", too far apart to call it together: say so" : ""})`,
+          no_route: result.missing.map((m) => `${handles.member.get(m.member.id)} ${m.member.name}: ${m.reason}`),
+          skipped,
+        };
+        if (!input.apply) return { ...summary, note: "Not applied. If they want it, call plan_group again with apply true." };
+
+        const meetRef: PlaceRef = meet.id ? { stop: handles.stop.get(meet.id)! } : { at: meet.stop };
+        const ops = groupOps(result.picks, travellers, meetRef, plan, handles);
+        if (!ops.length) return { ...summary, applied: [], note: "The trip already has these legs; say which option to pick on each." };
+        if (Date.now() > ctx.until) return OUT_OF_TIME;
+        look("putting everyone's routes on the trip", meet.stop);
+        // all or nothing, so nobody is left half moved
+        const applied = await editPlan(ctx.roomId, plan, handles, ops, ctx.agentId, ctx.until, undefined, true);
+        ctx.marks(applied.marks);
+        if (applied.applied.length && applied.changesetId) {
+          await ctx.addCard({ type: "changes", changesetId: applied.changesetId, lines: applied.applied, undone: false });
+        }
+        return { ...summary, applied: applied.applied, refused: applied.refused, note: "New legs search for their own options; say which one on each leg matches the plan." };
+      },
+    }),
+
     edit_plan: tool({
       description:
         "Changes the trip for everyone, live on their globes: add legs, move dates, set riders, remove legs, add, change or remove stays (each with its own guests, nights and price, apart from the legs), and when someone leaves. All ops in one call become one change people can undo, so apply directly when asked; don't ask permission. New or re-dated legs search for options automatically. Refused ops come back with a reason and what to do next; the others still apply.",
@@ -561,4 +650,53 @@ export function routeOps(
     { op: "add_leg", from: via, to: { stop: to }, date, riders: moving, createdAt: createdAt + 0.2 },
     staying.length ? { op: "set_riders", leg, riders: staying } : { op: "remove_leg", leg },
   ];
+}
+
+/**
+ * The edits that put a group plan on the trip: one set of legs per start, route and day, so people taking the same
+ * way there ride the same legs; a via route takes its riders off the direct leg it replaces (removed when nobody's
+ * left on it); a direct pick adds a leg only for someone who has none there yet.
+ */
+export function groupOps(
+  picks: GroupPick[],
+  travellers: { id: string; startId: string; there: string | null }[],
+  meetRef: PlaceRef,
+  plan: PlanJson,
+  handles: Handles,
+): EditOp[] {
+  // one set of legs per start, route and day: people taking the same way there ride the same legs
+  const ops: EditOp[] = [];
+  const keep = new Map<string, Set<string>>();
+  const groups = new Map<string, GroupPick[]>();
+  for (const p of picks) {
+    const t = travellers.find((x) => x.id === p.member.id)!;
+    const k = `${t.startId}|${p.route.via?.name ?? ""}|${p.route.depart.slice(0, 10)}`;
+    groups.set(k, [...(groups.get(k) ?? []), p]);
+  }
+  for (const [k, same] of groups) {
+    const [startId] = k.split("|");
+    const route = same[0].route;
+    const day = route.depart.slice(0, 10);
+    const who = same.map((p) => travellers.find((t) => t.id === p.member.id)!);
+    const from: PlaceRef = { stop: handles.stop.get(startId)! };
+    if (route.via) {
+      const via: PlaceRef = { at: { lat: route.via.lat, lng: route.via.lng, hub: null, code: route.via.iata ?? null, name: route.via.name } };
+      const riders = who.map((t) => handles.member.get(t.id)!);
+      ops.push({ op: "add_leg", from, to: via, date: day, riders }, { op: "add_leg", from: via, to: meetRef, date: day, riders });
+      // off the direct legs this replaces
+      for (const t of who) if (t.there) {
+        const left = keep.get(t.there) ?? new Set(plan.legs![t.there].riders);
+        left.delete(t.id);
+        keep.set(t.there, left);
+      }
+    } else {
+      const without = who.filter((t) => !t.there);
+      if (without.length) ops.push({ op: "add_leg", from, to: meetRef, date: day, riders: without.map((t) => handles.member.get(t.id)!) });
+    }
+  }
+  for (const [leg, left] of keep) {
+    const h = handles.leg.get(leg)!;
+    ops.push(left.size ? { op: "set_riders", leg: h, riders: [...left].map((id) => handles.member.get(id)!) } : { op: "remove_leg", leg: h });
+  }
+  return ops;
 }
