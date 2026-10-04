@@ -250,7 +250,12 @@
 }
 
 /* A leg's checkout in the thread: the bill for everyone, the viewer's own details and card */
-.pip-checkout { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); background: var(--paper); border: var(--line-control) solid var(--line); border-radius: var(--radius-ticket); }
+/* A leg's checkout in Pip's chat: like Pip's other cards, a rule down its left rather than a box, a plain header
+   (the route, and how it's being booked), and its actions as Pip's small pixel chips */
+.pip-checkout { display: flex; flex-direction: column; gap: var(--space-2); padding: 2px 0 2px 10px; border-left: 2px solid var(--pip-shade); }
+.pip-checkout-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink); }
+.pip-checkout-head span:last-child:not(:first-child) { color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
+.pip-checkout-sub { margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ink-muted); }
 .pip-bill { display: flex; flex-direction: column; gap: 4px; }
 .pip-bill li { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: var(--space-2); font-size: 13px; line-height: 18px; color: var(--ink); }
 .pip-bill-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

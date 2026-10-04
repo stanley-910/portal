@@ -171,10 +171,12 @@ export function CheckoutBody({
   if (!leg) return <p className="pip-changes-note">That leg is gone.</p>;
   if (!booking) {
     return (
-      <div className="pip-checkout">
-        <p className="pip-caption">
-          {from} → {to}
-        </p>
+      <div className={solo ? "ts-checkout-body" : "pip-checkout"}>
+        <div className="pip-checkout-head">
+          <span>
+            {from} → {to}
+          </span>
+        </div>
         <p className="pip-changes-note">{leg.bookingNotice ?? "Not being booked any more."}</p>
       </div>
     );
@@ -196,9 +198,12 @@ export function CheckoutBody({
         </div>
       ) : (
         <>
-          <p className="pip-caption">
-            {from} → {to} · {booking.status === "booked" ? "Booked" : booking.mode === "group" ? "Group booking" : "Separate tickets"}
-          </p>
+          <div className="pip-checkout-head">
+            <span>
+              {from} → {to}
+            </span>
+            <span>{booking.status === "booked" ? "Booked" : booking.mode === "group" ? "Group booking" : "Separate tickets"}</span>
+          </div>
           <ul className="pip-bill">
             {seats.map(([id, s]) => {
               const info = members?.[id];
@@ -230,47 +235,47 @@ export function CheckoutBody({
       {price ? (
         <div className="pip-checkout-actions" role="alert">
           <span className="pip-changes-note">Now {fmt(price.now)} for your seat{price.was ? `, was ${fmt(price.was)}` : ""}.</span>
-          <Button variant="secondary" disabled={busy || uncertain} onClick={() => (card && inApp ? confirmSaved(card.id, price.now) : inApp ? setModal("card") : checkoutPage(price.now))}>
+          <Act solo={solo} variant="secondary" disabled={busy || uncertain} onClick={() => (card && inApp ? confirmSaved(card.id, price.now) : inApp ? setModal("card") : checkoutPage(price.now))}>
             Continue
-          </Button>
+          </Act>
         </div>
       ) : null}
 
       {needsDetails && wallet ? (
         wallet.traveller && (!booking.documents || wallet.traveller.passport) ? (
           <div className="pip-checkout-step">
-            <p className="pip-caption">Your details</p>
+            <p className="pip-checkout-sub">Your details</p>
             <TravellerSummary details={wallet.traveller} passport={booking.documents} />
             <div className="pip-checkout-actions">
-              <Button disabled={busy || uncertain} onClick={() => run(async () => { const r = await actions.submitSaved(tripId, legId); if (!r.ok) fail(r); })}>
+              <Act solo={solo} disabled={busy || uncertain} onClick={() => run(async () => { const r = await actions.submitSaved(tripId, legId); if (!r.ok) fail(r); })}>
                 Looks good
-              </Button>
+              </Act>
               <button type="button" className="pip-action" disabled={busy || uncertain} onClick={() => setModal("details")}>
                 Edit
               </button>
             </div>
           </div>
         ) : (
-          <Button block disabled={busy || uncertain} onClick={() => setModal("details")}>
+          <Act solo={solo} block disabled={busy || uncertain} onClick={() => setModal("details")}>
             {wallet.traveller ? "Add my passport" : "Enter my details"}
-          </Button>
+          </Act>
         )
       ) : null}
 
       {canPay && wallet && !price ? (
         card && inApp ? (
           <div className="pip-checkout-actions">
-            <Button disabled={busy || uncertain} onClick={() => confirmSaved(card.id)}>
+            <Act solo={solo} disabled={busy || uncertain} onClick={() => confirmSaved(card.id)}>
               {busy ? "Holding…" : `Confirm · ${fmt(seat!.share)} on ${brandName(card.brand)} ·${card.last4}`}
-            </Button>
+            </Act>
             <button type="button" className="pip-action" disabled={busy || uncertain} onClick={() => setModal("card")}>
               Another card
             </button>
           </div>
         ) : (
-          <Button block disabled={busy || uncertain} onClick={() => (inApp ? setModal("card") : checkoutPage())}>
+          <Act solo={solo} block disabled={busy || uncertain} onClick={() => (inApp ? setModal("card") : checkoutPage())}>
             {inApp ? `Add a card · ${fmt(seat!.share)}` : `Pay my share · ${fmt(seat!.share)}`}
-          </Button>
+          </Act>
         )
       ) : null}
       {seat?.paid && booking.status === "paying" && booking.mode === "group" ? <p className="pip-changes-note">Your card is held. Nobody is charged until every seat is.</p> : null}
@@ -318,6 +323,25 @@ export function CheckoutBody({
         </Modal>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * One of checkout's actions: a button in the home fare card, where the fare card's buttons are; one of Pip's small
+ * pixel chips in its chat, like the replies it suggests.
+ */
+function Act({ solo, block = false, variant, disabled, onClick, children }: { solo: boolean; block?: boolean; variant?: "secondary"; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
+  if (solo) {
+    return (
+      <Button block={block} variant={variant} disabled={disabled} onClick={onClick}>
+        {children}
+      </Button>
+    );
+  }
+  return (
+    <button type="button" className="pip-suggestion" disabled={disabled} onClick={onClick}>
+      <span className="pip-px">{children}</span>
+    </button>
   );
 }
 
