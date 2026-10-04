@@ -131,8 +131,10 @@ function describe(offer: Offer): string {
 }
 
 export interface Credit {
-  /** "Travelpayouts / Aviasales" */
+  /** "Travelpayouts / Aviasales": the source's short name. */
   label: string;
+  /** The source's whole note, links and all, for its tooltip. */
+  note?: string;
   /** The source's own page for a shown row, the selected one first. */
   url?: string;
 }
@@ -141,12 +143,22 @@ export interface Credit {
  * The credits a provider's terms want near its results, once each for the rows shown, linked to the source.
  * What follows a " — " qualifies the fare, which the Estimated badge and the row's tooltip already say.
  */
+/**
+ * A source's short name from its note: "Typical China rail timetable, checked 2026-10-04: https://…; real fares
+ * vary" is "Typical China rail timetable". Up to a dash, colon or semicolon, without links or when it was checked.
+ */
+export function sourceName(note: string): string {
+  const name = note.split(" — ")[0].replace(/https?:\/\/\S+/g, "").split(/[:;]/)[0].replace(/,?\s*checked\s.*$/i, "").trim();
+  return name.length > 40 ? `${name.slice(0, 39).trimEnd()}…` : name;
+}
+
 export function credits(rows: OptionRow[], selected?: OptionRow): Credit[] {
   const out = new Map<string, Credit>();
   for (const r of selected ? [selected, ...rows] : rows) {
-    const label = r.offer.attribution?.split(" — ")[0].trim();
+    const note = r.offer.attribution?.trim();
+    const label = note ? sourceName(note) : "";
     if (!label) continue;
-    const credit = out.get(label) ?? { label };
+    const credit = out.get(label) ?? { label, note };
     credit.url ??= r.offer.bookingUrl;
     out.set(label, credit);
   }

@@ -172,11 +172,11 @@ function OptionList({
             <span key={c.label}>
               {i ? " · " : null}
               {c.url ? (
-                <a href={c.url} target="_blank" rel="noopener noreferrer">
+                <a href={c.url} target="_blank" rel="noopener noreferrer" title={c.note}>
                   {c.label}
                 </a>
               ) : (
-                c.label
+                <span title={c.note}>{c.label}</span>
               )}
             </span>
           ))}
@@ -583,30 +583,30 @@ export function TicketSearch({
                             ? SAVE_LABEL[choice.offer.mode]
                             : "Save trip"}
             </Button>
+            {/* Book at the far end, Save at the start */}
+              {onBook && !next && (canBook || (choice && isBookable(choice.offer))) ? (
+                <Button
+                  variant="secondary"
+                  className="ts-book"
+                  disabled={saving || (!choice && !pickedStay)}
+                  onClick={() => {
+                    const saved = !!choice && choice.offer.id === addedId;
+                    if (!saved) {
+                      onAdd({
+                        offer: choice?.offer ?? null,
+                        offers,
+                        depart,
+                        return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
+                        stay: pickedStay,
+                      });
+                    }
+                    onBook(saved);
+                  }}
+                >
+                  Book
+                </Button>
+              ) : null}
             </div>
-            {onBook && !next && (canBook || (choice && isBookable(choice.offer))) ? (
-              <Button
-                variant="secondary"
-                block
-                className="ts-save"
-                disabled={saving || (!choice && !pickedStay)}
-                onClick={() => {
-                  const saved = !!choice && choice.offer.id === addedId;
-                  if (!saved) {
-                    onAdd({
-                      offer: choice?.offer ?? null,
-                      offers,
-                      depart,
-                      return: returnDate && backChoice ? { offer: backChoice.offer, offers: backOffers, date: returnDate } : null,
-                      stay: pickedStay,
-                    });
-                  }
-                  onBook(saved);
-                }}
-              >
-                Book
-              </Button>
-            ) : null}
             {error && !saving ? (
               <p className="ts-empty" role="alert">
                 {error}
