@@ -7,7 +7,7 @@ import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/tran
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GLYPH } from "@/components/ticket-search/glyphs";
 import { CITY_LABELS } from "./cities";
-import { CITY_LOCK_FROM, cityReach, LOCK_FROM, lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
+import { CITY_LOCK_FROM, HUB_REACH, LOCK_FROM, lockAt, lockTargets, lockTick, reachCities, type LockTarget } from "./hub-lock";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
@@ -339,11 +339,16 @@ const NAME_MAX = 1.4;
 // province and state borders print in between these zoom levels (0 whole globe, 1 closest)
 const PROVINCES_FROM = 0.3;
 const PROVINCES_FULL = 0.6;
-// the zoom level each city rank starts to print at: world cities first, towns only close in
-const CITY_FROM = [0.1, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
+// the zoom level each city rank starts to print at: world cities first (where cities start to lock), towns only close in
+const CITY_FROM = [CITY_LOCK_FROM, 0.2, 0.32, 0.45, 0.58, 0.66, 0.8, 0.94];
 /** At most this many city names on screen at once, biggest first, so the map never fills up. */
 const CITY_MAX = 40;
 const CITY_FADE = 0.1; // zoom over which a rank fades in, from nothing to fully printed
+// A city is printed, for the pointer to catch, once its name has fully popped into place and 40% of its ink is down
+// (fading in with the zoom, or turning to face us): legible, if still faint. A locked one keeps hold until its name is
+// half gone and its ink down to 20%, so it lets go as the name fades out, not while the plane sits on it.
+const CITY_PRINTED = { placed: 0.95, ink: 0.4 };
+const CITY_HELD = { placed: 0.5, ink: 0.2 };
 /**
  * City names in px by rank, in four steps so the places people travel between stand out: world cities (Tokyo,
  * Taipei) well above the `city` token, regional cities at it, towns below it. The `city` face has one weight, so size
@@ -2751,9 +2756,10 @@ export class GlobeEngine {
   }
 
   /**
-   * The cities on the globe as places to lock on to, between CITY_LOCK_FROM and the zoom the hubs take over: only names
-   * printed in full, so the pointer never catches a city you can't read. The one locked on stays while its name is still
-   * mostly there, and lets go as it fades out (zooming out past it). Worked out every frame, from the names placed last.
+   * The cities on the globe as places to lock on to, until the zoom the hubs take over: only names printed, so the
+   * pointer never catches a city you can't read. The one locked on stays while its name is still mostly there, and lets
+   * go as it fades out (zooming out past it). Worked out every frame, from the names placed last, each reaching a share
+   * of the way to its nearest neighbour.
    */
   private placeCityTargets() {
     const out = this.cityTargets;
@@ -2764,16 +2770,20 @@ export class GlobeEngine {
     CITIES.forEach((c, i) => {
       // how fully its size prints at this zoom and facing us (as cityNames draws it), and how far its name has faded in;
       // a name a plane flying over has just hidden still counts for a moment, since you've just read it
-      const shown = smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], Math.min(1, CITY_FROM[c.rank] + CITY_FADE), zoom);
-      if (shown * this.cityFade[i] >= 0.95) this.cityReadAt[i] = t;
-      const held = this.lock?.id === `city:${i}`;
-      const read = this.cityFade[i] >= (held ? 0.5 : 0.95) || t - this.cityReadAt[i] < CITY_READ_FOR;
-      if (shown < (held ? 0.5 : 0.95) || !read) return;
+      const ink = smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], Math.min(1, CITY_FROM[c.rank] + CITY_FADE), zoom);
+      if (ink >= CITY_PRINTED.ink && this.cityFade[i] >= CITY_PRINTED.placed) this.cityReadAt[i] = t;
+      const need = this.lock?.id === `city:${i}` ? CITY_HELD : CITY_PRINTED;
+      const read = this.cityFade[i] >= need.placed || t - this.cityReadAt[i] < CITY_READ_FOR;
+      if (ink < need.ink || !read) return;
       const p = this.proj(c.v);
       if (!p || !p.vis) return;
-      // world cities count most
-      out.push({ id: `city:${i}`, importance: c.rank < 2 ? 3 : c.rank < 4 ? 2 : 1, lat: c.lat, lng: c.lng, name: c.name, hub: null, x: p.x, y: p.y });
+      // world cities count most; each one's reach waits on where the others are
+      out.push({
+        id: `city:${i}`, importance: c.rank < 2 ? 3 : c.rank < 4 ? 2 : 1, lat: c.lat, lng: c.lng, name: c.name, hub: null, x: p.x, y: p.y,
+        reach: HUB_REACH,
+      });
     });
+    reachCities(out, zoom);
   }
 
   /**
@@ -2781,9 +2791,7 @@ export class GlobeEngine {
    * a hub once zoomed in on a country. A new lock ticks.
    */
   private lockOn(x: number | null, y: number | null) {
-    const hubs = this.zoom() >= LOCK_FROM[3];
-    const next = x === null || y === null ? null
-      : hubs ? lockAt(this.lockables, x, y, this.lock) : lockAt(this.cityTargets, x, y, this.lock, cityReach(this.zoom()));
+    const next = x === null || y === null ? null : lockAt(this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets, x, y, this.lock);
     if (next?.id === this.lock?.id) return;
     this.lock = next;
     this.lockT = this.t;

@@ -67,9 +67,12 @@ city, and the search looks around it as for any click. Zoomed in on a country, i
 ferry terminal instead, and snaps the leg's end to it, so that leg searches exactly that hub. Fully zoomed out it never
 locks. So how precise a search is follows how far in you are.
 
-- A city locks from zoom 0.3, only once its name is printed in full (or was, a moment ago, before a plane flew over it),
-  a ring round its dot, until the hubs take over at zoom 0.82. Its pull grows with zoom: from 30 px zoomed out, barely
-  a nudge, to 100 px just before the hubs, letting go 15% further. Zooming out until its name fades lets it go.
+- A city locks whenever its name is printed (popped into place with at least 40% of its ink down, or was, a moment ago,
+  before a plane flew over it), a ring round its dot, from the first names at zoom 0.1 until the hubs take over at 0.82.
+  How far it pulls from is a share of the way to its nearest lockable neighbour (40%, never under 10 px), so neighbours
+  never fight over the pointer and there's always free ground between them, capped by a grip that grows with zoom: 16 px
+  as the first names print, barely a nudge, to 64 px just before the hubs. It lets go 20% further than it caught, still
+  short of where its neighbour catches. Zooming out until its name fades (half its name, a fifth of its ink) lets it go.
 - Large hubs lock from zoom 0.82 (0 is the whole globe, 1 the closest), about when a country and its neighbours fill
   the view; major ones from 0.93, regional ones from 0.99.
 - Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 26 px and holds
