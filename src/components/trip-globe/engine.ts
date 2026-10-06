@@ -7,7 +7,7 @@ import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/tran
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GLYPH } from "@/components/ticket-search/glyphs";
 import { CITY_LABELS } from "./cities";
-import { lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
+import { LOCK_FROM, lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
@@ -165,6 +165,7 @@ const MARKER_GLYPHS: Record<Hub["mode"], Path2D> =
 const MARKER_LIFT = 5;
 // px the lock's tether starts out from the hub (just past its ring) and stops short of the pointer
 const LOCK_TETHER_FROM = 12;
+const LOCK_TETHER_CITY = 9; // from a city's ring instead
 const LOCK_TETHER_GAP = 4;
 /** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
 const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
@@ -396,7 +397,7 @@ const NAMES = COUNTRY_LABELS.map((l) => {
   };
 });
 
-const CITIES = CITY_LABELS.map(([name, lat, lng, rank, capital]) => ({ name, v: vecOf(lat * D2R, lng * D2R), rank, capital }));
+const CITIES = CITY_LABELS.map(([name, lat, lng, rank, capital]) => ({ name, lat, lng, v: vecOf(lat * D2R, lng * D2R), rank, capital }));
 
 export class GlobeEngine {
   private gl: WebGL2RenderingContext | null = null;
@@ -614,7 +615,9 @@ export class GlobeEngine {
   // for, the hub it's locked on and when that last changed. Each hub's point on the globe, worked out once.
   private lockables: LockTarget[] = [];
   private lockablesKey = "";
-  private lock: Hub | null = null;
+  // before the hubs show, the cities named on the globe, which the pointer locks on to instead
+  private cityTargets: LockTarget[] = [];
+  private lock: LockTarget | null = null;
   private lockT = -Infinity;
   private hubPoints = new Map<string, Vec3>();
   // when each lockable hub's marker came up, for its pop, and whether any is still popping
@@ -953,8 +956,9 @@ export class GlobeEngine {
       // the lock where the click is, not where the last frame left it (a tap has no hover before it)
       this.lockOn(x, y);
       const lock = this.lock;
+      const hub = lock?.hub ?? null;
       if (right) {
-        if (hit && !this.nearOrigin(x, y)) this.addStop(lock ? this.hubPoint(lock) : hit, lock ? { arrive: lock, leave: lock } : undefined);
+        if (hit && !this.nearOrigin(x, y)) this.addStop(lock ? this.hubPoint(lock) : hit, hub ? { arrive: hub, leave: hub } : undefined);
         return;
       }
       // a click on the stop the plane just left lands the trip there; a click hard on the heels of takeoff is the
@@ -965,7 +969,7 @@ export class GlobeEngine {
       }
       if (this.t - this.tTake < 0.25) return;
       // any other click lands the trip there; off the globe, it lands at the last stop, or cancels without one
-      if (hit) this.land(lock ? this.hubPoint(lock) : hit, lock ? { arrive: lock } : undefined);
+      if (hit) this.land(lock ? this.hubPoint(lock) : hit, hub ? { arrive: hub } : undefined);
       else if (this.via.length) this.finish();
       else this.cancel();
       return;
@@ -1048,7 +1052,7 @@ export class GlobeEngine {
     const hit = this.pick(x, y);
     this.lockOn(x, y);
     const lock = this.lock;
-    if (hit) this.takeoff(lock ? this.hubPoint(lock) : hit, false, lock ? { leave: lock } : undefined);
+    if (hit) this.takeoff(lock ? this.hubPoint(lock) : hit, false, lock?.hub ? { leave: lock.hub } : undefined);
     else if (this.mode === "landed") this.cancel();
   }
 
@@ -1890,7 +1894,7 @@ export class GlobeEngine {
     // zoomed in, they lock on to a hub near the ground under them and hang over it, every frame they're carried
     const foot = this.proj(lift.at);
     this.lockOn(foot && foot.vis ? foot.x : null, foot && foot.vis ? foot.y : null);
-    lift.snap = this.lock;
+    lift.snap = this.lock?.hub ?? null;
     if (this.lock) lift.at = this.hubPoint(this.lock);
   }
 
@@ -2656,6 +2660,7 @@ export class GlobeEngine {
     this.cam = this.camera();
     this.hover = this.hasPointer && !this.down?.drag && !this.pinch ? this.pick(this.mx, this.my) : null;
     this.placeLockables();
+    this.placeCityTargets();
     // carried pins lock on where they hang (liftStop), not where the pointer was before
     if (!this.lift) this.lockOn(this.hover ? this.mx : null, this.hover ? this.my : null);
     // Use the surface raycast after the camera moves, not the elevated plane's
@@ -2723,10 +2728,10 @@ export class GlobeEngine {
     if (crossesModes(arrive, this.originSnap.leave)) this.originSnap = { ...this.originSnap, leave: null };
   }
 
-  /** A hub's point on the globe. */
-  private hubPoint(hub: Hub): Vec3 {
-    let v = this.hubPoints.get(hub.id);
-    if (!v) this.hubPoints.set(hub.id, (v = vecOf(hub.lat * D2R, hub.lng * D2R)));
+  /** A hub's or lock target's point on the globe. */
+  private hubPoint(place: { id: string; lat: number; lng: number }): Vec3 {
+    let v = this.hubPoints.get(place.id);
+    if (!v) this.hubPoints.set(place.id, (v = vecOf(place.lat * D2R, place.lng * D2R)));
     return v;
   }
 
@@ -2741,9 +2746,30 @@ export class GlobeEngine {
     });
   }
 
-  /** Locks on to the hub near screen point (x, y), or lets go (null). A new lock ticks. */
+  /**
+   * The cities named on the globe, as places to lock on to before the hubs show: each where it's printed. Worked out
+   * every frame, from the names placed last, since names come and go as they fit.
+   */
+  private placeCityTargets() {
+    const out = this.cityTargets;
+    out.length = 0;
+    if (this.zoom() >= LOCK_FROM[3]) return;
+    CITIES.forEach((c, i) => {
+      if (!this.cityPlaced[i]) return;
+      const p = this.proj(c.v);
+      if (!p || !p.vis) return;
+      // world cities count most
+      out.push({ id: `city:${i}`, importance: c.rank < 2 ? 3 : c.rank < 4 ? 2 : 1, lat: c.lat, lng: c.lng, name: c.name, hub: null, x: p.x, y: p.y });
+    });
+  }
+
+  /**
+   * Locks on to the place near screen point (x, y), or lets go (null): a city while the cities are what's on the globe,
+   * a hub once zoomed in on a country. A new lock ticks.
+   */
   private lockOn(x: number | null, y: number | null) {
-    const next = x === null || y === null ? null : lockAt(this.lockables, x, y, this.lock);
+    const targets = this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets;
+    const next = x === null || y === null ? null : lockAt(targets, x, y, this.lock);
     if (next?.id === this.lock?.id) return;
     this.lock = next;
     this.lockT = this.t;
@@ -2754,12 +2780,12 @@ export class GlobeEngine {
   private updatePreview(point: Vec3 | null, nowMs: number) {
     const ll = point ? toLatLng(point) : null;
     // locked on, the preview is that hub, not whichever the throttled lookup last found
-    const next = ll && this.lock ? this.lock : this.hoverResolver.resolve(ll, nowMs);
+    const next = ll && this.lock?.hub ? this.lock.hub : this.hoverResolver.resolve(ll, nowMs);
     // the label names the city, not the hub, so it can change while the hub stays; look it up as often as the hub
     let name = this.hoverName;
     if (!ll || !next) name = null;
     // locked on, the label names the hub itself
-    else if (this.lock && next.id === this.lock.id) name = hubPreviewLabel(next);
+    else if (this.lock) name = this.lock.name;
     else if (next.id !== this.hoverHub?.id || (nowMs - this.hoverNameAt >= 80 &&
       (!this.hoverNamePoint || point!.some((v, i) => v !== this.hoverNamePoint![i])))) {
       this.hoverNamePoint = point && [...point];
@@ -3712,7 +3738,8 @@ export class GlobeEngine {
     ctx.font = this.markerFont;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    for (const { hub, x, y } of this.lockables) {
+    for (const { hub: target, x, y } of this.lockables) {
+      const hub = target!;
       seen.add(hub.id);
       let t0 = this.markerT.get(hub.id);
       if (t0 === undefined) this.markerT.set(hub.id, (t0 = this.reduceMotion ? -Infinity : t));
@@ -3761,23 +3788,32 @@ export class GlobeEngine {
       ctx.fillStyle = P.ink;
       ctx.fill(glyph, "evenodd");
       ctx.restore();
-      // a large airport's code, where it fits; the locked one is named on its tag instead
+      // a large airport's code, where it fits; the locked one is named on the pointer's label instead
       if (locked || u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
+      // beside it, else across from the name in the way, else under or over it: the first spot clear of the other
+      // codes, the other markers, and the country and city names printed under them
       const w = ctx.measureText(hub.code).width;
-      const box = { l: x + r + 2, t: y - 6, r: x + r + 2 + w, b: y + 6 };
-      // clear of the other codes, the other markers, and the country and city names printed under them
-      const under = (o: number[]) => box.l < o[2] && box.r > o[0] && box.t < o[3] && box.b > o[1];
-      if (box.r > this.W || codes.some((o) => box.l < o.r + 8 && box.r > o.l - 8 && box.t < o.b + 4 && box.b > o.t - 4) ||
-        this.placedNames.some(under) || this.cityBoxes.some(under) ||
-        this.lockables.some((o) => o.hub !== hub && o.x > box.l - MARKER_GLYPH / 2 - 2 && o.x < box.r + MARKER_GLYPH / 2 + 2 &&
-          o.y > box.t - MARKER_GLYPH / 2 - 2 && o.y < box.b + MARKER_GLYPH / 2 + 2)) continue;
+      const under = (b: typeof spots[number]) => (o: number[]) => b.l < o[2] && b.r > o[0] && b.t < o[3] && b.b > o[1];
+      const spots = [
+        { l: x + r + 2, t: y - 6, r: x + r + 2 + w, b: y + 6 },
+        { l: x - r - 2 - w, t: y - 6, r: x - r - 2, b: y + 6 },
+        { l: x - w / 2, t: y + r + 1, r: x + w / 2, b: y + r + 13 },
+        { l: x - w / 2, t: y - r - 13, r: x + w / 2, b: y - r - 1 },
+      ];
+      const box = spots.find((b) => b.l >= 0 && b.r <= this.W &&
+        !codes.some((o) => b.l < o.r + 8 && b.r > o.l - 8 && b.t < o.b + 4 && b.b > o.t - 4) &&
+        !this.placedNames.some(under(b)) && !this.cityBoxes.some(under(b)) &&
+        !this.lockables.some((o) => o.hub !== hub && o.x > b.l - MARKER_GLYPH / 2 - 2 && o.x < b.r + MARKER_GLYPH / 2 + 2 &&
+          o.y > b.t - MARKER_GLYPH / 2 - 2 && o.y < b.b + MARKER_GLYPH / 2 + 2));
+      if (!box) continue;
       codes.push(box);
       ctx.lineWidth = 3;
       ctx.strokeStyle = P.paper;
       ctx.lineJoin = "round";
-      ctx.strokeText(hub.code, box.l, y + 0.5);
+      const ty = (box.t + box.b) / 2 + 0.5;
+      ctx.strokeText(hub.code, box.l, ty);
       ctx.fillStyle = P.ink;
-      ctx.fillText(hub.code, box.l, y + 0.5);
+      ctx.fillText(hub.code, box.l, ty);
     }
     ctx.restore();
     // a hub out of reach pops up again when it comes back
@@ -3788,16 +3824,17 @@ export class GlobeEngine {
    * The short dashed tether from the hub the pointer is locked on (its marker, lifted on its disc) out to the pointer,
    * or to the pins it carries, so it's clear which hub a click or drop lands on wherever the pointer is.
    */
-  private lockTether(ctx: CanvasRenderingContext2D, p: ScreenPoint) {
+  private lockTether(ctx: CanvasRenderingContext2D, p: ScreenPoint, lifted: boolean) {
     const P = this.P;
     const aim = this.lift ? { x: this.lift.x, y: this.lift.y } : this.hasPointer ? { x: this.mx, y: this.my } : null;
-    const from = { x: p.x, y: p.y - MARKER_LIFT };
+    const from = { x: p.x, y: p.y - (lifted ? MARKER_LIFT : 0) };
+    const start = lifted ? LOCK_TETHER_FROM : LOCK_TETHER_CITY;
     const d = aim ? Math.hypot(aim.x - from.x, aim.y - from.y) : 0;
-    if (!aim || d <= LOCK_TETHER_FROM + LOCK_TETHER_GAP + 2) return;
+    if (!aim || d <= start + LOCK_TETHER_GAP + 2) return;
     const ux = (aim.x - from.x) / d, uy = (aim.y - from.y) / d;
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(from.x + ux * LOCK_TETHER_FROM, from.y + uy * LOCK_TETHER_FROM);
+    ctx.moveTo(from.x + ux * start, from.y + uy * start);
     ctx.lineTo(aim.x - ux * LOCK_TETHER_GAP, aim.y - uy * LOCK_TETHER_GAP);
     ctx.lineCap = "round";
     // over a paper halo, like the routes, so it reads on land and sea
@@ -3806,9 +3843,20 @@ export class GlobeEngine {
     ctx.strokeStyle = P.paper;
     ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.setLineDash([3, 2.5]); // dash-lock
+    ctx.setLineDash([1.6, 1.8]); // dash-lock
     ctx.lineWidth = 1.8;
     ctx.strokeStyle = P.ink;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** The ring round a city's dot that the pointer is locked on. */
+  private lockCity(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint) {
+    ctx.save();
+    ctx.beginPath();
+    this.groundCircle(ctx, n, p.x, p.y, 7);
+    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = this.P.ink;
     ctx.stroke();
     ctx.restore();
   }
@@ -4092,7 +4140,11 @@ export class GlobeEngine {
     }
     // the hub the pointer is locked on: a tether from its marker to the pointer, which keeps its label
     const lp = this.lock && this.proj(this.hubPoint(this.lock));
-    if (lp && lp.vis) this.lockTether(ctx, lp);
+    if (lp && lp.vis) {
+      // a city it's locked on gets a ring round its dot; a hub's marker lifts instead (drawMarkers)
+      if (!this.lock!.hub) this.lockCity(ctx, this.hubPoint(this.lock!), lp);
+      this.lockTether(ctx, lp, !!this.lock!.hub);
+    }
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels

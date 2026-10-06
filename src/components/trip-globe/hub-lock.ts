@@ -1,7 +1,9 @@
-// Locking on to a hub: zoomed in, the pointer snaps to the airport, station or ferry terminal near it, so a click,
-// a stop or a dropped pin lands on that hub and its leg searches exactly it. Zoomed out it never locks, and a click
-// searches the hubs around where it lands. Pure apart from the haptic tick; the engine feeds it screen positions.
+// Locking on: the pointer snaps to a place near it, so a click, a stop or a dropped pin lands right on it. With the
+// cities named on the globe it locks on to a city, and the search looks around it; zoomed in on a country, to an
+// airport, station or ferry terminal, which that end of the leg then searches exactly. Pure apart from the haptic
+// tick; the engine feeds it screen positions.
 import { HUBS } from "@/lib/transport/hubs/browser";
+import { hubPreviewLabel } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 
 /**
@@ -20,8 +22,11 @@ export const LOCK_RELEASE = 30;
 /** px of pointer distance a point of importance is worth when two hubs are in reach: SeaTac before Boeing Field. */
 export const LOCK_IMPORTANCE_PX = 4;
 
-/** A lockable hub where it is on screen. */
-export type LockTarget = { hub: Hub; x: number; y: number };
+/**
+ * A place the pointer can lock on, where it is on screen: a hub (`hub`), or a city before the hubs show (no hub).
+ * `importance` is 1 to 3, bigger counting nearer; `name` is what the pointer's label says.
+ */
+export type LockTarget = { id: string; importance: number; lat: number; lng: number; name: string; hub: Hub | null; x: number; y: number };
 
 // most important first, then by id, so the spacing keeps the same hubs however the view got there
 const RANKED = [...HUBS].sort((a, b) => b.importance - a.importance || (a.id < b.id ? -1 : 1));
@@ -46,7 +51,7 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
     if (!at) continue;
     const cx = Math.floor(at.x / LOCK_SPACING), cy = Math.floor(at.y / LOCK_SPACING);
     if (crowded(at.x, at.y, cx, cy)) continue;
-    const target = { hub, ...at };
+    const target: LockTarget = { id: hub.id, importance: hub.importance, lat: hub.lat, lng: hub.lng, name: hubPreviewLabel(hub), hub, ...at };
     out.push(target);
     const key = `${cx},${cy}`;
     cells.set(key, [...(cells.get(key) ?? []), target]);
@@ -55,17 +60,17 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
 }
 
 /**
- * The hub the pointer at (x, y) is locked on: the held one until the pointer is LOCK_RELEASE px away from it, else the
- * best placed within LOCK_CATCH (the nearest, bigger hubs counting a little nearer), else none.
+ * What the pointer at (x, y) is locked on: the held target until the pointer is LOCK_RELEASE px away from it, else the
+ * best placed within LOCK_CATCH (the nearest, bigger places counting a little nearer), else none.
  */
-export function lockAt(targets: readonly LockTarget[], x: number, y: number, held: Hub | null): Hub | null {
+export function lockAt(targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null): LockTarget | null {
   const d = (t: LockTarget) => Math.hypot(t.x - x, t.y - y);
-  const kept = held && targets.find((t) => t.hub.id === held.id);
-  if (kept && d(kept) <= LOCK_RELEASE) return held;
-  const score = (t: LockTarget) => d(t) - t.hub.importance * LOCK_IMPORTANCE_PX;
+  const kept = held && targets.find((t) => t.id === held.id);
+  if (kept && d(kept) <= LOCK_RELEASE) return kept;
+  const score = (t: LockTarget) => d(t) - t.importance * LOCK_IMPORTANCE_PX;
   let best: LockTarget | null = null;
   for (const t of targets) if (d(t) <= LOCK_CATCH && (!best || score(t) < score(best))) best = t;
-  return best?.hub ?? null;
+  return best;
 }
 
 /**

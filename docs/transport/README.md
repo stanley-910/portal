@@ -61,17 +61,19 @@ A hub's country is metadata about the hub. It's not a claim that the pointer is 
 
 ## Locking on to a hub
 
-Zoomed in, the pointer locks on to an airport, station or ferry terminal near it (`hub-lock.ts`), and what it does
-there lands on that hub and snaps the leg's end to it, so that leg searches exactly that hub: a click taking off or
-landing, a right-click stop, and a stop's pins dropped there. Zoomed out it never locks, and a click searches the hubs
-around where it lands. So how precise a search is follows how far in you are.
+The pointer locks on to a place near it (`hub-lock.ts`), and what it does there lands right on it: a click taking off
+or landing, a right-click stop, and a stop's pins dropped there. While the globe shows cities, it locks on to a named
+city, and the search looks around it as for any click. Zoomed in on a country, it locks on to an airport, station or
+ferry terminal instead, and snaps the leg's end to it, so that leg searches exactly that hub. Fully zoomed out it never
+locks. So how precise a search is follows how far in you are.
 
+- A city locks while its name is printed, a ring round its dot, until the hubs take over at zoom 0.82.
 - Large hubs lock from zoom 0.82 (0 is the whole globe, 1 the closest), about when a country and its neighbours fill
   the view; major ones from 0.93, regional ones from 0.99.
 - Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 26 px and holds
   it until it's 30 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
 - Each lockable hub shows as its mode's glyph in ink (a plane for an airport, the train for a station, the ferry for a
-  terminal), so it never reads as a city's dot, popping up as it comes into reach; large airports print their code beside it where it clears the
+  terminal), so it never reads as a city's dot, popping up as it comes into reach; large airports print their code on the first side of it (right, left, under, over) that clears the
   city names (a marker by a city's dot stands in for the dot, the name beside it). Locked, its marker lifts on a disc,
   a short dashed tether runs from it to the pointer (or the pins being carried), and the pointer's label names it
   (`SEA · Seattle`); flying,
