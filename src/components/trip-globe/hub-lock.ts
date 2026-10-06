@@ -102,7 +102,7 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
  * How much of its reach a target keeps while a plane is being flown: much less, so the plane sweeps on across the
  * globe and only settles on a place it's brought right up to.
  */
-export const FLYING_REACH = 0.35;
+export const FLYING_REACH = 0.2;
 
 /**
  * What the pointer at (x, y) is locked on: the held target until the pointer is past its release, else the best placed
