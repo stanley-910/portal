@@ -83,13 +83,15 @@ export function generateStars(seed: number) {
   const r = rng(seed);
   const stars: number[] = [];
   const looks: number[] = [];
-  // a third of each class sits on a nearer shell, so the layers part as the camera moves
-  const shell = () => (r() < 0.35 ? 5 + r() * 9 : 0);
+  // A third of the plain stars sit on a nearer shell, so the layers part as the camera moves. The spiked ones all sit
+  // on a far shell behind the nebula (SKY_R = 9): pinned at infinity they hold still on screen as the camera zooms,
+  // and any nearer they slide with the globe and read as close.
+  const shell = (p: number, from: number, to: number) => (r() < p ? from + r() * (to - from) : 0);
   const add = (d: Vec3, core: number, spike: number, rot: number, bright: number) => {
-    stars.push(d[0], d[1], d[2], shell());
+    stars.push(d[0], d[1], d[2], spike > 0 ? shell(1, 24, 40) : shell(0.35, 5, 14));
     looks.push(core, spike, rot, bright);
   };
-  for (const d of scatter(r, 48, 0.35)) add(d, 2.4 + r() * 1.6, 24 + Math.pow(r(), 1.5) * 52, (r() - 0.5) * 0.3, 1);
+  for (const d of scatter(r, 48, 0.35)) add(d, 2.4 + r() * 1.6, 20 + Math.pow(r(), 1.5) * 44, (r() - 0.5) * 0.3, 1);
   for (const d of scatter(r, 150, 0.45)) add(d, 1.8 + Math.pow(r(), 2.5) * 2.4, 0, 0, 0.9 + r() * 0.1);
   for (const d of scatter(r, 900, 0.5)) add(d, 0.6 + r() * 0.6, 0, 0, 0.5 + r() * 0.5);
   return { stars: new Float32Array(stars), looks: new Float32Array(looks), count: stars.length / 4 };
@@ -98,7 +100,7 @@ export function generateStars(seed: number) {
 /** A handful of nebula centres: xyz direction, w angular radius. */
 export function generateNebulae(seed: number) {
   const r = rng(seed ^ 0x9e3779b9);
-  const blobs = scatter(r, 9, 0.3).map((d) => [...d, 0.1 + r() * 0.16]);
+  const blobs = scatter(r, 7, 0.3).map((d) => [...d, 0.09 + r() * 0.14]);
   const offset: Vec3 = [r() * 100, r() * 100, r() * 100];
   return { blobs: new Float32Array(blobs.flat()), count: blobs.length, offset };
 }
