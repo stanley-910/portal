@@ -61,6 +61,8 @@ export type Stay = {
   label: string | null;
   /** True when `nightly` is the hotel search's estimate rather than a price someone gave. */
   estimated?: boolean;
+  /** What to search for to book it, outside the app. Absent on stays typed in by hand and older rooms. */
+  listing?: { city: string; place?: string };
   createdAt?: number;
 };
 
@@ -116,6 +118,8 @@ export type StoredOffer = {
   attribution: string | null;
   /** Each flight's number, airports and local departure, when the provider gave them all. Settling matches on these. */
   flights?: { number: string; from: string; to: string; depart: string }[];
+  /** Where it changes planes or trains on the way, in order, so the globe can route it through them. Absent when direct. */
+  layovers?: { code: string; lat: number; lng: number }[];
 };
 
 export type LegSearch = {

@@ -39,6 +39,7 @@ export type PlanStay = {
   nightly: Money | null;
   label: string | null;
   estimated: boolean;
+  listing?: Stay["listing"];
   createdAt: number;
 };
 
@@ -94,6 +95,7 @@ export function staysOf(plan: SplitInput): PlanStay[] {
         nightly: stay.nightly,
         label: stay.label,
         estimated: stay.estimated ?? false,
+        ...(stay.listing ? { listing: stay.listing } : {}),
         createdAt: stay.createdAt ?? 0,
       });
     } else legacy[id] = stay;
@@ -147,6 +149,7 @@ function legacyStays(plan: SplitInput, legacy: Record<string, Stay>): PlanStay[]
         nightly: stay.nightly,
         label: stay.label,
         estimated: stay.estimated ?? false,
+        ...(stay.listing ? { listing: stay.listing } : {}),
         createdAt: 0,
       });
       run++;

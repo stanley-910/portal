@@ -151,6 +151,7 @@ export function FakeGlobe({ ref, zoom = 0, onTakeoff, onLand, onCancel, onRouteC
       return () => frames.current.delete(cb);
     },
     setRemoteFlights: (list) => setFlights(list),
+    setLayovers: () => {},
     setRemoteCursors: () => {},
     remoteCursor: () => null,
     setPins: (list) => setPinsState(list),

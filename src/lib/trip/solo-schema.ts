@@ -80,6 +80,7 @@ export const soloLegSchema = z
         nightly: z.object({ amount: z.number().min(0).max(1_000_000), currency: z.string().regex(/^[A-Z]{3}$/) }),
         // a live hotel rate; anything unmarked is an estimate
         estimated: z.boolean().default(true),
+        listing: z.object({ city: text(120), place: text(200).optional() }).optional(),
       })
       .optional(),
   })

@@ -68,6 +68,7 @@ export function toStoredOffer(offer: Offer): StoredOffer {
   const last = offer.segments.at(-1)!;
   // door to door, so connections count; providers' per-segment durations leave out the wait between them
   const span = (Date.parse(last.arrive) - Date.parse(first.depart)) / 60_000;
+  const layovers = layoversOf(offer);
   return {
     id: offer.id,
     provider: offer.provider,
@@ -86,7 +87,15 @@ export function toStoredOffer(offer: Offer): StoredOffer {
     bookingUrl: webUrlOrNull(offer.bookingUrl),
     attribution: offer.attribution ?? null,
     ...flightsOf(offer),
+    ...(layovers.length ? { layovers } : {}),
   };
+}
+
+/** Where an option changes planes or trains on the way, in order: each segment's end but the last, by its code. */
+export function layoversOf(offer: Pick<Offer, "segments">): NonNullable<StoredOffer["layovers"]> {
+  return offer.segments.slice(0, -1)
+    .filter((s) => Number.isFinite(s.to.lat) && Number.isFinite(s.to.lng) && (s.to.lat !== 0 || s.to.lng !== 0))
+    .map((s) => ({ code: s.to.iata ?? s.to.name, lat: s.to.lat, lng: s.to.lng }));
 }
 
 /** Flight numbers and airports, which settling needs to find the same flights again. Only when every segment has them. */

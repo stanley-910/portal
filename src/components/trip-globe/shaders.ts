@@ -18,6 +18,11 @@ float halftone(vec2 px, float k, float ang, float per) {
 float lineAA(float d, float w, float fw) { return 1.0 - smoothstep(w, w + max(fw, 1e-5), d); }
 `;
 
+// Half the size of a star's quad, in px before scaling: room for the halo and the longer, vertical spike.
+const GLSL_STAR_REACH = `
+float starReach(vec4 look) { return max(look.x * 4.0, look.y * 1.2) + 2.0; }
+`;
+
 // The nebula lives on a shell around the globe rather than at infinity, so it drifts against the stars as the
 // camera orbits and zooms. Both the globe pass and the star pass look it up through skyUV.
 const GLSL_SKY = `
@@ -452,6 +457,7 @@ out vec2 vQ;
 out vec2 vOff;
 flat out vec4 vLook;
 flat out float vSeed;
+` + GLSL_STAR_REACH + `
 void main() {
   bool near = aStar.w > 0.0;
   vec3 v = near ? aStar.xyz * aStar.w - uC : aStar.xyz;
@@ -463,7 +469,7 @@ void main() {
   // nearer stars grow a little as the camera closes in on them
   float scale = near ? clamp(aStar.w / length(v), 0.75, 1.5) : 1.0;
   vec2 ndc = vec2(dot(v, uRr) / (vz * uTan * uAsp), dot(v, uUu) / (vz * uTan) - uShift);
-  float r = (max(aLook.x * 4.0, aLook.y) + 2.0) * scale;
+  float r = starReach(aLook) * scale;
   vec2 off = aCorner * r;
   gl_Position = vec4(ndc + off * uDpr * 2.0 / uRes, 0.0, 1.0);
   float c = cos(aLook.z), s = sin(aLook.z);
@@ -492,20 +498,23 @@ uniform sampler2D uSky;
 uniform vec3 uInk;
 uniform float uSkyInk;
 out vec4 outColor;
-` + GLSL_COMMON + GLSL_SKY + `
+` + GLSL_COMMON + GLSL_SKY + GLSL_STAR_REACH + `
 void main() {
   float r = length(vQ);
   float core = vLook.x;
   float k = 1.0 - smoothstep(core * 0.85, core * 1.05, r);
-  k += 0.5 * exp(-r / (core * 1.3));
+  float halo = 0.5 * exp(-r / (core * 1.3));
   float L = vLook.y;
   if (L > 0.0) {
     vec2 a = abs(vQ);
     float w = core * 0.3 + 0.55;
     k += 1.3 * exp(-a.y * a.y / (w * w)) * pow(max(1.0 - a.x / L, 0.0), 2.2);
     k += 1.3 * exp(-a.x * a.x / (w * w)) * pow(max(1.0 - a.y / (L * 1.2), 0.0), 2.2);
-    k += 0.3 * exp(-r / (L * 0.2));
+    halo += 0.22 * exp(-r / (L * 0.2));
   }
+  // the halo never quite reaches zero, so end it on a circle inside the quad rather than at the quad's square edge
+  float R = starReach(vLook);
+  k += halo * (1.0 - smoothstep(0.6 * R, R, r));
   k *= vLook.w;
 
   // hidden behind the globe, fading out through its atmosphere, and behind the body of a nebula

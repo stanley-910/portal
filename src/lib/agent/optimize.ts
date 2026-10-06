@@ -2,12 +2,13 @@ import "server-only";
 import { composeRoutes, type ComposeInput, type Composed, type Route } from "@/lib/transport/compose";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { KIND } from "@/lib/agent/kind";
+import { clockOfIso } from "@/lib/clock";
 
 export const OPTIMIZE_INSTRUCTION =
   "When someone says a leg costs too much, gives a budget, asks for something cheaper, or wants to arrive with someone else, call the route optimizer first, before any other search. It tries leaving from nearby stations and airports (for example taking the MTR across to Shenzhen for the train to Shanghai, or flying from a cheaper airport an hour away), chains the connections, including overnight ones, and lines up arrivals. Getting to a station or airport nobody runs a timetable for is an estimate from distance: say so. Lead with the best route as one plan: what to take, when, the total, what it saves and when it arrives. Mention the runner-up only if it's a real trade-off. Quote its numbers exactly, say 'about' for converted totals and say estimates are estimates. If nothing beats the direct option, say so plainly. Its fares and times are enough to answer with; don't search again for them.";
 
-const hhmm = (iso: string) => iso.slice(11, 16);
-/** "09:00 next day": local time, with how many days after the route set off. */
+const hhmm = (iso: string) => clockOfIso(iso);
+/** "9:00 AM next day": local time, with how many days after the route set off. */
 const at = (iso: string, start: string) => {
   const days = Math.round((Date.parse(iso.slice(0, 10)) - Date.parse(start.slice(0, 10))) / 86_400_000);
   return `${hhmm(iso)}${days === 1 ? " next day" : days > 1 ? ` +${days} days` : ""}`;

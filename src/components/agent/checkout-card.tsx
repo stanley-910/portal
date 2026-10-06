@@ -18,6 +18,7 @@ import { Button, PixelClose } from "@/components/paper-atlas";
 import type { Failure, PriceChange } from "@/lib/booking/flow";
 import type { TravellerDetails } from "@/lib/booking/offer";
 import { formatPhone } from "@/lib/booking/phone";
+import { useClockPref } from "@/lib/clock-pref";
 import { recordTiming } from "@/lib/performance";
 import { iso2 } from "@/lib/entry/iso";
 import { memberColor, type LegBooking, type Money } from "@/lib/liveblocks/types";
@@ -119,6 +120,7 @@ export function CheckoutBody({
   const from = leg?.from ?? "";
   const to = leg?.to ?? "";
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const cycle = useClockPref();
   const [busy, start] = useTransition();
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,7 +197,7 @@ export function CheckoutBody({
   const inApp = !!wallet?.publishableKey;
   const left = booking.deadline && booking.status !== "booked" ? new Date(booking.deadline) : null;
 
-  const when = (d: Date) => d.toLocaleString("en", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const when = (d: Date) => d.toLocaleString("en", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hourCycle: cycle === "24" ? "h23" : "h12" });
   const stage = booking.status === "booked" ? "Booked" : seat?.paid ? "Card held" : needsDetails ? "Your details" : canPay ? "Payment" : "Checking";
   return (
     <div className={inCard ? "ts-checkout-body" : "pip-checkout"}>

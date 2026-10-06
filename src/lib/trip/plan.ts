@@ -389,7 +389,7 @@ export function usePlanActions() {
 }
 
 /** A stay as an edit gives it: everything but its id and when it was made. */
-export type NewStay = Required<Pick<Stay, "stop" | "checkIn" | "checkOut" | "guests">> & Pick<Stay, "nightly" | "label" | "estimated">;
+export type NewStay = Required<Pick<Stay, "stop" | "checkIn" | "checkOut" | "guests">> & Pick<Stay, "nightly" | "label" | "estimated" | "listing">;
 
 /**
  * The stays map, made if the room has none, with any stays from before stays had their own guests and dates written

@@ -7,6 +7,8 @@ import { useEffect, useId, useRef, useState, useTransition, type ReactNode } fro
 
 import { Button, Cursor, MEMBER_COLORS, type CursorShape } from "@/components/paper-atlas";
 import { setAlienPref, useAlienPref } from "@/lib/alien-pref";
+import type { ClockCycle } from "@/lib/clock";
+import { setClockPref, useClockPref } from "@/lib/clock-pref";
 import { setCursorPref, useCursorPref } from "@/lib/cursor-pref";
 import { renameProfile, signOut } from "@/app/(auth)/actions";
 import { saveColor, saveNationalities } from "@/app/profile-actions";
@@ -121,6 +123,7 @@ export function ProfileMenu({ name, email = null, account = false, reloadOnRenam
               )}
               <CursorSetting trip={tripColor} />
               <ThemeSetting />
+              <ClockSetting />
               <AlienSetting />
               {children}
             </>
@@ -293,6 +296,21 @@ function ThemeSetting() {
   return (
     <MenuSection title="Theme">
       <MenuChoices name="theme" label="Theme" value={theme ?? "system"} options={THEMES} onChange={setTheme} />
+    </MenuSection>
+  );
+}
+
+const CLOCKS: readonly MenuChoice<ClockCycle>[] = [
+  { value: "12", label: "1:30 PM", title: "12-hour" },
+  { value: "24", label: "13:30", title: "24-hour" },
+];
+
+/** 12- or 24-hour times on the timelines and checkout. */
+function ClockSetting() {
+  const cycle = useClockPref();
+  return (
+    <MenuSection title="Time">
+      <MenuChoices name="clock" label="Time" value={cycle} options={CLOCKS} onChange={setClockPref} />
     </MenuSection>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PixelIcon } from "@/components/paper-atlas";
+import { formatClock } from "@/lib/clock";
+import { useClockPref } from "@/lib/clock-pref";
 import type { Mode } from "@/lib/transport/types";
 
 import { Glyph, RailGlyph } from "./glyphs";
@@ -396,7 +398,7 @@ export function DayStrip({
 /**
  * Moving legs as a line with the vehicle at its head, travelling right (a dashed trail for a flight, a track for the
  * rest), layovers as a dotted line, each as wide as its minutes. With a `clock`, it leaves at the left end's time and
- * gets in at the right's; a worked-out arrival reads "~19:40".
+ * gets in at the right's, in the profile menu's 12- or 24-hour time; a worked-out arrival reads "~7:40 PM".
  */
 /** Shown at each end of the line for a fare with no timetable: its times aren't known, so none are made up. */
 const NO_TIME = "--:--";
@@ -408,11 +410,12 @@ const NO_TIME_TITLE = "Estimated fare: no timetable, so no set time";
  */
 export function Timeline({ legs, clock = null, unscheduled = false }: { legs: TimelineLeg[]; clock?: Clock | null; unscheduled?: boolean }) {
   const none = !clock && unscheduled;
+  const cycle = useClockPref();
   return (
     <span className="ts-timeline">
       {clock ? (
         <span className="ts-time" title="Leaves">
-          {clock.departs}
+          {formatClock(clock.departs, cycle)}
         </span>
       ) : none ? (
         <span className="ts-time ts-time-none" title={NO_TIME_TITLE}>
@@ -446,7 +449,7 @@ export function Timeline({ legs, clock = null, unscheduled = false }: { legs: Ti
       {clock?.arrives ? (
         <span className="ts-time ts-time-end" title={clock.approx ? "Arrives, worked out from the duration" : "Arrives"}>
           {clock.approx ? "~" : null}
-          {clock.arrives}
+          {formatClock(clock.arrives, cycle)}
           {clock.days !== 0 ? <sup>{clock.days > 0 ? `+${clock.days}` : clock.days}</sup> : null}
         </span>
       ) : none ? (

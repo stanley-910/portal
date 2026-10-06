@@ -5,12 +5,14 @@ import { useRef } from "react";
 import { usePixelCanvas, type Colors } from "@/components/agent/pixel";
 import { countryName, flagEmoji } from "@/lib/nationality";
 
-import { FLAG_ART } from "./flag-art";
+import { FLAG_ART, type FlagArt } from "./flag-art";
+import { GENERATED_FLAGS } from "./flags.generated";
 
-// A country's flag as one of Pip's pixel stickers: the flag emoji sampled down to a 14×10 grid of flat colours, then
-// masked like Pip's speech bubble (stepped corners, a 1-cell ink outline, a dithered shade and a starlight glint). It
-// dithers in and flutters once when it first shows. Flags with emblems too fine to sample are hand-drawn (flag-art.ts);
-// a country the system can't draw a flag for gets a generic one.
+// A country's flag as one of Pip's pixel stickers: a 14×10 grid of flat colours, masked like Pip's speech bubble
+// (stepped corners, a 1-cell ink outline, a dithered shade and a starlight glint). It dithers in and flutters once when
+// it first shows. Flags with emblems too fine for the grid are hand-drawn (flag-art.ts); the rest are generated from
+// flat SVGs by scripts/flags.mts (flags.generated.ts); an unknown country gets a generic one. `source="emoji"` samples
+// the system's flag emoji instead, as flags were drawn before, for comparing in the playground.
 
 const FW = 14;
 const FH = 10;
@@ -29,17 +31,21 @@ type Grid = (string | null)[][];
 
 const sampled = new Map<string, Grid | null>();
 
-/** The flag's cells as CSS colours, or null when there's no colour emoji to sample (e.g. Windows draws letters). */
-function sampleFlag(code: string): Grid | null {
+const cells = (art: FlagArt): Grid => art.rows.map((row) => [...row].map((c) => art.inks[c] ?? null));
+
+/** The flag's cells as CSS colours: hand-drawn, else generated; or, for `emoji`, sampled from the emoji. */
+function flagCells(code: string, source: "art" | "emoji"): Grid | null {
+  const art = source === "art" ? FLAG_ART[code.toUpperCase()] ?? GENERATED_FLAGS[code.toUpperCase()] : undefined;
+  if (art) return cells(art);
+  if (source === "art") return null;
   if (sampled.has(code)) return sampled.get(code)!;
   const grid = sample(code);
   sampled.set(code, grid);
   return grid;
 }
 
+/** The flag emoji sampled down to the grid, or null when there's no colour emoji (e.g. Windows draws letters). */
 function sample(code: string): Grid | null {
-  const art = FLAG_ART[code.toUpperCase()];
-  if (art) return art.rows.map((row) => [...row].map((c) => art.inks[c] ?? null));
   const emoji = flagEmoji(code);
   if (!emoji) return null;
   const size = 192;
@@ -138,12 +144,18 @@ const generic = (colors: Colors): Grid =>
 /** The corner cells the stepped mask cuts, as on Pip's speech bubble. */
 const cut = (x: number, y: number) => (x === 0 || x === FW - 1) && (y === 0 || y === FH - 1);
 
-export function PixelFlag({ country, className }: { country?: string | null; className?: string }) {
+/** `scale` is CSS px a cell: 1 on a city's line; larger to inspect a flag (the playground's Flags section). */
+export function PixelFlag({ country, scale = SCALE, source = "art", className }: {
+  country?: string | null;
+  scale?: number;
+  source?: "art" | "emoji";
+  className?: string;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   usePixelCanvas(
     canvas,
     (ctx, colors, tick, still) => {
-      const flag = (country && sampleFlag(country)) || generic(colors);
+      const flag = (country && flagCells(country, source)) || generic(colors);
       const shown = still ? Infinity : tick;
       const amp = shown < SETTLE ? 1 : 0;
       // each column's drop for the flutter: a ripple running from the hoist to the fly
@@ -193,7 +205,7 @@ export function PixelFlag({ country, className }: { country?: string | null; cla
       aria-label={name ? `${name} flag` : "Flag"}
       title={name ?? undefined}
       className={className ? `ts-flag ${className}` : "ts-flag"}
-      style={{ width: W * SCALE, height: H * SCALE }}
+      style={{ width: W * scale, height: H * scale }}
     />
   );
 }

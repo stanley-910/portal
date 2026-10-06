@@ -2,6 +2,7 @@
 
 import { formatMoney, inCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import { memberColor, type TripMember } from "@/lib/liveblocks/types";
+import { bookingUrl } from "@/lib/hotels/search";
 import type { NewStay } from "@/lib/trip/plan";
 import type { PlanStay } from "@/lib/trip/split";
 
@@ -29,6 +30,8 @@ export function StayCard({
   present?: ReadonlySet<string> | null;
 }) {
   const n = nights(stay.checkIn, stay.checkOut);
+  // booked on its own, apart from the legs: a search for its current nights and guests, so edits here carry over
+  const book = stay.listing ? bookingUrl(stay.listing, stay.checkIn, stay.checkOut, Math.max(1, stay.guests.length)) : null;
   const setDate = (field: "checkIn" | "checkOut", value: string) => {
     const next = { checkIn: stay.checkIn, checkOut: stay.checkOut, [field]: value };
     // a range that ends before it starts waits for the other date
@@ -77,6 +80,11 @@ export function StayCard({
               ))
             : null}
         </ul>
+        {book ? (
+          <a className="ts-oneway hs-book" href={book} target="_blank" rel="noreferrer">
+            Booking.com
+          </a>
+        ) : null}
         <button type="button" className="tp-action" onClick={onRemove} aria-label="Remove stay">
           <TrashGlyph />
           <span>Remove</span>

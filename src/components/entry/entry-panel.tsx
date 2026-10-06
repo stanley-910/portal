@@ -149,19 +149,19 @@ export function EntryPanel({ leg, riders, className, style }: EntryPanelProps) {
   );
 }
 
-// A passport in Pip's pixels: a solid cover in the button's ink, its globe and name line cut out to the card behind.
-// # cover · o cut out
+// A passport in Pip's pixels: a plain navy cover with the gold e-passport chip mark centred on it.
+// # cover · + gilt
 const PASSPORT = [
   " ########## ",
   "############",
-  "####oooo####",
-  "###o#oo#o###",
-  "##oooooooo##",
-  "###o#oo#o###",
-  "####oooo####",
   "############",
-  "############",
-  "###oooooo###",
+  "##++++++++##",
+  "##+++##+++##",
+  "##++#++#++##",
+  "#####++#####",
+  "##++#++#++##",
+  "##+++##+++##",
+  "##++++++++##",
   "############",
   "############",
   " ########## ",

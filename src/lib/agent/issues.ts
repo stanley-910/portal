@@ -1,5 +1,6 @@
 import { showDate as day, type PlanJson } from "@/lib/agent/snapshot";
 import type { StoredOffer } from "@/lib/liveblocks/types";
+import { clockOfIso } from "@/lib/clock";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 
 // Things in a trip worth Pip speaking up about, each with a fix someone can apply in one tap. Pure, so the room's
@@ -27,8 +28,8 @@ type Plan = PlanJson;
 type Leg = NonNullable<Plan["legs"]>[string];
 
 const chosenOf = (l: Leg): StoredOffer | null => l.search?.offers?.find((o) => o.id === l.chosen) ?? null;
-const hhmm = (iso: string) => iso.slice(11, 16);
-/** "HX234 18:30", or "the 18:30 train". */
+const hhmm = (iso: string) => clockOfIso(iso);
+/** "HX234 6:30 PM", or "the 6:30 PM train". */
 const service = (o: StoredOffer) => (o.flights?.[0]?.number ? `${o.flights[0].number} ${hhmm(o.depart)}` : `the ${hhmm(o.depart)} ${o.carrier ?? o.mode}`);
 const names = (plan: Plan, ids: readonly string[]) => {
   const list = ids.map((id) => plan.members?.[id]?.name ?? "Someone");

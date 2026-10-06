@@ -23,7 +23,8 @@
     "db:migrate": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
     "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
     "eval:pip": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts",
-    "browser-hubs": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts"
+    "browser-hubs": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts",
+    "flags": "node scripts/flags.mts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^3.0.58",
@@ -52,6 +53,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/d3-geo": "^3.1.1",
     "@types/node": "^20",
@@ -62,6 +64,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "fflate": "^0.8.3",
+    "flag-icons": "^7.5.0",
     "pg": "^8.23.1",
     "playwright": "1.58.2",
     "tailwindcss": "^4",

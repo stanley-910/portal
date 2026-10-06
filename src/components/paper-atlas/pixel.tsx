@@ -1,7 +1,10 @@
 import { cn } from "@/lib/utils";
 
 // Pip's pixels for the interface's small marks: a glyph drawn cell by cell, and the pixel close button. A glyph is a
-// list of rows, one character a cell: `#` in the ink (currentColor), `o` cut out to the surface it sits on, space empty.
+// list of rows, one character a cell: `#` in the ink (currentColor), `+` in the accent (--px-accent, else the ink), `o`
+// cut out to the surface it sits on, space empty.
+
+const CELL: Record<string, string> = { "#": "pa-px-ink", "+": "pa-px-accent" };
 
 /** `scale` is CSS px a cell: 1 for fine marks, 2 for Pip's chunkier ones. */
 export function PixelIcon({ rows, scale = 1, className }: { rows: readonly string[]; scale?: 1 | 2; className?: string }) {
@@ -9,7 +12,7 @@ export function PixelIcon({ rows, scale = 1, className }: { rows: readonly strin
   return (
     <svg className={cn("pa-px-icon", className)} width={w * scale} height={rows.length * scale} viewBox={`0 0 ${w} ${rows.length}`} shapeRendering="crispEdges" aria-hidden>
       {rows.flatMap((row, y) =>
-        [...row].map((c, x) => (c === " " ? null : <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} className={c === "#" ? "pa-px-ink" : "pa-px-cut"} />)),
+        [...row].map((c, x) => (c === " " ? null : <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} className={CELL[c] ?? "pa-px-cut"} />)),
       )}
     </svg>
   );

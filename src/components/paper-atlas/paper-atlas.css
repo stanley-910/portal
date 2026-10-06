@@ -179,6 +179,7 @@
 /* Pixel marks (pixel.tsx): glyphs in the ink, with cut-outs in the surface under them */
 .pa-px-icon { flex: none; image-rendering: pixelated; }
 .pa-px-ink { fill: currentColor; }
+.pa-px-accent { fill: var(--px-accent, currentColor); }
 .pa-px-cut { fill: var(--px-surface, var(--paper-raised)); }
 .pa-px-close { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: var(--radius-tag); background: none; color: var(--ink-muted); cursor: pointer; }
 .pa-px-close::before { content: ""; position: absolute; inset: -4px; }

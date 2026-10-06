@@ -102,8 +102,12 @@ const LEGS = [
     to: "tyo",
     date: day(17),
     riders: ["g_sam"],
-    offers: [offer("br", "flight", "travelpayouts", "EVA Air", 17, "08:50", "13:05", 195, 412, "USD")],
-    chosen: "br",
+    // a connection, so the room shows a leg routed through one beside the direct legs and the trip's own stops
+    offers: [
+      { ...offer("mm", "flight", "travelpayouts", "Peach", 17, "07:20", "15:40", 440, 268, "USD"), stops: 1, layovers: [{ code: "OKA", lat: 26.1958, lng: 127.646 }] },
+      offer("br", "flight", "travelpayouts", "EVA Air", 17, "08:50", "13:05", 195, 412, "USD"),
+    ],
+    chosen: "mm",
     votes: {},
   },
   {
@@ -146,8 +150,8 @@ const root = new LiveObject({
   ),
   stays: new LiveMap([
     // each stay has its own guests and nights, apart from who rides there; nobody has one in Osaka yet
-    ["st_sha", new LiveObject({ stop: "sha", checkIn: day(14), checkOut: day(17), guests: ["g_mei", "g_ada", "g_joon"], label: "Jing'an apartment", nightly: { amount: 980, currency: "CNY" }, estimated: true, createdAt: 1 })],
-    ["st_tyo", new LiveObject({ stop: "tyo", checkIn: day(17), checkOut: day(20), guests: ["g_mei", "g_ada", "g_joon", "g_sam"], label: "Asakusa guesthouse", nightly: { amount: 32000, currency: "JPY" }, estimated: true, createdAt: 2 })],
+    ["st_sha", new LiveObject({ stop: "sha", checkIn: day(14), checkOut: day(17), guests: ["g_mei", "g_ada", "g_joon"], label: "Jing'an apartment", nightly: { amount: 980, currency: "CNY" }, estimated: true, listing: { city: "Shanghai" }, createdAt: 1 })],
+    ["st_tyo", new LiveObject({ stop: "tyo", checkIn: day(17), checkOut: day(20), guests: ["g_mei", "g_ada", "g_joon", "g_sam"], label: "Asakusa guesthouse", nightly: { amount: 32000, currency: "JPY" }, estimated: true, listing: { city: "Tokyo" }, createdAt: 2 })],
   ]),
   // made with the room, so posts to Pip never race to create it (src/lib/agent/run.ts)
   thread: new LiveList([]),
