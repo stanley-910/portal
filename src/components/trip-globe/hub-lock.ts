@@ -99,11 +99,11 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
 }
 
 /**
- * How much of its reach a target keeps while a plane is being flown: it catches from much nearer, so the plane sweeps
- * on across the globe and only settles on a place it's brought up to, but once caught holds most of the way, so it
- * doesn't slip off at the first twitch.
+ * How much of its reach a target keeps while a plane is being flown: it catches readily, but only close up, so the
+ * plane sweeps on past places it isn't brought to, and lets go a little further out (about 1.5 times its catch, with
+ * the usual release being 1.2 times), so it holds steady without flickering yet slides off with a nudge.
  */
-export const FLYING_REACH = { catch: 0.3, release: 0.7 };
+export const FLYING_REACH = { catch: 0.35, release: 0.45 };
 /** Full reach, hovering or carrying pins. */
 const FULL_REACH = { catch: 1, release: 1 };
 
