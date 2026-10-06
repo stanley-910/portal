@@ -151,6 +151,9 @@ const TAG_H = 21; // a name tag's height, px
 const MARKER_POP = 0.28;
 const MARKER_R = 4;
 const MARKER_LIFT = 5;
+// px the lock's tether starts out from the hub (just past its ring) and stops short of the pointer
+const LOCK_TETHER_FROM = 11;
+const LOCK_TETHER_GAP = 4;
 const CITY_MARKED = 10; // px: a city whose dot has a hub marker this close shows the marker alone
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
@@ -3715,10 +3718,27 @@ export class GlobeEngine {
     for (const id of this.markerT.keys()) if (!seen.has(id)) this.markerT.delete(id);
   }
 
-  /** The ring round a hub the pointer is locked on, lying on the ground, with a dot on the hub. */
+  /**
+   * The ring round a hub the pointer is locked on, lying on the ground, with a dot on the hub, and a short dashed
+   * tether from the ring out to the pointer (or the pins it carries), so it's clear which hub a click lands on.
+   */
   private lockRing(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint) {
     const P = this.P;
     ctx.save();
+    const aim = this.lift ? { x: this.lift.x, y: this.lift.y } : this.hasPointer ? { x: this.mx, y: this.my } : null;
+    const d = aim ? Math.hypot(aim.x - p.x, aim.y - p.y) : 0;
+    if (aim && d > LOCK_TETHER_FROM + LOCK_TETHER_GAP + 2) {
+      const ux = (aim.x - p.x) / d, uy = (aim.y - p.y) / d;
+      ctx.beginPath();
+      ctx.moveTo(p.x + ux * LOCK_TETHER_FROM, p.y + uy * LOCK_TETHER_FROM);
+      ctx.lineTo(aim.x - ux * LOCK_TETHER_GAP, aim.y - uy * LOCK_TETHER_GAP);
+      ctx.setLineDash([2, 2.5]); // dash-lock
+      ctx.lineCap = "round";
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = `rgba(${P.inkRGB},0.8)`;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.beginPath();
     this.groundCircle(ctx, n, p.x, p.y, 9);
     ctx.lineWidth = 1.5;

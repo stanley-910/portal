@@ -71,7 +71,8 @@ around where it lands. So how precise a search is follows how far in you are.
   it until it's 28 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
 - Each lockable hub shows as a small raised marker (a circle for an airport, a square for a station, a diamond for a
   ferry terminal) that pops up as it comes into reach; large airports print their code beside it where it clears the
-  city names. Locked, its marker lifts, a ring lies round the hub and the label names it (`SEA · Seattle`); flying,
+  city names. Locked, its marker lifts, a ring lies round the hub, a short dashed tether runs from it to the pointer
+  (or the pins being carried), and the label names it (`SEA · Seattle`); flying,
   the plane sits on it. Markers carry no fares: pricing one would mean a provider search per hub.
 - Where the device can, a lock ticks (`navigator.vibrate`, Android). Browsers on macOS give a page no way to the
   trackpad's Taptic Engine, so on a Mac the lock is visual only.
