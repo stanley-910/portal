@@ -1,4 +1,4 @@
-<h1><img src="docs/images/portal-banner.svg" alt="Portal" width="100%"></h1>
+<h1><img src="docs/images/portal-banner.webp" alt="Portal" width="100%"></h1>
 
 **Draw a trip on a globe with your friends, and Portal works out how everyone gets there.**
 
