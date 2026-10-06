@@ -20,7 +20,8 @@ import { recordTiming } from "@/lib/performance";
 import type { Person } from "@/lib/identity";
 import { isBookable } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
-import { hubById } from "@/lib/transport/hubs/pick";
+import type { End } from "@/lib/liveblocks/types";
+import { beyondReach, crossesModes, hubById } from "@/lib/transport/hubs/pick";
 import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stopFromPoint } from "@/lib/trip/stops";
 import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
@@ -73,11 +74,11 @@ const legPoints = (legs: { from: SnappableStop; to: SnappableStop }[]): TripPoin
  * A leg with one end snapped to `hub`, or let go of its hub (null) to look around the point again. The other end lets
  * go of a hub of another mode, since a leg keeps to one.
  */
-function snapLeg(leg: LandedTrip, end: "from" | "to", hub: Hub | null): LandedTrip {
+function snapLeg(leg: LandedTrip, end: End, hub: Hub | null): LandedTrip {
   const other = end === "from" ? "to" : "from";
   const snapped = { from: !!leg.snapped?.from, to: !!leg.snapped?.to, [end]: !!hub };
   const next: LandedTrip = { ...leg, [end]: hub ?? nearestPreviewHub(end === "from" ? leg.origin : leg.destination) };
-  if (hub && snapped[other] && leg[other] && leg[other].mode !== hub.mode) {
+  if (snapped[other] && crossesModes(hub, leg[other])) {
     snapped[other] = false;
     next[other] = nearestPreviewHub(other === "from" ? leg.origin : leg.destination);
   }
@@ -106,6 +107,8 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   const [searching, setSearching] = useState(false);
   const [drafts] = useState(() => new Map<number, TicketDraft>());
   const restoring = useRef(false);
+  // the trip is landing again with a stop moved onto a picked hub: the card keeps its leg and the picks before it
+  const relanding = useRef(false);
   // the ticket card minimised to a tag on the route
   const [collapsed, setCollapsed] = useState(false);
   // one per leg picked so far, plus one more for a round trip: the way back from the last stop to the first
@@ -182,11 +185,32 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   };
   /**
    * Snaps one end of the leg the card shows to `hub`, or lets go of the hub it has (null), and the leg searches again.
-   * Only this leg: the stop stays where it was clicked, so the leg before or after it can use another hub there.
+   * Only this leg: the stop stays where it was clicked, so the leg before or after it can use another hub there. A
+   * hub beyond the stop's reach is somewhere else: the trip lands again with the stop on it, and since the legs into
+   * and out of it change, the card goes back to the first of them, keeping the picks before it and every date.
    */
-  const pickHub = (end: "from" | "to", hub: Hub | null) => {
+  const pickHub = (end: End, hub: Hub | null) => {
     if (!legs) return;
-    setLegs(legs.map((l, i) => (i === active ? snapLeg(l, end, hub) : l)));
+    const point = end === "from" ? legs[active].origin : legs[active].destination;
+    if (!hub || !beyondReach(point, hub)) {
+      setLegs(legs.map((l, i) => (i === active ? snapLeg(l, end, hub) : l)));
+      return;
+    }
+    const points = tripPoints(legs);
+    const at = end === "from" ? active : active + 1;
+    const was = points[at];
+    points[at] = { lat: hub.lat, lng: hub.lng, ...(end === "from" ? { leave: hub } : { arrive: hub }) };
+    // this leg's other end lets go of a hub of another mode
+    const other = end === "from" ? points[active + 1] : points[active];
+    if (end === "from" && crossesModes(hub, other.arrive ?? null)) other.arrive = null;
+    if (end === "to" && crossesModes(hub, other.leave ?? null)) other.leave = null;
+    const first = Math.max(0, at - 1);
+    pinKeys.current.set(placeKey(points[at]), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
+    pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
+    relanding.current = true;
+    setPicks((p) => p.slice(0, first));
+    setActive((a) => Math.min(a, first));
+    globe.current?.showTrip(points, "quiet");
   };
   const pip = useRef<HomePipHandle>(null);
   const currency = useCurrencyPref();
@@ -281,6 +305,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
         globe.current?.setPins(stopPins(landed, cursorPref.color, pinKeys.current));
         setLegs(landed);
         if (restoring.current) { restoring.current = false; return; }
+        if (relanding.current) { relanding.current = false; return; }
         drafts.clear();
         setSaved(null);
         book.close();

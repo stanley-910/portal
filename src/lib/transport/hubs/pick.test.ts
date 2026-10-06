@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { HUB_LIMITS } from "./limits";
-import { hubById, hubChoices } from "./pick";
+import { beyondReach, crossesModes, hubById, hubChoices } from "./pick";
 import { distanceKm } from "./geo";
 
 const seattle = { lat: 47.6062, lng: -122.3321 };
@@ -25,6 +25,14 @@ describe("picking a stop's hub", () => {
     expect(hubChoices("west kowloon", hongKong)[0].id).toBe("train:HK-WEST-KOWLOON");
     const tokyo = hubChoices("tokyo", { lat: 35.68, lng: 139.77 });
     expect(tokyo.map((hub) => hub.code)).toContain("HND");
+  });
+  it("tells a nearby hub from one somewhere else, and hubs that can't share a leg", () => {
+    const sea = hubById("airport:SEA")!;
+    expect(beyondReach(seattle, sea)).toBe(false);
+    expect(beyondReach(seattle, hubById("airport:NRT")!)).toBe(true);
+    expect(crossesModes(sea, hubById("train:TOKYO"))).toBe(true);
+    expect(crossesModes(sea, hubById("airport:NRT"))).toBe(false);
+    expect(crossesModes(sea, null)).toBe(false);
   });
   it("finds a hub by id", () => {
     expect(hubById("airport:SEA")?.code).toBe("SEA");

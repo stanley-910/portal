@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
+import type { End } from "@/lib/liveblocks/types";
 import { distanceKm, type Coordinates } from "@/lib/transport/hubs/geo";
 import { hubChoices } from "@/lib/transport/hubs/pick";
 import type { Hub } from "@/lib/transport/hubs/types";
@@ -14,6 +15,8 @@ import { Glyph } from "./glyphs";
 
 /** Station codes like "HK-WEST-KOWLOON" are catalogue ids, not something to print. */
 const IATA = /^[A-Z]{3}$/;
+/** What each end's hub is, as the picker and its chip are named. */
+export const END_LABEL: Record<End, string> = { from: "Leave from", to: "Arrive at" };
 const SEARCH = (
   <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden className="ts-hub-glyph">
     <circle cx="7" cy="7" r="4.5" />
@@ -38,18 +41,17 @@ export function HubChip({ hub, code, snapped, open, end, onToggle }: {
   code?: string | null;
   snapped: boolean;
   open: boolean;
-  end: "from" | "to";
+  end: End;
   onToggle: () => void;
 }) {
-  const what = end === "from" ? "Leave from" : "Arrive at";
   return (
     <button
       type="button"
       className="ts-hub-chip"
       data-snapped={snapped || undefined}
       aria-expanded={open}
-      aria-label={`${what}: ${hub ? hub.name : "anywhere nearby"}${snapped ? "" : ", or nearby"}`}
-      title={hub ? (snapped ? hub.name : `Near ${hub.name}`) : "Nearby"}
+      aria-label={`${END_LABEL[end]}: ${hub ? hub.name : "nearby"}${hub && !snapped ? " or nearby" : ""}`}
+      title={hub?.name}
       onClick={onToggle}
     >
       {code && IATA.test(code) ? code : <HubMark hub={hub} />}
@@ -61,12 +63,11 @@ export function HubChip({ hub, code, snapped, open, end, onToggle }: {
  * The hubs to pick from for one end: with nothing typed, those near `near` that a search would consider; typed, any
  * whose code, name or city matches. "All nearby" lets go of a snapped hub, so the search looks around the place again.
  */
-export function HubPicker({ near, current, snapped, label, onPick, onClose }: {
+export function HubPicker({ near, current, snapped, end, onPick, onClose }: {
   near: Coordinates;
   current: Hub | null;
   snapped: boolean;
-  /** "Leave from" or "Arrive at": names the field. */
-  label: string;
+  end: End;
   /** A hub to snap to, or null for all nearby. */
   onPick: (hub: Hub | null) => void;
   onClose: () => void;
@@ -100,6 +101,7 @@ export function HubPicker({ near, current, snapped, label, onPick, onClose }: {
     }
   };
 
+  const label = END_LABEL[end];
   const listId = `${id}-list`;
   const optionId = (i: number) => `${id}-opt-${i}`;
   const km = (hub: Hub) => Math.round(distanceKm(near, hub));
@@ -118,7 +120,7 @@ export function HubPicker({ near, current, snapped, label, onPick, onClose }: {
           aria-activedescendant={options.length ? optionId(Math.min(active, options.length - 1)) : undefined}
           autoComplete="off"
           spellCheck={false}
-          placeholder="Airport, station or code"
+          placeholder="Airport or station"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -137,7 +139,6 @@ export function HubPicker({ near, current, snapped, label, onPick, onClose }: {
               aria-selected={i === Math.min(active, options.length - 1)}
               data-current={(snapped && hub?.id === current?.id) || undefined}
               className="ts-hub-option"
-              style={{ "--i": Math.min(i, 8) } as CSSProperties}
               onPointerMove={() => setActive(i)}
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => onPick(hub)}
@@ -147,13 +148,13 @@ export function HubPicker({ near, current, snapped, label, onPick, onClose }: {
               </span>
               <span className="ts-hub-text">
                 <span className="ts-hub-name">{hub ? hub.name : "All nearby"}</span>
-                <span className="ts-hub-detail">
-                  {hub
-                    ? [hub.city !== hub.name ? hub.city : null, regionName(hub.country ?? ""), km(hub) >= 1 ? `${km(hub).toLocaleString("en-US")} km` : null]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : "Airports and stations around here"}
-                </span>
+                {hub ? (
+                  <span className="ts-hub-detail">
+                    {[hub.city !== hub.name ? hub.city : null, regionName(hub.country ?? ""), km(hub) >= 1 ? `${km(hub).toLocaleString("en-US")} km` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                ) : null}
               </span>
             </li>
           ))}

@@ -18,7 +18,7 @@ import { GLOBE_TOOLS, stepLabel } from "@/lib/agent/steps";
 import { fmt, KIND } from "@/lib/agent/tools";
 import { AGENT_NAME, type MeetupOption, type ThreadCard } from "@/lib/agent/types";
 import { PERSONA, STYLE } from "@/lib/agent/voice";
-import type { Stop } from "@/lib/liveblocks/types";
+import type { LegEnd, Stop } from "@/lib/liveblocks/types";
 import { countryName } from "@/lib/nationality";
 import { searchFromCoordinates } from "@/lib/transport/hub-search";
 import { isBookable, toStoredOffer } from "@/lib/trip/offers";
@@ -50,7 +50,7 @@ export type SoloEvent =
   | { t: "done" }
   | { t: "failed" };
 
-export type SoloLeg = { from: Stop; to: Stop; date: string };
+export type SoloLeg = { from: LegEnd; to: LegEnd; date: string };
 
 const MAX_STEPS = 6;
 /** Per model call, hidden reasoning included: see MAX_OUTPUT_TOKENS in run.ts for the sizing. */

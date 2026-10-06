@@ -1,4 +1,4 @@
-import type { Stop } from "@/lib/liveblocks/types";
+import type { End, LegEnd, Stop } from "@/lib/liveblocks/types";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { HUBS } from "@/lib/transport/hubs/browser";
 import { distanceKm } from "@/lib/transport/hubs/geo";
@@ -11,7 +11,7 @@ type Point = { lat: number; lng: number };
  * The hub is a local preview, not a chosen transport mode, unless `snapped`: then the person picked that hub (the
  * point is on it) and search leaves from exactly it.
  */
-export function stopFromPoint(point: Point, hub: Hub | null, snapped = false): Stop {
+export function stopFromPoint(point: Point, hub: Hub | null, snapped = false): LegEnd {
   return {
     lat: point.lat,
     lng: point.lng,
@@ -39,8 +39,12 @@ export function sharesStop(a: Pick<Stop, "lat" | "lng" | "hub">, b: Pick<Stop, "
   return distanceKm(a, b) <= SHARED_STOP_KM;
 }
 
+/** A leg's `snap` field for the hub ids its ends are snapped to: none when neither is. */
+export const snapField = (from: string | undefined, to: string | undefined): { snap?: Partial<Record<End, string>> } =>
+  (from || to ? { snap: { ...(from ? { from } : {}), ...(to ? { to } : {}) } } : {});
+
 /** Resolve transport from clicks afresh; never pass a preview ID/code as airport IATA. A snapped stop's hub goes as it is. */
-export function stopToPlace(stop: Stop): Place {
+export function stopToPlace(stop: LegEnd): Place {
   return { name: stop.name, lat: stop.lat, lng: stop.lng, ...(stop.snapped && stop.hub ? { snap: stop.hub } : {}) };
 }
 

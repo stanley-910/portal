@@ -34,7 +34,10 @@ export async function searchFromCoordinates(query: SearchQuery, signal: AbortSig
   const snapped = new Set([snappedHub(query.from), snappedHub(query.to)].flatMap((hub) => (hub ? [hub.mode] : [])));
   const surfaceModes = (query.modes.length ? query.modes : ["train", "bus", "ferry"] as const)
     .filter((mode) => mode !== "flight" && (snapped.size === 0 || (snapped.size === 1 && snapped.has(mode as HubMode))));
-  if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, modes: surfaceModes }, only: undefined });
+  // a snapped station's surface search starts from it, not from the click near it
+  const from = snappedHub(query.from) ?? query.from;
+  const to = snappedHub(query.to) ?? query.to;
+  if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, from, to, modes: surfaceModes }, only: undefined });
   const partial = new Map<number, SearchResult>();
   const snapshot = () => mergeResults(query, hubs, started, searches.flatMap((search, i) => {
     const result = partial.get(i);

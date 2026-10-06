@@ -79,7 +79,9 @@ python3 scripts/snapshot-hubs.py          # refresh airports from the pinned sou
 `src/lib/transport/hubs/resolve.ts` is a pure geographic resolver, not a routing engine.
 
 - A place snapped to a hub (`snap`, a hub id) is that hub alone, in its mode only: no nearby airports or stations
-  stand in for it, and the surface coordinate search keeps to that mode (none for an airport). Ends snapped to
+  stand in for it, and the surface coordinate search keeps to that mode (none for an airport) and starts from the
+  hub. Surface providers still match their own stations near it, so a station snap is exact for the bundled pair
+  but only close for the providers' own matching. Ends snapped to
   different modes have no pair. Picking an airport or station by name in the route search, or from the code chip
   under a city on a leg's card (`HubPicker`, `hubChoices` in `hubs/pick.ts`), snaps it; "All nearby" lets go.
 - Radii: airports **200 km**, stations **100 km**, ferry terminals **60 km**. No global-nearest fallback, so an ocean

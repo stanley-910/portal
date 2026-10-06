@@ -86,9 +86,11 @@ describe("clicks → hubs → provider queries", () => {
   });
   it("keeps a snapped station to its own mode", async () => {
     search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
-    await searchFromCoordinates({ ...query, modes: [], from: { name: "West Kowloon", lat: 22.3036, lng: 114.165, snap: "train:HK-WEST-KOWLOON" } }, signal());
+    await searchFromCoordinates({ ...query, modes: [], from: { name: "Jordan", lat: 22.305, lng: 114.17, snap: "train:HK-WEST-KOWLOON" } }, signal());
     expect(search.mock.calls.length).toBeGreaterThan(0);
     for (const [q] of search.mock.calls) expect(q.modes).toEqual(["train"]);
+    // the surface search starts at the station, not the click near it
+    for (const [q] of search.mock.calls) expect(q.from.lat).toBeCloseTo(22.3036);
   });
   it("does not make flight searches for unsupported ocean clicks", async () => {
     search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });

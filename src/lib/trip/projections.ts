@@ -1,4 +1,4 @@
-import type { Leg, LegBooking, LegSearch, Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
+import type { Leg, LegBooking, LegEnd, LegSearch, Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
 import { hubById } from "@/lib/transport/hubs/pick";
 import type { DatePlan } from "./dates";
 import { computeSplit, staysOf, type SplitInput } from "./split";
@@ -13,8 +13,8 @@ export type PlanSnapshot = {
 };
 export type PlanLeg = {
   id: string;
-  from: Stop & { id: string };
-  to: Stop & { id: string };
+  from: LegEnd & { id: string };
+  to: LegEnd & { id: string };
   date: string;
   createdBy: string;
   riders: string[];
@@ -27,7 +27,7 @@ export type PlanLeg = {
 };
 
 /** A leg's view of its stop: the hub its end is snapped to, if any, in place of the stop's preview hub. */
-function snappedEnd(stop: Stop, snap: string | undefined): Stop {
+function snappedEnd(stop: Stop, snap: string | undefined): LegEnd {
   const hub = hubById(snap);
   return hub ? { ...stop, hub: hub.id, code: hub.code, snapped: true } : stop;
 }

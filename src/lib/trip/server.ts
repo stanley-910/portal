@@ -5,14 +5,14 @@ import { LiveList, LiveMap, LiveObject, toPlainLson } from "@liveblocks/client";
 import type { PlainLsonObject, RoomData } from "@liveblocks/node";
 
 import { liveblocks } from "@/lib/liveblocks/server";
-import { tripRoomId, type Leg, type MemberInfo, type Stay, type Stop, type TripStorage } from "@/lib/liveblocks/types";
+import { tripRoomId, type Leg, type MemberInfo, type LegEnd, type Stay, type Stop, type TripStorage } from "@/lib/liveblocks/types";
 import { arrivalDate } from "@/lib/transport/arrival";
 import type { Offer } from "@/lib/transport/types";
 
 import { stayDates } from "./leg-edit";
 import { tripOwner } from "./leave";
 import { toStoredOffer } from "./offers";
-import { sharesStop } from "./stops";
+import { sharesStop, snapField } from "./stops";
 import { libraryTripOf, type LibraryTrip } from "./library";
 
 export type TripSummary = {
@@ -115,8 +115,8 @@ export function buildSoloStorage(
   const legs: SoloStorageJson["legs"] = {};
   const stays: Record<string, Stay> = {};
   // a room keeps a snapped end on its leg (`Leg.snap`), not on the stop legs share
-  const stopAt = (snapped: Stop) => {
-    const stop = { ...snapped };
+  const stopAt = (end: LegEnd) => {
+    const stop: LegEnd = { ...end };
     delete stop.snapped;
     const found = Object.entries(stops).find(([, s]) => sharesStop(s, stop));
     if (found) return found[0];
@@ -124,7 +124,7 @@ export function buildSoloStorage(
     stops[id] = stop;
     return id;
   };
-  const snapOf = (stop: Stop) => (stop.snapped && stop.hub ? stop.hub : undefined);
+  const snapOf = (end: LegEnd) => (end.snapped && end.hub ? end.hub : undefined);
   const picked: { to: string; date: string; arrival: string; stay: NonNullable<SoloSaveInput["legs"][number]["stay"]> }[] = [];
   input.legs.forEach((leg, i) => {
     const from = stopAt(leg.from);
@@ -142,9 +142,7 @@ export function buildSoloStorage(
       chosen: leg.chosen,
       // in order, so legs on the same day keep the order they were flown in
       createdAt: now + i,
-      ...(snapOf(leg.from) || snapOf(leg.to) ? {
-        snap: { ...(snapOf(leg.from) ? { from: snapOf(leg.from) } : {}), ...(snapOf(leg.to) ? { to: snapOf(leg.to) } : {}) },
-      } : {}),
+      ...snapField(snapOf(leg.from), snapOf(leg.to)),
     };
     if (leg.stay) picked.push({ to, date: leg.date, arrival: arrivalDate(leg.date, offers.find((o) => o.id === leg.chosen)), stay: leg.stay });
   });

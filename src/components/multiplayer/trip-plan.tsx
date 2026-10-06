@@ -22,7 +22,7 @@ import { carrierLabel, clockOf, duration } from "@/components/ticket-search/opti
 import { formatMoney, inCurrency, type Currency, type ExchangeRates } from "@/lib/currency";
 import { useCurrencyPref } from "@/lib/currency-pref";
 import { useExchangeRates } from "@/lib/exchange-rates";
-import { memberColor, type StoredOffer } from "@/lib/liveblocks/types";
+import { memberColor, type End, type StoredOffer } from "@/lib/liveblocks/types";
 import type { PlanStay } from "@/lib/trip/split";
 import { legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
@@ -30,9 +30,9 @@ import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
 import { isBookable, refundNote } from "@/lib/trip/offers";
-import { hubById } from "@/lib/transport/hubs/pick";
+import { beyondReach, hubById } from "@/lib/transport/hubs/pick";
 import type { Hub } from "@/lib/transport/hubs/types";
-import { stopCountry } from "@/lib/trip/stops";
+import { stopCountry, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
 // popover; the data and every edit come from `@/lib/trip/plan`, so a redesign only replaces this file.
@@ -47,7 +47,6 @@ const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
   locked: "This leg is being booked, so its pick is fixed.",
   replaced: "A new search replaced these options. Pick again.",
 };
-
 
 /**
  * "W4 flight, 1 stop", or "train, from Shenzhen North". Its times ride on the timeline, which shows --:-- for a
@@ -193,10 +192,10 @@ function LegCard({
   const members = usePlanMembers();
   const present = usePresentIds();
   const allLegs = usePlanLegs();
-  const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg, snapEnd } = usePlanActions();
+  const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg, moveStop, snapEnd } = usePlanActions();
   const [picking, setPicking] = useState(false);
   // the end whose hub is being picked, under the route
-  const [hubEnd, setHubEnd] = useState<"from" | "to" | null>(null);
+  const [hubEnd, setHubEnd] = useState<End | null>(null);
   const [dateBlocked, setDateBlocked] = useState(false);
   // the hotel search for this leg's destination, beside the card; a pick saves straight away
   const findStay = useBeside(`stay:${leg.id}`);
@@ -234,13 +233,18 @@ function LegCard({
     }
   };
 
-  /** Snaps one end of this leg to `hub` for everyone, or lets go of its hub (null); the leg searches again. */
-  const pickHub = (end: "from" | "to", hub: Hub | null) => {
+  /**
+   * Snaps one end of this leg to `hub` for everyone, or lets go of its hub (null); the leg searches again. A hub
+   * beyond the stop's reach is somewhere else: the stop moves onto it first, and its other legs look around it.
+   */
+  const pickHub = (end: End, hub: Hub | null) => {
     setHubEnd(null);
-    const result = snapEnd(leg.id, end, hub?.id ?? null);
+    const stop = leg[end];
+    const moved = hub && beyondReach(stop, hub) ? moveStop(stop.id, stopFromPoint(hub, hub)) : "ok";
+    const result = moved === "ok" ? snapEnd(leg.id, end, hub?.id ?? null) : moved;
     setNotice(result === "ok" ? null : REFUSED[result]);
   };
-  const chip = (end: "from" | "to") => (
+  const chip = (end: End) => (
     <HubChip
       hub={hubById(leg[end].hub)}
       code={leg[end].code}
@@ -302,7 +306,7 @@ function LegCard({
             near={leg[hubEnd]}
             current={hubById(leg[hubEnd].hub)}
             snapped={!!leg[hubEnd].snapped}
-            label={hubEnd === "from" ? "Leave from" : "Arrive at"}
+            end={hubEnd}
             onPick={(hub) => pickHub(hubEnd, hub)}
             onClose={() => setHubEnd(null)}
           />

@@ -9,6 +9,7 @@ import { BesideProvider } from "@/components/multiplayer/beside";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
 import type { HotelResult } from "@/lib/hotels/types";
+import type { End } from "@/lib/liveblocks/types";
 import { arrivalDate } from "@/lib/transport/arrival";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
@@ -187,10 +188,10 @@ export interface TicketSearchProps {
   /** Where the trip started, which a return goes back to: the first leg's start. Defaults to this leg's. */
   home?: Pick<LandedTrip, "origin" | "from" | "snapped">;
   /**
-   * Snaps an end of this leg to a hub the person picked, or lets go of it (null): the stop moves onto the hub and the
-   * leg searches exactly it. Without it the hubs can't be changed here.
+   * Snaps an end of this leg to a hub the person picked, which it then searches exactly, or lets go of it (null).
+   * Without it the hubs can't be changed here.
    */
-  onPickHub?: (end: "from" | "to", hub: Hub | null) => void;
+  onPickHub?: (end: End, hub: Hub | null) => void;
   /** The offer already added, which turns the button into a done state. */
   addedId?: string | null;
   /** A save is in flight: the button waits and says so. */
@@ -237,7 +238,7 @@ export function TicketSearch({
   const [returnDate, setReturnDate] = useState<string | null>(initialDraft?.returnDate ?? null);
   const [openField, setOpenField] = useState<"depart" | "return" | null>(null);
   // the end whose hub is being picked, under the route header
-  const [hubEnd, setHubEnd] = useState<"from" | "to" | null>(null);
+  const [hubEnd, setHubEnd] = useState<End | null>(null);
   const [tab, setTab] = useState<Tab>(initialDraft?.tab ?? "best");
   // the Hotels tab sits beside the route tabs; the route pick stays what Save trip saves
   const [hotelsOpen, setHotelsOpen] = useState(false);
@@ -411,7 +412,7 @@ export function TicketSearch({
               near={hubEnd === "from" ? trip.origin : trip.destination}
               current={hubEnd === "from" ? trip.from : trip.to}
               snapped={!!trip.snapped?.[hubEnd]}
-              label={hubEnd === "from" ? "Leave from" : "Arrive at"}
+              end={hubEnd}
               onPick={(hub) => {
                 setHubEnd(null);
                 onPickHub(hubEnd, hub);

@@ -249,13 +249,11 @@
 .ts-hub-field input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-family: var(--font-sans); font-size: 12.5px; }
 .ts-hub-field input::-webkit-search-cancel-button { display: none; }
 .ts-hub-field input::placeholder { color: var(--ink-muted); }
-.ts-hub-list { display: grid; gap: 1px; max-height: 196px; margin: 0; padding: 0; overflow-y: auto; list-style: none; overscroll-behavior: contain; }
-.ts-hub-option { display: flex; align-items: center; gap: 8px; min-height: 40px; box-sizing: border-box; padding: 4px 6px; border-radius: var(--radius-control); cursor: pointer; animation: ts-hub-row 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 22ms); }
+.ts-hub-list { display: grid; gap: 1px; max-height: 212px; margin: 0; padding: 0; overflow-y: auto; list-style: none; overscroll-behavior: contain; }
+.ts-hub-option { display: flex; align-items: center; gap: 8px; min-height: 44px; box-sizing: border-box; padding: 4px 6px; border-radius: var(--radius-control); cursor: pointer; }
 .ts-hub-option[aria-selected="true"] { background: var(--control-hover); }
 .ts-hub-mark { display: inline-grid; place-items: center; flex: none; width: 34px; height: 26px; box-sizing: border-box; font-family: var(--font-fell-sc); font-size: 12px; border: var(--line-control) solid var(--control-border); border-radius: var(--radius-tag); background: var(--paper); }
 .ts-hub-option[data-current] .ts-hub-mark { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .ts-hub-text { display: flex; flex-direction: column; min-width: 0; }
 .ts-hub-name { font-size: 12.5px; line-height: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ts-hub-detail { font-size: 11px; line-height: 14px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@keyframes ts-hub-row { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .ts-hub-option { animation: none; } }
