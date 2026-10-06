@@ -3839,7 +3839,7 @@ export class GlobeEngine {
     ctx.lineTo(aim.x - ux * LOCK_TETHER_GAP, aim.y - uy * LOCK_TETHER_GAP);
     ctx.lineCap = "round";
     // over a paper halo, like the routes, so it reads on land and sea
-    ctx.lineWidth = 4.5;
+    ctx.lineWidth = 3.4;
     ctx.globalAlpha = 0.85;
     ctx.strokeStyle = P.paper;
     ctx.stroke();
@@ -3847,7 +3847,7 @@ export class GlobeEngine {
     // square ends, so the gaps stay open: round caps would add the line's width to every dash
     ctx.lineCap = "butt";
     ctx.setLineDash([2.5, 2.5]); // dash-lock
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 1.1;
     ctx.strokeStyle = P.ink;
     ctx.stroke();
     ctx.restore();
