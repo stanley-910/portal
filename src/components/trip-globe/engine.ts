@@ -3637,8 +3637,9 @@ export class GlobeEngine {
     // a plane only moves a name off it when it's over the words: over the city's dot, the name stays, so you can see
     // the city you're bringing it down on; over the words, the name tries its other side
     const words = (b: number[], left: number) => (left ? [b[0], b[1], b[2] - 11, b[3]] : [b[0] + 11, b[1], b[2], b[3]]);
+    // a country's name only rules out a city's where it would cross the city's words, not the margin round its dot
     const hits = (b: number[], gap: number, clear = true, left = 0) =>
-      countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
+      countries.some((o) => { const w = words(b, left); return w[0] < o[2] && w[2] > o[0] && w[1] < o[3] && w[3] > o[1]; }) ||
       boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
       (clear && keepClear.some((c) => {
         const w = words(b, left);
@@ -3669,9 +3670,10 @@ export class GlobeEngine {
       // clear of markers if a side is, else wherever it fits: the markers under it give way (drawMarkers)
       const sides = this.cityLeft[i] ? [1, 0] : [0, 1];
       const box = (left: number) => (left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh]);
-      // the city locked on keeps its name though the plane sits on its dot, or the name and the lock would chase each other
-      const clear = this.lock?.id !== `city:${i}`;
-      const left = sides.find((l) => !hits(box(l), gap, clear, l) && !marked(box(l), x, y)) ?? sides.find((l) => !hits(box(l), gap, clear, l));
+      // a plane over the words moves the name to its other side, but never hides it: a city you're flying onto or past
+      // stays named (and lockable). Other names and markers still win their places as before
+      const left = sides.find((l) => !hits(box(l), gap, true, l) && !marked(box(l), x, y)) ??
+        sides.find((l) => !hits(box(l), gap, true, l)) ?? sides.find((l) => !hits(box(l), gap, false, l));
       if (left !== undefined) {
         boxes.push(box(left));
         dots.push([x, y]);
