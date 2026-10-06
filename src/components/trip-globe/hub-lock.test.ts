@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { CITY_LOCK, LOCK_CATCH, LOCK_FROM, LOCK_RELEASE, LOCK_SPACING, lockAt, lockTargets } from "./hub-lock";
+import { CITY_LOCK_FROM, cityReach, LOCK_CATCH, LOCK_FROM, LOCK_RELEASE, LOCK_SPACING, lockAt, lockTargets } from "./hub-lock";
 
 const hub = (id: string, importance: number, x: number, y = 0): Hub & { x: number; y: number } => ({
   id, mode: "flight", code: id, name: id, city: id, lat: 0, lng: 0, importance, source: "test", x, y,
@@ -34,14 +34,17 @@ describe("locking on to hubs", () => {
     expect(id(lockAt(targets, 100 + LOCK_RELEASE - 1, 0, caught))).toBe("BIG");
     expect(lockAt(targets, 100 + LOCK_RELEASE + 1, 0, caught)).toBeNull();
   });
-  it("pulls a city in from much further, the bigger one winning a near tie", () => {
+  it("pulls a city in harder the further in you are, the bigger one winning a near tie", () => {
     const seattle = { ...hub("SEATTLE", 2, 0), id: "city:seattle" };
     const vancouver = { ...hub("VANCOUVER", 3, 0, -170), id: "city:vancouver" };
     const cities = lockTargets(1, place, [seattle, vancouver]);
+    const near = cityReach(LOCK_FROM[3] - 0.01), far = cityReach(CITY_LOCK_FROM);
+    expect(far.catch).toBeLessThan(near.catch);
     expect(lockAt(cities, 90, 0, null)).toBeNull();
-    expect(id(lockAt(cities, 90, 0, null, CITY_LOCK))).toBe("city:seattle");
-    expect(lockAt(cities, 155, 0, null, CITY_LOCK)).toBeNull();
-    expect(id(lockAt(cities, 0, -95, null, CITY_LOCK))).toBe("city:vancouver");
+    expect(id(lockAt(cities, 90, 0, null, near))).toBe("city:seattle");
+    expect(lockAt(cities, 90, 0, null, far)).toBeNull();
+    expect(lockAt(cities, 155, 0, null, near)).toBeNull();
+    expect(id(lockAt(cities, 0, -95, null, near))).toBe("city:vancouver");
   });
   it("lets go of a hub that's no longer lockable, and takes the nearest of two, bigger ones counting nearer", () => {
     expect(lockAt([], 100, 0, lockTargets(1, place, [big])[0])).toBeNull();

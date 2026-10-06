@@ -21,11 +21,18 @@ export const LOCK_CATCH = 26;
 export const LOCK_RELEASE = 30;
 /** px of pointer distance a point of importance is worth when two hubs are in reach: SeaTac before Boeing Field. */
 export const LOCK_IMPORTANCE_PX = 4;
+/** The zoom cities start to lock from: zoomed out further, the pointer moves freely. */
+export const CITY_LOCK_FROM = 0.3;
 /**
- * The same for cities, which are far fewer and further apart on screen: anywhere round a named city locks on to it
- * until another is clearly nearer, a bigger city pulling from further.
+ * How strongly a city pulls the pointer at `zoom`: barely, zoomed out, like skimming a pebble, and from up to 100 px
+ * just before the hubs take over, like picking up a stone, cities being few and far apart by then. Letting go is a
+ * little further than catching, and a bigger city pulls a little harder.
  */
-export const CITY_LOCK = { catch: 100, release: 115, importancePx: 15 };
+export function cityReach(zoom: number) {
+  const k = Math.min(1, Math.max(0, (zoom - CITY_LOCK_FROM) / (LOCK_FROM[3] - CITY_LOCK_FROM)));
+  const reach = 30 + 70 * k;
+  return { catch: reach, release: reach * 1.15, importancePx: reach * 0.15 };
+}
 
 /**
  * A place the pointer can lock on, where it is on screen: a hub (`hub`), or a city before the hubs show (no hub).
