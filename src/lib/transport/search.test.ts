@@ -102,6 +102,24 @@ describe("rankFareOffers (original currency-safe fare contract)", () => {
   });
 });
 
+describe("rankOffers (quoted flights first)", () => {
+  const live = offer("live", { provider: "duffel", kind: "live" });
+  const cached = offer("cached");
+  const estimated = offer("estimated", { kind: "estimated" });
+  const train = offer("train", { provider: "china-rail", mode: "train", kind: "estimated" });
+
+  it("drops estimated flights once a live or cached fare is in, keeping cached fares and other modes", () => {
+    expect(rankOffers([cached, estimated, live, train], "USD").map((o) => o.id).sort()).toEqual(["cached", "live", "train"]);
+    expect(rankOffers([cached, estimated], "USD").map((o) => o.id)).toEqual(["cached"]);
+  });
+
+  it("keeps the estimates when nothing real came back, or only sandbox fares did", () => {
+    const sandbox = offer("sandbox", { provider: "duffel", kind: "live", sandbox: true });
+    expect(rankOffers([estimated], "USD")).toHaveLength(1);
+    expect(rankOffers([estimated, sandbox], "USD")).toHaveLength(2);
+  });
+});
+
 describe("rankOffers (best-option contract)", () => {
   it("scores known FX estimates without changing the quoted currency or amount", () => {
     const flight = offer("flight", { price: { amount: 91, currency: "USD" } });

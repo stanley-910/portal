@@ -143,7 +143,17 @@ function convenienceScore(offer: Offer): number {
  * price comparison. A missing fare uses main's neutral heuristic, not a free fare.
  */
 export function rankOffers(offers: readonly Offer[], currency: string): Offer[] {
-  return rankFareOffers(offers, currency).sort((a, b) => convenienceScore(a) - convenienceScore(b));
+  return rankFareOffers(quotedFlightsFirst(offers), currency).sort((a, b) => convenienceScore(a) - convenienceScore(b));
+}
+
+/**
+ * Once a real fare is in for a flight, live from an airline or cached by Travelpayouts (bought through its affiliate
+ * link), the modelled flight estimates are left out. Sandbox fares are test airlines, so they don't count. Other modes
+ * are untouched.
+ */
+export function quotedFlightsFirst(offers: readonly Offer[]): readonly Offer[] {
+  const quoted = (o: Offer) => o.mode === "flight" && o.kind !== "estimated" && !o.sandbox;
+  return offers.some(quoted) ? offers.filter((o) => o.mode !== "flight" || o.kind !== "estimated") : offers;
 }
 
 export const PROVIDER_CONCURRENCY = 6;
