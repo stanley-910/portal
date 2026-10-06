@@ -3898,29 +3898,43 @@ export class GlobeEngine {
   }
 
   /** The ring round a city's dot that the pointer is locked on. */
+  /** A pin's shape on screen, head and needle down to its point (if it's in view), in the current fill and stroke. */
+  private pinShape(ctx: CanvasRenderingContext2D, head: { x: number; y: number }, point: { x: number; y: number } | null, r: number, needle: number) {
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    if (!point) return;
+    ctx.beginPath();
+    ctx.moveTo(head.x, head.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.lineWidth = needle;
+    ctx.stroke();
+  }
+
   /**
-   * Fills each stop's pins as they stand on screen, a little fattened, to cut them out of the print: the head, the
-   * needle down to its point (not the air under a lifted pin), and its shadow on the ground.
+   * Fills each stop's pins as they stand on screen, a little fattened, to cut them out of the print: the head and the
+   * needle down to its point, not the air under a lifted pin.
    */
   private cutPins(ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#000";
     ctx.lineCap = "round";
-    const pin = (head: { x: number; y: number }, point: { x: number; y: number } | null, r: number, needle: number) => {
-      ctx.beginPath();
-      ctx.arc(head.x, head.y, r, 0, Math.PI * 2);
-      ctx.fill();
-      if (!point) return;
-      ctx.beginPath();
-      ctx.moveTo(head.x, head.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.lineWidth = needle;
-      ctx.stroke();
-    };
+    for (const c of this.pinCuts) this.pinShape(ctx, c, c.tip?.vis ? c.tip : null, c.r + 2, 4);
+    ctx.restore();
+  }
+
+  /**
+   * Lays each pin's shadow over the names it falls across, so a name under a pin's shadow darkens rather than shows
+   * through it (the globe draws the shadow everywhere else). Call with "source-atop", over the names alone.
+   */
+  private shadePins(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.fillStyle = this.P.tagShadow;
+    ctx.strokeStyle = this.P.tagShadow;
+    ctx.lineCap = "round";
     for (const c of this.pinCuts) {
-      if (c.shadowHead?.vis) pin(c.shadowHead, c.shadowTip?.vis ? c.shadowTip : null, c.r + 1, 3);
-      pin(c, c.tip?.vis ? c.tip : null, c.r + 2, 4);
+      if (c.shadowHead?.vis) this.pinShape(ctx, c.shadowHead, c.shadowTip?.vis ? c.shadowTip : null, c.r, 2);
     }
     ctx.restore();
   }
@@ -4274,6 +4288,9 @@ export class GlobeEngine {
       layer.globalCompositeOperation = "destination-out";
       for (const pl of flying) this.cutVehicle(layer, pl);
       this.cutPins(layer);
+      // pins' shadows fall across the names, darkening them
+      layer.globalCompositeOperation = "source-atop";
+      this.shadePins(layer);
       layer.globalCompositeOperation = "source-over";
       this.labelsKey = labelKey;
       this.labelsDirty = false;
