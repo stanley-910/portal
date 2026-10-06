@@ -472,6 +472,8 @@ export class GlobeEngine {
   private cityDots: number[][] = [];
   // 1 where a hub's marker stands in for the city's dot (cityNames)
   private cityMarked = new Uint8Array(CITIES.length);
+  // 1 where a city's name only gave way to a plane over it (cityNames), so it can still be locked on to
+  private cityUnder = new Uint8Array(CITIES.length);
   private cityPoint = screenPoint();
   private placedNames: number[][] = [];
   private nameWon = new Uint8Array(NAMES.length);
@@ -2755,7 +2757,7 @@ export class GlobeEngine {
     out.length = 0;
     if (this.zoom() >= LOCK_FROM[3]) return;
     CITIES.forEach((c, i) => {
-      if (!this.cityPlaced[i]) return;
+      if (!this.cityPlaced[i] && !this.cityUnder[i] && this.lock?.id !== `city:${i}`) return;
       const p = this.proj(c.v);
       if (!p || !p.vis) return;
       // world cities count most
@@ -3567,6 +3569,7 @@ export class GlobeEngine {
       if (this.cityShown) {
         this.cityFade.fill(0);
         this.cityPlaced.fill(0);
+        this.cityUnder.fill(0);
         this.cityShown = false;
       }
       return;
@@ -3585,14 +3588,14 @@ export class GlobeEngine {
       const c = CITIES[i];
       if (zoom < CITY_FROM[c.rank]) {
         // the list is biggest first, so every city after this one is too small as well
-        for (let j = i; j < CITIES.length; j++) this.cityFade[j] = this.cityPlaced[j] = 0;
+        for (let j = i; j < CITIES.length; j++) this.cityFade[j] = this.cityPlaced[j] = this.cityUnder[j] = 0;
         break;
       }
       const x = C[0] - c.v[0], y = C[1] - c.v[1], z = C[2] - c.v[2];
       const facing = (c.v[0] * x + c.v[1] * y + c.v[2] * z) / Math.hypot(x, y, z);
       const p = facing > 0.22 ? this.proj(c.v, this.cityPoint) : null;
       if (!p || !p.vis || p.x < -40 || p.y < -20 || p.x > this.W + 40 || p.y > this.H + 20) {
-        this.cityFade[i] = this.cityPlaced[i] = 0;
+        this.cityFade[i] = this.cityPlaced[i] = this.cityUnder[i] = 0;
         continue;
       }
       // a hub's marker right by the city stands in for its dot, and the name hangs off the marker instead
@@ -3610,10 +3613,10 @@ export class GlobeEngine {
     boxes.length = 0;
     const countries = this.placedNames;
     // names on neighbouring lines need less air than names side by side, which would read as one
-    const hits = (b: number[], gap: number) =>
+    const hits = (b: number[], gap: number, clear = true) =>
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
       boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
-      keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
+      (clear && keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28));
     // a hub's marker on a name: the name tries its other side first. One right by the city's dot stands in for it
     const markers = this.lockables;
     const marked = (b: number[], x: number, y: number) => markers.some((m) =>
@@ -3640,6 +3643,8 @@ export class GlobeEngine {
       const sides = this.cityLeft[i] ? [1, 0] : [0, 1];
       const box = (left: number) => (left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh]);
       const left = sides.find((l) => !hits(box(l), gap) && !marked(box(l), x, y)) ?? sides.find((l) => !hits(box(l), gap));
+      // a name hidden only by a plane over it is still a city to lock on to: the plane locked on to it hides it
+      this.cityUnder[i] = left === undefined && sides.some((l) => !hits(box(l), gap, false)) ? 1 : 0;
       if (left !== undefined) {
         boxes.push(box(left));
         dots.push([x, y]);
