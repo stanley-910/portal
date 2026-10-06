@@ -116,6 +116,15 @@ python3 scripts/snapshot-hubs.py          # refresh airports from the pinned sou
   rejects detours such as Shenzhen rail for HK → Macau.
 - Within a mode, lower scores win:
   `accessKm + 0.25 × max(0, accessKm + legKm − clickKm) − 8 × (originImportance + destinationImportance)`.
+- Flight pairs also rank by how a person would choose among a city's airports (`flightPreference`), in km of access:
+  6 km per doubling of each airport's nonstop airline routes, 60 km for a nonstop between the pair (so a smaller
+  airport with a route the big one lacks can still come first), and, when the person searching is within 150 km of
+  where they clicked, how much nearer them the departure airport is than the click. Further off, where they are is
+  ignored. The routes come from a bundled snapshot of Travelpayouts' route list (`hubs/routes.json`,
+  `pnpm routes:snapshot`), which is old: it misses airports that opened since, so a missing route means unknown.
+- Where the person is comes from the browser, asked once when they first take off on the home globe, held in memory,
+  and sent with searches in an `x-portal-near` header rounded to about a kilometre, never in the URL. Shared trips and
+  Pip search without it.
 - Ties break on stable pair IDs. Up to **4 flight**, **3 train** and **3 ferry** pairs are searched.
 - Surface providers match a click to their own stations or cities with one shared radius:
   `clamp(0.2 × click-to-click km, provider floor, 100 km)`. The floor is that provider's old fixed radius. Short trips

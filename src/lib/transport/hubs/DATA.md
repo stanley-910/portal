@@ -21,6 +21,13 @@ Asian ferries are not yet represented. Many truthful hub records have no bundled
 edge. An absent edge means **unknown**, not that no service exists. Conversely,
 the existence of two hubs does not imply that they have a direct connection.
 
+## Routes: a ranking hint
+
+`routes.json` counts each airport's nonstop airline routes and lists the airport pairs with one, from
+[Travelpayouts' public route list](https://api.travelpayouts.com/data/routes.json) (`pnpm routes:snapshot`;
+codeshares and connections dropped). It ranks a city's airports and nothing else. The list is old: airports that
+opened since (Paine Field's airline service, for one) are missing, so a route it lacks is unknown, not absent.
+
 ## Airports: upstream, filter, and reproducibility
 
 Source: [OurAirports downloads and terms](https://ourairports.com/data/),

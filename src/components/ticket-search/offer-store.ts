@@ -1,6 +1,7 @@
 import { recordTiming } from "@/lib/performance";
 import type { HubSearchResult } from "@/lib/transport/hub-search";
 import type { TransportSearchEvent } from "@/lib/transport/stream";
+import { whereIAmHeaders } from "./where-i-am";
 
 export type SearchSnapshot = { status: "searching" | "done" | "failed"; result: HubSearchResult | null };
 type Entry = { value: SearchSnapshot; until: number; controller: AbortController; listeners: Set<(s: SearchSnapshot) => void> };
@@ -65,7 +66,7 @@ export async function readOffers(url: string, signal: AbortSignal, publish: (val
   let response: Response | undefined;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      response = await fetch(url, { signal });
+      response = await fetch(url, { signal, headers: whereIAmHeaders() });
       if (![502, 503, 504].includes(response.status) || attempt === 1) break;
     } catch (error) { if (signal.aborted || attempt === 1) throw error; }
   }

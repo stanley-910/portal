@@ -18,6 +18,7 @@ export interface SearchQuery {
   modes: Mode[];              // empty = all
   passengers: number;         // default 1
   currency: string;           // ISO 4217, default "USD"
+  near?: { lat: number; lng: number }; // where the person searching is, to rank departure airports; never in a URL
 }
 
 export interface Segment {

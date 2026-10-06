@@ -9,6 +9,7 @@ import { setPendingAction, takePendingAction, useOpenAuth } from "@/components/a
 import { TripLibrary } from "@/components/library/trip-library";
 import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar";
 import type { TicketDraft } from "@/components/ticket-search/ticket-search";
+import { askWhereIAm } from "@/components/ticket-search/where-i-am";
 
 import { CurrencySetting } from "@/components/transport/currency-selector";
 import { ClickHint, TripGlobe, type Hub, type LandedTrip, type LatLng, type TripGlobeHandle, type TripPoint } from "@/components/trip-globe";
@@ -309,6 +310,8 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       cursorShape={cursorPref.shape}
       theme={resolvedTheme === "dark" ? "dark" : resolvedTheme === "light" ? "light" : "auto"}
       onTakeoff={() => {
+        // where they are ranks the airports near their clicks; asked now, it's usually in by the time they land
+        askWhereIAm();
         if (!restoring.current) setLegs(null);
         setSearching(false);
         // planning a new trip lets go of the one picked in the library

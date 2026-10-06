@@ -1,5 +1,6 @@
 import { HUBS, HUB_LIMITS } from "./catalog";
-import { distanceKm } from "./geo";
+import { distanceKm, type Coordinates } from "./geo";
+import { hasNonstop, routesOut } from "./routes";
 import connections from "./connections.json";
 import type { Mode, Place } from "../types";
 import type { Hub, HubCandidate, HubMode, HubPair, HubResolution, SeedConnection } from "./types";
@@ -10,6 +11,12 @@ export const CONNECTIONS: readonly SeedConnection[] = connections as SeedConnect
 const MODES: HubMode[] = ["flight", "train", "ferry"];
 const compareId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const rounded = (value: number) => Math.round(value * 10) / 10;
+// Ranking a city's airports, in km of access each is worth: how busy an airport is (per doubling of its nonstop airline
+// routes), a nonstop between the pair, and how near the person searching is to the departure airport when they're
+// within NEAR_KM of where they clicked. Further off, where they are says nothing about which airport they'd use.
+const BUSY_KM = 6;
+const NONSTOP_KM = 60;
+export const NEAR_KM = 150;
 
 function assertCoordinates(place: Place) {
   if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)
@@ -48,6 +55,18 @@ export function nearbyHubs(place: Place, modes: readonly Mode[] = [], hubs: read
 }
 
 /**
+ * How much better a flight pair ranks, in km (negative is better), than access alone says: busier airports, a
+ * nonstop between them (so a smaller airport with a route the big one lacks can still come first), and, for someone
+ * searching from near the origin, how much nearer them the departure airport is than the click.
+ */
+function flightPreference(from: HubCandidate, to: HubCandidate, local: Coordinates | null): number {
+  const busy = Math.log2(1 + routesOut(from.hub.iata)) + Math.log2(1 + routesOut(to.hub.iata));
+  const nonstop = hasNonstop(from.hub.iata, to.hub.iata) ? NONSTOP_KM : 0;
+  const nearer = local ? distanceKm(local, from.hub) - from.distanceKm : 0;
+  return nearer - busy * BUSY_KM - nonstop;
+}
+
+/**
  * Rank pairs, not isolated nearest stops. Rail/ferry pairs require a bundled edge;
  * airports are geographic candidates until the flight provider returns an offer.
  * Nearby-hub coverage and scheduled-service coverage are deliberately separate.
@@ -58,7 +77,10 @@ export function resolveHubs(
   modes: readonly Mode[] = [],
   hubs: readonly Hub[] = HUBS,
   edges: readonly SeedConnection[] = CONNECTIONS,
+  /** Where the person searching is, if known: it ranks the departure airports when it's near the origin. */
+  near: Coordinates | null = null,
 ): HubResolution {
+  const local = near && distanceKm(near, origin) <= NEAR_KM ? near : null;
   const nearbyFrom = nearbyHubs(origin, modes, hubs);
   const nearbyTo = nearbyHubs(destination, modes, hubs);
   const directDistance = distanceKm(origin, destination);
@@ -88,7 +110,8 @@ export function resolveHubs(
         mode, from, to,
         distanceKm: rounded(lineDistance),
         accessDistanceKm: rounded(access),
-        score: rounded(access + detour * 0.25 - (from.hub.importance + to.hub.importance) * 8),
+        score: rounded(access + detour * 0.25 - (from.hub.importance + to.hub.importance) * 8
+          + (mode === "flight" ? flightPreference(from, to, local) : 0)),
         evidence: edge ? "bundled-connection" : "geographic-candidate",
         source: edge?.source ?? "Geographic shortlist; flight connection not verified",
         ...(edge ? { estimatedDurationMin: edge.durationMin } : {}),

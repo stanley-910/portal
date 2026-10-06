@@ -1,4 +1,5 @@
 import { searchFromCoordinates, type HubSearchResult } from "@/lib/transport/hub-search";
+import { NEAR_HEADER, parseNear } from "@/lib/transport/near";
 import { parseSearchQuery } from "@/lib/transport/query";
 import type { TransportSearchEvent } from "@/lib/transport/stream";
 import { searchTransport } from "@/lib/transport/search";
@@ -19,6 +20,9 @@ export async function GET(request: Request) {
   if (!parsed.success) {
     return Response.json({ code: "BAD_QUERY", fields: parsed.fields }, { status: 400, headers });
   }
+  // where the person searching is, from a header rather than the URL so it stays out of logs; it only ranks airports
+  const near = parseNear(request.headers.get(NEAR_HEADER));
+  if (near) parsed.data.near = near;
   if (params.get("stream") === "1" && resolution === "hubs") {
     const stopped = new AbortController();
     const signal = AbortSignal.any([request.signal, stopped.signal]);

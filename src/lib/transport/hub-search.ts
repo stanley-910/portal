@@ -16,7 +16,7 @@ export interface HubSearchResult extends SearchResult {
 /** Resolve coordinates locally, search a bounded set of pairs, then rank fares. */
 export async function searchFromCoordinates(query: SearchQuery, signal: AbortSignal, onProgress?: (result: HubSearchResult) => void): Promise<HubSearchResult> {
   const started = Date.now();
-  const hubs = resolveHubs(query.from, query.to, query.modes);
+  const hubs = resolveHubs(query.from, query.to, query.modes, undefined, undefined, query.near ?? null);
   // Duffel's few requests a minute go to the best-placed pair's two cities (one request covers every airport in
   // them); airports in other cities, like Shenzhen for Hong Kong, keep cached fares and estimates.
   const best = hubs.pairs.find((pair) => pair.mode === "flight");

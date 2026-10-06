@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CONNECTIONS, HUBS, HUB_LIMITS, distanceKm, nearbyHubs, resolveHubs } from "./resolve";
+import { hasNonstop, routesOut } from "./routes";
 import type { Hub, SeedConnection } from "./types";
 
 const point = (lat: number, lng: number) => ({ name: "Click", lat, lng });
@@ -104,6 +105,27 @@ describe("coordinate resolution", () => {
     expect(resolveHubs({ ...point(hkg.lat, hkg.lng), snap: hkg.id }, { ...point(hongqiao.lat, hongqiao.lng), snap: hongqiao.id }).pairs).toEqual([]);
     const unknown = resolveHubs({ ...point(hkg.lat, hkg.lng), snap: "airport:ZZZ" }, point(hongqiao.lat, hongqiao.lng));
     expect(unknown.from.length).toBeGreaterThan(1);
+  });
+  it("ranks a busier airport first, and a nonstop over a busier one without", () => {
+    const seattle = point(47.6062, -122.3321);
+    const tokyo = point(35.68, 139.77);
+    const pairs = resolveHubs(seattle, tokyo, ["flight"]).pairs;
+    expect(pairs[0].from.hub.iata).toBe("SEA");
+    expect(hasNonstop("SEA", "LAX")).toBe(true);
+    expect(routesOut("SEA")).toBeGreaterThan(routesOut("BFI"));
+  });
+  it("ranks departure airports by where the person searching is, only when they're near the click", () => {
+    const hongKong = point(22.3193, 114.1694);
+    const tokyo = point(35.68, 139.77);
+    const rank = (near: { lat: number; lng: number } | null) =>
+      resolveHubs(hongKong, tokyo, ["flight"], undefined, undefined, near).pairs.findIndex((p) => p.from.hub.iata === "SZX");
+    const shenzhen = { lat: 22.62, lng: 113.81 };
+    const score = (near: { lat: number; lng: number } | null) =>
+      resolveHubs(hongKong, tokyo, ["flight"], undefined, undefined, near).pairs.find((p) => p.from.hub.iata === "SZX")!.score;
+    expect(score(shenzhen)).toBeLessThan(score(null));
+    expect(rank(shenzhen)).toBeLessThanOrEqual(rank(null));
+    // from the other side of the world, where they are changes nothing
+    expect(score({ lat: 51.5, lng: -0.12 })).toBe(score(null));
   });
   it("does not invent a flight for a short local hop or the same airport", () => {
     expect(resolveHubs(point(22.30, 114.16), point(22.31, 114.17), ["flight"]).pairs).toEqual([]);

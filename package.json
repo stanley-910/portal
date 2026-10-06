@@ -24,7 +24,8 @@
     "db:migrate:prod": "node --env-file=.env.production.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/supabase-migrate.mts",
     "eval:pip": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts",
     "browser-hubs": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browser-hubs.mts",
-    "flags": "node scripts/flags.mts"
+    "flags": "node scripts/flags.mts",
+    "routes:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/snapshot-routes.mts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^3.0.58",
