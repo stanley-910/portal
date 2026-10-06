@@ -1,4 +1,4 @@
-# Portal
+<h1><img src="docs/images/portal-banner.svg" alt="Portal" width="100%"></h1>
 
 **Draw a trip on a globe with your friends, and Portal works out how everyone gets there.**
 
@@ -6,7 +6,7 @@ Click to take off, fly the paper plane, click to land. Friends join from whereve
 comes together live on one shared globe, along with the trains, flights and buses to get you all there and who owes
 what.
 
-![Four friends planning a trip from Hong Kong, Seoul and Taipei to Shanghai, Tokyo and Osaka on Portal's shared globe](docs/images/portal-party.jpg)
+![Portal's globe with a flight from Seattle to Montréal, and a friend's live cursor on the map](docs/images/portal-trip.webp)
 
 Built at the HKU Hackathon, Fall 2026.
 
