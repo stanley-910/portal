@@ -5,7 +5,8 @@ import { duffel } from "@/lib/transport/providers/duffel";
 import { toStoredOffer } from "@/lib/trip/offers";
 import { toStorageLson } from "@/lib/trip/server";
 
-// Opt-in helper: seeds a trip for the Stripe checkout rehearsal, guests g_demoAnn and g_demoBo riding one leg.
+// Opt-in helper: seeds a trip for the Stripe checkout rehearsal, Ann and Bo riding one leg. They're guests g_demoAnn
+// and g_demoBo unless SEED_ANN / SEED_BO give other member ids (an account's, for Pip, which only answers accounts).
 const run = process.env.BOOKING_SEED === "1";
 const date = new Date(Date.now() + 25 * 864e5).toISOString().slice(0, 10);
 
@@ -18,8 +19,8 @@ it.skipIf(!run)("seeds a demo trip", async () => {
   expect(offers.length).toBeGreaterThan(0);
   const stored = offers.slice(0, 3).map((offer) => toStoredOffer({ ...offer, kind: "live" }));
   const id = ("demo" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 16);
-  const ann = "g_demoAnn";
-  const bo = "g_demoBo";
+  const ann = process.env.SEED_ANN || "g_demoAnn";
+  const bo = process.env.SEED_BO || "g_demoBo";
   await lb.createRoom(`trip:${id}`, { defaultAccesses: [], usersAccesses: { [ann]: ["room:write"], [bo]: ["room:write"] }, metadata: { members: [ann, bo], title: "Checkout rehearsal", owner: ann } });
   await lb.initializeStorageDocument(
     `trip:${id}`,
