@@ -179,6 +179,9 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
     const was = points[i + 1];
     const snap = place.snapped ? place.hub : null;
     points[i + 1] = { lat: place.at.lat, lng: place.at.lng, arrive: snap, leave: snap };
+    // the legs into and out of it keep to one mode: their other ends let go of a hub of another
+    if (crossesModes(snap, points[i].leave ?? null)) points[i].leave = null;
+    if (points[i + 2] && crossesModes(snap, points[i + 2].arrive ?? null)) points[i + 2].arrive = null;
     pinKeys.current.set(placeKey(place.at), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
     pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
     globe.current?.showTrip(points, "quiet");

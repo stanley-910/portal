@@ -86,6 +86,16 @@ describe("globe hub preview lifecycle", () => {
     expect(into.snapped).toEqual({ from: true, to: true });
     expect(out.snapped).toEqual({ from: true, to: false });
   });
+  it("lets go of the start's hub when a leg ends at a hub of another mode", () => {
+    const { globe, onLand } = engine();
+    const hkg = { id: "airport:HKG", mode: "flight" as const, code: "HKG", iata: "HKG", name: "HKG", city: "Hong Kong", lat: 22.31, lng: 113.92, importance: 3, source: "test" };
+    const hongqiao = { ...hkg, id: "train:SHANGHAI-HONGQIAO", mode: "train" as const, code: "SHANGHAI-HONGQIAO", iata: undefined, lat: 31.2, lng: 121.32 };
+    globe["takeoff"](globe["hubPoint"](hkg), false, { leave: hkg });
+    globe["land"](globe["hubPoint"](hongqiao), { arrive: hongqiao });
+    const [leg] = onLand.mock.calls[0][0];
+    expect(leg.snapped).toEqual({ from: false, to: true });
+    expect(leg.to.id).toBe("train:SHANGHAI-HONGQIAO");
+  });
   it("only publishes preview changes, clearing immediately on pointer leave", () => {
     const { globe, onPreviewChange } = engine();
     const hkg = point(22.308, 113.918);

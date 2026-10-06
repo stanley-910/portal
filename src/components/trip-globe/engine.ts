@@ -2,6 +2,7 @@
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { recordTiming } from "@/lib/performance";
 import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
+import { crossesModes } from "@/lib/transport/hubs/pick";
 import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { CITY_LABELS } from "./cities";
@@ -916,6 +917,8 @@ export class GlobeEngine {
     if (this.mode === "flying") {
       const hit = this.pick(x, y);
       // a right click on the globe ends a leg there and flies on to the next
+      // the lock where the click is, not where the last frame left it (a tap has no hover before it)
+      this.lockOn(x, y);
       const lock = this.lock;
       if (right) {
         if (hit && !this.nearOrigin(x, y)) this.addStop(lock ? this.hubPoint(lock) : hit, lock ? { arrive: lock, leave: lock } : undefined);
@@ -1010,6 +1013,7 @@ export class GlobeEngine {
       return;
     }
     const hit = this.pick(x, y);
+    this.lockOn(x, y);
     const lock = this.lock;
     if (hit) this.takeoff(lock ? this.hubPoint(lock) : hit, false, lock ? { leave: lock } : undefined);
     else if (this.mode === "landed") this.cancel();
@@ -1232,6 +1236,7 @@ export class GlobeEngine {
 
   /** Ends the leg being flown at v (snapped to `snap`'s hubs when given), and takes off again from there. */
   private addStop(v: Vec3, snap: StopSnap = NO_SNAP) {
+    this.keepOneMode(snap.arrive ?? null);
     this.via.push({ v: this.origin!, hub: this.originHub, snap: this.originSnap, name: this.originName });
     this.origin = v;
     this.originSnap = { arrive: snap.arrive ?? null, leave: snap.leave ?? null };
@@ -1319,6 +1324,7 @@ export class GlobeEngine {
   }
 
   private land(v: Vec3, snap: StopSnap = NO_SNAP) {
+    this.keepOneMode(snap.arrive ?? null);
     const pl = this.pl!;
     const origin = this.origin!;
     const stops = [...this.via.map((s) => s.v), origin, v];
@@ -1792,11 +1798,6 @@ export class GlobeEngine {
     }
     Object.assign(this.lift, { x, y });
     this.aimLift();
-    // dropped near a hub, zoomed in, the pins go onto it: the ground under them locks on as the pointer would
-    const foot = this.cam && this.proj(this.lift.at);
-    this.lockOn(foot && foot.vis ? foot.x : null, foot && foot.vis ? foot.y : null);
-    this.lift.snap = this.lock;
-    if (this.lock) this.lift.at = this.hubPoint(this.lock);
     this.glDirty = true;
     this.hudDirty = true;
     return this.landing(stop);
@@ -1854,6 +1855,11 @@ export class GlobeEngine {
       g = this.pick(lift.x - (head.x - foot.x), lift.y - (head.y - foot.y)) ?? g;
     }
     if (g) lift.at = g;
+    // zoomed in, they lock on to a hub near the ground under them and hang over it, every frame they're carried
+    const foot = this.proj(lift.at);
+    this.lockOn(foot && foot.vis ? foot.x : null, foot && foot.vis ? foot.y : null);
+    lift.snap = this.lock;
+    if (this.lock) lift.at = this.hubPoint(this.lock);
   }
 
   /** Where a route end at v is drawn: under a lifted stop's pins while they're carried, else v. */
@@ -2664,6 +2670,14 @@ export class GlobeEngine {
       }
     }
   };
+
+  /**
+   * The leg being flown is ending at `arrive`: its start lets go of a hub of another mode, since a leg keeps to one,
+   * and the end is the newer choice.
+   */
+  private keepOneMode(arrive: Hub | null) {
+    if (crossesModes(arrive, this.originSnap.leave)) this.originSnap = { ...this.originSnap, leave: null };
+  }
 
   /** A hub's point on the globe. */
   private hubPoint(hub: Hub): Vec3 {
