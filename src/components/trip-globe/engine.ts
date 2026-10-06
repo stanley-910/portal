@@ -170,6 +170,7 @@ const LOCK_TETHER_GAP = 4;
 /** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
 const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
 const LOCK_POP = 0.18; // s a lock's rings take to snap in
+const LOCK_RING_HUB = 11; // px, a locked hub's inner ring (the outer one is 5 px further)
 const CITY_MARKED = 12; // px: a hub marker this close to a city's dot stands in for it, the name beside the marker
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
@@ -3792,7 +3793,7 @@ export class GlobeEngine {
       const pop = u === 1 ? 1 : Math.max(0, 1 + 2.2 * (u - 1) ** 3 + 1.2 * (u - 1) ** 2);
       const locked = this.lock?.id === hub.id;
       // smaller hubs, smaller glyphs
-      const size = MARKER_GLYPH * pop * (locked ? 1.25 : hub.importance >= 3 ? 1 : 0.8);
+      const size = MARKER_GLYPH * pop * (hub.importance >= 3 ? 1 : 0.8);
       if (size < 1) continue;
       const r = size / 2;
       // a marker a city's name had to sit on gives way to it, unless it's standing in for the city's dot
@@ -3801,17 +3802,19 @@ export class GlobeEngine {
       // locked, the rings round it say so (lockRing); its glyph steps aside rather than crowd them and the plane
       // a plane climbs away up and to the right, as on an airport sign; locked, it stays, in the lock's rings
       this.hubGlyph(ctx, hub.mode, x, y, size, true);
-      // a large airport's code, where it fits; the locked one is named on the pointer's label instead
-      if (locked || u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
+      // a large airport's code, where it fits, locked or not
+      if (u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
       // beside it, else across from the name in the way, else under or over it: the first spot clear of the other
       // codes, the other markers, and the country and city names printed under them
       const w = ctx.measureText(hub.code).width;
       const under = (b: typeof spots[number]) => (o: number[]) => b.l < o[2] && b.r > o[0] && b.t < o[3] && b.b > o[1];
+      // locked, clear of the lock's outer ring
+      const off = locked ? LOCK_RING_HUB + 7 : r + 2;
       const spots = [
-        { l: x + r + 2, t: y - 6, r: x + r + 2 + w, b: y + 6 },
-        { l: x - r - 2 - w, t: y - 6, r: x - r - 2, b: y + 6 },
-        { l: x - w / 2, t: y + r + 1, r: x + w / 2, b: y + r + 13 },
-        { l: x - w / 2, t: y - r - 13, r: x + w / 2, b: y - r - 1 },
+        { l: x + off, t: y - 6, r: x + off + w, b: y + 6 },
+        { l: x - off - w, t: y - 6, r: x - off, b: y + 6 },
+        { l: x - w / 2, t: y + off - 1, r: x + w / 2, b: y + off + 11 },
+        { l: x - w / 2, t: y - off - 11, r: x + w / 2, b: y - off + 1 },
       ];
       const box = spots.find((b) => b.l >= 0 && b.r <= this.W &&
         !codes.some((o) => b.l < o.r + 8 && b.r > o.l - 8 && b.t < o.b + 4 && b.b > o.t - 4) &&
@@ -4179,26 +4182,24 @@ export class GlobeEngine {
     this.tagBoxes.length = 0;
     this.measurePins();
 
-    // names go under everything else on the overlay, and keep clear of planes and airport tags
+    // names go under everything else on the overlay, and country names keep clear of trips' stops and start rings.
+    // Planes fly over names instead: they're cut out of them below, so no name moves or hides for one
     const clear: { x: number; y: number }[] = [];
     const mark = (v: Vec3 | null | undefined) => {
       const q = v && this.proj(v);
       if (q && q.vis) clear.push({ x: q.x, y: q.y });
     };
-    for (const r of this.remotes.values()) {
-      mark(r.o);
-      mark(mul(r.pl.n, 1 + r.pl.alt));
-    }
+    for (const r of this.remotes.values()) mark(r.o);
     mark(this.placeMark?.v);
     if (this.mode !== "idle" && this.pl) {
       for (const s of this.via) mark(s.v);
       mark(this.origin);
-      mark(mul(this.pl.n, 1 + this.pl.alt));
     }
     const labels = this.labelsLayer ??= document.createElement("canvas");
     const flying = [...(this.mode === "flying" && this.pl ? [this.pl] : []), ...[...this.remotes.values()].filter((r) => !r.landed).map((r) => r.pl)];
+    // the names are cut again wherever a plane goes or turns
     const labelKey = `${this.lon0},${this.lat0},${this.range},${this.nameInk}|${clear.map((p) => `${p.x},${p.y}`).join(";")}|` +
-      flying.map((pl) => `${pl.f}`).join(";");
+      flying.map((pl) => `${pl.n},${pl.f},${pl.alt}`).join(";");
     if (labels.width !== this.hudEl.width || labels.height !== this.hudEl.height) {
       labels.width = this.hudEl.width;
       labels.height = this.hudEl.height;
@@ -4236,7 +4237,7 @@ export class GlobeEngine {
     const lp = this.lock && this.proj(this.hubPoint(this.lock));
     if (lp && lp.vis) {
       // rings round a city's dot, or under a hub's marker as it lifts on its disc (drawMarkers)
-      this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? 11 : 7, t);
+      this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? LOCK_RING_HUB : 7, t);
       this.lockTether(ctx, lp);
     }
     // the label says what kind of hub it's locked on: a plane for an airport, the train for a station
