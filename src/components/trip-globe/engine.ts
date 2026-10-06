@@ -155,17 +155,16 @@ const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cur
 /** Two tags with the same name for places closer than this on screen, in px, name one place. */
 const TAG_SAME = 40;
 const TAG_H = 21; // a name tag's height, px
-// Lockable hubs' markers (hub-lock.ts): how long one takes to pop up, its size, and how far a locked one lifts
+// Lockable hubs' markers (hub-lock.ts): how long one takes to pop up, and its size
 const MARKER_POP = 0.28;
 const MARKER_GLYPH = 10; // px, a large hub's glyph
 // each mode's solid glyph (ticket-search/glyphs.tsx), drawn on a 16-unit grid
 const MARKER_GLYPHS: Record<Hub["mode"], Path2D> =
   typeof Path2D === "undefined" ? ({} as Record<Hub["mode"], Path2D>)
     : { flight: new Path2D(GLYPH.flight), train: new Path2D(GLYPH.train), ferry: new Path2D(GLYPH.ferry) };
-const MARKER_LIFT = 5;
 // px the lock's tether starts out from the hub (just past its ring) and stops short of the pointer
-const LOCK_TETHER_FROM = 12;
-const LOCK_TETHER_CITY = 9; // from a city's ring instead
+const LOCK_TETHER_FROM = 17; // from just outside a hub's outer ring
+const LOCK_TETHER_CITY = 13; // from just outside a city's
 const LOCK_TETHER_GAP = 4;
 /** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
 const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
@@ -3747,7 +3746,7 @@ export class GlobeEngine {
   /**
    * The hubs the pointer can lock on, zoomed in: each its mode's glyph in ink over a paper halo (a plane for an airport,
    * the train for a station, the ferry for a terminal), never a dot a city could be taken for, popping up as it comes
-   * into reach, a large airport's code beside it where there's room. The locked one lifts off the page on a disc.
+   * into reach, a large airport's code beside it where there's room. The locked one gives way to its lock rings.
    */
   private drawMarkers(ctx: CanvasRenderingContext2D, t: number) {
     const P = this.P;
@@ -3776,22 +3775,9 @@ export class GlobeEngine {
       // a marker a city's name had to sit on gives way to it, unless it's standing in for the city's dot
       if (!locked && this.cityBoxes.some((o, i) => x > o[0] - r && x < o[2] + r && y > o[1] - r && y < o[3] + r &&
         !standsIn({ x, y }, this.cityDots[i][0], this.cityDots[i][1]))) continue;
-      const lift = locked ? MARKER_LIFT : 0;
-      const gy = y - lift;
-      if (locked) {
-        // lifted on a disc of paper, its shadow left on the ground
-        ctx.beginPath();
-        ctx.arc(x + 1 + lift * 0.4, y + 1.5 + lift * 0.6, r + 3, 0, Math.PI * 2);
-        ctx.fillStyle = P.tagShadow;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, gy, r + 3, 0, Math.PI * 2);
-        ctx.fillStyle = P.raised;
-        ctx.fill();
-        ctx.lineWidth = 1.2;
-        ctx.strokeStyle = P.ink;
-        ctx.stroke();
-      }
+      // locked, the rings round it say so (lockRing); its glyph steps aside rather than crowd them and the plane
+      if (locked) continue;
+      const gy = y;
       ctx.save();
       ctx.translate(x, gy);
       // a plane climbs away up and to the right, as on an airport sign
@@ -3844,14 +3830,14 @@ export class GlobeEngine {
    * The short dashed tether from the hub the pointer is locked on (its marker, lifted on its disc) out to the pointer,
    * or to the pins it carries, so it's clear which hub a click or drop lands on wherever the pointer is.
    */
-  private lockTether(ctx: CanvasRenderingContext2D, p: ScreenPoint, lifted: boolean) {
+  private lockTether(ctx: CanvasRenderingContext2D, p: ScreenPoint) {
     const P = this.P;
     // flying, the plane is the pointer and sits on the lock itself; the system pointer is hidden, so a line to it would
     // run out to nothing
     const aim = this.lift ? { x: this.lift.x, y: this.lift.y }
       : this.hasPointer && this.mode !== "flying" ? { x: this.mx, y: this.my } : null;
-    const from = { x: p.x, y: p.y - (lifted ? MARKER_LIFT : 0) };
-    const start = lifted ? LOCK_TETHER_FROM : LOCK_TETHER_CITY;
+    const from = p;
+    const start = this.lock?.hub ? LOCK_TETHER_FROM : LOCK_TETHER_CITY;
     const d = aim ? Math.hypot(aim.x - from.x, aim.y - from.y) : 0;
     if (!aim || d <= start + LOCK_TETHER_GAP + 2) return;
     const ux = (aim.x - from.x) / d, uy = (aim.y - from.y) / d;
@@ -3876,6 +3862,47 @@ export class GlobeEngine {
   }
 
   /** The ring round a city's dot that the pointer is locked on. */
+  /**
+   * Fills a flying vehicle's outline as seen from the camera, a little fattened: the plane's fuselage, swept wings,
+   * tailplane and fin (plane-model.ts), or a ground vehicle's body. Used to cut it out of the names it flies over.
+   */
+  private cutVehicle(ctx: CanvasRenderingContext2D, pl: Plane) {
+    const c = this.cam;
+    if (!c) return;
+    const S = S_PLANE * this.planeScale;
+    const at = mul(pl.n, 1 + pl.alt + 0.09 * S);
+    const up = norm(pl.n);
+    const right = norm(cross(pl.f, up));
+    const point = ([x, y, z]: number[]) => this.proj(add(at, add(mul(right, x * S), add(mul(up, y * S), mul(pl.f, z * S)))));
+    const shape = (pts: number[][]) => {
+      const ps = pts.map(point);
+      if (ps.some((p) => !p || !p.vis)) return;
+      ctx.beginPath();
+      ps.forEach((p, i) => (i ? ctx.lineTo(p!.x, p!.y) : ctx.moveTo(p!.x, p!.y)));
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    };
+    ctx.save();
+    ctx.fillStyle = "#000";
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 4;
+    ctx.lineJoin = "round";
+    if (pl.vehicle === "flight") {
+      shape([[0.07, 0, 0.45], [0.07, 0, -0.5], [-0.07, 0, -0.5], [-0.07, 0, 0.45], [0, 0, 0.52]]);
+      for (const s of [1, -1]) {
+        shape([[0.06 * s, 0, 0.12], [0.48 * s, 0, -0.1], [0.48 * s, 0, -0.2], [0.06 * s, 0, -0.1]]);
+        shape([[0.03 * s, 0, -0.33], [0.2 * s, 0, -0.44], [0.2 * s, 0, -0.5], [0.03 * s, 0, -0.46]]);
+      }
+      shape([[0, 0.06, -0.28], [0, 0.25, -0.43], [0, 0.25, -0.49], [0, 0.06, -0.47]]);
+    } else {
+      const w = pl.vehicle === "ferry" ? 0.14 : 0.08;
+      const l = VEHICLE_LENGTH[pl.vehicle] / 2;
+      shape([[w, 0, l], [w, 0, -l], [-w, 0, -l], [-w, 0, l]]);
+    }
+    ctx.restore();
+  }
+
   /**
    * The rings on the ground round whatever the pointer is locked on, so it's plain it's locked, flying or not: a bold one
    * and a fainter one outside it, snapping in from wider as the lock catches (the click a trackpad can't give).
@@ -4162,7 +4189,9 @@ export class GlobeEngine {
       mark(mul(this.pl.n, 1 + this.pl.alt));
     }
     const labels = this.labelsLayer ??= document.createElement("canvas");
-    const labelKey = `${this.lon0},${this.lat0},${this.range},${this.nameInk}|${clear.map((p) => `${p.x},${p.y}`).join(";")}`;
+    const flying = [...(this.mode === "flying" && this.pl ? [this.pl] : []), ...[...this.remotes.values()].filter((r) => !r.landed).map((r) => r.pl)];
+    const labelKey = `${this.lon0},${this.lat0},${this.range},${this.nameInk}|${clear.map((p) => `${p.x},${p.y}`).join(";")}|` +
+      flying.map((pl) => `${pl.f}`).join(";");
     if (labels.width !== this.hudEl.width || labels.height !== this.hudEl.height) {
       labels.width = this.hudEl.width;
       labels.height = this.hudEl.height;
@@ -4175,6 +4204,10 @@ export class GlobeEngine {
       layer.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.countryNames(layer, clear, t);
       this.cityNames(layer, t);
+      // planes and vehicles fly over the names: their outlines are cut out of them, so they read as above the print
+      layer.globalCompositeOperation = "destination-out";
+      for (const pl of flying) this.cutVehicle(layer, pl);
+      layer.globalCompositeOperation = "source-over";
       this.labelsKey = labelKey;
       this.labelsDirty = false;
     } else { this.nameT = this.cityT = t; }
@@ -4197,7 +4230,7 @@ export class GlobeEngine {
     if (lp && lp.vis) {
       // rings round a city's dot, or under a hub's marker as it lifts on its disc (drawMarkers)
       this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? 11 : 7, t);
-      this.lockTether(ctx, lp, !!this.lock!.hub);
+      this.lockTether(ctx, lp);
     }
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
