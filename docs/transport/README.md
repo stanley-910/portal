@@ -86,6 +86,8 @@ locks. So how precise a search is follows how far in you are.
 - While a plane is being flown, every lock catches from only 35% as far (`FLYING_REACH`), so the plane sweeps on across
   the globe and only settles on a city or hub it's brought up to, and lets go at 45% of its usual release (about 1.5
   times where it caught): steady once caught, but a nudge slides it off.
+- A lock shows as two rings on the ground round the place, a bold one and a fainter one outside it, that snap in from
+  wider as it catches (static under reduced motion), flying or not.
 - Where the device can, a lock ticks (`navigator.vibrate`, Android). Browsers on macOS give a page no way to the
   trackpad's Taptic Engine, so on a Mac the lock is visual only.
 

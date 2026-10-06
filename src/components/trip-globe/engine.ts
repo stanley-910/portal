@@ -169,6 +169,7 @@ const LOCK_TETHER_CITY = 9; // from a city's ring instead
 const LOCK_TETHER_GAP = 4;
 /** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
 const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
+const LOCK_POP = 0.18; // s a lock's rings take to snap in
 const CITY_MARKED = 12;
 const CITY_READ_FOR = 1; // s a city's name counts as read after a plane covers it // px: a hub marker this close to a city's dot stands in for it, the name beside the marker // px: a city whose dot has a hub marker this close shows the marker alone
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
@@ -2680,7 +2681,7 @@ export class GlobeEngine {
     const changed = this.sceneChanged();
     if (changed) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && ((this.mode === "landed" && (this.searching || t - this.tLand < TOUCHDOWN + VANISH)) || this.pinsMoving || this.reels.length > 0 || this.drawing(t) || this.markersPopping ||
+    const animated = !this.reduceMotion && ((this.mode === "landed" && (this.searching || t - this.tLand < TOUCHDOWN + VANISH)) || this.pinsMoving || this.reels.length > 0 || this.drawing(t) || this.markersPopping || (!!this.lock && t - this.lockT < LOCK_POP) ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
     if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
@@ -3882,11 +3883,22 @@ export class GlobeEngine {
   }
 
   /** The ring round a city's dot that the pointer is locked on. */
-  private lockCity(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint) {
+  /**
+   * The rings on the ground round whatever the pointer is locked on, so it's plain it's locked, flying or not: a bold one
+   * and a fainter one outside it, snapping in from wider as the lock catches (the click a trackpad can't give).
+   */
+  private lockRing(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint, r: number, t: number) {
+    const u = this.reduceMotion ? 1 : clamp((t - this.lockT) / LOCK_POP, 0, 1);
+    const k = 1 + 0.7 * (1 - u) ** 2;
     ctx.save();
     ctx.beginPath();
-    this.groundCircle(ctx, n, p.x, p.y, 7);
-    ctx.lineWidth = 1.8;
+    this.groundCircle(ctx, n, p.x, p.y, (r + 5) * k);
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = `rgba(${this.P.inkRGB},0.45)`;
+    ctx.stroke();
+    ctx.beginPath();
+    this.groundCircle(ctx, n, p.x, p.y, r * k);
+    ctx.lineWidth = 2;
     ctx.strokeStyle = this.P.ink;
     ctx.stroke();
     ctx.restore();
@@ -4172,8 +4184,8 @@ export class GlobeEngine {
     // the hub the pointer is locked on: a tether from its marker to the pointer, which keeps its label
     const lp = this.lock && this.proj(this.hubPoint(this.lock));
     if (lp && lp.vis) {
-      // a city it's locked on gets a ring round its dot; a hub's marker lifts instead (drawMarkers)
-      if (!this.lock!.hub) this.lockCity(ctx, this.hubPoint(this.lock!), lp);
+      // rings round a city's dot, or under a hub's marker as it lifts on its disc (drawMarkers)
+      this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? 11 : 7, t);
       this.lockTether(ctx, lp, !!this.lock!.hub);
     }
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
