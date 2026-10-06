@@ -21,6 +21,11 @@ export const LOCK_CATCH = 26;
 export const LOCK_RELEASE = 30;
 /** px of pointer distance a point of importance is worth when two hubs are in reach: SeaTac before Boeing Field. */
 export const LOCK_IMPORTANCE_PX = 4;
+/**
+ * The same for cities, which are far fewer and further apart on screen: anywhere round a named city locks on to it
+ * until another is clearly nearer, a bigger city pulling from further.
+ */
+export const CITY_LOCK = { catch: 150, release: 170, importancePx: 15 };
 
 /**
  * A place the pointer can lock on, where it is on screen: a hub (`hub`), or a city before the hubs show (no hub).
@@ -63,13 +68,17 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
  * What the pointer at (x, y) is locked on: the held target until the pointer is LOCK_RELEASE px away from it, else the
  * best placed within LOCK_CATCH (the nearest, bigger places counting a little nearer), else none.
  */
-export function lockAt(targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null): LockTarget | null {
+export function lockAt(
+  targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null,
+  reach = { catch: LOCK_CATCH, release: LOCK_RELEASE, importancePx: LOCK_IMPORTANCE_PX },
+): LockTarget | null {
   const d = (t: LockTarget) => Math.hypot(t.x - x, t.y - y);
-  const kept = held && targets.find((t) => t.id === held.id);
-  if (kept && d(kept) <= LOCK_RELEASE) return kept;
-  const score = (t: LockTarget) => d(t) - t.importance * LOCK_IMPORTANCE_PX;
+  const score = (t: LockTarget) => d(t) - t.importance * reach.importancePx;
   let best: LockTarget | null = null;
-  for (const t of targets) if (d(t) <= LOCK_CATCH && (!best || score(t) < score(best))) best = t;
+  for (const t of targets) if (d(t) <= reach.catch && (!best || score(t) < score(best))) best = t;
+  // the held one stays until the pointer is past its release, or another is clearly better placed
+  const kept = held && targets.find((t) => t.id === held.id);
+  if (kept && d(kept) <= reach.release && (!best || best === kept || score(best) > score(kept) - reach.importancePx)) return kept;
   return best;
 }
 

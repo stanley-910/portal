@@ -7,7 +7,7 @@ import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/tran
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GLYPH } from "@/components/ticket-search/glyphs";
 import { CITY_LABELS } from "./cities";
-import { LOCK_FROM, lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
+import { CITY_LOCK, LOCK_FROM, lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
@@ -2768,8 +2768,9 @@ export class GlobeEngine {
    * a hub once zoomed in on a country. A new lock ticks.
    */
   private lockOn(x: number | null, y: number | null) {
-    const targets = this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets;
-    const next = x === null || y === null ? null : lockAt(targets, x, y, this.lock);
+    const hubs = this.zoom() >= LOCK_FROM[3];
+    const next = x === null || y === null ? null
+      : hubs ? lockAt(this.lockables, x, y, this.lock) : lockAt(this.cityTargets, x, y, this.lock, CITY_LOCK);
     if (next?.id === this.lock?.id) return;
     this.lock = next;
     this.lockT = this.t;
@@ -3843,7 +3844,9 @@ export class GlobeEngine {
     ctx.strokeStyle = P.paper;
     ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.setLineDash([1.6, 1.8]); // dash-lock
+    // square ends, so the gaps stay open: round caps would add the line's width to every dash
+    ctx.lineCap = "butt";
+    ctx.setLineDash([2.5, 2.5]); // dash-lock
     ctx.lineWidth = 1.8;
     ctx.strokeStyle = P.ink;
     ctx.stroke();
