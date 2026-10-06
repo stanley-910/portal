@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { cursorImageReach } from "@/components/paper-atlas/cursor";
 import { GlobeEngine, type GlobeCursor, type GlobeEvents } from "./engine";
 import { add, angle, D2R, dot, EARTH_RADIUS_KM, len, mul, norm, slerp, sub, vecOf, type Vec3 } from "./vec";
 
@@ -260,10 +261,95 @@ describe("canvas invalidation", () => {
     frames(10);
     const peel = changes.slice(before);
     expect(peel.every((c) => c.marker === null)).toBe(true);
-    // held back toward the globe, which is to the right
-    expect(peel.some((c) => c.offset[0] > 0)).toBe(true);
+    // drawn out leftward, away from the globe, as it snaps back
+    expect(peel.some((c) => c.pull?.angle === 180 && c.pull.gap > 0)).toBe(true);
     frames(20);
-    expect(changes.at(-1)).toEqual({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
+    expect(changes.at(-1)).toEqual({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null, pull: null });
+  });
+
+  it("pulls the cursor off the globe like taffy, its near end stuck, and draws it back in on the way home", () => {
+    const changes: GlobeCursor[] = [];
+    const { engine, state, frames } = setup(2560, 1440, { onCursorChange: (c) => changes.push(c) });
+    state.reduceMotion = false;
+    frames(10);
+    // the globe's edges along this row
+    let left = 1280;
+    while (state.pick(left - 1, 650)) left--;
+    let right = 1280;
+    while (state.pick(right + 1, 650)) right++;
+    const at = (x: number, n = 5) => {
+      engine.pointerMove({ clientX: x, clientY: 650 } as PointerEvent);
+      frames(n);
+      return changes.at(-1)!;
+    };
+    const rest = { lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null, pull: null };
+    at(1280);
+    expect(at(left + 2).lie.squash).toBeLessThan(1);
+    // off the left edge it's drawn out leftward as far as the pointer has gone, still lying fairly flat
+    const a = at(left - 4);
+    const b = at(left - 20);
+    expect(a.pull).toMatchObject({ angle: 180 });
+    expect(a.pull!.gap).toBeGreaterThanOrEqual(3);
+    expect(b.pull!.gap).toBeGreaterThanOrEqual(19);
+    expect(b.pull!.flat).toBeLessThan(1);
+    expect(b.offset).toEqual([0, 0]);
+    // far enough out it tears free and snaps back under the pointer
+    at(left - 40, 30);
+    expect(changes.at(-1)).toEqual(rest);
+    // coming back, it doesn't stick until it's on the globe again; near the edge it leans in toward it
+    expect(at(left - 20)).toEqual(rest);
+    const near = at(left - 3);
+    expect(near.pull).toBeNull();
+    expect(near.offset[0]).toBeGreaterThan(0);
+    expect(near.lie.squash).toBeGreaterThan(1);
+    // and on landing it settles flat onto the ground under the pointer
+    const landed = at(left + 12, 30);
+    expect(landed.offset).toEqual([0, 0]);
+    expect(landed.marker).not.toBeNull();
+    expect(landed.lie.squash).toBeLessThan(1);
+    // off the right edge it's drawn out rightward
+    at(right - 2);
+    const off = at(right + 16).pull!;
+    expect(off.angle).toBe(0);
+    expect(off.gap).toBeGreaterThanOrEqual(15);
+  });
+
+  it("draws the cursor plain only where its image would cross the window's edge, where Chromium would hide it", () => {
+    const changes: GlobeCursor[] = [];
+    // a small window: the globe's right edge comes close to the window's
+    const { engine, state, frames } = setup(300, 300, { onCursorChange: (c) => changes.push(c) });
+    const sized = (w: number) => vi.stubGlobal("window", { devicePixelRatio: 2, innerWidth: w, innerHeight: 300 });
+    sized(300);
+    state.reduceMotion = false;
+    frames(5);
+    let right = 150;
+    while (state.pick(right + 1, 136)) right++;
+    const at = (x: number) => {
+      engine.pointerMove({ clientX: x, clientY: 136 } as PointerEvent);
+      frames(5);
+      return changes.at(-1)!;
+    };
+    // on the globe near its edge it lies on the ground with its ring
+    const inside = at(right - 2);
+    expect(inside.marker).not.toBeNull();
+    expect(inside.lie.squash).toBeLessThan(1);
+    // pulled off the right side it reaches back toward the globe, hardly right of the pointer, so with the window's
+    // edge 30 px away it still stretches
+    expect(300 - (right + 10)).toBeGreaterThan(25);
+    expect(at(right + 10).pull).not.toBeNull();
+    // with the window's edge just past the globe's, all the way off it's either small enough for Chromium to show
+    // anyway, or plain, or inside the window
+    at(right - 2);
+    const w = right + 24;
+    sized(w);
+    let plain = 0;
+    for (let x = right + 1; x < right + 22; x++) {
+      const c = at(x);
+      const reach = cursorImageReach("arrow", { ...c, noShadow: true });
+      expect(!reach.big || (x - reach.left >= 0 && x + reach.right <= w)).toBe(true);
+      if (!c.pull) plain++;
+    }
+    expect(plain).toBeGreaterThan(0);
   });
 
   it("holds the plane to a new stop like a magnet: a small nudge lands there, a bigger move flies on", () => {
