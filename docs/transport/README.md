@@ -83,8 +83,9 @@ locks. So how precise a search is follows how far in you are.
   a short dashed tether runs from it to the pointer (or the pins being carried), and the pointer's label names it
   (`SEA · Seattle`); flying, there's no tether, since
   the plane sits on it. Markers carry no fares: pricing one would mean a provider search per hub.
-- While a plane is being flown, every lock pulls from only 20% as far (`FLYING_REACH`), so the plane sweeps on across
-  the globe and only settles on a city or hub it's brought right up to.
+- While a plane is being flown, every lock catches from only 30% as far (`FLYING_REACH`), so the plane sweeps on across
+  the globe and only settles on a city or hub it's brought up to, but once caught holds to 70% of its usual release,
+  so it doesn't slip off at the first twitch.
 - Where the device can, a lock ticks (`navigator.vibrate`, Android). Browsers on macOS give a page no way to the
   trackpad's Taptic Engine, so on a Mac the lock is visual only.
 

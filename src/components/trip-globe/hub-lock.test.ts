@@ -113,6 +113,9 @@ describe("locking on while flying", () => {
     const catchPx = targets[0].reach.catch;
     expect(lockAt(targets, 100 + catchPx - 1, 0, null)?.id).toBe("airport:SEA");
     expect(lockAt(targets, 100 + catchPx - 1, 0, null, FLYING_REACH)).toBeNull();
-    expect(lockAt(targets, 100 + catchPx * FLYING_REACH - 1, 0, null, FLYING_REACH)?.id).toBe("airport:SEA");
+    const caught = lockAt(targets, 100 + catchPx * FLYING_REACH.catch - 1, 0, null, FLYING_REACH);
+    expect(caught?.id).toBe("airport:SEA");
+    // once caught it holds well past where it caught
+    expect(lockAt(targets, 100 + targets[0].reach.release * FLYING_REACH.release - 1, 0, caught, FLYING_REACH)?.id).toBe("airport:SEA");
   });
 });

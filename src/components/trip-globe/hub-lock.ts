@@ -99,25 +99,30 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
 }
 
 /**
- * How much of its reach a target keeps while a plane is being flown: much less, so the plane sweeps on across the
- * globe and only settles on a place it's brought right up to.
+ * How much of its reach a target keeps while a plane is being flown: it catches from much nearer, so the plane sweeps
+ * on across the globe and only settles on a place it's brought up to, but once caught holds most of the way, so it
+ * doesn't slip off at the first twitch.
  */
-export const FLYING_REACH = 0.2;
+export const FLYING_REACH = { catch: 0.3, release: 0.7 };
+/** Full reach, hovering or carrying pins. */
+const FULL_REACH = { catch: 1, release: 1 };
 
 /**
  * What the pointer at (x, y) is locked on: the held target until the pointer is past its release, else the best placed
- * within its catch (the nearest, bigger places counting a little nearer), else none. `scale` shrinks every reach
- * (FLYING_REACH while flying).
+ * within its catch (the nearest, bigger places counting a little nearer), else none. `scale` shrinks the catch and
+ * release (FLYING_REACH while flying).
  */
-export function lockAt(targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null, scale = 1): LockTarget | null {
+export function lockAt(
+  targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null, scale: { catch: number; release: number } = FULL_REACH,
+): LockTarget | null {
   const d = (t: LockTarget) => Math.hypot(t.x - x, t.y - y);
-  const score = (t: LockTarget) => d(t) - t.importance * t.reach.importancePx * scale;
+  const score = (t: LockTarget) => d(t) - t.importance * t.reach.importancePx * scale.catch;
   let best: LockTarget | null = null;
-  for (const t of targets) if (d(t) <= t.reach.catch * scale && (!best || score(t) < score(best))) best = t;
+  for (const t of targets) if (d(t) <= t.reach.catch * scale.catch && (!best || score(t) < score(best))) best = t;
   // the held one stays until the pointer is past its release, or another is clearly better placed
   const kept = held && targets.find((t) => t.id === held.id);
-  if (kept && d(kept) <= kept.reach.release * scale &&
-    (!best || best === kept || score(best) > score(kept) - kept.reach.importancePx * scale)) return kept;
+  if (kept && d(kept) <= kept.reach.release * scale.release &&
+    (!best || best === kept || score(best) > score(kept) - kept.reach.importancePx * scale.catch)) return kept;
   return best;
 }
 

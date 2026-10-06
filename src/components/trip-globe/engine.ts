@@ -2793,7 +2793,7 @@ export class GlobeEngine {
   private lockOn(x: number | null, y: number | null) {
     // flying, the pull is much weaker, so the plane sweeps on and only settles where it's brought right up
     const next = x === null || y === null ? null : lockAt(this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets, x, y,
-      this.lock, this.mode === "flying" ? FLYING_REACH : 1);
+      this.lock, this.mode === "flying" ? FLYING_REACH : undefined);
     if (next?.id === this.lock?.id) return;
     this.lock = next;
     this.lockT = this.t;
