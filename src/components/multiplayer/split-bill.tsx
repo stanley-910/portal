@@ -4,6 +4,7 @@ import { useSelf } from "@liveblocks/react";
 import { forwardRef, useRef } from "react";
 
 import { BesidePanel, useBeside } from "@/components/multiplayer/beside";
+import { NAV_ICONS } from "@/components/nav-bar";
 import { PixelIcon } from "@/components/paper-atlas";
 import { TripSplit } from "@/components/multiplayer/trip-split";
 import { formatMoney, sumIn, type Currency, type ExchangeRates } from "@/lib/currency";
@@ -49,28 +50,43 @@ export function BillContent() {
   );
 }
 
-/** The bill's button: a receipt, pressed while the bill is open. */
-// The bill in Pip's pixels, like the passport beside each leg: a solid slip with its lines cut out and a torn foot.
-const RECEIPT = [
-  "###########",
-  "###########",
-  "##ooooooo##",
-  "###########",
-  "##ooooooo##",
-  "###########",
-  "##oooo#####",
-  "###########",
-  "#####ooo###",
-  "###########",
-  "###########",
-  "## ## ## ##",
-  "#  #  #  # ",
+/** The bill's button: a coin stamped with the picked currency's sign beside the people icon, pressed while the bill is open. */
+// A coin in Pip's pixels, like the passport beside each leg: a solid disc with the sign cut out. Dollars of every kind
+// share the $, since "HK$" won't fit on the coin.
+const COIN = [
+  "     #####     ",
+  "   #########   ",
+  "  ###########  ",
+  " ############# ",
+  " ############# ",
+  "###############",
+  "###############",
+  "###############",
+  "###############",
+  "###############",
+  " ############# ",
+  " ############# ",
+  "  ###########  ",
+  "   #########   ",
+  "     #####     ",
 ];
+const DOLLAR = ["   o   ", " ooooo ", "oo o   ", "oo o   ", " ooooo ", "   o oo", "   o oo", " ooooo ", "   o   "];
+const SIGNS: Record<Currency, readonly string[]> = {
+  USD: DOLLAR,
+  HKD: DOLLAR,
+  CAD: DOLLAR,
+  EUR: ["  ooooo", " oo    ", "oo     ", "ooooo  ", "oo     ", "ooooo  ", "oo     ", " oo    ", "  ooooo"],
+  CNY: ["oo   oo", " oo oo ", "  ooo  ", "ooooooo", "   o   ", "ooooooo", "   o   ", "   o   ", "   o   "],
+};
+/** The coin with `sign` cut out of its middle (7×9, from row 3, column 4): as big as the 16px icons beside it. */
+const coin = (sign: readonly string[]) =>
+  COIN.map((row, y) => [...row].map((c, x) => (sign[y - 3]?.[x - 4] === "o" ? "o" : c)).join(""));
 
 export const BillButton = forwardRef<HTMLButtonElement, { open: boolean; onToggle: () => void; controls: string }>(function BillButton(
   { open, onToggle, controls },
   ref,
 ) {
+  const currency = useCurrencyPref();
   return (
     <button
       ref={ref}
@@ -82,7 +98,10 @@ export const BillButton = forwardRef<HTMLButtonElement, { open: boolean; onToggl
       aria-controls={controls}
       onClick={onToggle}
     >
-<PixelIcon rows={RECEIPT} />
+      <PixelIcon rows={coin(SIGNS[currency])} />
+      <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+        {NAV_ICONS.friends}
+      </svg>
     </button>
   );
 });
