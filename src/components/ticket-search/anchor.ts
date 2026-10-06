@@ -86,6 +86,13 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
       const put = (x: number, y: number) => {
         at.current = { x, y };
         el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+        // shown once it's placed, dragged or not: a card mounted again after a drag (its trip emptied, then a leg
+        // drawn) is a new element, hidden till here
+        if (placed.current !== el) {
+          placed.current = el;
+          el.style.visibility = "visible";
+          placedCb.current(el);
+        }
       };
       if (manual.current) {
         // where it was dragged, kept on screen and clear of the nav bar and Pip
@@ -107,11 +114,6 @@ export function useAnchor(globe: RefObject<TripGlobeHandle | null>, points: LatL
       const clampY = (y: number) => Math.min(Math.max(y, top), Math.max(top, bottom - height));
       const y = side === "pinLeft" || side === "pinRight" ? top : clampY((minY + maxY) / 2 - height / 2);
       put(x, y);
-      if (placed.current !== el) {
-        placed.current = el;
-        el.style.visibility = "visible";
-        placedCb.current(el);
-      }
     };
     placeNow.current = place;
     place();

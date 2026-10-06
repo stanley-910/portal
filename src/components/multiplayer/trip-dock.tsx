@@ -24,6 +24,8 @@ function span(first: string, last: string) {
 
 /** Keep at least this far from the screen's edges. */
 const EDGE = 16;
+/** px kept below an open bill's dock: the 80 px its max-height leaves under it, and room for a few of its rows. */
+const BILL_ROOM = 80 + 160;
 /** Pointer travel before a press on the dock becomes a drag rather than a click. */
 const SLOP = 4;
 
@@ -42,23 +44,44 @@ export function TripDock({
   onExpand: () => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const bars = useRef<HTMLDivElement>(null);
   const dragged = useRef(false);
   const me = useSelf((self) => self.id);
   const color = memberColor(useMemberColor(me, 1));
   const legs = usePlanLegs();
   const share = useMyShare();
-  // under the nav bar until it's dragged; measured, since the bar's height follows the screen
-  const [frame, setFrame] = useState({ navBottom: 72, width: 0 });
+  // under the nav bar until it's dragged; measured, since the bar's height follows the screen, and with the dock's own
+  // size, so wherever it was dragged it's kept on screen as the window or the dock changes
+  const [frame, setFrame] = useState({ navBottom: 72, width: 0, height: 0, w: 0, h: 0 });
   useLayoutEffect(() => {
     const measure = () => {
       const box = root.current?.offsetParent?.getBoundingClientRect();
+      // the bar, not the bill that opens under it: the bill scrolls within the screen itself
+      const bar = bars.current;
       const nav = document.querySelector(".pn-bar")?.getBoundingClientRect();
-      if (box) setFrame({ navBottom: nav ? nav.bottom - box.top : 72, width: box.width });
+      if (bar && box) {
+        const next = { navBottom: nav ? nav.bottom - box.top : 72, width: box.width, height: box.height, w: bar.offsetWidth, h: bar.offsetHeight };
+        setFrame((f) => (Object.keys(next) as (keyof typeof next)[]).every((k) => f[k] === next[k]) ? f : next);
+      }
     };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const sized = new ResizeObserver(measure);
+    if (bars.current) sized.observe(bars.current);
+    return () => {
+      window.removeEventListener("resize", measure);
+      sized.disconnect();
+    };
   }, []);
+  // clear of the nav bar, which sits over it, and on screen, with room under it for the bill when that's open
+  const keep = (x: number, y: number, w: number, h: number, width: number, height: number) => {
+    const top = frame.navBottom + 8;
+    const floor = Math.min(height - h - EDGE, bill.open ? height - BILL_ROOM : Infinity);
+    return {
+      x: Math.min(Math.max(x, EDGE), Math.max(EDGE, width - w - EDGE)),
+      y: Math.min(Math.max(y, top), Math.max(top, floor)),
+    };
+  };
 
   const drag = (event: PointerEvent<HTMLDivElement>) => {
     const el = root.current;
@@ -81,9 +104,7 @@ export function TripDock({
         } catch {}
         handle.dataset.dragging = "";
       }
-      const x = Math.min(Math.max(start.x + dx, EDGE), frame.width - box.width - EDGE);
-      const y = Math.min(Math.max(start.y + dy, EDGE), frame.height - box.height - EDGE);
-      onMove({ x, y });
+      onMove(keep(start.x + dx, start.y + dy, box.width, bars.current?.offsetHeight ?? box.height, frame.width, frame.height));
     };
     // on the window: until the drag starts the pointer isn't captured, and it soon leaves the small dock
     const end = () => {
@@ -105,10 +126,11 @@ export function TripDock({
   const route = first && last ? `${code(first.from)} → ${code(last.to)}` : null;
   const when = first && last ? `${ordered.length} leg${ordered.length === 1 ? "" : "s"} · ${span(first.date, last.date)}` : null;
 
+  const at = spot && frame.width ? keep(spot.x, spot.y, frame.w, frame.h, frame.width, frame.height) : spot;
   // the bill opens down from the dock, on whichever side keeps it on screen
-  const leftHalf = spot ? spot.x < frame.width / 2 : false;
-  const top = spot?.y ?? frame.navBottom + 8;
-  const style: Record<string, string | number> = { top, "--dock-top": `${top}px`, ...(spot ? { left: spot.x } : { right: "var(--space-4)" }) };
+  const leftHalf = at ? at.x < frame.width / 2 : false;
+  const top = at?.y ?? frame.navBottom + 8;
+  const style: Record<string, string | number> = { top, "--dock-top": `${top}px`, ...(at ? { left: at.x } : { right: "var(--space-4)" }) };
   return (
     <div
       ref={root}
@@ -117,6 +139,7 @@ export function TripDock({
       data-side={leftHalf ? "left" : "right"}
     >
       <div
+        ref={bars}
         className="tp-dock-bar"
         title="Your trip. Drag to move"
         onPointerDown={drag}
