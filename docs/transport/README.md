@@ -66,11 +66,12 @@ there lands on that hub and snaps the leg's end to it, so that leg searches exac
 landing, a right-click stop, and a stop's pins dropped there. Zoomed out it never locks, and a click searches the hubs
 around where it lands. So how precise a search is follows how far in you are.
 
-- Large hubs lock from zoom 0.5 (0 is the whole globe, 1 the closest), major ones from 0.88, regional ones from 0.97.
-- Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 16 px and holds
-  it until it's 28 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
-- Each lockable hub shows as a small raised marker (a circle for an airport, a square for a station, a diamond for a
-  ferry terminal) that pops up as it comes into reach; large airports print their code beside it where it clears the
+- Large hubs lock from zoom 0.82 (0 is the whole globe, 1 the closest), about when a country and its neighbours fill
+  the view; major ones from 0.93, regional ones from 0.99.
+- Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 26 px and holds
+  it until it's 30 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
+- Each lockable hub shows as its mode's glyph in ink (a plane for an airport, the train for a station, the ferry for a
+  terminal), so it never reads as a city's dot, popping up as it comes into reach; large airports print their code beside it where it clears the
   city names. Locked, its marker lifts, a ring lies round the hub, a short dashed tether runs from it to the pointer
   (or the pins being carried), and the label names it (`SEA · Seattle`); flying,
   the plane sits on it. Markers carry no fares: pricing one would mean a provider search per hub.

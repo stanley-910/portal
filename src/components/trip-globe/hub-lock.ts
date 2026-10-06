@@ -4,13 +4,19 @@
 import { HUBS } from "@/lib/transport/hubs/browser";
 import type { Hub } from "@/lib/transport/hubs/types";
 
-/** The zoom (0 whole globe, 1 closest) each hub importance becomes lockable from: large hubs first, regional ones last. */
-export const LOCK_FROM: Record<number, number> = { 3: 0.5, 2: 0.88, 1: 0.97 };
+/**
+ * The zoom (0 whole globe, 1 closest) each hub importance becomes lockable from: large hubs once a country and its
+ * neighbours fill the view, regional ones only at the closest.
+ */
+export const LOCK_FROM: Record<number, number> = { 3: 0.82, 2: 0.93, 1: 0.99 };
 /** px two lockable hubs keep apart on screen; the more important, then the first by id, keeps its place. */
 export const LOCK_SPACING = 18;
-/** px from a hub the pointer catches it, and how far it can wander before it lets go. */
-export const LOCK_CATCH = 16;
-export const LOCK_RELEASE = 28;
+/**
+ * px from a hub the pointer catches it, and how far it can wander before it lets go: it pulls in from well off and lets
+ * go soon after. Letting go is never closer than catching, or it would catch again on the spot.
+ */
+export const LOCK_CATCH = 26;
+export const LOCK_RELEASE = 30;
 /** px of pointer distance a point of importance is worth when two hubs are in reach: SeaTac before Boeing Field. */
 export const LOCK_IMPORTANCE_PX = 4;
 

@@ -5,6 +5,7 @@ import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from
 import { crossesModes } from "@/lib/transport/hubs/pick";
 import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
+import { GLYPH } from "@/components/ticket-search/glyphs";
 import { CITY_LABELS } from "./cities";
 import { lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
 import { COUNTRY_LABELS } from "./countries";
@@ -156,12 +157,16 @@ const TAG_SAME = 40;
 const TAG_H = 21; // a name tag's height, px
 // Lockable hubs' markers (hub-lock.ts): how long one takes to pop up, its size, and how far a locked one lifts
 const MARKER_POP = 0.28;
-const MARKER_R = 4;
+const MARKER_GLYPH = 10; // px, a large hub's glyph
+// each mode's solid glyph (ticket-search/glyphs.tsx), drawn on a 16-unit grid
+const MARKER_GLYPHS: Record<Hub["mode"], Path2D> =
+  typeof Path2D === "undefined" ? ({} as Record<Hub["mode"], Path2D>)
+    : { flight: new Path2D(GLYPH.flight), train: new Path2D(GLYPH.train), ferry: new Path2D(GLYPH.ferry) };
 const MARKER_LIFT = 5;
 // px the lock's tether starts out from the hub (just past its ring) and stops short of the pointer
 const LOCK_TETHER_FROM = 11;
 const LOCK_TETHER_GAP = 4;
-const CITY_MARKED = 10; // px: a city whose dot has a hub marker this close shows the marker alone
+const CITY_MARKED = 6; // px: a city whose dot has a hub marker this close shows the marker alone
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
 const TAG_GAP = 0.2;
@@ -460,6 +465,8 @@ export class GlobeEngine {
   private cityT = 0;
   private cityCandidates: number[] = [];
   private cityBoxes: number[][] = [];
+  // each placed city name's dot, by the same index as cityBoxes
+  private cityDots: number[][] = [];
   private cityPoint = screenPoint();
   private placedNames: number[][] = [];
   private nameWon = new Uint8Array(NAMES.length);
@@ -3578,6 +3585,13 @@ export class GlobeEngine {
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
       boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
       keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28);
+    // a hub's marker on a name: the name tries its other side first. One right by the city's dot stands in for it
+    const markers = this.lockables;
+    const marked = (b: number[], x: number, y: number) => markers.some((m) =>
+      (Math.abs(m.x - x) >= CITY_MARKED || Math.abs(m.y - y) >= CITY_MARKED) &&
+      m.x > b[0] - MARKER_GLYPH / 2 && m.x < b[2] + MARKER_GLYPH / 2 && m.y > b[1] - MARKER_GLYPH / 2 && m.y < b[3] + MARKER_GLYPH / 2);
+    const dots = this.cityDots;
+    dots.length = 0;
     const won = this.cityWon;
     won.fill(0, 0, cands.length);
     cands.forEach((i, k) => {
@@ -3593,13 +3607,15 @@ export class GlobeEngine {
       const hh = size * 0.6;
       // a little air between city names; a name already showing may sit a touch closer before it gives way
       const gap = showing ? 8 : 14;
-      for (const left of this.cityLeft[i] ? [1, 0] : [0, 1]) {
-        const b = left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh];
-        if (hits(b, gap)) continue;
-        boxes.push(b);
+      // clear of markers if a side is, else wherever it fits: the markers under it give way (drawMarkers)
+      const sides = this.cityLeft[i] ? [1, 0] : [0, 1];
+      const box = (left: number) => (left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh]);
+      const left = sides.find((l) => !hits(box(l), gap) && !marked(box(l), x, y)) ?? sides.find((l) => !hits(box(l), gap));
+      if (left !== undefined) {
+        boxes.push(box(left));
+        dots.push([x, y]);
         this.cityLeft[i] = left;
         won[k] = 1;
-        break;
       }
     });
 
@@ -3681,9 +3697,9 @@ export class GlobeEngine {
   }
 
   /**
-   * The hubs the pointer can lock on, zoomed in: a small raised marker each, a circle for an airport, a square for a
-   * station, a diamond for a ferry terminal, popping up as it comes into reach, its code beside it where there's
-   * room. The locked one lifts off the page.
+   * The hubs the pointer can lock on, zoomed in: each its mode's glyph in ink over a paper halo (a plane for an airport,
+   * the train for a station, the ferry for a terminal), never a dot a city could be taken for, popping up as it comes
+   * into reach, a large airport's code beside it where there's room. The locked one lifts off the page on a disc.
    */
   private drawMarkers(ctx: CanvasRenderingContext2D, t: number) {
     const P = this.P;
@@ -3704,41 +3720,55 @@ export class GlobeEngine {
       // up past full size and back, like a sticker pressed on
       const pop = u === 1 ? 1 : Math.max(0, 1 + 2.2 * (u - 1) ** 3 + 1.2 * (u - 1) ** 2);
       const locked = this.lock?.id === hub.id;
-      // smaller hubs, smaller markers
-      const r = MARKER_R * pop * (locked ? 1.35 : hub.importance >= 3 ? 1 : 0.75);
-      if (r < 0.5) continue;
+      // smaller hubs, smaller glyphs
+      const size = MARKER_GLYPH * pop * (locked ? 1.25 : hub.importance >= 3 ? 1 : 0.8);
+      if (size < 1) continue;
+      const r = size / 2;
+      // a marker a city's name had to sit on gives way to it, unless it's standing in for the city's dot
+      if (!locked && this.cityBoxes.some((o, i) => x > o[0] - r && x < o[2] + r && y > o[1] - r && y < o[3] + r &&
+        (Math.abs(x - this.cityDots[i][0]) >= CITY_MARKED || Math.abs(y - this.cityDots[i][1]) >= CITY_MARKED))) continue;
       const lift = locked ? MARKER_LIFT : 0;
-      const shape = (cx: number, cy: number) => {
+      const gy = y - lift;
+      if (locked) {
+        // lifted on a disc of paper, its shadow left on the ground
         ctx.beginPath();
-        if (hub.mode === "train") ctx.roundRect(cx - r, cy - r, r * 2, r * 2, 1.5);
-        else if (hub.mode === "ferry") {
-          ctx.moveTo(cx, cy - r * 1.25);
-          ctx.lineTo(cx + r * 1.25, cy);
-          ctx.lineTo(cx, cy + r * 1.25);
-          ctx.lineTo(cx - r * 1.25, cy);
-          ctx.closePath();
-        } else ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      };
-      // its shadow stays on the ground, further off the higher it is
-      shape(x + 1 + lift * 0.4, y + 1.5 + lift * 0.6);
-      ctx.fillStyle = P.tagShadow;
-      ctx.fill();
-      shape(x, y - lift);
-      ctx.fillStyle = locked ? P.ink : P.raised;
-      ctx.fill();
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = P.ink;
-      ctx.stroke();
+        ctx.arc(x + 1 + lift * 0.4, y + 1.5 + lift * 0.6, r + 3, 0, Math.PI * 2);
+        ctx.fillStyle = P.tagShadow;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, gy, r + 3, 0, Math.PI * 2);
+        ctx.fillStyle = P.raised;
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = P.ink;
+        ctx.stroke();
+      }
+      ctx.save();
+      ctx.translate(x, gy);
+      // a plane climbs away up and to the right, as on an airport sign
+      if (hub.mode === "flight") ctx.rotate(-Math.PI / 4);
+      ctx.scale(size / 16, size / 16);
+      ctx.translate(-8, -8);
+      const glyph = MARKER_GLYPHS[hub.mode];
+      if (!locked) {
+        ctx.lineWidth = 3.5;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = P.paper;
+        ctx.stroke(glyph);
+      }
+      ctx.fillStyle = P.ink;
+      ctx.fill(glyph, "evenodd");
+      ctx.restore();
       // a large airport's code, where it fits; the locked one is named on its tag instead
       if (locked || u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
       const w = ctx.measureText(hub.code).width;
-      const box = { l: x + r + 3, t: y - 6, r: x + r + 3 + w, b: y + 6 };
+      const box = { l: x + r + 2, t: y - 6, r: x + r + 2 + w, b: y + 6 };
       // clear of the other codes, the other markers, and the country and city names printed under them
       const under = (o: number[]) => box.l < o[2] && box.r > o[0] && box.t < o[3] && box.b > o[1];
       if (box.r > this.W || codes.some((o) => box.l < o.r + 8 && box.r > o.l - 8 && box.t < o.b + 4 && box.b > o.t - 4) ||
         this.placedNames.some(under) || this.cityBoxes.some(under) ||
-        this.lockables.some((o) => o.hub !== hub && o.x > box.l - MARKER_R - 2 && o.x < box.r + MARKER_R + 2 &&
-          o.y > box.t - MARKER_R - 2 && o.y < box.b + MARKER_R + 2)) continue;
+        this.lockables.some((o) => o.hub !== hub && o.x > box.l - MARKER_GLYPH / 2 - 2 && o.x < box.r + MARKER_GLYPH / 2 + 2 &&
+          o.y > box.t - MARKER_GLYPH / 2 - 2 && o.y < box.b + MARKER_GLYPH / 2 + 2)) continue;
       codes.push(box);
       ctx.lineWidth = 3;
       ctx.strokeStyle = P.paper;
@@ -3766,10 +3796,16 @@ export class GlobeEngine {
       ctx.beginPath();
       ctx.moveTo(p.x + ux * LOCK_TETHER_FROM, p.y + uy * LOCK_TETHER_FROM);
       ctx.lineTo(aim.x - ux * LOCK_TETHER_GAP, aim.y - uy * LOCK_TETHER_GAP);
-      ctx.setLineDash([2, 2.5]); // dash-lock
       ctx.lineCap = "round";
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = `rgba(${P.inkRGB},0.8)`;
+      // over a paper halo, like the routes, so it reads on land and sea
+      ctx.lineWidth = 4.5;
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = P.paper;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([3, 2.5]); // dash-lock
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = P.ink;
       ctx.stroke();
       ctx.setLineDash([]);
     }
