@@ -21,6 +21,7 @@ export const FLAG_ART: Record<string, FlagArt> = {
       "RRRRRRRRRRRRRR",
     ],
   },
+  // the big star with the four small ones in an arc round its right
   CN: {
     inks: { R: "#de2910", Y: "#ffde00" },
     rows: [
@@ -34,6 +35,54 @@ export const FLAG_ART: Record<string, FlagArt> = {
       "RRRRRRRRRRRRRR",
       "RRRRRRRRRRRRRR",
       "RRRRRRRRRRRRRR",
+    ],
+  },
+  // one stripe a row, and the canton's stars as a staggered field of white points
+  US: {
+    inks: { R: "#b22234", W: "#ffffff", B: "#3c3b6e" },
+    rows: [
+      "BBBBBBBRRRRRRR",
+      "BWBWBWBWWWWWWW",
+      "BBWBWBBRRRRRRR",
+      "BWBWBWBWWWWWWW",
+      "BBBBBBBRRRRRRR",
+      "WWWWWWWWWWWWWW",
+      "RRRRRRRRRRRRRR",
+      "WWWWWWWWWWWWWW",
+      "RRRRRRRRRRRRRR",
+      "WWWWWWWWWWWWWW",
+    ],
+  },
+  // the white sun and its rays in the blue canton
+  TW: {
+    inks: { R: "#fe0000", B: "#000095", W: "#ffffff" },
+    rows: [
+      "BWBWBWBRRRRRRR",
+      "BBWWWBBRRRRRRR",
+      "BWWWWWBRRRRRRR",
+      "BBWWWBBRRRRRRR",
+      "BWBWBWBRRRRRRR",
+      "RRRRRRRRRRRRRR",
+      "RRRRRRRRRRRRRR",
+      "RRRRRRRRRRRRRR",
+      "RRRRRRRRRRRRRR",
+      "RRRRRRRRRRRRRR",
+    ],
+  },
+  // the maple leaf, small in the white square: its top point, a lobe each side, and its stem
+  CA: {
+    inks: { R: "#d52b1e", W: "#ffffff" },
+    rows: [
+      "RRRWWWWWWWWRRR",
+      "RRRWWWWWWWWRRR",
+      "RRRWWWRRWWWRRR",
+      "RRRWWWRRWWWRRR",
+      "RRRWRRRRRRWRRR",
+      "RRRWWRRRRWWRRR",
+      "RRRWWWRRWWWRRR",
+      "RRRWWWWWWWWRRR",
+      "RRRWWWWWWWWRRR",
+      "RRRWWWWWWWWRRR",
     ],
   },
   KR: {
