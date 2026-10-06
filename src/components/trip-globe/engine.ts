@@ -4224,6 +4224,15 @@ export class GlobeEngine {
     ctx.drawImage(labels, 0, 0);
     ctx.restore();
     this.drawMarkers(ctx, t);
+    // the lock's rings lie on the ground with the markers, round a city's dot or a hub's glyph
+    const lp = this.lock && this.proj(this.hubPoint(this.lock));
+    if (lp && lp.vis) this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? LOCK_RING_HUB : 7, t);
+    // everything printed on the ground so far (names, markers and their codes, the lock's rings) lies under a flying
+    // plane or vehicle: its outline is cut out, so it reads as flying over them
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    for (const pl of flying) this.cutVehicle(ctx, pl);
+    ctx.restore();
     this.drawRoutes(ctx, t);
 
 
@@ -4234,12 +4243,7 @@ export class GlobeEngine {
       this.tag(ctx, pm.x, pm.y - 30, this.placeMark.name, pm);
     }
     // the hub the pointer is locked on: a tether from its marker to the pointer, which keeps its label
-    const lp = this.lock && this.proj(this.hubPoint(this.lock));
-    if (lp && lp.vis) {
-      // rings round a city's dot, or under a hub's marker as it lifts on its disc (drawMarkers)
-      this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? LOCK_RING_HUB : 7, t);
-      this.lockTether(ctx, lp);
-    }
+    if (lp && lp.vis) this.lockTether(ctx, lp);
     // the label says what kind of hub it's locked on: a plane for an airport, the train for a station
     const lockMode = this.lock?.hub?.mode;
     if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName, undefined, lockMode);
