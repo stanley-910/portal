@@ -156,8 +156,9 @@ export function PinTarget({
         } catch {}
       }
       const p = at(e);
-      // the pins hang with their heads under the pointer; the place is the ground below them
-      const place = g.liftStop(id, p.x, p.y);
+      // the pins hang with their heads under the pointer; the place is the ground below them. Held from where the press
+      // began, so the slop before the drag counts towards moving them
+      const place = g.liftStop(id, p.x, p.y, { x: from.x - box.left, y: from.y - box.top });
       setDrag({ ...p, name: place?.name ?? null });
     };
     const stopListening = () => {
@@ -172,7 +173,7 @@ export function PinTarget({
       if (!dragged.current) return;
       const p = at(e);
       const place = g.landing(id);
-      // off the globe, the pins go back
+      // off the globe, or let go before they moved off where they stood, the pins go back
       if (!place) return g.dropStop(id, null);
       const refused = onMove(place);
       g.dropStop(id, refused ? null : place.at);

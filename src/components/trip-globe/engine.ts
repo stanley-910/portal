@@ -301,6 +301,44 @@ interface Plane {
   swap: number;
 }
 
+// a ground vehicle's mesh's bounds, as the 8 corners of its box in object space, for the cut it makes in the names
+const VEHICLE_BOX = new Map<Vehicle, number[][]>();
+function vehicleBox(v: Vehicle): number[][] {
+  let box = VEHICLE_BOX.get(v);
+  if (!box) {
+    const { pos, count } = buildVehicle(v);
+    const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < count; i++) {
+      for (let k = 0; k < 3; k++) {
+        lo[k] = Math.min(lo[k], pos[i * 3 + k]);
+        hi[k] = Math.max(hi[k], pos[i * 3 + k]);
+      }
+    }
+    box = [];
+    for (const x of [lo[0], hi[0]]) for (const y of [lo[1], hi[1]]) for (const z of [lo[2], hi[2]]) box.push([x, y, z]);
+    VEHICLE_BOX.set(v, box);
+  }
+  return box;
+}
+
+/** The convex hull of screen points, anticlockwise (Andrew's monotone chain). */
+function hull(ps: { x: number; y: number }[]): { x: number; y: number }[] {
+  const pts = [...ps].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (pts.length < 3) return pts;
+  const turn = (o: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const chain = (list: typeof pts) => {
+    const out: typeof pts = [];
+    for (const p of list) {
+      while (out.length >= 2 && turn(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
+      out.push(p);
+    }
+    out.pop();
+    return out;
+  };
+  return [...chain(pts), ...chain([...pts].reverse())];
+}
+
 const parked = (v: Vehicle): Pick<Plane, "vehicle" | "next" | "swap"> => ({ vehicle: v, next: v, swap: 0 });
 
 /** How high a vehicle flies, as a share of the plane's height: ground vehicles skim along low. */
@@ -636,7 +674,9 @@ export class GlobeEngine {
    * below them, where they'd land.
    */
   // a stop's pins being carried: the pointer, its offset from their ground point when picked up, where they'd land
-  private lift: { stop: string; from: Vec3; x: number; y: number; x0: number; y0: number; dx: number; dy: number; at: Vec3; snap: Hub | null } | null = null;
+  private lift: {
+    stop: string; from: Vec3; x: number; y: number; x0: number; y0: number; dx: number; dy: number; at: Vec3; snap: Hub | null; moved: boolean;
+  } | null = null;
   // Zoomed in, the hubs the pointer can lock on (hub-lock.ts) where they are on screen, the view they were placed
   // for, the hub it's locked on and when that last changed. Each hub's point on the globe, worked out once.
   private lockables: LockTarget[] = [];
@@ -995,22 +1035,25 @@ export class GlobeEngine {
       this.lockOn(x, y);
       const lock = this.lock;
       const hub = lock?.hub ?? null;
+      const at = hit && (lock ? this.hubPoint(lock) : hit);
+      // on the stop the plane just left, or locked on to it from a little further off: no leg goes nowhere
+      const home = this.nearOrigin(x, y) || (!!at && !!this.origin && angle(at, this.origin) < 1e-6);
       if (right) {
-        if (hit && !this.nearOrigin(x, y)) {
-          this.addStop(lock ? this.hubPoint(lock) : hit, hub ? { arrive: hub, leave: hub } : undefined);
+        if (at && !home) {
+          this.addStop(at, hub ? { arrive: hub, leave: hub } : undefined);
           this.lockQuiet = { x, y };
         }
         return;
       }
       // a click on the stop the plane just left lands the trip there; a click hard on the heels of takeoff is the
       // same click landing twice, and does nothing
-      if (this.nearOrigin(x, y)) {
+      if (home) {
         if (this.via.length) this.finish();
         return;
       }
       if (this.t - this.tTake < 0.25) return;
       // any other click lands the trip there; off the globe, it lands at the last stop, or cancels without one
-      if (hit) this.land(lock ? this.hubPoint(lock) : hit, hub ? { arrive: hub } : undefined);
+      if (at) this.land(at, hub ? { arrive: hub } : undefined);
       else if (this.via.length) this.finish();
       else this.cancel();
       return;
@@ -1961,30 +2004,37 @@ export class GlobeEngine {
   /**
    * Picks up a stop's pins at screen point (x, y), CSS px, and carries them: they rise off the ground, casting their
    * shadows, and the routes into and out of the stop follow them. Where they'd land keeps the offset from the pointer
-   * it had when they were picked up, so picking them up moves nothing until the pointer does. Call again as the pointer
-   * moves. Returns where they'd land, or null off the globe.
+   * it had when they were picked up, so picking them up moves nothing until the pointer does: `from`, where the press
+   * began, when the pointer had to move a little before the press counted as a drag. Call again as the pointer moves.
+   * Returns where they'd hang over, or null off the globe.
    */
-  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
+  liftStop(stop: string, x: number, y: number, from = { x, y }): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
     if (this.lift?.stop !== stop) {
       const pin = [...this.pins.values()].find((p) => p.stop === stop && p.h !== Infinity);
       if (!pin) return null;
       const foot = this.cam && this.proj(pin.g);
-      const grab = foot && foot.vis ? { dx: x - foot.x, dy: y - foot.y } : { dx: 0, dy: 0 };
-      this.lift = { stop, from: pin.g, x, y, x0: x, y0: y, ...grab, at: pin.g, snap: null };
+      const grab = foot && foot.vis ? { dx: from.x - foot.x, dy: from.y - foot.y } : { dx: 0, dy: 0 };
+      this.lift = { stop, from: pin.g, x, y, x0: from.x, y0: from.y, ...grab, at: pin.g, snap: null, moved: false };
     }
     Object.assign(this.lift, { x, y });
     this.aimLift();
     this.glDirty = true;
     this.hudDirty = true;
-    return this.landing(stop);
+    return this.hangsOver();
   }
 
   /**
    * Where a lifted stop's pins would land now: the ground under them, its nearest hub and name. `snapped` when they're
-   * locked on that hub, which the stop's legs then search exactly.
+   * locked on that hub, which the stop's legs then search exactly. Null until the pointer has moved them off where they
+   * stood, so a pickup let go on the spot moves nothing and keeps the stop's hubs.
    */
   landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
-    if (this.lift?.stop !== stop) return null;
+    return this.lift?.stop === stop && this.lift.moved ? this.hangsOver() : null;
+  }
+
+  /** The ground a lifted stop's pins hang over, its nearest hub and name, and whether they're locked on that hub. */
+  private hangsOver(): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
+    if (!this.lift) return null;
     const at = toLatLng(this.lift.at);
     const snap = this.lift.snap;
     const hub = snap ?? bestNearbyHub(at);
@@ -2023,8 +2073,8 @@ export class GlobeEngine {
     // zoomed in, they lock on to a place near the ground under them and hang over it, every frame they're carried; not
     // until the pointer has moved them, though, or they'd lock straight back on to where they stood
     const foot = this.proj(lift.at);
-    const moved = Math.hypot(lift.x - lift.x0, lift.y - lift.y0) >= LOCK_QUIET;
-    this.lockOn(moved && foot && foot.vis ? foot.x : null, moved && foot && foot.vis ? foot.y : null);
+    lift.moved ||= Math.hypot(lift.x - lift.x0, lift.y - lift.y0) >= LOCK_QUIET;
+    this.lockOn(lift.moved && foot && foot.vis ? foot.x : null, lift.moved && foot && foot.vis ? foot.y : null);
     lift.snap = this.lock?.hub ?? null;
     if (this.lock) lift.at = this.hubPoint(this.lock);
   }
@@ -2930,9 +2980,9 @@ export class GlobeEngine {
     const next = ll && this.lock?.hub ? this.lock.hub : this.hoverResolver.resolve(ll, nowMs);
     // the label names the city, not the hub, so it can change while the hub stays; look it up as often as the hub
     let name = this.hoverName;
-    if (!ll || !next) name = null;
-    // locked on, the label names the hub itself
-    else if (this.lock) name = this.lock.name;
+    // locked on, the label names the place locked on, a city with no hub near it too
+    if (ll && this.lock) name = this.lock.name;
+    else if (!ll || !next) name = null;
     else if (next.id !== this.hoverHub?.id || (nowMs - this.hoverNameAt >= 80 &&
       (!this.hoverNamePoint || point!.some((v, i) => v !== this.hoverNamePoint![i])))) {
       this.hoverNamePoint = point && [...point];
@@ -3742,6 +3792,9 @@ export class GlobeEngine {
         this.cityFade.fill(0);
         this.cityPlaced.fill(0);
         this.cityShown = false;
+        // country names gave way to these last frame; draw them again without
+        this.cityBoxes.length = this.cityDots.length = 0;
+        this.namesMoving = true;
       }
       return;
     }
@@ -4045,17 +4098,20 @@ export class GlobeEngine {
   }
 
   /**
-   * Fills a flying vehicle's outline as seen from the camera, a little fattened: the plane's fuselage, swept wings,
-   * tailplane and fin (plane-model.ts), or a ground vehicle's body. Used to cut it out of the names it flies over.
+   * Fills a vehicle's outline as seen from the camera, a little fattened, as much of it as is `left` as it lands: the
+   * plane's fuselage, swept wings, tailplane and fin (plane-model.ts), or a ground vehicle's body, banked and pitched as
+   * the GL draws it. Used to cut it out of the names it flies over.
    */
-  private cutVehicle(ctx: CanvasRenderingContext2D, pl: Plane) {
+  private cutVehicle(ctx: CanvasRenderingContext2D, pl: Plane, left = 1) {
     const c = this.cam;
     if (!c) return;
     const S = S_PLANE * this.planeScale;
     const at = mul(pl.n, 1 + pl.alt + 0.09 * S);
-    const up = norm(pl.n);
-    const right = norm(cross(pl.f, up));
-    const point = ([x, y, z]: number[]) => this.proj(add(at, add(mul(right, x * S), add(mul(up, y * S), mul(pl.f, z * S)))));
+    // banked, pitched and shrunk mid-swap as the GL draws it
+    const s = S * (1 - Math.sin(Math.PI * pl.swap)) * left;
+    if (s < 1e-4) return;
+    const { X, Y, Z } = this.planeBasis(pl, s);
+    const point = ([x, y, z]: number[]) => this.proj(add(at, add(mul(X, x), add(mul(Y, y), mul(Z, z)))));
     const shape = (pts: number[][]) => {
       const ps = pts.map(point);
       if (ps.some((p) => !p || !p.vis)) return;
@@ -4078,9 +4134,16 @@ export class GlobeEngine {
       }
       shape([[0, 0.06, -0.28], [0, 0.25, -0.43], [0, 0.25, -0.49], [0, 0.06, -0.47]]);
     } else {
-      const w = pl.vehicle === "ferry" ? 0.14 : 0.08;
-      const l = VEHICLE_LENGTH[pl.vehicle] / 2;
-      shape([[w, 0, l], [w, 0, -l], [-w, 0, -l], [-w, 0, l]]);
+      // a ground vehicle is near enough a box: the outline of its mesh's box as seen, wheels, roof and all
+      const ps = vehicleBox(pl.vehicle).map(point);
+      if (ps.every((p) => p && p.vis)) {
+        const out = hull(ps as ScreenPoint[]);
+        ctx.beginPath();
+        out.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -4373,10 +4436,16 @@ export class GlobeEngine {
       mark(this.origin);
     }
     const labels = this.labelsLayer ??= document.createElement("canvas");
-    const flying = [...(this.mode === "flying" && this.pl ? [this.pl] : []), ...[...this.remotes.values()].filter((r) => !r.landed).map((r) => r.pl)];
+    // every plane the GL draws, touching down and shrinking away too, by how much of it is left
+    const own = this.mode === "flying" ? 1 : this.mode === "landed" ? this.planeLeft(this.tLand) : 0;
+    const aloft = [
+      ...(this.pl && own > 0 ? [{ pl: this.pl, left: own }] : []),
+      ...[...this.remotes.values()].filter((r) => !r.landed).map((r) => ({ pl: r.pl, left: 1 })),
+      ...this.ghosts.map((g) => ({ pl: g.pl, left: this.planeLeft(g.t0) })).filter((g) => g.left > 0),
+    ];
     // the names are cut again wherever a plane goes or turns
     const labelKey = `${this.lon0},${this.lat0},${this.range},${this.nameInk}|${clear.map((p) => `${p.x},${p.y}`).join(";")}|` +
-      flying.map((pl) => `${pl.n},${pl.f},${pl.alt}`).join(";") + "|" + this.pinCuts.map((c) => `${c.x},${c.y},${c.r}`).join(";");
+      aloft.map(({ pl, left }) => `${pl.n},${pl.f},${pl.alt},${pl.bank},${pl.pitch},${pl.swap},${pl.vehicle},${left}`).join(";") + "|" + this.pinCuts.map((c) => `${c.x},${c.y},${c.r}`).join(";");
     if (labels.width !== this.hudEl.width || labels.height !== this.hudEl.height) {
       labels.width = this.hudEl.width;
       labels.height = this.hudEl.height;
@@ -4391,7 +4460,7 @@ export class GlobeEngine {
       this.cityNames(layer, t);
       // planes and vehicles fly over the names: their outlines are cut out of them, so they read as above the print
       layer.globalCompositeOperation = "destination-out";
-      for (const pl of flying) this.cutVehicle(layer, pl);
+      for (const { pl, left } of aloft) this.cutVehicle(layer, pl, left);
       this.cutPins(layer);
       // pins' shadows fall across the names, darkening them
       layer.globalCompositeOperation = "source-atop";
@@ -4412,7 +4481,7 @@ export class GlobeEngine {
     // plane or vehicle and the stops' pins: their outlines are cut out, so they read as standing over them
     ctx.save();
     ctx.globalCompositeOperation = "destination-out";
-    for (const pl of flying) this.cutVehicle(ctx, pl);
+    for (const { pl, left } of aloft) this.cutVehicle(ctx, pl, left);
     this.cutPins(ctx);
     ctx.restore();
     this.drawRoutes(ctx, t);

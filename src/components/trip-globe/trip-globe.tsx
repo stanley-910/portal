@@ -47,10 +47,11 @@ export interface TripGlobeHandle {
   /**
    * Picks up a stop's pins by their heads at screen point (x, y), CSS px, and carries them, its routes following; call
    * again as the pointer moves. Returns where they'd land, with its nearest hub and name, or null off the globe.
-   * Zoomed in, they lock on to a hub near the pointer and land on it (`snapped`).
+   * Zoomed in, they lock on to a hub near the pointer and land on it (`snapped`). `from` is where the press began, if
+   * the pointer has moved since: they're held by the offset they had there, and count as moved by that much already.
    */
-  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null;
-  /** Where a lifted stop's pins would land now, or null when none is lifted. */
+  liftStop(stop: string, x: number, y: number, from?: { x: number; y: number }): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null;
+  /** Where a lifted stop's pins would land now, or null when none is lifted or it hasn't moved off where it stood. */
   landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null;
   /** Drops a lifted stop's pins onto `at`, or back where they stood when null. */
   dropStop(stop: string, at: LatLng | null): void;
@@ -309,7 +310,7 @@ export function TripGlobe({
       },
       pinSpot: (stop) => engineRef.current?.pinSpot(stop) ?? null,
       placeAt: (x, y) => engineRef.current?.placeAt(x, y) ?? null,
-      liftStop: (stop, x, y) => engineRef.current?.liftStop(stop, x, y) ?? null,
+      liftStop: (stop, x, y, from) => engineRef.current?.liftStop(stop, x, y, from) ?? null,
       landing: (stop) => engineRef.current?.landing(stop) ?? null,
       dropStop: (stop, at) => engineRef.current?.dropStop(stop, at),
       remotePlane: (id) => engineRef.current?.remotePlane(id) ?? null,
