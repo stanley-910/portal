@@ -12,7 +12,7 @@ import type { Offer } from "@/lib/transport/types";
 import { stayDates } from "./leg-edit";
 import { tripOwner } from "./leave";
 import { toStoredOffer } from "./offers";
-import { sharesStop, snapField } from "./stops";
+import { sharesStop, snapField, unsnapped } from "./stops";
 import { libraryTripOf, type LibraryTrip } from "./library";
 
 export type TripSummary = {
@@ -116,8 +116,7 @@ export function buildSoloStorage(
   const stays: Record<string, Stay> = {};
   // a room keeps a snapped end on its leg (`Leg.snap`), not on the stop legs share
   const stopAt = (end: LegEnd) => {
-    const stop: LegEnd = { ...end };
-    delete stop.snapped;
+    const stop = unsnapped(end);
     const found = Object.entries(stops).find(([, s]) => sharesStop(s, stop));
     if (found) return found[0];
     const id = newId();

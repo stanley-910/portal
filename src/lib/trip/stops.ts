@@ -39,6 +39,16 @@ export function sharesStop(a: Pick<Stop, "lat" | "lng" | "hub">, b: Pick<Stop, "
   return distanceKm(a, b) <= SHARED_STOP_KM;
 }
 
+/**
+ * A leg end let go of its hub, for a leg that only shares the stop: the way back from a trip's last stop to its first
+ * shouldn't take the hubs the legs out arrived at or left from, which can be of other modes.
+ */
+export function unsnapped(end: LegEnd): Stop {
+  const stop: LegEnd = { ...end };
+  delete stop.snapped;
+  return stop;
+}
+
 /** A leg's `snap` field for the hub ids its ends are snapped to: none when neither is. */
 export const snapField = (from: string | undefined, to: string | undefined): { snap?: Partial<Record<End, string>> } =>
   (from || to ? { snap: { ...(from ? { from } : {}), ...(to ? { to } : {}) } } : {});

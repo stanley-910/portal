@@ -23,7 +23,7 @@ import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-inpu
 import type { End } from "@/lib/liveblocks/types";
 import { beyondReach, crossesModes, hubById } from "@/lib/transport/hubs/pick";
 import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
-import { stopFromPoint } from "@/lib/trip/stops";
+import { stopFromPoint, unsnapped } from "@/lib/trip/stops";
 import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
 import { DeleteTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 
@@ -123,7 +123,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
         to: stopFromPoint(l.destination, l.to, l.snapped?.to),
         date: picks[i]?.depart ?? isoDay(l.departDate),
       })) ?? [];
-    if (legs && picks.length > legs.length) out.push({ from: out.at(-1)!.to, to: out[0].from, date: picks[legs.length].depart });
+    if (legs && picks.length > legs.length) out.push({ from: unsnapped(out.at(-1)!.to), to: unsnapped(out[0].from), date: picks[legs.length].depart });
     return out;
   }, [legs, picks]);
   // a stop dragged somewhere new keeps its pin: the new place → the key of the pin that was carried there
@@ -192,6 +192,9 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   const pickHub = (end: End, hub: Hub | null) => {
     if (!legs) return;
     const point = end === "from" ? legs[active].origin : legs[active].destination;
+    // what was saved or booked was for the old hub
+    setSaved(null);
+    book.close();
     if (!hub || !beyondReach(point, hub)) {
       setLegs(legs.map((l, i) => (i === active ? snapLeg(l, end, hub) : l)));
       return;
@@ -205,6 +208,8 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
     if (end === "from" && crossesModes(hub, other.arrive ?? null)) other.arrive = null;
     if (end === "to" && crossesModes(hub, other.leave ?? null)) other.leave = null;
     const first = Math.max(0, at - 1);
+    // a hotel picked for a leg into or out of the old place is for somewhere else now; the dates stay
+    for (const [i, draft] of drafts) if (i >= first && i <= at) drafts.set(i, { ...draft, hotelSelection: null });
     pinKeys.current.set(placeKey(points[at]), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
     pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
     relanding.current = true;

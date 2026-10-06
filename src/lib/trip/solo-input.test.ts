@@ -66,3 +66,14 @@ describe("soloSaveInput", () => {
     expect(soloSaveInput([], [pick("a", "2099-10-04")]).legs).toEqual([]);
   });
 });
+
+describe("the way back's hubs", () => {
+  it("doesn't take the hubs the way out was snapped to, which can be of other modes", () => {
+    const station = { ...HKG, hub: "train:HK-WEST-KOWLOON", snapped: true };
+    const haneda = { ...NRT, hub: "airport:HND", snapped: true };
+    const input = soloSaveInput([{ from: station, to: haneda }], [pick("out", "2099-10-04"), pick("back", "2099-10-09")]);
+    expect(input.legs[0].from.snapped).toBe(true);
+    expect(input.legs[1].from).not.toHaveProperty("snapped");
+    expect(input.legs[1].to).not.toHaveProperty("snapped");
+  });
+});

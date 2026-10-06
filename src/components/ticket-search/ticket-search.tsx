@@ -186,7 +186,7 @@ export interface TicketSearchProps {
    */
   onAdd: (choice: { offer: Offer | null; offers: Offer[]; depart: string; return: ReturnPick | null; stay: PickedStay | null }) => void;
   /** Where the trip started, which a return goes back to: the first leg's start. Defaults to this leg's. */
-  home?: Pick<LandedTrip, "origin" | "from" | "snapped">;
+  home?: Pick<LandedTrip, "origin" | "from">;
   /**
    * Snaps an end of this leg to a hub the person picked, which it then searches exactly, or lets go of it (null).
    * Without it the hubs can't be changed here.
@@ -255,9 +255,9 @@ export function TicketSearch({
   const snap = (hub: Hub | null, snapped: boolean | undefined) => (snapped && hub ? hub.id : undefined);
   const fromEnd = { ...trip.origin, snap: snap(trip.from, trip.snapped?.from) };
   const toEnd = { ...trip.destination, snap: snap(trip.to, trip.snapped?.to) };
-  const homeSearch = home ? { ...home.origin, snap: snap(home.from, home.snapped?.from) } : fromEnd;
   const outbound = useOffers(fromEnd, toEnd, depart);
-  const back = useOffers(toEnd, homeSearch, returnDate);
+  // the way back only shares the stops: it looks around them, since the hubs the way out used can be of other modes
+  const back = useOffers(trip.destination, homePoint, returnDate);
   useEffect(() => {
     onDraft?.({ depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected });
   }, [depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected, onDraft]);

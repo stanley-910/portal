@@ -1,7 +1,8 @@
-import type { Stop } from "@/lib/liveblocks/types";
+import type { LegEnd } from "@/lib/liveblocks/types";
 import type { Offer } from "@/lib/transport/types";
 
 import { keepOffers, MAX_OFFERS } from "./offers";
+import { unsnapped } from "./stops";
 
 // What Save trip on `/` sends (`soloSaveSchema` in server.ts checks it): the landed legs with what was picked on each,
 // and, for a round trip, one more leg from the last stop back to where the trip started. Pure, so it can be tested.
@@ -29,8 +30,9 @@ export function returnLegPick(back: ReturnPick): LegPick {
  * The save input for legs landed on `/`. `picks` has one per leg, in order, and may carry one more: the way back,
  * which becomes a leg from the last leg's destination to the first leg's origin. With no legs, no legs.
  */
-export function soloSaveInput(legs: { from: Stop; to: Stop }[], picks: LegPick[]) {
-  const route = legs.length && picks.length > legs.length ? [...legs, { from: legs.at(-1)!.to, to: legs[0].from }] : legs;
+export function soloSaveInput(legs: { from: LegEnd; to: LegEnd }[], picks: LegPick[]) {
+  const route = legs.length && picks.length > legs.length
+    ? [...legs, { from: unsnapped(legs.at(-1)!.to), to: unsnapped(legs[0].from) }] : legs;
   return {
     legs: route.map((leg, i) => {
       const pick = picks[i];

@@ -33,6 +33,8 @@ const stop = z.object({
   lng: z.number().min(-180).max(180),
   hub: z.string().max(64).nullable().default(null),
   code: z.string().max(8).nullable().optional(),
+  // the leg's end is snapped to `hub`: Pip searches exactly it
+  snapped: z.boolean().optional(),
 });
 const Body = z.object({
   messages: z
