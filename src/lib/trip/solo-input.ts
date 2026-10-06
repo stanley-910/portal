@@ -31,7 +31,7 @@ export function returnLegPick(back: ReturnPick): LegPick {
  * which becomes a leg from the last leg's destination to the first leg's origin. With no legs, no legs.
  */
 export function soloSaveInput(legs: { from: LegEnd; to: LegEnd }[], picks: LegPick[]) {
-  const route = legs.length && picks.length > legs.length
+  const route: { from: LegEnd; to: LegEnd }[] = legs.length && picks.length > legs.length
     ? [...legs, { from: unsnapped(legs.at(-1)!.to), to: unsnapped(legs[0].from) }] : legs;
   return {
     legs: route.map((leg, i) => {
