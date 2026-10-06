@@ -26,6 +26,7 @@
 .en-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .en-btn { --px-surface: var(--paper-raised); }
 .en-btn:hover, .en-btn[aria-expanded="true"] { --px-surface: var(--control-hover); }
+.en-passport { color: var(--passport-cover); --px-accent: var(--passport-gilt); }
 /* in the fare card's top bar, beside Minimise; in a leg's stay row, before Find a stay */
 .ts-topbar > .en-btn { margin: -4px 0 -4px auto; }
 .ts .ts-topbar > .en-btn + .ts-min { margin-left: 2px; }

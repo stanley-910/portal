@@ -21,6 +21,8 @@
   --star-light: #f6f0de;
   --star-edge: #c9bf9f;
   --roundel: #7f96cc;
+  --passport-cover: #1f3466;
+  --passport-gilt: #c9a24a;
   --pip-body: #b8cc94;
   --pip-shade: #8fad73;
   --pip-cheek: #dbe6c4;
@@ -81,6 +83,8 @@
   --sea-deep: #94abeb;
   --sage: #739463;
   --moss: #b8cc94;
+  --passport-cover: #4059a3;
+  --passport-gilt: #e8c86e;
   --pip-dither: rgba(246, 240, 222, 0.22);
   --sticker-shadow: rgba(0, 0, 0, 0.5);
   --shadow-ticket: 4px 5px 0 rgba(0, 0, 0, 0.45);
@@ -119,6 +123,8 @@
   --color-star-light: var(--star-light);
   --color-star-edge: var(--star-edge);
   --color-roundel: var(--roundel);
+  --color-passport-cover: var(--passport-cover);
+  --color-passport-gilt: var(--passport-gilt);
   --color-pip-body: var(--pip-body);
   --color-pip-shade: var(--pip-shade);
   --color-pip-cheek: var(--pip-cheek);
