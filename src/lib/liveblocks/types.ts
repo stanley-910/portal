@@ -61,6 +61,8 @@ export type Stay = {
   label: string | null;
   /** True when `nightly` is the hotel search's estimate rather than a price someone gave. */
   estimated?: boolean;
+  /** What to search for to book it, outside the app. Absent on stays typed in by hand and older rooms. */
+  listing?: { city: string; place?: string };
   createdAt?: number;
 };
 

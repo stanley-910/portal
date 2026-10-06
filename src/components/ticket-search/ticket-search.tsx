@@ -8,6 +8,7 @@ import { EntryToggle, type EntryRider } from "@/components/entry";
 import { BesideProvider } from "@/components/multiplayer/beside";
 import type { Hub, LandedTrip, LatLng, TripGlobeHandle } from "@/components/trip-globe";
 import type { Currency, ExchangeRates } from "@/lib/currency";
+import { stayListing } from "@/lib/hotels/search";
 import type { HotelResult } from "@/lib/hotels/types";
 import { arrivalDate } from "@/lib/transport/arrival";
 import { distanceKm } from "@/lib/transport/hubs/geo";
@@ -75,6 +76,7 @@ const stayFrom = (hotel: HotelResult): PickedStay => ({
   nightly: { amount: hotel.pricePerNight.amount * hotel.rooms, currency: hotel.pricePerNight.currency },
   // Saved stays lack quote dates/party/source, so their nightly budget is always an estimate.
   estimated: true,
+  ...(stayListing(hotel) ? { listing: stayListing(hotel) } : {}),
 });
 
 /** "$905", or "No fare" when an option has none or there's no rate for it. */

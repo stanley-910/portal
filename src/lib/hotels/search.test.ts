@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { searchHotels } from "./search";
+import { bookingUrl, searchHotels, stayListing } from "./search";
 
 const query = (filter: "hostel" | 2 | 3 | 4 | 5, occupants = 4) => ({
   city: "Shanghai",
@@ -52,5 +52,23 @@ describe("hotel search", () => {
     expect(booking.searchParams.get("ss")).toBe("Shanghai");
     expect(booking.searchParams.get("group_adults")).toBe("4");
     expect(booking.searchParams.get("no_rooms")).toBe("1");
+  });
+});
+
+describe("stayListing", () => {
+  const stay = { city: "Tokyo", name: "Hotel Gracery Shinjuku", bookingUrl: "https://www.booking.com/searchresults.html" };
+
+  it("books a listed property by name, and a typical stay by its city", () => {
+    expect(stayListing({ ...stay, source: "LiteAPI listing" })).toEqual({ city: "Tokyo", place: "Hotel Gracery Shinjuku" });
+    expect(stayListing({ ...stay, name: "4★ hotel, Ginza", source: undefined })).toEqual({ city: "Tokyo" });
+  });
+
+  it("never sends a live quote to another seller", () => {
+    expect(stayListing({ ...stay, source: "LiteAPI", bookingUrl: undefined })).toBeUndefined();
+  });
+
+  it("searches the listing for the stay's nights and guests", () => {
+    const url = new URL(bookingUrl({ city: "Tokyo", place: "Hotel Gracery Shinjuku" }, "2026-10-23", "2026-10-26", 3));
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ ss: "Hotel Gracery Shinjuku, Tokyo", checkin: "2026-10-23", checkout: "2026-10-26", group_adults: "3" });
   });
 });
