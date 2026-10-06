@@ -180,7 +180,7 @@ export function TripGlobe({
   const [preview, setPreview] = useState<string | null>(null);
   const [landed, setLanded] = useState<LandedTrip[] | null>(null);
   const [unsupported, setUnsupported] = useState(false);
-  const cursor = useRef<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null });
+  const cursor = useRef<GlobeCursor>({ lie: { angle: 0, squash: 1 }, offset: [0, 0], marker: null, pull: null });
   const cursorStyle = useRef({ mode, resolved: theme === "dark" ? "dark" as const : "light" as const, color, cursorShape });
   const applyCursor = () => {
     const root = rootRef.current;

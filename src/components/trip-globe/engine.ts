@@ -1,7 +1,7 @@
 // The Portal globe renderer and interaction model, framework-free. Ported from the Flight artboard (Paper Atlas).
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { recordTiming } from "@/lib/performance";
-import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
+import { cursorImageReach, cursorLieMatrix, cursorOutline, cursorPullOutline, type CursorLie, type CursorPull, type CursorShape } from "@/components/paper-atlas/cursor";
 import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { CITY_LABELS } from "./cities";
@@ -23,14 +23,16 @@ import {
 export type GlobeMode = "idle" | "flying" | "landed";
 
 /**
- * The viewer's own pointer: how it lies on the globe, how far its image is held back from the pointer while
- * it peels off, and how the ring marking the ground under it lies, or null for no ring. The ring goes in the
- * cursor image so it never lags the pointer; the overlay draws the shadow, which trails it on purpose.
+ * The viewer's own pointer: how it lies on the globe, how far its image is drawn off the pointer as it's drawn in
+ * or settles, how it's stretched while it's pulled off, and how the ring marking the ground under it lies, or null
+ * for no ring. The ring goes in the cursor image so it never lags the pointer; the overlay draws the shadow, which
+ * trails it on purpose.
  */
 export interface GlobeCursor {
   lie: CursorLie;
   offset: [number, number];
   marker: CursorLie | null;
+  pull: CursorPull | null;
 }
 const FLAT: CursorLie = { angle: 0, squash: 1 };
 
@@ -129,11 +131,19 @@ const ALT = 0.03; // flying altitude, fully zoomed out
 const CURSOR_SHADOW = 8;
 const CURSOR_DROP = 4;
 const CURSOR_CHASE = 0.035; // s for the shadow to close most of the gap when the pointer moves
-// Leaving the globe, the pointer peels off it: it springs back to full width past flat, is held up to
-// CURSOR_PULL px back toward the globe before it lets go, and its shadow springs out CURSOR_FLOAT and fades.
-const CURSOR_PEEL = 0.32; // s
-const CURSOR_PULL = 8;
+// Leaving the globe, the pointer is pulled off it like taffy: whichever of its head and tail is nearer the globe
+// stays stuck where it lay, the other goes with the pointer, and the body between draws out thin (cursorUrl says
+// which parts give), until the pointer is CURSOR_TEAR px out and it tears free. It snaps back under the pointer,
+// and its shadow springs out CURSOR_FLOAT and fades. Coming back, within CURSOR_WELL px of the edge it leans in
+// toward the globe, up to CURSOR_DRAW px, and on landing settles flat onto the ground.
+const CURSOR_TEAR = 20;
+const CURSOR_PEEL = 0.36; // s to snap back once it tears free
 const CURSOR_FLOAT = { x: 6, y: 8 };
+const CURSOR_WELL = 20;
+const CURSOR_DRAW = 6;
+const CURSOR_LEAN = 0.15; // how much longer it gets toward the globe at the edge
+const CURSOR_LAND = 0.26; // s to settle onto the ground
+const CURSOR_REACH = 32; // px the cursor image can be drawn off the pointer
 const FIT = 0.9; // share of the view a framed route spans
 const ROUTE_HIT = 10; // px from a landed route that a click counts as on it
 const CURSOR_SQUASH = 0.4; // the pointer flattens no further than this at the horizon, so it stays readable
@@ -607,13 +617,23 @@ export class GlobeEngine {
   private mx = -9999;
   private my = -9999;
   private hasPointer = false;
+  // where the pointer last was in the window, for keeping its image inside it
+  private clientAt: [number, number] = [0, 0];
   private hover: Vec3 | null = null;
   private cursorLie: CursorLie = FLAT;
   private cursorMarker: CursorLie | null = null;
   private shadowAlpha = 1;
   private cursorOffset: [number, number] = [0, 0];
-  // while the pointer peels off the globe: when it left, how it lay, its shadow's stuck spot and the way back to the globe
-  private peel: { t0: number; lie: CursorLie; from: { x: number; y: number }; back: [number, number] } | null = null;
+  private cursorPull: CursorPull | null = null;
+  // whether the globe holds the pointer: true on it and while it's being pulled off, false once free in the sky,
+  // null when there's nothing to animate from (no pointer, a drag, flying, reduced motion)
+  private stuck: boolean | null = null;
+  // how the pointer last lay on the ground, for it to stretch from as it's pulled off
+  private groundLie: CursorLie = FLAT;
+  // once the pointer tears free: when, how far it was held back and which way, how it was stretched, its shadow's spot
+  private peel: { t0: number; pull: CursorPull; from: { x: number; y: number } } | null = null;
+  // as the pointer lands on the globe: when, and the offset and lie it settles from
+  private settle: { t0: number; offset: [number, number]; lie: CursorLie } | null = null;
   // where the pointer's shadow is drawn, easing after the pointer; null when the overlay isn't drawing it
   private shadowAt: { x: number; y: number } | null = null;
   // the viewer's cursor shape, whose outline the shadow is cut from
@@ -1560,10 +1580,26 @@ export class GlobeEngine {
     return out;
   }
 
+  /** How far a point off the globe is from its edge, in px along the line to the globe's centre, and the way back. */
+  private offEdge(x: number, y: number) {
+    const c = this.proj([0, 0, 0]);
+    if (!c) return null;
+    let on = 0;
+    let off = 1;
+    for (let i = 0; i < 12; i++) {
+      const m = (on + off) / 2;
+      if (this.pick(c.x + (x - c.x) * m, c.y + (y - c.y) * m)) on = m;
+      else off = m;
+    }
+    const bx = c.x - x, by = c.y - y;
+    const l = Math.hypot(bx, by) || 1;
+    return { gap: l * (1 - on), back: [bx / l, by / l] as [number, number] };
+  }
+
   /**
    * Lays the pointer flat on the ground under it, like the hover ring, in steps coarse enough to cache,
-   * and eases its shadow after it. The shadow falls toward the globe's middle. Leaving the globe, it peels
-   * off. True when the shadow needs redrawing.
+   * and eases its shadow after it. The shadow falls toward the globe's middle. Leaving the globe, it's pulled
+   * off like tack; coming back, it's drawn in and lands. True when the shadow needs redrawing.
    */
   private updateCursor(dt: number, t: number) {
     const before = this.shadowAt && { ...this.shadowAt };
@@ -1571,7 +1607,6 @@ export class GlobeEngine {
     let offset: [number, number] = [0, 0];
     let marker: CursorLie | null = null;
     const hover = this.mode !== "flying" ? this.hover : null;
-    if (hover) this.peel = null;
     this.shadowAlpha = 1;
     if (hover) {
       // the ring flattens all the way to the horizon, as the route's ground marks do
@@ -1586,8 +1621,102 @@ export class GlobeEngine {
       // the long axis is a line, so 0° and 180° are the same lie
       const angle = ((Math.round((rot / D2R) / 5) * 5) % 180 + 180) % 180;
       if (squash < 1) lie = { angle, squash };
+      this.groundLie = lie;
     }
-    if (hover) {
+
+    // Whether the globe holds the pointer. Coming onto it from the sky starts a landing; with nothing to animate
+    // from (it came in from off the page, or a drag or flight just ended) it just takes the state it's in.
+    const still = !this.hasPointer || this.mode === "flying" || !!this.down?.drag || !!this.pinch || this.reduceMotion;
+    if (still) {
+      this.stuck = null;
+      this.peel = null;
+      this.settle = null;
+    } else if (hover) {
+      if (this.stuck === false) this.settle = { t0: t, offset: this.cursorOffset, lie: this.cursorLie };
+      this.stuck = true;
+      this.peel = null;
+    } else if (this.stuck === null) this.stuck = false;
+    const edge = !still && !hover ? this.offEdge(this.mx, this.my) : null;
+    // the lie that stretches it along the line to the globe: its long axis runs across that line
+    const across = (back: [number, number], squash: number): CursorLie => {
+      const angle = ((Math.round((Math.atan2(back[1], back[0]) / D2R + 90) / 5) * 5) % 180 + 180) % 180;
+      const q = Math.round(clamp(squash, CURSOR_SQUASH, 1.3) * 20) / 20;
+      return q === 1 ? FLAT : { angle, squash: q };
+    };
+    const px = (v: number) => Math.round(v) + 0; // + 0 turns -0 into 0
+
+    if (hover && this.settle) {
+      const L = this.settle;
+      const k = (t - L.t0) / CURSOR_LAND;
+      if (k >= 1) this.settle = null;
+      else {
+        // it settles from leaning in onto the ground, squashing a touch past flat
+        const spring = Math.exp(-6 * k) * Math.cos(2.5 * Math.PI * k);
+        offset = [px(L.offset[0] * spring), px(L.offset[1] * spring)];
+        const angle = lie.squash < 1 ? lie.angle : L.lie.angle;
+        const squash = Math.round(clamp(lie.squash + (L.lie.squash - lie.squash) * spring, CURSOR_SQUASH, 1.3) * 20) / 20;
+        lie = squash === 1 ? FLAT : { angle, squash };
+        this.shadowAlpha = Math.min(1, 2 * k);
+      }
+    }
+    let pull: CursorPull | null = null;
+    if (this.stuck && edge) {
+      // drawn out from the edge to the pointer, still lying as it lay where it's stuck
+      const angle = ((Math.round(Math.atan2(-edge.back[1], -edge.back[0]) / D2R / 5) * 5) % 360 + 360) % 360;
+      const drawn = { angle, gap: px(edge.gap), flat: this.groundLie.squash };
+      if (edge.gap < CURSOR_TEAR) pull = drawn;
+      else {
+        // torn free
+        this.peel = { t0: t, pull: drawn, from: this.shadowAt ? { ...this.shadowAt } : { x: this.mx, y: this.my } };
+        this.stuck = false;
+      }
+    }
+    if (this.stuck === false && edge) {
+      if (this.peel) {
+        const p = this.peel;
+        const k = (t - p.t0) / CURSOR_PEEL;
+        if (k >= 1) this.peel = null;
+        else {
+          // the far end snaps back to the near one on a damped spring, a little past it, and the stuck end rises
+          // off the ground
+          const spring = Math.exp(-5.5 * k) * Math.cos(2.6 * Math.PI * k);
+          const flat = Math.round(clamp(1 + (p.pull.flat - 1) * spring, CURSOR_SQUASH, 1.2) * 20) / 20;
+          const gap = px(p.pull.gap * spring);
+          if (gap !== 0 || flat !== 1) pull = { angle: p.pull.angle, gap, flat };
+          // the shadow springs out from where it was stuck, overshooting a little, and fades as the pointer lifts away
+          const e = 1 + 2.1 * (k - 1) ** 3 + 1.1 * (k - 1) ** 2;
+          this.shadowAlpha = 1 - k * k;
+          this.shadowAt = {
+            x: p.from.x + (this.mx + CURSOR_FLOAT.x - p.from.x) * e,
+            y: p.from.y + (this.my + CURSOR_FLOAT.y - p.from.y) * e,
+          };
+        }
+      }
+      if (edge.gap < CURSOR_WELL) {
+        // near the edge the globe draws it in, leaning toward the ground
+        const w = (1 - edge.gap / CURSOR_WELL) ** 2;
+        offset = [offset[0] + px(edge.back[0] * CURSOR_DRAW * w), offset[1] + px(edge.back[1] * CURSOR_DRAW * w)];
+        if (!this.peel) lie = across(edge.back, 1 + CURSOR_LEAN * w);
+      }
+    }
+
+    // the cursor image has room for this much either way (cursorUrl)
+    offset = [clamp(offset[0], -CURSOR_REACH, CURSOR_REACH), clamp(offset[1], -CURSOR_REACH, CURSOR_REACH)];
+    // Chromium hides a cursor image bigger than 32 px whenever any of it would fall outside the window. When this
+    // one would, the pointer goes plain, which cursorUrl fits in 32 px.
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if (vw && vh) {
+      const [cx, cy] = this.clientAt;
+      const reach = cursorImageReach(this.cursorShape, { lie, offset, marker, pull, noShadow: true });
+      if (reach.big && (cx < reach.left || cy < reach.up || cx > vw - reach.right || cy > vh - reach.down)) {
+        lie = FLAT;
+        offset = [0, 0];
+        marker = null;
+        pull = null;
+      }
+    }
+
+    if (hover || (this.stuck && edge)) {
       const d = this.disc();
       const sx = clamp((this.mx - d.x) / d.r, -1, 1);
       const sy = clamp((this.my - d.y) / d.r, -1, 1);
@@ -1599,50 +1728,23 @@ export class GlobeEngine {
         this.shadowAt.x += (x - this.shadowAt.x) * k;
         this.shadowAt.y += (y - this.shadowAt.y) * k;
       }
-    } else if (this.shadowAt && this.hasPointer && this.mode !== "flying" && !this.down?.drag && !this.pinch &&
-        !this.reduceMotion) {
-      if (!this.peel) {
-        const d = this.disc();
-        const bx = d.x - this.mx, by = d.y - this.my;
-        const l = Math.hypot(bx, by) || 1;
-        this.peel = { t0: t, lie: this.cursorLie, from: { ...this.shadowAt }, back: [bx / l, by / l] };
-      }
-      const p = this.peel;
-      const k = (t - p.t0) / CURSOR_PEEL;
-      if (k >= 1) {
-        this.peel = null;
-        this.shadowAt = null;
-      } else {
-        // a damped spring from the squash it had on the globe, through flat and past it
-        const spring = Math.exp(-5 * k) * Math.cos(3 * Math.PI * k);
-        const squash = Math.round(clamp(1 + (p.lie.squash - 1) * spring, CURSOR_SQUASH, 1.3) * 20) / 20;
-        if (squash !== 1) lie = { angle: p.lie.angle, squash };
-        // held back toward the globe, then let go
-        const pull = CURSOR_PULL * Math.sin(Math.PI * k) * (1 - k);
-        offset = [Math.round(p.back[0] * pull), Math.round(p.back[1] * pull)];
-        // the shadow springs out from where it was stuck, overshooting a little, and fades as the pointer lifts away
-        const e = 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
-        this.shadowAlpha = 1 - k * k;
-        this.shadowAt = {
-          x: p.from.x + (this.mx + CURSOR_FLOAT.x - p.from.x) * e,
-          y: p.from.y + (this.my + CURSOR_FLOAT.y - p.from.y) * e,
-        };
-      }
-    } else {
-      this.peel = null;
-      this.shadowAt = null;
-    }
+    } else if (!this.peel) this.shadowAt = null;
 
     const now = this.shadowAt;
     let redraw = !before || !now ? before !== now : Math.abs(now.x - before.x) + Math.abs(now.y - before.y) > 0.02;
+    // a spring can hold still for a frame between steps; keep the frames coming until it's done
+    if (this.peel || this.settle) redraw = true;
     const same = (a: CursorLie | null, b: CursorLie | null) =>
       a === b || (!!a && !!b && a.angle === b.angle && a.squash === b.squash);
-    if (!same(lie, this.cursorLie) || !same(marker, this.cursorMarker) ||
+    const samePull = (a: CursorPull | null, b: CursorPull | null) =>
+      a === b || (!!a && !!b && a.angle === b.angle && a.gap === b.gap && a.flat === b.flat);
+    if (!same(lie, this.cursorLie) || !same(marker, this.cursorMarker) || !samePull(pull, this.cursorPull) ||
         offset[0] !== this.cursorOffset[0] || offset[1] !== this.cursorOffset[1]) {
       this.cursorLie = lie;
       this.cursorMarker = marker;
       this.cursorOffset = offset;
-      this.events.onCursorChange?.({ lie, offset, marker });
+      this.cursorPull = pull;
+      this.events.onCursorChange?.({ lie, offset, marker, pull });
       redraw = true;
     }
     return redraw;
@@ -1689,14 +1791,14 @@ export class GlobeEngine {
   private cursorShadow() {
     if (typeof Path2D === "undefined") return;
     if (this.shadowAt) {
-      this.dropShadow(this.shadowAt.x + this.cursorOffset[0], this.shadowAt.y + this.cursorOffset[1], this.cursorLie, this.shadowAlpha, this.cursorShape);
+      this.dropShadow(this.shadowAt.x + this.cursorOffset[0], this.shadowAt.y + this.cursorOffset[1], this.cursorLie, this.shadowAlpha, this.cursorShape, this.cursorPull);
     }
     // other members' in the shape each picked
     for (const r of this.cursors.values()) if (r.shadow) this.dropShadow(r.shadow.x, r.shadow.y, r.lie, 1, r.shape);
   }
 
   /** A cursor's shadow at x, y, in the cursor's shape, lying on the ground as `lie` says. */
-  private dropShadow(x: number, y: number, lie: CursorLie, alpha: number, kind: CursorShape) {
+  private dropShadow(x: number, y: number, lie: CursorLie, alpha: number, kind: CursorShape, pull: CursorPull | null = null) {
     const ctx = this.hud;
     const dpr = this.hudEl.width / this.W;
     const [a, b, c, d] = cursorLieMatrix(lie);
@@ -1708,7 +1810,9 @@ export class GlobeEngine {
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.translate(x, y);
-    ctx.transform(a, b, c, d, 0, 0);
+    // pulled, its outline comes already turned and stretched
+    if (pull) shape = { path: new Path2D(cursorPullOutline(kind, pull)), rotate: 0 };
+    else ctx.transform(a, b, c, d, 0, 0);
     ctx.rotate(shape.rotate * D2R);
     ctx.filter = "blur(1.2px)";
     ctx.globalAlpha = alpha;
@@ -1718,6 +1822,7 @@ export class GlobeEngine {
   }
 
   private pos(e: { clientX: number; clientY: number }): [number, number] {
+    this.clientAt = [e.clientX, e.clientY];
     const r = this.root.getBoundingClientRect();
     return [(e.clientX - r.left) * (this.W / (r.width || 1)), (e.clientY - r.top) * (this.H / (r.height || 1))];
   }
