@@ -170,6 +170,7 @@ const LOCK_TETHER_GAP = 4;
 /** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
 const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
 const LOCK_POP = 0.18; // s a lock's rings take to snap in
+const LOCK_QUIET = 10; // px the pointer moves off a place it just took off from, stopped at or picked up before locking
 const LOCK_RING_HUB = 11; // px, a locked hub's inner ring (the outer one is 5 px further)
 const CITY_MARKED = 12; // px: a hub marker this close to a city's dot stands in for it, the name beside the marker
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
@@ -618,7 +619,7 @@ export class GlobeEngine {
    * below them, where they'd land.
    */
   // a stop's pins being carried: the pointer, its offset from their ground point when picked up, where they'd land
-  private lift: { stop: string; from: Vec3; x: number; y: number; dx: number; dy: number; at: Vec3; snap: Hub | null } | null = null;
+  private lift: { stop: string; from: Vec3; x: number; y: number; x0: number; y0: number; dx: number; dy: number; at: Vec3; snap: Hub | null } | null = null;
   // Zoomed in, the hubs the pointer can lock on (hub-lock.ts) where they are on screen, the view they were placed
   // for, the hub it's locked on and when that last changed. Each hub's point on the globe, worked out once.
   private lockables: LockTarget[] = [];
@@ -626,6 +627,8 @@ export class GlobeEngine {
   // before the hubs show, the cities named on the globe, which the pointer locks on to instead
   private cityTargets: LockTarget[] = [];
   private lock: LockTarget | null = null;
+  // where a plane just took off or stopped: nothing locks until the pointer moves off it
+  private lockQuiet: { x: number; y: number } | null = null;
   private lockT = -Infinity;
   private hubPoints = new Map<string, Vec3>();
   // when each lockable hub's marker came up, for its pop, and whether any is still popping
@@ -966,7 +969,10 @@ export class GlobeEngine {
       const lock = this.lock;
       const hub = lock?.hub ?? null;
       if (right) {
-        if (hit && !this.nearOrigin(x, y)) this.addStop(lock ? this.hubPoint(lock) : hit, hub ? { arrive: hub, leave: hub } : undefined);
+        if (hit && !this.nearOrigin(x, y)) {
+          this.addStop(lock ? this.hubPoint(lock) : hit, hub ? { arrive: hub, leave: hub } : undefined);
+          this.lockQuiet = { x, y };
+        }
         return;
       }
       // a click on the stop the plane just left lands the trip there; a click hard on the heels of takeoff is the
@@ -1060,7 +1066,10 @@ export class GlobeEngine {
     const hit = this.pick(x, y);
     this.lockOn(x, y);
     const lock = this.lock;
-    if (hit) this.takeoff(lock ? this.hubPoint(lock) : hit, false, lock?.hub ? { leave: lock.hub } : undefined);
+    if (hit) {
+      this.takeoff(lock ? this.hubPoint(lock) : hit, false, lock?.hub ? { leave: lock.hub } : undefined);
+      this.lockQuiet = { x, y };
+    }
     else if (this.mode === "landed") this.cancel();
   }
 
@@ -1849,7 +1858,7 @@ export class GlobeEngine {
       if (!pin) return null;
       const foot = this.cam && this.proj(pin.g);
       const grab = foot && foot.vis ? { dx: x - foot.x, dy: y - foot.y } : { dx: 0, dy: 0 };
-      this.lift = { stop, from: pin.g, x, y, ...grab, at: pin.g, snap: null };
+      this.lift = { stop, from: pin.g, x, y, x0: x, y0: y, ...grab, at: pin.g, snap: null };
     }
     Object.assign(this.lift, { x, y });
     this.aimLift();
@@ -1899,9 +1908,11 @@ export class GlobeEngine {
     if (!lift || !this.cam) return;
     const g = this.pick(lift.x - lift.dx, lift.y - lift.dy);
     if (g) lift.at = g;
-    // zoomed in, they lock on to a hub near the ground under them and hang over it, every frame they're carried
+    // zoomed in, they lock on to a place near the ground under them and hang over it, every frame they're carried; not
+    // until the pointer has moved them, though, or they'd lock straight back on to where they stood
     const foot = this.proj(lift.at);
-    this.lockOn(foot && foot.vis ? foot.x : null, foot && foot.vis ? foot.y : null);
+    const moved = Math.hypot(lift.x - lift.x0, lift.y - lift.y0) >= LOCK_QUIET;
+    this.lockOn(moved && foot && foot.vis ? foot.x : null, moved && foot && foot.vis ? foot.y : null);
     lift.snap = this.lock?.hub ?? null;
     if (this.lock) lift.at = this.hubPoint(this.lock);
   }
@@ -2786,6 +2797,11 @@ export class GlobeEngine {
    * a hub once zoomed in on a country. A new lock ticks.
    */
   private lockOn(x: number | null, y: number | null) {
+    // just taken off or stopped, nothing locks until the pointer moves off the place it left
+    if (this.lockQuiet && x !== null && y !== null) {
+      if (Math.hypot(x - this.lockQuiet.x, y - this.lockQuiet.y) < LOCK_QUIET) x = y = null;
+      else this.lockQuiet = null;
+    }
     // flying, the pull is much weaker, so the plane sweeps on and only settles where it's brought right up
     const next = x === null || y === null ? null : lockAt(this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets, x, y,
       this.lock, this.mode === "flying" ? FLYING_REACH : undefined);
