@@ -418,7 +418,12 @@ export class GlobeEngine {
   private vaoPin: { vao: WebGLVertexArrayObject; count: number } | null = null;
   private vaoUfo: { vao: WebGLVertexArrayObject; count: number } | null = null;
   /** Standing pins on screen: head centre and radius, and where the needle meets the ground, in CSS px. */
-  private pinCuts: { x: number; y: number; r: number; bx: number; by: number }[] = [];
+  // each pin on screen: its head (x, y, r), the ground under it (bx, by), and for cutting it out of the print, its
+  // needle's point and its shadow's point and head
+  private pinCuts: {
+    x: number; y: number; r: number; bx: number; by: number;
+    tip?: ScreenPoint | null; shadowTip?: ScreenPoint | null; shadowHead?: ScreenPoint | null;
+  }[] = [];
   /** Where a route is drawn when pins stand, so they can be cut out of it. */
   private routeLayer: HTMLCanvasElement | null = null;
   private texSkyFallback: WebGLTexture | null = null;
@@ -610,6 +615,8 @@ export class GlobeEngine {
   private pins = new Map<string, {
     stop: string; g: Vec3; color: number | null; t0: number;
     fan: number; to: number; h: number; squash: number; head: Vec3 | null;
+    /** Where its needle's point and its shadow (point and head) were last drawn, to cut them out of the print. */
+    tip?: Vec3; shadowTip?: Vec3; shadowHead?: Vec3;
     /** When it started rising into Pip's saucer, taken off; how much of its size is left as it does. */
     up?: number; scale?: number;
   }>();
@@ -3065,6 +3072,9 @@ export class GlobeEngine {
       const tip = add(g, mul(axis, p.h * size));
       const head = add(tip, mul(axis, PIN_HEAD_Z * tall));
       p.head = head;
+      p.tip = tip;
+      p.shadowTip = shadowOf(tip);
+      p.shadowHead = shadowOf(head);
       out.push({
         tip,
         X: mul(across, wide),
@@ -3072,8 +3082,8 @@ export class GlobeEngine {
         Z: mul(axis, tall),
         color: p.color,
         depth: dot(sub(tip, c.C), c.F),
-        shadowTip: shadowOf(tip),
-        shadowHead: shadowOf(head),
+        shadowTip: p.shadowTip,
+        shadowHead: p.shadowHead,
         // fainter while it's high
         shadowA: 0.9 - 0.6 * clamp(p.h / PIN_FALL, 0, 1),
       });
@@ -3889,6 +3899,33 @@ export class GlobeEngine {
 
   /** The ring round a city's dot that the pointer is locked on. */
   /**
+   * Fills each stop's pins as they stand on screen, a little fattened, to cut them out of the print: the head, the
+   * needle down to its point (not the air under a lifted pin), and its shadow on the ground.
+   */
+  private cutPins(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.fillStyle = "#000";
+    ctx.strokeStyle = "#000";
+    ctx.lineCap = "round";
+    const pin = (head: { x: number; y: number }, point: { x: number; y: number } | null, r: number, needle: number) => {
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      if (!point) return;
+      ctx.beginPath();
+      ctx.moveTo(head.x, head.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.lineWidth = needle;
+      ctx.stroke();
+    };
+    for (const c of this.pinCuts) {
+      if (c.shadowHead?.vis) pin(c.shadowHead, c.shadowTip?.vis ? c.shadowTip : null, c.r + 1, 3);
+      pin(c, c.tip?.vis ? c.tip : null, c.r + 2, 4);
+    }
+    ctx.restore();
+  }
+
+  /**
    * Fills a flying vehicle's outline as seen from the camera, a little fattened: the plane's fuselage, swept wings,
    * tailplane and fin (plane-model.ts), or a ground vehicle's body. Used to cut it out of the names it flies over.
    */
@@ -4184,7 +4221,12 @@ export class GlobeEngine {
       const base = this.proj(p.g);
       if (!q || !q.vis || !base) continue;
       const rim = this.proj(add(p.head, mul(c.U, PIN_HEAD_R * S_PLANE * this.planeScale * PIN_SCALE)));
-      this.pinCuts.push({ x: q.x, y: q.y, r: rim?.vis ? Math.hypot(rim.x - q.x, rim.y - q.y) : 4, bx: base.x, by: base.y });
+      this.pinCuts.push({
+        x: q.x, y: q.y, r: rim?.vis ? Math.hypot(rim.x - q.x, rim.y - q.y) : 4, bx: base.x, by: base.y,
+        tip: p.tip ? this.proj(p.tip) : null,
+        shadowTip: p.shadowTip ? this.proj(p.shadowTip) : null,
+        shadowHead: p.shadowHead ? this.proj(p.shadowHead) : null,
+      });
     }
   }
 
@@ -4215,7 +4257,7 @@ export class GlobeEngine {
     const flying = [...(this.mode === "flying" && this.pl ? [this.pl] : []), ...[...this.remotes.values()].filter((r) => !r.landed).map((r) => r.pl)];
     // the names are cut again wherever a plane goes or turns
     const labelKey = `${this.lon0},${this.lat0},${this.range},${this.nameInk}|${clear.map((p) => `${p.x},${p.y}`).join(";")}|` +
-      flying.map((pl) => `${pl.n},${pl.f},${pl.alt}`).join(";");
+      flying.map((pl) => `${pl.n},${pl.f},${pl.alt}`).join(";") + "|" + this.pinCuts.map((c) => `${c.x},${c.y},${c.r}`).join(";");
     if (labels.width !== this.hudEl.width || labels.height !== this.hudEl.height) {
       labels.width = this.hudEl.width;
       labels.height = this.hudEl.height;
@@ -4231,6 +4273,7 @@ export class GlobeEngine {
       // planes and vehicles fly over the names: their outlines are cut out of them, so they read as above the print
       layer.globalCompositeOperation = "destination-out";
       for (const pl of flying) this.cutVehicle(layer, pl);
+      this.cutPins(layer);
       layer.globalCompositeOperation = "source-over";
       this.labelsKey = labelKey;
       this.labelsDirty = false;
@@ -4244,10 +4287,11 @@ export class GlobeEngine {
     const lp = this.lock && this.proj(this.hubPoint(this.lock));
     if (lp && lp.vis) this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? LOCK_RING_HUB : 7, t);
     // everything printed on the ground so far (names, markers and their codes, the lock's rings) lies under a flying
-    // plane or vehicle: its outline is cut out, so it reads as flying over them
+    // plane or vehicle and the stops' pins: their outlines are cut out, so they read as standing over them
     ctx.save();
     ctx.globalCompositeOperation = "destination-out";
     for (const pl of flying) this.cutVehicle(ctx, pl);
+    this.cutPins(ctx);
     ctx.restore();
     this.drawRoutes(ctx, t);
 
