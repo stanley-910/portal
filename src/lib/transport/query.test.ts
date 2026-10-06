@@ -25,6 +25,12 @@ describe("public transport query", () => {
     expect(result.modes).toEqual(["flight", "train"]);
   });
 
+  it("keeps a snapped hub id and refuses one that isn't a hub id", () => {
+    expect(parseSearchQuery(url({ from: JSON.stringify({ ...from, snap: "train:HK-WEST-KOWLOON" }) })).from.snap).toBe("train:HK-WEST-KOWLOON");
+    expect(parseSearchQuery(url())).not.toHaveProperty("from.snap");
+    expect(() => parseSearchQuery(url({ from: JSON.stringify({ ...from, snap: "javascript:alert(1)" }) }))).toThrow();
+  });
+
   it.each(["2026-02-30", "2026-02-29", "2026-13-01", "26-10-03"])("rejects impossible date %s", (date) => {
     expect(() => parseSearchQuery(url({ date }))).toThrow();
   });

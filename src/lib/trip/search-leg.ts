@@ -22,8 +22,9 @@ export async function runLegSearch(roomId: string, legId: string, searchId: stri
   let search: LegSearch;
   try {
     const result = await searchFromCoordinates({
-      from: stopToPlace(from),
-      to: stopToPlace(to),
+      // a snapped end searches exactly its hub
+      from: { ...stopToPlace(from), ...(leg.snap?.from ? { snap: leg.snap.from } : {}) },
+      to: { ...stopToPlace(to), ...(leg.snap?.to ? { snap: leg.snap.to } : {}) },
       date: leg.date,
       modes: [],
       passengers: 1,

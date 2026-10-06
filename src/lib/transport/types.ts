@@ -8,6 +8,7 @@ export interface Place {
   lat: number; lng: number;
   country?: string;           // ISO 3166-1 alpha-2
   iata?: string;              // airports / city codes
+  snap?: string;              // the id of a bundled hub the place is snapped to: search leaves from exactly that hub
   providerIds?: Partial<Record<ProviderId, string>>; // station/terminal ids per provider
 }
 

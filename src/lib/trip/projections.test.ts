@@ -29,6 +29,14 @@ describe("shared immutable projections", () => {
     expect(moved[0].to.lng).toBe(20);
     expect(moved[1]).not.toBe(first[1]);
   });
+  it("shows a leg's snapped end as its hub, leaving the shared stop and other legs as they are", () => {
+    const root = room();
+    const snapped = { ...root, legs: { ...root.legs, one: { ...root.legs.one, snap: { to: "airport:HND" } } } };
+    const [one, two] = selectPlanLegs(snapped);
+    expect(one.to).toMatchObject({ id: "b", hub: "airport:HND", code: "HND", snapped: true, lat: 1, lng: 1, name: "B" });
+    expect(two.to).toEqual({ id: "b", ...root.stops.b });
+    expect(one.from).not.toHaveProperty("snapped");
+  });
   it("matches splits and invalidates changes in who stays and who leaves", () => {
     const root = room();
     expect(selectSplit(root)).toEqual(computeSplit(root));

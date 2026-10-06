@@ -28,6 +28,13 @@ describe("shared trip stops", () => {
     expect(sameStop(stop, stopFromPoint(point, airport))).toBe(false);
   });
 
+  it("searches exactly a snapped stop's hub, and only a snapped one's", () => {
+    const stop = stopFromPoint(airport, airport, true);
+    expect(stop).toEqual({ lat: airport.lat, lng: airport.lng, hub: "airport:VHHH", code: "HKG", name: "Hong Kong", snapped: true });
+    expect(stopToPlace(stop)).toEqual({ lat: airport.lat, lng: airport.lng, name: "Hong Kong", snap: "airport:VHHH" });
+    expect(stopFromPoint(point, null, true)).not.toHaveProperty("snapped");
+  });
+
   it("stores and searches outside-coverage points without a hub", () => {
     const ocean = { lat: -0.12345678, lng: -140.98765432 };
     const stop = stopFromPoint(ocean, null);

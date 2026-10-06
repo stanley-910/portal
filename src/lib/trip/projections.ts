@@ -1,4 +1,5 @@
 import type { Leg, LegBooking, LegSearch, Stay, Stop, StoredOffer, TripMember } from "@/lib/liveblocks/types";
+import { hubById } from "@/lib/transport/hubs/pick";
 import type { DatePlan } from "./dates";
 import { computeSplit, staysOf, type SplitInput } from "./split";
 
@@ -25,6 +26,12 @@ export type PlanLeg = {
   bookingNotice: string | null;
 };
 
+/** A leg's view of its stop: the hub its end is snapped to, if any, in place of the stop's preview hub. */
+function snappedEnd(stop: Stop, snap: string | undefined): Stop {
+  const hub = hubById(snap);
+  return hub ? { ...stop, hub: hub.id, code: hub.code, snapped: true } : stop;
+}
+
 // All subscribers to a snapshot share the same projection. Weak keys release old room revisions.
 const legLists = new WeakMap<PlanSnapshot["legs"], { stops: PlanSnapshot["stops"]; value: PlanLeg[] }>();
 const legRows = new WeakMap<object, { id: string; from: Stop; to: Stop; value: PlanLeg }>();
@@ -40,7 +47,7 @@ export function selectPlanLegs(root: PlanSnapshot): PlanLeg[] {
     const votes: Record<string, string[]> = {};
     for (const [who, offer] of Object.entries(leg.votes)) (votes[offer] ??= []).push(who);
     const value: PlanLeg = {
-      id, from: { id: leg.from, ...from }, to: { id: leg.to, ...to }, date: leg.date, createdBy: leg.createdBy,
+      id, from: { id: leg.from, ...snappedEnd(from, leg.snap?.from) }, to: { id: leg.to, ...snappedEnd(to, leg.snap?.to) }, date: leg.date, createdBy: leg.createdBy,
       riders: leg.riders, search: leg.search, votes, chosen: leg.search.offers.find((o) => o.id === leg.chosen) ?? null,
       createdAt: leg.createdAt, booking: leg.booking ?? null, bookingNotice: leg.bookingNotice ?? null,
     };

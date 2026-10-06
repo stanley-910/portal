@@ -14,6 +14,7 @@ import { legOffer } from "@/components/multiplayer/leg-tags";
 import { RoundButton } from "@/components/paper-atlas";
 import { dragAnchor, reveal, useAnchor } from "@/components/ticket-search/anchor";
 import type { TripGlobeHandle } from "@/components/trip-globe";
+import { HubChip, HubPicker } from "@/components/ticket-search/hub-picker";
 import { addDays, dateLabel, DateField, DayStrip, localIso, OptionRows, RouteHeader, Timeline } from "@/components/ticket-search/parts";
 import { AirlineLogo } from "@/components/ticket-search/airline-logo";
 import { Glyph } from "@/components/ticket-search/glyphs";
@@ -29,6 +30,8 @@ import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
 import type { HotelResult } from "@/lib/hotels/types";
 import { isBookable, refundNote } from "@/lib/trip/offers";
+import { hubById } from "@/lib/transport/hubs/pick";
+import type { Hub } from "@/lib/transport/hubs/types";
 import { stopCountry } from "@/lib/trip/stops";
 
 // The shared plan: every leg anyone has drawn, its options, votes and pick. Styled like the ticket search
@@ -44,6 +47,7 @@ const REFUSED: Record<Exclude<EditResult, "ok">, string> = {
   locked: "This leg is being booked, so its pick is fixed.",
   replaced: "A new search replaced these options. Pick again.",
 };
+
 
 /**
  * "W4 flight, 1 stop", or "train, from Shenzhen North". Its times ride on the timeline, which shows --:-- for a
@@ -189,8 +193,10 @@ function LegCard({
   const members = usePlanMembers();
   const present = usePresentIds();
   const allLegs = usePlanLegs();
-  const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg } = usePlanActions();
+  const { setDate, retrySearch, vote, choose, addStay, updateStay, removeStay, toggleRider, removeLeg, snapEnd } = usePlanActions();
   const [picking, setPicking] = useState(false);
+  // the end whose hub is being picked, under the route
+  const [hubEnd, setHubEnd] = useState<"from" | "to" | null>(null);
   const [dateBlocked, setDateBlocked] = useState(false);
   // the hotel search for this leg's destination, beside the card; a pick saves straight away
   const findStay = useBeside(`stay:${leg.id}`);
@@ -228,6 +234,26 @@ function LegCard({
     }
   };
 
+  /** Snaps one end of this leg to `hub` for everyone, or lets go of its hub (null); the leg searches again. */
+  const pickHub = (end: "from" | "to", hub: Hub | null) => {
+    setHubEnd(null);
+    const result = snapEnd(leg.id, end, hub?.id ?? null);
+    setNotice(result === "ok" ? null : REFUSED[result]);
+  };
+  const chip = (end: "from" | "to") => (
+    <HubChip
+      hub={hubById(leg[end].hub)}
+      code={leg[end].code}
+      snapped={!!leg[end].snapped}
+      end={end}
+      open={hubEnd === end}
+      onToggle={() => {
+        setPicking(false);
+        setHubEnd((e) => (e === end ? null : end));
+      }}
+    />
+  );
+
   const lead = legOffer(leg);
   const summary = [
     dateLabel(leg.date),
@@ -237,11 +263,23 @@ function LegCard({
 
   return (
     <article ref={card} className="tp-leg">
-      <button type="button" className="tp-leg-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      {/* the whole head folds the leg; opened, each end's hub can be picked, over it */}
+      <div className="tp-leg-head">
+        <button
+          type="button"
+          className="tp-leg-toggle"
+          aria-expanded={open}
+          aria-label={`${leg.from.name} to ${leg.to.name}`}
+          onClick={() => {
+            setOpen((o) => !o);
+            setHubEnd(null);
+          }}
+        />
         <RouteHeader
           from={{ code: leg.from.code, name: leg.from.name, country: stopCountry(leg.from) }}
           to={{ code: leg.to.code, name: leg.to.name, country: stopCountry(leg.to) }}
           mode={lead?.mode ?? null}
+          chips={open && !locked ? { from: chip("from"), to: chip("to") } : undefined}
           below={
             // the fold, under the route's middle, rather than a row of its own
             <svg className="tp-leg-chevron" width={10} height={10} viewBox="0 0 10 10" aria-hidden>
@@ -256,11 +294,22 @@ function LegCard({
             {summary}
           </span>
         )}
-      </button>
+      </div>
       <Activity mode={open ? "visible" : "hidden"}>
+        {hubEnd && !locked ? (
+          <HubPicker
+            key={hubEnd}
+            near={leg[hubEnd]}
+            current={hubById(leg[hubEnd].hub)}
+            snapped={!!leg[hubEnd].snapped}
+            label={hubEnd === "from" ? "Leave from" : "Arrive at"}
+            onPick={(hub) => pickHub(hubEnd, hub)}
+            onClose={() => setHubEnd(null)}
+          />
+        ) : null}
 
         <div className="ts-dates">
-          <DateField label="Depart" value={leg.date} open={picking} onToggle={() => !locked && setPicking((p) => !p)} />
+          <DateField label="Depart" value={leg.date} open={picking} onToggle={() => { if (locked) return; setHubEnd(null); setPicking((p) => !p); }} />
           <div className="ts-field tp-riders">
             <span className="ts-field-label">Riders</span>
             <ul className="tp-rider-list">

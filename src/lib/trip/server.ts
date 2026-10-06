@@ -114,13 +114,17 @@ export function buildSoloStorage(
   const stops: SoloStorageJson["stops"] = {};
   const legs: SoloStorageJson["legs"] = {};
   const stays: Record<string, Stay> = {};
-  const stopAt = (stop: Stop) => {
+  // a room keeps a snapped end on its leg (`Leg.snap`), not on the stop legs share
+  const stopAt = (snapped: Stop) => {
+    const stop = { ...snapped };
+    delete stop.snapped;
     const found = Object.entries(stops).find(([, s]) => sharesStop(s, stop));
     if (found) return found[0];
     const id = newId();
     stops[id] = stop;
     return id;
   };
+  const snapOf = (stop: Stop) => (stop.snapped && stop.hub ? stop.hub : undefined);
   const picked: { to: string; date: string; arrival: string; stay: NonNullable<SoloSaveInput["legs"][number]["stay"]> }[] = [];
   input.legs.forEach((leg, i) => {
     const from = stopAt(leg.from);
@@ -138,6 +142,9 @@ export function buildSoloStorage(
       chosen: leg.chosen,
       // in order, so legs on the same day keep the order they were flown in
       createdAt: now + i,
+      ...(snapOf(leg.from) || snapOf(leg.to) ? {
+        snap: { ...(snapOf(leg.from) ? { from: snapOf(leg.from) } : {}), ...(snapOf(leg.to) ? { to: snapOf(leg.to) } : {}) },
+      } : {}),
     };
     if (leg.stay) picked.push({ to, date: leg.date, arrival: arrivalDate(leg.date, offers.find((o) => o.id === leg.chosen)), stay: leg.stay });
   });

@@ -88,6 +88,23 @@ describe("coordinate resolution", () => {
     expect(result.from.map((candidate) => candidate.hub.iata)).toEqual(["SHA"]);
     expect(result.pairs.every((pair) => pair.from.hub.iata === "SHA")).toBe(true);
   });
+  it("keeps a snapped end to exactly its hub, in its mode only", () => {
+    const sea = HUBS.find((hub) => hub.iata === "SEA")!;
+    const unsnapped = resolveHubs(point(sea.lat, sea.lng), point(35.7, 139.7));
+    expect(unsnapped.from.filter((c) => c.hub.mode === "flight").length).toBeGreaterThan(1);
+    const result = resolveHubs({ ...point(sea.lat, sea.lng), snap: sea.id }, point(35.7, 139.7));
+    expect(result.from.map((candidate) => candidate.hub.id)).toEqual([sea.id]);
+    expect(result.pairs.length).toBeGreaterThan(0);
+    expect(result.pairs.every((pair) => pair.from.hub.id === sea.id && pair.mode === "flight")).toBe(true);
+    expect(resolveHubs({ ...point(sea.lat, sea.lng), snap: sea.id }, point(35.7, 139.7), ["train"]).from).toEqual([]);
+  });
+  it("finds no pair for ends snapped to different modes, and ignores an unknown snap", () => {
+    const hkg = HUBS.find((hub) => hub.iata === "HKG")!;
+    const hongqiao = HUBS.find((hub) => hub.id === "train:SHANGHAI-HONGQIAO")!;
+    expect(resolveHubs({ ...point(hkg.lat, hkg.lng), snap: hkg.id }, { ...point(hongqiao.lat, hongqiao.lng), snap: hongqiao.id }).pairs).toEqual([]);
+    const unknown = resolveHubs({ ...point(hkg.lat, hkg.lng), snap: "airport:ZZZ" }, point(hongqiao.lat, hongqiao.lng));
+    expect(unknown.from.length).toBeGreaterThan(1);
+  });
   it("does not invent a flight for a short local hop or the same airport", () => {
     expect(resolveHubs(point(22.30, 114.16), point(22.31, 114.17), ["flight"]).pairs).toEqual([]);
   });

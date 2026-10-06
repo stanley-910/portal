@@ -10,6 +10,7 @@ const placeSchema = z.object({
   lng: z.number().finite().min(-180).max(180),
   country: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/)),
   iata: optionalText(z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/)),
+  snap: optionalText(z.string().trim().max(64).regex(/^(airport|train|ferry):[A-Za-z0-9-]+$/)),
   providerIds: z.partialRecord(
     z.enum(["travelpayouts", "12go", "tdx", "korea-tago", "china-rail", "busonlineticket", "gtfs", "srt", "duffel", "vietnam-rail", "official-ferries", "rail-cache"]),
     z.string().trim().min(1).max(200),
@@ -44,7 +45,7 @@ function parse(params: URLSearchParams): SearchQuery {
   });
   // Keep the established Place shape: absent optional keys are omitted.
   for (const side of ["from", "to"] as const) {
-    for (const key of ["iata", "country", "providerIds"] as const) {
+    for (const key of ["iata", "snap", "country", "providerIds"] as const) {
       if (parsed[side][key] === undefined) delete parsed[side][key];
     }
   }

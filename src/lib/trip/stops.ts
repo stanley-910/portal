@@ -7,14 +7,18 @@ import type { Place } from "@/lib/transport/types";
 
 type Point = { lat: number; lng: number };
 
-/** The hub is a local preview, not a snapped endpoint or a chosen transport mode. */
-export function stopFromPoint(point: Point, hub: Hub | null): Stop {
+/**
+ * The hub is a local preview, not a chosen transport mode, unless `snapped`: then the person picked that hub (the
+ * point is on it) and search leaves from exactly it.
+ */
+export function stopFromPoint(point: Point, hub: Hub | null, snapped = false): Stop {
   return {
     lat: point.lat,
     lng: point.lng,
     hub: hub?.id ?? null,
     code: hub?.code ?? null,
     name: hub?.city || hub?.name || `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`,
+    ...(snapped && hub ? { snapped: true } : {}),
   };
 }
 
@@ -35,9 +39,9 @@ export function sharesStop(a: Pick<Stop, "lat" | "lng" | "hub">, b: Pick<Stop, "
   return distanceKm(a, b) <= SHARED_STOP_KM;
 }
 
-/** Resolve transport from clicks afresh; never pass a preview ID/code as airport IATA. */
+/** Resolve transport from clicks afresh; never pass a preview ID/code as airport IATA. A snapped stop's hub goes as it is. */
 export function stopToPlace(stop: Stop): Place {
-  return { name: stop.name, lat: stop.lat, lng: stop.lng };
+  return { name: stop.name, lat: stop.lat, lng: stop.lng, ...(stop.snapped && stop.hub ? { snap: stop.hub } : {}) };
 }
 
 const HUB_COUNTRY = new Map(HUBS.map((hub) => [hub.id, hub.country]));

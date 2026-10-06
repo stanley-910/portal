@@ -114,6 +114,13 @@ describe("buildSoloStorage", () => {
     expect(() => save({ ...input, offers: [offer("tp:d", { segments: [{ ...seg, carrierCode: "<script>" }] })] })).toThrow();
   });
 
+  it("keeps a snapped end on its leg, not on the stop legs share", () => {
+    const doc = buildSoloStorage(save({ ...input, to: { ...PVG, snapped: true } }), user, ids(), 1_000);
+    expect(doc.stops.s2).toEqual(PVG);
+    expect(doc.legs.l1.snap).toEqual({ to: "air:PVG" });
+    expect(solo().legs.l1).not.toHaveProperty("snap");
+  });
+
   it("stores a stop without a code as null", () => {
     const noCode: Partial<typeof HKG> = { ...HKG };
     delete noCode.code;

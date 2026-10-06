@@ -51,7 +51,18 @@ export interface LandedTrip {
   distanceKm: number;
   /** Earliest departure, local time: tomorrow for the first leg, a day later for each leg after. */
   departDate: Date;
+  /**
+   * The ends snapped to a hub (`from`, `to`), which search uses exactly rather than looking around the point. A snap
+   * belongs to its leg: the next leg can leave its stop from another hub. Missing means neither.
+   */
+  snapped?: { from: boolean; to: boolean };
 }
+
+/** The hubs a stop is snapped to: the one the leg into it arrives at, and the one the leg out of it leaves from. */
+export type StopSnap = { arrive?: Hub | null; leave?: Hub | null };
+/** A stop to put a trip down at (`showTrip`), with the hubs it's snapped to, if any. */
+export type TripPoint = LatLng & StopSnap;
+const NO_SNAP: Required<StopSnap> = { arrive: null, leave: null };
 
 /** The leg being flown or landed, as other people in the room see it. All places as lat/lng. */
 export interface FlightState {
@@ -508,8 +519,11 @@ export class GlobeEngine {
   private dest: Vec3 | null = null;
   private originHub: Hub | null = null;
   private destinationHub: Hub | null = null;
+  // the hubs the origin and destination are snapped to (StopSnap)
+  private originSnap = NO_SNAP;
+  private destinationSnap = NO_SNAP;
   /** Stops before `origin`, from takeoff on: each click while flying ends a leg there and starts the next. */
-  private via: { v: Vec3; hub: Hub | null; name: string | null }[] = [];
+  private via: { v: Vec3; hub: Hub | null; snap: Required<StopSnap>; name: string | null }[] = [];
   // the plane is held at the stop it just left (only after a stop, not at takeoff), and when that last changed
   private magnet = false;
   private magnetT = -Infinity;
@@ -1154,6 +1168,7 @@ export class GlobeEngine {
     this.pl = null;
     this.turn = null;
     this.originHub = this.destinationHub = null;
+    this.originSnap = this.destinationSnap = NO_SNAP;
     this.originName = this.destinationName = null;
     this.updatePreview(null, this.t * 1000);
     this.lastInteract = this.t;
@@ -1161,8 +1176,11 @@ export class GlobeEngine {
     if (wasActive) this.events.onCancel?.();
   }
 
-  /** Starts a trip at o. A click takes the view back from Pip's saucer; a trip Pip puts down (`byPip`) doesn't. */
-  private takeoff(o: Vec3, byPip = false) {
+  /**
+   * Starts a trip at o, snapped to `snap`'s hubs when given. A click takes the view back from Pip's saucer; a trip
+   * Pip puts down (`byPip`) doesn't.
+   */
+  private takeoff(o: Vec3, byPip = false, snap: StopSnap = NO_SNAP) {
     const cam = this.cam ?? this.camera();
     this.mode = "flying";
     this.origin = o;
@@ -1170,7 +1188,9 @@ export class GlobeEngine {
     this.via = [];
     this.magnet = false;
     this.destinationHub = null;
-    this.originHub = nearestPreviewHub(toLatLng(o));
+    this.destinationSnap = NO_SNAP;
+    this.originSnap = { arrive: snap.arrive ?? null, leave: snap.leave ?? null };
+    this.originHub = this.originSnap.leave ?? this.originSnap.arrive ?? nearestPreviewHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0, ...parked("flight") };
     this.want = { vehicle: "flight", t: this.t, checked: -Infinity };
@@ -1189,11 +1209,12 @@ export class GlobeEngine {
     return !!p && p.vis && Math.hypot(p.x - x, p.y - y) < STOP_HIT;
   }
 
-  /** Ends the leg being flown at v, and takes off again from there. */
-  private addStop(v: Vec3) {
-    this.via.push({ v: this.origin!, hub: this.originHub, name: this.originName });
+  /** Ends the leg being flown at v (snapped to `snap`'s hubs when given), and takes off again from there. */
+  private addStop(v: Vec3, snap: StopSnap = NO_SNAP) {
+    this.via.push({ v: this.origin!, hub: this.originHub, snap: this.originSnap, name: this.originName });
     this.origin = v;
-    this.originHub = nearestPreviewHub(toLatLng(v));
+    this.originSnap = { arrive: snap.arrive ?? null, leave: snap.leave ?? null };
+    this.originHub = this.originSnap.arrive ?? this.originSnap.leave ?? nearestPreviewHub(toLatLng(v));
     this.originName = this.originHub && placeName(toLatLng(v), this.originHub);
     // the plane touches down and lifts off again, with the takeoff ripple, held to the stop by the magnet
     this.tTake = this.t;
@@ -1206,16 +1227,17 @@ export class GlobeEngine {
    * globe and reports it through onLand like a flown one. Pip uses it to put a planned trip on the home globe.
    * `how`: "land" brings the plane down at the end and turns to frame the trip; "quiet" moves the trip where it is,
    * with no landing (a stop dragged to a new place); "draw" turns to frame it and draws its routes out instead, with
-   * no plane, the pins dropping once each is drawn (the From and To search).
+   * no plane, the pins dropping once each is drawn (the From and To search). A point's `arrive` and `leave` hubs snap
+   * the legs into and out of it.
    */
-  showTrip(points: LatLng[], how: ShowTrip = "land") {
+  showTrip(points: TripPoint[], how: ShowTrip = "land") {
     this.requestFrame();
     if (points.length < 2) return;
     const vs = points.map((p) => vecOf(p.lat * D2R, p.lng * D2R));
     const before = this.ownLegs();
     if (this.mode !== "idle") this.cancel();
-    this.takeoff(vs[0], !!this.agent?.on);
-    for (const v of vs.slice(1, -1)) this.addStop(v);
+    this.takeoff(vs[0], !!this.agent?.on, points[0]);
+    vs.slice(1, -1).forEach((v, i) => this.addStop(v, points[i + 1]));
     this.magnet = false;
     const pip = !!this.agent?.on && !this.reduceMotion;
     // drawn out: each leg draws in turn once land()'s turn (0.5s on, 1.5s long) is well under way. Queued before the
@@ -1225,7 +1247,7 @@ export class GlobeEngine {
       const start = this.t + 0.5 + 1.5 * 0.4;
       vs.slice(1).forEach((b, i) => this.ownDraws.push({ a: vs[i], b, t0: start + i * DRAW * 0.6, d: DRAW }));
     }
-    this.land(vs[vs.length - 1]);
+    this.land(vs[vs.length - 1], points[points.length - 1]);
     // While Pip's saucer is out it builds the trip itself: no plane lands and the view stays with the saucer. Legs
     // that are new draw out behind it one after another, and legs that went reel in. A quiet one (a stop dragged to a
     // new place) only moves the trip, where it is.
@@ -1266,14 +1288,16 @@ export class GlobeEngine {
   /** Lands the trip at the last stop, which ends the leg flown into it. */
   private finish() {
     const end = this.origin!;
+    const endSnap = this.originSnap;
     const last = this.via.pop()!;
     this.origin = last.v;
     this.originHub = last.hub;
+    this.originSnap = last.snap;
     this.originName = last.name;
-    this.land(end);
+    this.land(end, endSnap);
   }
 
-  private land(v: Vec3) {
+  private land(v: Vec3, snap: StopSnap = NO_SNAP) {
     const pl = this.pl!;
     const origin = this.origin!;
     const stops = [...this.via.map((s) => s.v), origin, v];
@@ -1282,7 +1306,8 @@ export class GlobeEngine {
     this.dest = v;
     pl.n = v;
     pl.f = tangent(pl.f, v);
-    this.destinationHub = nearestPreviewHub(toLatLng(v));
+    this.destinationSnap = { arrive: snap.arrive ?? null, leave: null };
+    this.destinationHub = this.destinationSnap.arrive ?? nearestPreviewHub(toLatLng(v));
     this.destinationName = this.destinationHub && placeName(toLatLng(v), this.destinationHub);
     this.updatePreview(null, this.t * 1000);
     // light up the destination hub's country, or where the plane landed when no hub resolves
@@ -1308,18 +1333,23 @@ export class GlobeEngine {
     };
     this.autoFrame = { ...this.turn.frame! };
     const hubs = [...this.via.map((s) => s.hub), this.originHub, this.destinationHub];
+    const snaps = [...this.via.map((s) => s.snap), this.originSnap, this.destinationSnap];
     this.events.onModeChange?.("landed", hubs[0]);
     this.events.onLand?.(stops.slice(1).map((b, i) => {
       const a = stops[i];
       const depart = new Date();
       depart.setDate(depart.getDate() + 1 + i);
+      // a leg leaves from the hub its start is snapped to leave from and arrives at the one its end is snapped to
+      const leave = snaps[i].leave;
+      const arrive = snaps[i + 1].arrive;
       return {
-        from: hubs[i],
-        to: hubs[i + 1],
+        from: leave ?? hubs[i],
+        to: arrive ?? hubs[i + 1],
         origin: toLatLng(a),
         destination: toLatLng(b),
         distanceKm: Math.round(EARTH_RADIUS_KM * angle(a, b)),
         departDate: depart,
+        ...(leave || arrive ? { snapped: { from: !!leave, to: !!arrive } } : {}),
       };
     }));
   }

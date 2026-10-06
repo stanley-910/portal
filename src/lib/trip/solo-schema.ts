@@ -20,6 +20,7 @@ const stopSchema = z.object({
   hub: z.string().max(64).nullable(),
   code: z.string().max(16).nullable().default(null),
   name: text(120),
+  snapped: z.boolean().optional(),
 });
 
 // the airport code stays: settling a saved Duffel flight matches on it

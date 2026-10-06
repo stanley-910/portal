@@ -75,6 +75,21 @@ describe("clicks → hubs → provider queries", () => {
     expect(result.offerPairs["travelpayouts:duplicate"].length).toBeGreaterThan(1);
     expect(result.estimates.every((id) => result.hubs.pairs.find((pair) => pair.id === id)?.mode !== "flight")).toBe(true);
   });
+  it("keeps a snapped airport to flights from it alone, with no surface search", async () => {
+    search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
+    await searchFromCoordinates({ ...query, modes: [], from: { name: "HKG", lat: 22.308, lng: 113.9185, snap: "airport:HKG" } }, signal());
+    expect(search.mock.calls.length).toBeGreaterThan(0);
+    for (const [q] of search.mock.calls) {
+      expect(q.modes).toEqual(["flight"]);
+      expect(q.from.iata).toBe("HKG");
+    }
+  });
+  it("keeps a snapped station to its own mode", async () => {
+    search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
+    await searchFromCoordinates({ ...query, modes: [], from: { name: "West Kowloon", lat: 22.3036, lng: 114.165, snap: "train:HK-WEST-KOWLOON" } }, signal());
+    expect(search.mock.calls.length).toBeGreaterThan(0);
+    for (const [q] of search.mock.calls) expect(q.modes).toEqual(["train"]);
+  });
   it("does not make flight searches for unsupported ocean clicks", async () => {
     search.mockResolvedValue({ offers: [], errors: [], tookMs: 0 });
     const result = await searchFromCoordinates({ ...query, from: { name: "Ocean", lat: 0, lng: -140 } }, signal());

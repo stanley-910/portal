@@ -14,12 +14,16 @@
 .tp-beside[data-side="left"] { right: calc(100% + var(--space-3)); }
 .tp-beside > .hs { padding: 10px; border-top: 0; }
 /* A leg folds to its route and one line of what's settled; the whole head opens it */
-.ts .tp-leg-head { display: grid; gap: 4px; width: calc(100% + 8px); margin: -4px; padding: 4px; text-align: left; background: none; border: 0; border-radius: var(--radius-control); }
-.ts .tp-leg-head:hover { background: var(--control-hover); }
+.ts .tp-leg-head { position: relative; display: grid; gap: 4px; width: calc(100% + 8px); box-sizing: border-box; margin: -4px; padding: 4px; text-align: left; border-radius: var(--radius-control); }
+/* the fold is one button laid over the whole head; the hub chips sit above it */
+.ts .tp-leg-toggle { position: absolute; inset: 0; padding: 0; background: none; border: 0; border-radius: inherit; }
+.ts .tp-leg-head:has(> .tp-leg-toggle:hover) { background: var(--control-hover); }
+.tp-leg-head > :not(.tp-leg-toggle) { position: relative; pointer-events: none; }
+.tp-leg-head .ts-hub-chip { pointer-events: auto; }
 .tp-leg-summary { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 0 2px; overflow: hidden; color: var(--ink-muted); font-size: 11.5px; line-height: 15px; white-space: nowrap; text-overflow: ellipsis; }
 /* the fold chevron sits under the route's middle, where the solo card prints the distance */
 .tp-leg-chevron { display: block; margin: 0 auto; color: var(--ink-muted); fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
-.tp-leg-head:hover .tp-leg-chevron { color: var(--ink); }
+.tp-leg-head:has(> .tp-leg-toggle:hover) .tp-leg-chevron { color: var(--ink); }
 .tp-bar { padding: 8px 12px 0; }
 /* "Your trip" heads the card like "Your share" heads the bill, with Minimise beside it */
 .tp-head { margin-bottom: 0; padding: 0 12px 0 0; border-bottom: var(--line-control) solid var(--line); }

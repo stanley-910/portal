@@ -1,7 +1,7 @@
-import { resolveHubs } from "./hubs/resolve";
+import { resolveHubs, snappedHub } from "./hubs/resolve";
 import { duffelCity } from "./providers/duffel/cities";
 import { providers } from "./registry";
-import type { HubResolution } from "./hubs/types";
+import type { HubMode, HubResolution } from "./hubs/types";
 import { rankOffers, searchTransport, type SearchResult } from "./search";
 import type { ProviderError, SearchQuery } from "./types";
 
@@ -29,8 +29,11 @@ export async function searchFromCoordinates(query: SearchQuery, signal: AbortSig
   // Surface adapters have their own broader station/route seeds. Keep a raw
   // coordinate search too: our curated hub graph must not suppress those routes.
   // Airports still use only the bounded, exact-IATA pair shortlist.
+  // A snapped end keeps to its hub's mode: an airport picked means flights, a station trains. Ends snapped to
+  // different modes have no pair and no surface search.
+  const snapped = new Set([snappedHub(query.from), snappedHub(query.to)].flatMap((hub) => (hub ? [hub.mode] : [])));
   const surfaceModes = (query.modes.length ? query.modes : ["train", "bus", "ferry"] as const)
-    .filter((mode) => mode !== "flight");
+    .filter((mode) => mode !== "flight" && (snapped.size === 0 || (snapped.size === 1 && snapped.has(mode as HubMode))));
   if (surfaceModes.length) searches.push({ pairId: "", query: { ...query, modes: surfaceModes }, only: undefined });
   const partial = new Map<number, SearchResult>();
   const snapshot = () => mergeResults(query, hubs, started, searches.flatMap((search, i) => {

@@ -18,9 +18,25 @@ function assertCoordinates(place: Place) {
   }
 }
 
-/** Radius-bounded pool before connection-aware shortlisting; never a global nearest fallback. */
+const byIds = new WeakMap<readonly Hub[], Map<string, Hub>>();
+/** The hub a place was snapped to, by id; undefined for an unsnapped place or an id this catalogue doesn't have. */
+export function snappedHub(place: Place, hubs: readonly Hub[] = HUBS): Hub | undefined {
+  if (!place.snap) return undefined;
+  let byId = byIds.get(hubs);
+  if (!byId) byIds.set(hubs, (byId = new Map(hubs.map((hub) => [hub.id, hub]))));
+  return byId.get(place.snap);
+}
+
+/**
+ * Radius-bounded pool before connection-aware shortlisting; never a global nearest fallback. A place snapped to a hub
+ * is that hub alone, in its mode only: the person picked it, so nearby airports or stations don't stand in for it.
+ */
 export function nearbyHubs(place: Place, modes: readonly Mode[] = [], hubs: readonly Hub[] = HUBS): HubCandidate[] {
   assertCoordinates(place);
+  const snapped = snappedHub(place, hubs);
+  if (snapped) {
+    return modes.length === 0 || modes.includes(snapped.mode) ? [{ hub: snapped, distanceKm: distanceKm(place, snapped) }] : [];
+  }
   return MODES.filter((mode) => modes.length === 0 || modes.includes(mode)).flatMap((mode) => {
     return hubs.filter((hub) => hub.mode === mode)
       // Explicit airport selections are exact, not city-code substitutions.

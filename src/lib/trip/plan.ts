@@ -11,6 +11,7 @@ import type { LandedTrip } from "@/components/trip-globe";
 import type { LegSearch, Stay, Stop, TripStorage } from "@/lib/liveblocks/types";
 import * as dates from "./dates";
 import { staysOf, type MemberSplit, type SplitInput } from "./split";
+import { hubById } from "@/lib/transport/hubs/pick";
 import { sharesStop, stopFromPoint } from "@/lib/trip/stops";
 
 // The shared trip plan: stops, the legs between them, and each leg's options, votes and pick. Presentation
@@ -189,6 +190,13 @@ export function usePlanActions() {
         votes: new LiveMap<string, string>(),
         chosen: null,
         createdAt: Date.now(),
+        // the ends snapped as it was drawn search exactly their hubs
+        ...(trip.snapped && (trip.snapped.from || trip.snapped.to) ? {
+          snap: {
+            ...(trip.snapped.from && trip.from ? { from: trip.from.id } : {}),
+            ...(trip.snapped.to && trip.to ? { to: trip.to.id } : {}),
+          },
+        } : {}),
       }),
     );
     // a leg after the trip's end moves the end along
@@ -293,6 +301,27 @@ export function usePlanActions() {
     return { result: "ok" as EditResult, searches };
   }, []);
 
+  /**
+   * Snaps one end of a leg to a hub (its id), or lets go of it (null), and the leg searches again. Only that leg: the
+   * stop stays put, so another leg there can use another hub. The other end lets go of a hub of another mode, since a
+   * leg keeps to one. Refused while the leg is being booked.
+   */
+  const snapEndMutation = useMutation(({ storage }, legId: string, end: "from" | "to", hubId: string | null) => {
+    const leg = storage.get("legs").get(legId);
+    if (!leg) return { result: "gone" as EditResult, searchId: null };
+    if (leg.get("booking")) return { result: "locked" as EditResult, searchId: null };
+    const snap = { ...leg.get("snap") };
+    const hub = hubById(hubId);
+    if (hub) snap[end] = hub.id;
+    else delete snap[end];
+    const other = end === "from" ? "to" : "from";
+    const otherHub = hubById(snap[other]);
+    if (hub && otherHub && otherHub.mode !== hub.mode) delete snap[other];
+    if (snap.from || snap.to) leg.set("snap", snap);
+    else leg.delete("snap");
+    return { result: "ok" as EditResult, searchId: reset(storage, legId, {}) };
+  }, []);
+
   /** Removes a leg, and any stop no other leg or stay uses. Its riders' stays stay. */
   const removeLegMutation = useMutation(({ storage }, legId: string) => {
     const legs = storage.get("legs");
@@ -340,6 +369,12 @@ export function usePlanActions() {
       const { result, searches } = moveStopMutation(stopId, to);
       for (const s of searches) search(s.legId, s.searchId);
       if (result === "ok") retitle();
+      return result;
+    },
+    /** Snaps an end of a leg to a hub, or lets go (null); the leg searches again. Says why when it can't. */
+    snapEnd: (legId: string, end: "from" | "to", hubId: string | null): EditResult => {
+      const { result, searchId } = snapEndMutation(legId, end, hubId);
+      if (searchId) search(legId, searchId);
       return result;
     },
     removeLeg: (legId: string) => {

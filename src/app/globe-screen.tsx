@@ -11,7 +11,7 @@ import { NAV_ICONS, NavBar, NavButton, PlaceSearch } from "@/components/nav-bar"
 import type { TicketDraft } from "@/components/ticket-search/ticket-search";
 
 import { CurrencySetting } from "@/components/transport/currency-selector";
-import { ClickHint, TripGlobe, type LandedTrip, type LatLng, type TripGlobeHandle } from "@/components/trip-globe";
+import { ClickHint, TripGlobe, type Hub, type LandedTrip, type LatLng, type TripGlobeHandle, type TripPoint } from "@/components/trip-globe";
 import type { SoloLeg } from "@/lib/agent/solo";
 import { CURRENCIES, type ExchangeRates } from "@/lib/currency";
 import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
@@ -20,6 +20,8 @@ import { recordTiming } from "@/lib/performance";
 import type { Person } from "@/lib/identity";
 import { isBookable } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
+import { hubById } from "@/lib/transport/hubs/pick";
+import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import { stopFromPoint } from "@/lib/trip/stops";
 import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
 import { DeleteTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
@@ -44,6 +46,45 @@ function dayAfter(iso: string) {
 
 /** A place to the metre or so, so the same stop reads the same after a trip lands again. */
 const placeKey = (ll: LatLng) => `${ll.lat.toFixed(5)},${ll.lng.toFixed(5)}`;
+
+/**
+ * A trip's stops in order, each with the hubs the legs into and out of it are snapped to: where `showTrip` puts it
+ * down again as it is.
+ */
+const tripPoints = (legs: LandedTrip[]): TripPoint[] =>
+  [legs[0].origin, ...legs.map((l) => l.destination)].map((at, i) => ({
+    lat: at.lat,
+    lng: at.lng,
+    arrive: legs[i - 1]?.snapped?.to ? legs[i - 1].to : null,
+    leave: legs[i]?.snapped?.from ? legs[i].from : null,
+  }));
+
+type SnappableStop = { lat: number; lng: number; hub: string | null; snapped?: boolean };
+/** Legs' stops as the places to put a trip down at, with the hubs each leg's ends are snapped to. */
+const legPoints = (legs: { from: SnappableStop; to: SnappableStop }[]): TripPoint[] =>
+  [legs[0].from, ...legs.map((l) => l.to)].map((stop, i) => ({
+    lat: stop.lat,
+    lng: stop.lng,
+    arrive: legs[i - 1]?.to.snapped ? hubById(legs[i - 1].to.hub) : null,
+    leave: legs[i]?.from.snapped ? hubById(legs[i].from.hub) : null,
+  }));
+
+/**
+ * A leg with one end snapped to `hub`, or let go of its hub (null) to look around the point again. The other end lets
+ * go of a hub of another mode, since a leg keeps to one.
+ */
+function snapLeg(leg: LandedTrip, end: "from" | "to", hub: Hub | null): LandedTrip {
+  const other = end === "from" ? "to" : "from";
+  const snapped = { from: !!leg.snapped?.from, to: !!leg.snapped?.to, [end]: !!hub };
+  const next: LandedTrip = { ...leg, [end]: hub ?? nearestPreviewHub(end === "from" ? leg.origin : leg.destination) };
+  if (hub && snapped[other] && leg[other] && leg[other].mode !== hub.mode) {
+    snapped[other] = false;
+    next[other] = nearestPreviewHub(other === "from" ? leg.origin : leg.destination);
+  }
+  if (snapped.from || snapped.to) next.snapped = snapped;
+  else delete next.snapped;
+  return next;
+}
 
 /**
  * Your pin at each stop, keyed by the place (or the pin carried there), so a stop that stays when the trip lands
@@ -75,8 +116,8 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   const soloTrip = useMemo<SoloLeg[]>(() => {
     const out: SoloLeg[] =
       legs?.map((l, i) => ({
-        from: stopFromPoint(l.origin, l.from),
-        to: stopFromPoint(l.destination, l.to),
+        from: stopFromPoint(l.origin, l.from, l.snapped?.from),
+        to: stopFromPoint(l.destination, l.to, l.snapped?.to),
         date: picks[i]?.depart ?? isoDay(l.departDate),
       })) ?? [];
     if (legs && picks.length > legs.length) out.push({ from: out.at(-1)!.to, to: out[0].from, date: picks[legs.length].depart });
@@ -130,13 +171,22 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   /** Moves stop `i` (where leg `i` ends) to where its pin was dropped: the trip lands again there, keeping its dates. */
   const moveStop = (i: number, place: PinDrop): string | null => {
     if (!legs) return "The trip has gone.";
-    const points = [legs[0].origin, ...legs.map((l) => l.destination)];
+    // the other stops keep the hubs they were snapped to; this one lets go of its own
+    const points = tripPoints(legs);
     const was = points[i + 1];
-    points[i + 1] = place.at;
+    points[i + 1] = { lat: place.at.lat, lng: place.at.lng };
     pinKeys.current.set(placeKey(place.at), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
     pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
     globe.current?.showTrip(points, "quiet");
     return null;
+  };
+  /**
+   * Snaps one end of the leg the card shows to `hub`, or lets go of the hub it has (null), and the leg searches again.
+   * Only this leg: the stop stays where it was clicked, so the leg before or after it can use another hub there.
+   */
+  const pickHub = (end: "from" | "to", hub: Hub | null) => {
+    if (!legs) return;
+    setLegs(legs.map((l, i) => (i === active ? snapLeg(l, end, hub) : l)));
   };
   const pip = useRef<HomePipHandle>(null);
   const currency = useCurrencyPref();
@@ -182,7 +232,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
         setLegs(restored.legs);
         setPicks(restored.picks);
         setActive(restored.legs.length - 1);
-        globe.current?.showTrip([restored.legs[0].origin, ...restored.legs.map((l) => l.destination)], "quiet");
+        globe.current?.showTrip(tripPoints(restored.legs), "quiet");
         resumeSave(restored.input);
       }).catch(() => setSaveFailed(true));
     }
@@ -273,9 +323,13 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       <PlaceSearch
         globe={globe}
         onRoute={(from, to, date) => {
-          // the route draws out to the two places and lands on the picked date, like a trip Pip planned
+          // the route draws out to the two places and lands on the picked date, like a trip Pip planned. An airport or
+          // station picked by name is snapped to: that's the one they asked for.
           pipDates.current = [date];
-          globe.current?.showTrip([from, to], "draw");
+          globe.current?.showTrip([
+            { lat: from.lat, lng: from.lng, leave: hubById(from.id) },
+            { lat: to.lat, lng: to.lng, arrive: hubById(to.id) },
+          ], "draw");
         }}
       />
       {account ? (
@@ -309,6 +363,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
         savedHref={saved ? `/t/${saved.id}` : undefined}
         error={saveFailed ? "Couldn't save the trip. Please try again." : null}
         home={legs![0]}
+        onPickHub={book.checkout ? undefined : pickHub}
         step={{
           index: active,
           count: legs!.length,
@@ -336,7 +391,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
           }
           // a return on the last leg saves as one more leg, back to where the first one left
           const input = soloSaveInput(
-            legs!.map((l) => ({ from: stopFromPoint(l.origin, l.from), to: stopFromPoint(l.destination, l.to) })),
+            legs!.map((l) => ({ from: stopFromPoint(l.origin, l.from, l.snapped?.from), to: stopFromPoint(l.destination, l.to, l.snapped?.to) })),
             done,
           );
           if (account) return save(input);
@@ -405,7 +460,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       trip={soloTrip}
       onTrip={(planned) => {
         pipDates.current = planned.map((l) => l.date);
-        globe.current?.showTrip([planned[0].from, ...planned.map((l) => l.to)]);
+        globe.current?.showTrip(legPoints(planned));
       }}
       ref={pip}
     />

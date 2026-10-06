@@ -64,6 +64,7 @@ export function RouteHeader({
   distanceKm,
   mode = null,
   below,
+  chips,
 }: {
   from: { code?: string | null; name: string; country?: string | null };
   to: { code?: string | null; name: string; country?: string | null };
@@ -72,6 +73,8 @@ export function RouteHeader({
   mode?: Mode | null;
   /** Under the route's middle, in place of the distance: e.g. a fold chevron. */
   below?: ReactNode;
+  /** In place of each end's airport code: the control that picks its hub (`HubChip`). */
+  chips?: { from: ReactNode; to: ReactNode };
 }) {
   return (
     <div className="ts-route">
@@ -80,7 +83,7 @@ export function RouteHeader({
           {from.country ? <PixelFlag country={from.country} /> : null}
           <span className="ts-city">{cityName(from.name)}</span>
         </span>
-        {from.code && IATA.test(from.code) ? <span className="ts-code">{from.code}</span> : null}
+        {chips ? chips.from : from.code && IATA.test(from.code) ? <span className="ts-code">{from.code}</span> : null}
       </span>
       <span className="ts-distance">
         <RouteArc mode={mode} />
@@ -91,7 +94,7 @@ export function RouteHeader({
           <span className="ts-city">{cityName(to.name)}</span>
           {to.country ? <PixelFlag country={to.country} /> : null}
         </span>
-        {to.code && IATA.test(to.code) ? <span className="ts-code">{to.code}</span> : null}
+        {chips ? chips.to : to.code && IATA.test(to.code) ? <span className="ts-code">{to.code}</span> : null}
       </span>
     </div>
   );

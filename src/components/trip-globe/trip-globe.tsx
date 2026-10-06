@@ -6,7 +6,7 @@ import { cursorUrl, memberColor, type CursorShape } from "@/components/paper-atl
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight, type ShowTrip } from "./engine";
+import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight, type ShowTrip, type TripPoint } from "./engine";
 import { GlobeObstacles } from "./free-area";
 import type { ThemeId } from "./palette";
 
@@ -22,8 +22,9 @@ export interface TripGlobeHandle {
   /**
    * Lands a whole trip at once, stops in order, as if it had been flown; onLand reports it. "quiet" moves the trip
    * where it is instead, with no landing (a stop dragged to a new place); "draw" frames it and draws its routes out.
+   * A point's `arrive` and `leave` hubs snap the legs into and out of it.
    */
-  showTrip(points: LatLng[], how?: ShowTrip): void;
+  showTrip(points: TripPoint[], how?: ShowTrip): void;
   /** Wake a settled globe when an overlay has new animation work. */
   requestFrame(): void;
   /** Calls `cb` after an active frame, for overlays that track places. Returns an unsubscribe function. */
@@ -171,7 +172,7 @@ export function TripGlobe({
   // the pins last set, so an engine that starts later still gets them
   const pins = useRef<GlobePin[]>([]);
   const initialSkySeed = useRef(skySeed);
-  const pendingTrip = useRef<{ points: LatLng[]; how: ShowTrip } | null>(null);
+  const pendingTrip = useRef<{ points: TripPoint[]; how: ShowTrip } | null>(null);
   const obstacles = useRef<GlobeObstacles | null>(null);
   const [mode, setMode] = useState<GlobeMode>("idle");
   const [from, setFrom] = useState<Hub | null>(null);

@@ -50,6 +50,28 @@ describe("globe hub preview lifecycle", () => {
     globe.cancel();
     expect(globe["via"]).toEqual([]);
   });
+  it("snaps each leg's own ends: a stop can be arrived at one hub and left from another", () => {
+    const { globe, onLand } = engine();
+    const hnd = { id: "airport:HND", mode: "flight" as const, code: "HND", iata: "HND", name: "Haneda", city: "Tokyo", lat: 35.55, lng: 139.79, importance: 3, source: "test" };
+    const tokyo = { ...hnd, id: "train:TOKYO", mode: "train" as const, code: "TOKYO", iata: undefined, name: "Tokyo Station", lat: 35.68, lng: 139.77 };
+    globe.showTrip([{ lat: 31.23, lng: 121.47 }, { lat: 35.6, lng: 139.7, arrive: hnd, leave: tokyo }, { lat: 34.73, lng: 135.5 }], "quiet");
+    const [into, out] = onLand.mock.calls[0][0];
+    expect(into.to.id).toBe("airport:HND");
+    expect(into.snapped).toEqual({ from: false, to: true });
+    expect(out.from.id).toBe("train:TOKYO");
+    expect(out.snapped).toEqual({ from: true, to: false });
+    expect(out.origin.lat).toBeCloseTo(35.6);
+  });
+  it("keeps the last stop's snap when a trip is finished there", () => {
+    const { globe, onLand } = engine();
+    const hnd = { id: "airport:HND", mode: "flight" as const, code: "HND", iata: "HND", name: "Haneda", city: "Tokyo", lat: 35.55, lng: 139.79, importance: 3, source: "test" };
+    globe["takeoff"](point(31.23, 121.47));
+    globe["addStop"](point(35.55, 139.79), { arrive: hnd, leave: hnd });
+    globe["finish"]();
+    const [leg] = onLand.mock.calls[0][0];
+    expect(leg.to.id).toBe("airport:HND");
+    expect(leg.snapped).toEqual({ from: false, to: true });
+  });
   it("only publishes preview changes, clearing immediately on pointer leave", () => {
     const { globe, onPreviewChange } = engine();
     const hkg = point(22.308, 113.918);

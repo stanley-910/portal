@@ -73,6 +73,11 @@ export type Stop = {
   /** Display code only, not provider identity. Optional for rooms created before hub previews. */
   code?: string | null;
   name: string;
+  /**
+   * In one leg's view of the stop (a solo leg, a `PlanLeg` end): that leg's end is snapped to `hub` and searches
+   * exactly it. A room keeps snaps on the leg (`Leg.snap`), since legs sharing a stop can use different hubs there.
+   */
+  snapped?: boolean;
 };
 
 /**
@@ -179,6 +184,8 @@ export type Leg = {
   booking?: LegBooking | null;
   /** Why the last booking stopped, e.g. the deadline passed. Cleared on the next settle or when dismissed. */
   bookingNotice?: string | null;
+  /** The hub ids its ends are snapped to, which it searches exactly instead of looking around its stops. */
+  snap?: { from?: string; to?: string };
 };
 
 export type TripStorage = {

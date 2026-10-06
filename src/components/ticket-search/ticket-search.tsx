@@ -19,6 +19,7 @@ import { isBookable, refundNote } from "@/lib/trip/offers";
 import { formatPrice, rowPrice, rowsFor, TABS, tripPrice, visibleTabs, type OptionRow, type Tab } from "./options";
 import { AirlineLogo } from "./airline-logo";
 import { Glyph } from "./glyphs";
+import { HubChip, HubPicker } from "./hub-picker";
 import { addDays, DateField, DayStrip, localIso, OptionRows, RouteHeader, Timeline } from "./parts";
 import { TripTag, useTagOnRoute } from "./trip-tag";
 import { useOffers } from "./use-offers";
@@ -184,7 +185,12 @@ export interface TicketSearchProps {
    */
   onAdd: (choice: { offer: Offer | null; offers: Offer[]; depart: string; return: ReturnPick | null; stay: PickedStay | null }) => void;
   /** Where the trip started, which a return goes back to: the first leg's start. Defaults to this leg's. */
-  home?: Pick<LandedTrip, "origin" | "from">;
+  home?: Pick<LandedTrip, "origin" | "from" | "snapped">;
+  /**
+   * Snaps an end of this leg to a hub the person picked, or lets go of it (null): the stop moves onto the hub and the
+   * leg searches exactly it. Without it the hubs can't be changed here.
+   */
+  onPickHub?: (end: "from" | "to", hub: Hub | null) => void;
   /** The offer already added, which turns the button into a done state. */
   addedId?: string | null;
   /** A save is in flight: the button waits and says so. */
@@ -218,7 +224,7 @@ export interface TicketSearchProps {
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, initialDraft, initialPick, onDraft, onSearchingChange, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand, riders,
+  trip, globe, currency, rates, onAdd, initialDraft, initialPick, onDraft, onSearchingChange, home, onPickHub, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand, riders,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -230,6 +236,8 @@ export function TicketSearch({
   const [depart, setDepart] = useState(initialDraft?.depart ?? initialPick?.depart ?? firstDay);
   const [returnDate, setReturnDate] = useState<string | null>(initialDraft?.returnDate ?? null);
   const [openField, setOpenField] = useState<"depart" | "return" | null>(null);
+  // the end whose hub is being picked, under the route header
+  const [hubEnd, setHubEnd] = useState<"from" | "to" | null>(null);
   const [tab, setTab] = useState<Tab>(initialDraft?.tab ?? "best");
   // the Hotels tab sits beside the route tabs; the route pick stays what Save trip saves
   const [hotelsOpen, setHotelsOpen] = useState(false);
@@ -242,8 +250,13 @@ export function TicketSearch({
   const [backTab, setBackTab] = useState<Tab>(initialDraft?.backTab ?? "best");
   const [backSelected, setBackSelected] = useState<string | null>(initialDraft?.backSelected ?? null);
 
-  const outbound = useOffers(trip.origin, trip.destination, depart);
-  const back = useOffers(trip.destination, homePoint, returnDate);
+  // a snapped end searches exactly its hub
+  const snap = (hub: Hub | null, snapped: boolean | undefined) => (snapped && hub ? hub.id : undefined);
+  const fromEnd = { ...trip.origin, snap: snap(trip.from, trip.snapped?.from) };
+  const toEnd = { ...trip.destination, snap: snap(trip.to, trip.snapped?.to) };
+  const homeSearch = home ? { ...home.origin, snap: snap(home.from, home.snapped?.from) } : fromEnd;
+  const outbound = useOffers(fromEnd, toEnd, depart);
+  const back = useOffers(toEnd, homeSearch, returnDate);
   useEffect(() => {
     onDraft?.({ depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected });
   }, [depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected, onDraft]);
@@ -266,7 +279,7 @@ export function TicketSearch({
   // document mark it handled first.
   const escape = useRef(() => {});
   useLayoutEffect(() => {
-    escape.current = () => (openField ? setOpenField(null) : onDismiss());
+    escape.current = () => (openField ? setOpenField(null) : hubEnd ? setHubEnd(null) : onDismiss());
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -379,22 +392,47 @@ export function TicketSearch({
           {showBack ? (
             <RouteHeader from={ends.to} to={homeEnd} distanceKm={Math.round(distanceKm(trip.destination, homePoint))} mode={backChoice?.offer.mode} />
           ) : (
-            <RouteHeader from={ends.from} to={ends.to} distanceKm={trip.distanceKm} mode={choice?.offer.mode} />
+            <RouteHeader
+              from={ends.from}
+              to={ends.to}
+              distanceKm={trip.distanceKm}
+              mode={choice?.offer.mode}
+              chips={onPickHub ? {
+                from: <HubChip hub={trip.from} snapped={!!trip.snapped?.from} end="from" open={hubEnd === "from"}
+                  onToggle={() => { setOpenField(null); setHubEnd((e) => (e === "from" ? null : "from")); }} />,
+                to: <HubChip hub={trip.to} snapped={!!trip.snapped?.to} end="to" open={hubEnd === "to"}
+                  onToggle={() => { setOpenField(null); setHubEnd((e) => (e === "to" ? null : "to")); }} />,
+              } : undefined}
+            />
           )}
+          {hubEnd && onPickHub && !showBack ? (
+            <HubPicker
+              key={hubEnd}
+              near={hubEnd === "from" ? trip.origin : trip.destination}
+              current={hubEnd === "from" ? trip.from : trip.to}
+              snapped={!!trip.snapped?.[hubEnd]}
+              label={hubEnd === "from" ? "Leave from" : "Arrive at"}
+              onPick={(hub) => {
+                setHubEnd(null);
+                onPickHub(hubEnd, hub);
+              }}
+              onClose={() => setHubEnd(null)}
+            />
+          ) : null}
 
           <div className="ts-dates">
             <DateField
               label="Depart"
               value={depart}
               open={openField === "depart"}
-              onToggle={() => setOpenField((f) => (f === "depart" ? null : "depart"))}
+              onToggle={() => { setHubEnd(null); setOpenField((f) => (f === "depart" ? null : "depart")); }}
             />
             {canReturn ? (
               <DateField
                 label="Return"
                 value={returnDate}
                 open={openField === "return"}
-                onToggle={() => setOpenField((f) => (f === "return" ? null : "return"))}
+                onToggle={() => { setHubEnd(null); setOpenField((f) => (f === "return" ? null : "return")); }}
                 onClear={oneWay}
                 clearLabel="Keep one way"
               />
