@@ -19,6 +19,7 @@ import { checkQuote, flightsLine, onFile, QUOTE_NOTE, QUOTE_REFUSAL, quoteRef, t
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 import { KIND } from "@/lib/agent/kind";
 import { describeRoute, describeRoutes, optimize } from "@/lib/agent/optimize";
+import { clockOfIso } from "@/lib/clock";
 import { planGroup, TOGETHER_MIN, type GroupPick } from "@/lib/agent/group";
 import { sharesStop } from "@/lib/trip/stops";
 import type { Stop } from "@/lib/liveblocks/types";
@@ -166,7 +167,7 @@ export function agentTools(ctx: ToolContext) {
         for (const offer of Object.values(l.votes ?? {})) votes.set(offer, (votes.get(offer) ?? 0) + 1);
         const options = ranked(l.search.offers).map((o, i) => {
           const price = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
-          const time = `${o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`}${o.departs ? ` ${o.departs}→${o.arrives}` : ""}`;
+          const time = `${o.kind === "estimated" ? "time unknown" : `${clockOfIso(o.depart)}→${clockOfIso(o.arrive)}`}${o.departs ? ` ${o.departs}→${o.arrives}` : ""}`;
           const extras = [o.stops ? `${o.stops} change${o.stops > 1 ? "s" : ""}` : "direct", votes.get(o.id) ? `${votes.get(o.id)} vote(s)` : "", isBookable(o) ? "bookable" : "", o.refund ? (o.refund.fee ? `refundable for a ${o.refund.fee.currency} ${o.refund.fee.amount} fee` : "refundable free") : "", l.chosen === o.id ? "CHOSEN" : ""].filter(Boolean).join(", ");
           return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${price} (${KIND[o.kind]}), ${extras}`;
         });
@@ -505,7 +506,7 @@ export function agentTools(ctx: ToolContext) {
         if (!result.picks.length) return { refused: "NO_ROUTES", reason: "No way there was found for anyone.", next: "Say so plainly." };
 
         const line = (p: GroupPick) => `${handles.member.get(p.member.id)} ${p.member.name} from ${plan.stops![travellers.find((t) => t.id === p.member.id)!.startId].name}: ${describeRoute(p.route)}`;
-        const arrivals = result.picks.map((p) => p.route.arrive.slice(11, 16)).sort();
+        const arrivals = result.picks.map((p) => p.route.arrive).sort((a, b) => Date.parse(a) - Date.parse(b)).map((a) => clockOfIso(a));
         const summary = {
           date,
           plan: result.picks.map(line),

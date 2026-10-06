@@ -39,7 +39,7 @@ describe("describeRoutes", () => {
     }, search);
     const out = describeRoutes(composed);
     expect(out.baseline).toMatch(/^R0 direct on 2026-10-20: .* CNY 973 \(timetable fare\)/);
-    expect(out.routes[0]).toMatch(/^R1 via Shenzhen North on 2026-10-20: MTR East Rail: leave Admiralty \(MTR\) by \d\d:\d\d \(runs every few minutes\)/);
+    expect(out.routes[0]).toMatch(/^R1 via Shenzhen North on 2026-10-20: MTR East Rail: leave Admiralty \(MTR\) by \d{1,2}:\d\d [AP]M \(runs every few minutes\)/);
     expect(out.routes[0]).toMatch(/total about CNY 932, saves CNY 41, arrives 5 min before the target\.$/);
     expect(out.note).toMatch(/Tried leaving from: .*Shenzhen North/);
   });

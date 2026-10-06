@@ -7,6 +7,7 @@ import { isStepCount, streamText, tool, type TextStreamPart, type ToolSet } from
 import { z } from "zod";
 
 import { dateIn } from "@/lib/agent/dates";
+import { clockOfIso } from "@/lib/clock";
 import { resolvePlace } from "@/lib/agent/edit";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 import { legMarks, midpoint, type AgentMark } from "@/lib/agent/marks";
@@ -162,7 +163,7 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
           found: result.offers.length,
           options: rankedOptions(result.offers).map(({ stored: o }, i) => {
             const cost = o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "no price";
-            const time = o.kind === "estimated" ? "time unknown" : `${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}`;
+            const time = o.kind === "estimated" ? "time unknown" : `${clockOfIso(o.depart)}→${clockOfIso(o.arrive)}`;
             const extras = [isBookable(o) ? "bookable" : "", o.refund ? (o.refund.fee ? `refundable for a ${o.refund.fee.currency} ${o.refund.fee.amount} fee` : "refundable free") : ""].filter(Boolean).join(", ");
             return `${i + 1}. ${o.mode}${o.carrier ? ` ${o.carrier}` : ""} ${time}, ${Math.floor(o.durationMin / 60)}h${String(o.durationMin % 60).padStart(2, "0")}, ${cost} (${KIND[o.kind]})${extras ? `, ${extras}` : ""}`;
           }),

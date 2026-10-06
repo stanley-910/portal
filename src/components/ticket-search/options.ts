@@ -80,7 +80,7 @@ function wallClock(iso: string): { time: string; day: number } | null {
   return { time: m[2], day: Date.parse(`${m[1]}T00:00:00Z`) / 86_400_000 };
 }
 
-/** Local departure and arrival, "HH:MM", for either end of a timeline. `approx` when the arrival is worked out. */
+/** Local departure and arrival, "HH:MM" (shown through lib/clock.ts), for either end of a timeline. `approx` when the arrival is worked out. */
 export interface Clock {
   departs: string;
   /** Null when neither the provider nor the duration can say. */
