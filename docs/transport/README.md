@@ -66,10 +66,13 @@ there lands on that hub and snaps the leg's end to it, so that leg searches exac
 landing, a right-click stop, and a stop's pins dropped there. Zoomed out it never locks, and a click searches the hubs
 around where it lands. So how precise a search is follows how far in you are.
 
-- Large hubs lock from zoom 0.45 (0 is the whole globe, 1 the closest), major ones from 0.75, regional ones from 0.92.
+- Large hubs lock from zoom 0.5 (0 is the whole globe, 1 the closest), major ones from 0.88, regional ones from 0.97.
 - Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 16 px and holds
   it until it's 28 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
-- Locked, a ring lies round the hub and the label names it (`SEA · Seattle`); flying, the plane sits on it.
+- Each lockable hub shows as a small raised marker (a circle for an airport, a square for a station, a diamond for a
+  ferry terminal) that pops up as it comes into reach; large airports print their code beside it where it clears the
+  city names. Locked, its marker lifts, a ring lies round the hub and the label names it (`SEA · Seattle`); flying,
+  the plane sits on it. Markers carry no fares: pricing one would mean a provider search per hub.
 - Where the device can, a lock ticks (`navigator.vibrate`, Android). Browsers on macOS give a page no way to the
   trackpad's Taptic Engine, so on a Mac the lock is visual only.
 

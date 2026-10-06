@@ -5,7 +5,7 @@ import { HUBS } from "@/lib/transport/hubs/browser";
 import type { Hub } from "@/lib/transport/hubs/types";
 
 /** The zoom (0 whole globe, 1 closest) each hub importance becomes lockable from: large hubs first, regional ones last. */
-export const LOCK_FROM: Record<number, number> = { 3: 0.45, 2: 0.75, 1: 0.92 };
+export const LOCK_FROM: Record<number, number> = { 3: 0.5, 2: 0.88, 1: 0.97 };
 /** px two lockable hubs keep apart on screen; the more important, then the first by id, keeps its place. */
 export const LOCK_SPACING = 18;
 /** px from a hub the pointer catches it, and how far it can wander before it lets go. */

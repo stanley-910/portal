@@ -146,6 +146,10 @@ const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cur
 /** Two tags with the same name for places closer than this on screen, in px, name one place. */
 const TAG_SAME = 40;
 const TAG_H = 21; // a name tag's height, px
+// Lockable hubs' markers (hub-lock.ts): how long one takes to pop up, its size, and how far a locked one lifts
+const MARKER_POP = 0.28;
+const MARKER_R = 4;
+const MARKER_LIFT = 5;
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
 const TAG_GAP = 0.2;
@@ -400,6 +404,7 @@ export class GlobeEngine {
   private cam: Camera | null = null;
   private P: Palette = PALETTES.light;
   private tagFont = '700 12px "Courier Prime", ui-monospace, monospace';
+  private markerFont = '700 10px "Courier Prime", ui-monospace, monospace';
   private nameFamily = '"Courier Prime", ui-monospace, monospace';
   /** Each name's width at a 1px font size, letter spacing included. Cleared when fonts load. */
   private nameWidths = new Map<string, number>();
@@ -578,6 +583,9 @@ export class GlobeEngine {
   private lock: Hub | null = null;
   private lockT = -Infinity;
   private hubPoints = new Map<string, Vec3>();
+  // when each lockable hub's marker came up, for its pop, and whether any is still popping
+  private markerT = new Map<string, number>();
+  private markersPopping = false;
 
   // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
   /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
@@ -807,7 +815,10 @@ export class GlobeEngine {
       document.fonts?.load(`italic 400 15px ${fell}`).catch(() => {});
     }
     const stack = getComputedStyle(this.root).getPropertyValue("--font-typewriter").trim();
-    if (stack) this.tagFont = `700 12px ${stack}`;
+    if (stack) {
+      this.tagFont = `700 12px ${stack}`;
+      this.markerFont = `700 10px ${stack}`;
+    }
     if (stack && stack !== this.nameFamily) {
       this.nameFamily = stack;
       this.onFontsLoaded();
@@ -2605,7 +2616,7 @@ export class GlobeEngine {
     const changed = this.sceneChanged();
     if (changed) this.glDirty = true;
     const hover = !!this.hover && this.mode !== "flying";
-    const animated = !this.reduceMotion && ((this.mode === "landed" && (this.searching || t - this.tLand < TOUCHDOWN + VANISH)) || this.pinsMoving || this.reels.length > 0 || this.drawing(t) ||
+    const animated = !this.reduceMotion && ((this.mode === "landed" && (this.searching || t - this.tLand < TOUCHDOWN + VANISH)) || this.pinsMoving || this.reels.length > 0 || this.drawing(t) || this.markersPopping ||
       (this.mode === "flying" && t - this.tTake <= 0.7));
     if (this.glDirty || nameInk !== this.nameInk || this.namesMoving || animated || this.hudAnimated || shadowMoved ||
         hover !== this.hudHover || (hover && (this.mx !== this.hudX || this.my !== this.hudY))) this.hudDirty = true;
@@ -3613,6 +3624,74 @@ export class GlobeEngine {
     ctx.ellipse(x, y, r, r * minor, rot, 0, Math.PI * 2);
   }
 
+  /**
+   * The hubs the pointer can lock on, zoomed in: a small raised marker each, a circle for an airport, a square for a
+   * station, a diamond for a ferry terminal, popping up as it comes into reach, its code beside it where there's
+   * room. The locked one lifts off the page.
+   */
+  private drawMarkers(ctx: CanvasRenderingContext2D, t: number) {
+    const P = this.P;
+    const seen = new Set<string>();
+    const codes: { l: number; t: number; r: number; b: number }[] = [];
+    this.markersPopping = false;
+    ctx.save();
+    ctx.font = this.markerFont;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    for (const { hub, x, y } of this.lockables) {
+      seen.add(hub.id);
+      let t0 = this.markerT.get(hub.id);
+      if (t0 === undefined) this.markerT.set(hub.id, (t0 = this.reduceMotion ? -Infinity : t));
+      const u = clamp((t - t0) / MARKER_POP, 0, 1);
+      if (u < 1) this.markersPopping = true;
+      // up past full size and back, like a sticker pressed on
+      const pop = u === 1 ? 1 : Math.max(0, 1 + 2.2 * (u - 1) ** 3 + 1.2 * (u - 1) ** 2);
+      const locked = this.lock?.id === hub.id;
+      // smaller hubs, smaller markers
+      const r = MARKER_R * pop * (locked ? 1.35 : hub.importance >= 3 ? 1 : 0.75);
+      if (r < 0.5) continue;
+      const lift = locked ? MARKER_LIFT : 0;
+      const shape = (cx: number, cy: number) => {
+        ctx.beginPath();
+        if (hub.mode === "train") ctx.roundRect(cx - r, cy - r, r * 2, r * 2, 1.5);
+        else if (hub.mode === "ferry") {
+          ctx.moveTo(cx, cy - r * 1.25);
+          ctx.lineTo(cx + r * 1.25, cy);
+          ctx.lineTo(cx, cy + r * 1.25);
+          ctx.lineTo(cx - r * 1.25, cy);
+          ctx.closePath();
+        } else ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      };
+      // its shadow stays on the ground, further off the higher it is
+      shape(x + 1 + lift * 0.4, y + 1.5 + lift * 0.6);
+      ctx.fillStyle = P.tagShadow;
+      ctx.fill();
+      shape(x, y - lift);
+      ctx.fillStyle = locked ? P.ink : P.raised;
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = P.ink;
+      ctx.stroke();
+      // a large airport's code, where it fits; the locked one is named on its tag instead
+      if (locked || u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
+      const w = ctx.measureText(hub.code).width;
+      const box = { l: x + r + 3, t: y - 6, r: x + r + 3 + w, b: y + 6 };
+      // clear of the other codes and of the city names printed under them
+      if (box.r > this.W || codes.some((o) => box.l < o.r + 8 && box.r > o.l - 8 && box.t < o.b + 4 && box.b > o.t - 4) ||
+        this.cityBoxes.some((o) => box.l < o[2] && box.r > o[0] && box.t < o[3] && box.b > o[1])) continue;
+      codes.push(box);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = P.paper;
+      ctx.lineJoin = "round";
+      ctx.strokeText(hub.code, box.l, y + 0.5);
+      ctx.fillStyle = P.ink;
+      ctx.fillText(hub.code, box.l, y + 0.5);
+    }
+    ctx.restore();
+    // a hub out of reach pops up again when it comes back
+    for (const id of this.markerT.keys()) if (!seen.has(id)) this.markerT.delete(id);
+  }
+
   /** The ring round a hub the pointer is locked on, lying on the ground, with a dot on the hub. */
   private lockRing(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint) {
     const P = this.P;
@@ -3857,6 +3936,7 @@ export class GlobeEngine {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(labels, 0, 0);
     ctx.restore();
+    this.drawMarkers(ctx, t);
     this.drawRoutes(ctx, t);
 
 
