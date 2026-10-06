@@ -113,10 +113,10 @@ describe("rankOffers (quoted flights first)", () => {
     expect(rankOffers([cached, estimated], "USD").map((o) => o.id)).toEqual(["cached"]);
   });
 
-  it("keeps the estimates when nothing real came back, or only sandbox fares did", () => {
+  it("keeps the estimates only when nothing bookable came back, sandbox fares counting as bookable", () => {
     const sandbox = offer("sandbox", { provider: "duffel", kind: "live", sandbox: true });
     expect(rankOffers([estimated], "USD")).toHaveLength(1);
-    expect(rankOffers([estimated, sandbox], "USD")).toHaveLength(2);
+    expect(rankOffers([estimated, sandbox], "USD").map((o) => o.id)).toEqual(["sandbox"]);
   });
 });
 

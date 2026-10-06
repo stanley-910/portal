@@ -189,8 +189,9 @@ curl --get 'http://localhost:3000/api/transport/search' \
   to 20 minutes old stand in. Settling a booking always prices the flight afresh.
 - Travelpayouts fares are cached, per passenger, and not confirmed seats. Connecting summaries say intermediate legs
   are unknown rather than inventing airports.
-- Once a real flight fare is in, live from Duffel (not sandbox) or cached by Travelpayouts, estimated flights are
-  dropped (`quotedFlightsFirst` in `search.ts`); they only show when nothing real came back. Travelpayouts fares stay
+- Once a real flight fare is in, live from Duffel (sandbox included: in the demo it's what books) or cached by
+  Travelpayouts, estimated flights are dropped (`quotedFlightsFirst` in `search.ts`); they only show when nothing
+  bookable came back. Travelpayouts fares stay
   next to Duffel's and book through their Aviasales affiliate link. Trains, buses and ferries are untouched.
 - Seeded link-out providers (12Go, BusOnlineTicket, China rail, Korea, Taiwan, Thailand) carry published typical
   departure times with a cited source. A row without a cited time or fare isn't seeded.

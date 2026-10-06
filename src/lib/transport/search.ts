@@ -147,12 +147,12 @@ export function rankOffers(offers: readonly Offer[], currency: string): Offer[] 
 }
 
 /**
- * Once a real fare is in for a flight, live from an airline or cached by Travelpayouts (bought through its affiliate
- * link), the modelled flight estimates are left out. Sandbox fares are test airlines, so they don't count. Other modes
- * are untouched.
+ * Once a real fare is in for a flight, live from an airline (sandbox ones included: in the demo they're what books) or
+ * cached by Travelpayouts (bought through its affiliate link), the modelled flight estimates are left out: they only
+ * show when nothing bookable came back. Other modes are untouched.
  */
 export function quotedFlightsFirst(offers: readonly Offer[]): readonly Offer[] {
-  const quoted = (o: Offer) => o.mode === "flight" && o.kind !== "estimated" && !o.sandbox;
+  const quoted = (o: Offer) => o.mode === "flight" && o.kind !== "estimated";
   return offers.some(quoted) ? offers.filter((o) => o.mode !== "flight" || o.kind !== "estimated") : offers;
 }
 
