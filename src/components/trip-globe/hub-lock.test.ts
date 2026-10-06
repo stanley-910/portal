@@ -112,10 +112,18 @@ describe("locking on while flying", () => {
     ]);
     const catchPx = targets[0].reach.catch;
     expect(lockAt(targets, 100 + catchPx - 1, 0, null)?.id).toBe("airport:SEA");
+    const flying = FLYING_REACH(targets[0].reach);
+    expect(flying.catch).toBeLessThan(catchPx);
     expect(lockAt(targets, 100 + catchPx - 1, 0, null, FLYING_REACH)).toBeNull();
-    const caught = lockAt(targets, 100 + catchPx * FLYING_REACH.catch - 1, 0, null, FLYING_REACH);
+    const caught = lockAt(targets, 100 + flying.catch - 1, 0, null, FLYING_REACH);
     expect(caught?.id).toBe("airport:SEA");
-    // once caught it holds well past where it caught
-    expect(lockAt(targets, 100 + targets[0].reach.release * FLYING_REACH.release - 1, 0, caught, FLYING_REACH)?.id).toBe("airport:SEA");
+    // it holds a little past where it caught, and lets go soon after
+    expect(lockAt(targets, 100 + flying.release - 1, 0, caught, FLYING_REACH)?.id).toBe("airport:SEA");
+    expect(lockAt(targets, 100 + flying.release + 1, 0, caught, FLYING_REACH)).toBeNull();
+  });
+  it("still catches a crowded city from close up while flying", () => {
+    const crowded = { catch: 22, release: 26.4, importancePx: 3.3 };
+    expect(FLYING_REACH(crowded).catch).toBe(14);
+    expect(FLYING_REACH({ catch: 10, release: 12, importancePx: 1.5 }).catch).toBe(10);
   });
 });

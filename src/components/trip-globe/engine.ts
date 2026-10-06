@@ -3634,10 +3634,16 @@ export class GlobeEngine {
     boxes.length = 0;
     const countries = this.placedNames;
     // names on neighbouring lines need less air than names side by side, which would read as one
-    const hits = (b: number[], gap: number, clear = true) =>
+    // a plane only moves a name off it when it's over the words: over the city's dot, the name stays, so you can see
+    // the city you're bringing it down on; over the words, the name tries its other side
+    const words = (b: number[], left: number) => (left ? [b[0], b[1], b[2] - 11, b[3]] : [b[0] + 11, b[1], b[2], b[3]]);
+    const hits = (b: number[], gap: number, clear = true, left = 0) =>
       countries.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]) ||
       boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
-      (clear && keepClear.some((c) => c.x > b[0] - 24 && c.x < b[2] + 24 && c.y > b[1] - 18 && c.y < b[3] + 28));
+      (clear && keepClear.some((c) => {
+        const w = words(b, left);
+        return c.x > w[0] - 10 && c.x < w[2] + 10 && c.y > w[1] - 10 && c.y < w[3] + 14;
+      }));
     // a hub's marker on a name: the name tries its other side first. One right by the city's dot stands in for it
     const markers = this.lockables;
     const marked = (b: number[], x: number, y: number) => markers.some((m) =>
@@ -3665,7 +3671,7 @@ export class GlobeEngine {
       const box = (left: number) => (left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh]);
       // the city locked on keeps its name though the plane sits on its dot, or the name and the lock would chase each other
       const clear = this.lock?.id !== `city:${i}`;
-      const left = sides.find((l) => !hits(box(l), gap, clear) && !marked(box(l), x, y)) ?? sides.find((l) => !hits(box(l), gap, clear));
+      const left = sides.find((l) => !hits(box(l), gap, clear, l) && !marked(box(l), x, y)) ?? sides.find((l) => !hits(box(l), gap, clear, l));
       if (left !== undefined) {
         boxes.push(box(left));
         dots.push([x, y]);
@@ -4018,10 +4024,28 @@ export class GlobeEngine {
     if (upTo < 1) for (const pts of [ground, air]) pts.fill(null, Math.ceil(upTo * pts.length));
     // stop the dashes just short of the vehicle
     const tip = mul(end, 1 + alt);
+    const off = (w: Vec3) => Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]);
+    let cutFrom = -1;
     for (let i = air.length - 1; i >= 0; i--) {
       const w = air[i]?.w;
-      if (!w || Math.hypot(w[0] - tip[0], w[1] - tip[1], w[2] - tip[2]) >= cut) break;
+      if (!w || off(w) >= cut) break;
       air[i] = null;
+      cutFrom = i;
+    }
+    // and end it right at that distance, not at the last whole step before it: a step is up to about 95 km, which zoomed
+    // in is a long way short of the plane
+    const before = cutFrom > 0 ? air[cutFrom - 1]?.w : null;
+    const after = cutFrom > 0 ? geometry.air[cutFrom]?.w : null;
+    if (cut > 0 && before && after) {
+      let lo = 0, hi = 1;
+      for (let k = 0; k < 16; k++) {
+        const m = (lo + hi) / 2;
+        if (off(lerp(before, after, m)) >= cut) lo = m;
+        else hi = m;
+      }
+      const w = lerp(before, after, lo);
+      const q = this.proj(w);
+      if (q) air[cutFrom] = { ...q, w };
     }
     ctx.save();
     ctx.lineCap = "round";

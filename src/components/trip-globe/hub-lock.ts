@@ -98,31 +98,35 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
   return out;
 }
 
+/** A target's reach as it applies now: hovering or carrying pins, the target's own. */
+export type ReachNow = (reach: Reach) => Reach;
+const FULL_REACH: ReachNow = (reach) => reach;
 /**
- * How much of its reach a target keeps while a plane is being flown: it catches readily, but only close up, so the
- * plane sweeps on past places it isn't brought to, and lets go a little further out (about 1.5 times its catch, with
- * the usual release being 1.2 times), so it holds steady without flickering yet slides off with a nudge.
+ * A target's reach while a plane is being flown: it catches readily, but only close up (35% of its reach, never under
+ * 14 px nor over its own), so the plane sweeps on past places it isn't brought to, and lets go at 1.5 times that, so
+ * it holds steady without flickering yet slides off with a nudge.
  */
-export const FLYING_REACH = { catch: 0.35, release: 0.45 };
-/** Full reach, hovering or carrying pins. */
-const FULL_REACH = { catch: 1, release: 1 };
+export const FLYING_REACH: ReachNow = (reach) => {
+  const near = Math.min(reach.catch, Math.max(reach.catch * 0.35, 14));
+  return { catch: near, release: near * 1.5, importancePx: reach.importancePx * (near / reach.catch) };
+};
 
 /**
  * What the pointer at (x, y) is locked on: the held target until the pointer is past its release, else the best placed
- * within its catch (the nearest, bigger places counting a little nearer), else none. `scale` shrinks the catch and
- * release (FLYING_REACH while flying).
+ * within its catch (the nearest, bigger places counting a little nearer), else none. `now` gives each reach as it
+ * applies at the moment (FLYING_REACH while flying).
  */
 export function lockAt(
-  targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null, scale: { catch: number; release: number } = FULL_REACH,
+  targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null, now: ReachNow = FULL_REACH,
 ): LockTarget | null {
   const d = (t: LockTarget) => Math.hypot(t.x - x, t.y - y);
-  const score = (t: LockTarget) => d(t) - t.importance * t.reach.importancePx * scale.catch;
+  const score = (t: LockTarget) => d(t) - t.importance * now(t.reach).importancePx;
   let best: LockTarget | null = null;
-  for (const t of targets) if (d(t) <= t.reach.catch * scale.catch && (!best || score(t) < score(best))) best = t;
+  for (const t of targets) if (d(t) <= now(t.reach).catch && (!best || score(t) < score(best))) best = t;
   // the held one stays until the pointer is past its release, or another is clearly better placed
   const kept = held && targets.find((t) => t.id === held.id);
-  if (kept && d(kept) <= kept.reach.release * scale.release &&
-    (!best || best === kept || score(best) > score(kept) - kept.reach.importancePx * scale.catch)) return kept;
+  if (kept && d(kept) <= now(kept.reach).release &&
+    (!best || best === kept || score(best) > score(kept) - now(kept.reach).importancePx)) return kept;
   return best;
 }
 
