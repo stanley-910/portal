@@ -53,8 +53,12 @@ export async function POST(request: Request) {
   if (!person) return Response.json({ code: "SIGN_IN" }, { status: 401 });
   if (!allow(person.id)) return Response.json({ code: "RATE_LIMITED" }, { status: 429, headers: { "retry-after": "60" } });
 
+  // Only a reader that's really gone stops Pip: the stream is cancelled, or writing to it fails. In production
+  // request.signal fired mid-reply with the page still reading, which cut replies off with no error; it's logged instead.
+  const started = Date.now();
   const disconnected = new AbortController();
-  const signal = AbortSignal.any([request.signal, disconnected.signal]);
+  request.signal.addEventListener("abort", () => console.warn("PIP_REQUEST_SIGNAL_ABORTED", { ms: Date.now() - started }), { once: true });
+  const signal = disconnected.signal;
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -71,7 +75,10 @@ export async function POST(request: Request) {
         controller.close();
       } catch {}
     },
-    cancel() { disconnected.abort(); },
+    cancel() {
+      console.warn("PIP_READER_GONE", { ms: Date.now() - started });
+      disconnected.abort();
+    },
   });
   return new Response(stream, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
 }
