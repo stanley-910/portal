@@ -24,6 +24,9 @@ export interface Hotel {
   quote?: { checkIn: string; checkOut: string; occupants: number; quotedAt: string; guestNationality?: string };
 }
 
+/** Where a stay is booked, outside the app: its city, and the property's name when it's a real one. */
+export type StayListing = { city: string; place?: string };
+
 export interface HotelSearchQuery {
   city: string;
   lat: number;

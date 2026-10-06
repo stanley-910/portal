@@ -1,4 +1,5 @@
 import type { Stop } from "@/lib/liveblocks/types";
+import type { StayListing } from "@/lib/hotels/types";
 import type { Offer } from "@/lib/transport/types";
 
 import { keepOffers, MAX_OFFERS } from "./offers";
@@ -7,7 +8,7 @@ import { keepOffers, MAX_OFFERS } from "./offers";
 // and, for a round trip, one more leg from the last stop back to where the trip started. Pure, so it can be tested.
 
 /** A hotel picked in the ticket card: the group's cost per night there. */
-export type PickedStay = { label: string; nightly: { amount: number; currency: string }; estimated: boolean };
+export type PickedStay = { label: string; nightly: { amount: number; currency: string }; estimated: boolean; listing?: StayListing };
 
 /** What the ticket card picked on one leg. */
 export type LegPick = { offer: Offer | null; offers: Offer[]; depart: string; stay: PickedStay | null };

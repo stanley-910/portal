@@ -18,9 +18,10 @@ import { setCurrencyPref, useCurrencyPref } from "@/lib/currency-pref";
 import { useCursorPref } from "@/lib/cursor-pref";
 import { recordTiming } from "@/lib/performance";
 import type { Person } from "@/lib/identity";
-import { isBookable } from "@/lib/trip/offers";
+import { isBookable, layoversOf } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
 import { stopFromPoint } from "@/lib/trip/stops";
+import type { Offer } from "@/lib/transport/types";
 import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
 import { DeleteTripDialog, LeaveTripDialog } from "@/components/trip-plan/leave-trip";
 
@@ -71,6 +72,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   const [picks, setPicks] = useState<LegPick[]>([]);
   const trip = legs?.[active] ?? null;
   const goesHome = !!legs && picks.length > legs.length;
+  const backOffer = goesHome ? (picks[legs.length]?.offer ?? null) : null;
   // the legs on the globe as Pip sees them, the way back included: each picked date, else the earliest it can leave
   const soloTrip = useMemo<SoloLeg[]>(() => {
     const out: SoloLeg[] =
@@ -118,11 +120,21 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
       return;
     }
     const home = legs[0].origin;
-    g.setRemoteFlights(goesHome ? [{ id: "you:back", origin: legs.at(-1)!.destination, at: home, ahead: home, landed: true, color }] : []);
+    g.setRemoteFlights(goesHome ? [{ id: "you:back", origin: legs.at(-1)!.destination, at: home, ahead: home, landed: true, color, layovers: backOffer ? layoversOf(backOffer) : undefined }] : []);
     const pins = stopPins(legs, color, pinKeys.current);
     g.setPins(goesHome ? [...pins, { key: "you:back", stop: "stop:home", at: home, color }] : pins);
     return () => g.setRemoteFlights([]);
-  }, [legs, goesHome, color, showingLibrary, library.overlay]);
+  }, [legs, goesHome, backOffer, color, showingLibrary, library.overlay]);
+  // each leg bends through its connections: the option hovered or picked on the card's leg, the picks on the others
+  const [preview, setPreview] = useState<Offer | null>(null);
+  useEffect(() => {
+    const g = globe.current;
+    if (!g || !legs) return;
+    g.setLayovers(legs.map((_, i) => {
+      const offer = i === active ? preview : picks[i]?.offer;
+      return offer ? layoversOf(offer) : null;
+    }));
+  }, [legs, active, preview, picks]);
   // Save trip keeps the trip in your account and stays on the globe. Guests sign in first, and the save carries on after.
   const [saving, startSaving] = useTransition();
   const [saveFailed, setSaveFailed] = useState(false);
@@ -301,6 +313,7 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
         initialPick={picks[active]}
         onDraft={(draft) => drafts.set(active, draft)}
         onSearchingChange={setSearching}
+        onPreview={setPreview}
         globe={globe}
         currency={currency}
         rates={rates}

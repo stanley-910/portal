@@ -1,12 +1,19 @@
 import { CITY_LABELS } from "@/components/trip-globe/cities";
 
-import type { HotelFilter, HotelResult, HotelSearchQuery } from "./types";
+import type { HotelFilter, HotelResult, HotelSearchQuery, StayListing } from "./types";
 
 /**
  * Typical stays by area, not real properties: the names say what kind of place and where, so nobody books one that
  * doesn't exist. Prices are rough nightly rates for a room (a dorm bed for hostels).
  */
 export type CatalogStay = Omit<HotelResult, "distanceKm" | "score" | "rooms" | "totalPrice" | "nights">;
+
+/**
+ * What a picked stay is booked as, on its own and apart from the legs: the property when a provider listed it, else
+ * its city for a typical stay. Only for stays the search links out; a live quote is never sent to another seller.
+ */
+export const stayListing = (hotel: Pick<HotelResult, "city" | "name" | "source" | "bookingUrl">): StayListing | undefined =>
+  !hotel.bookingUrl ? undefined : hotel.source ? { city: hotel.city, place: hotel.name } : { city: hotel.city };
 
 /** A Booking.com search for the stay's dates and party: the city for a typical stay, the place itself when it's real. */
 export const bookingUrl = (

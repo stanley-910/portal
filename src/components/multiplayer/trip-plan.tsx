@@ -27,6 +27,7 @@ import { legBefore } from "@/lib/trip/dates";
 import { arrivalDate } from "@/lib/transport/arrival";
 import { stayDates } from "@/lib/trip/leg-edit";
 import { usePlanActions, usePlanDates, usePlanLegs, usePlanMembers, usePlanStays, type EditResult, type PlanLeg } from "@/lib/trip/plan";
+import { stayListing } from "@/lib/hotels/search";
 import type { HotelResult } from "@/lib/hotels/types";
 import { isBookable, refundNote } from "@/lib/trip/offers";
 import { stopCountry } from "@/lib/trip/stops";
@@ -219,6 +220,7 @@ function LegCard({
         nightly: { amount: hotel.pricePerNight.amount * hotel.rooms, currency: hotel.pricePerNight.currency },
         // Stored nightly budgets cannot retain the quote's date/party restrictions.
         estimated: true,
+        ...(stayListing(hotel) ? { listing: stayListing(hotel) } : {}),
       });
       setNotice(result === "ok" ? null : REFUSED[result]);
       if (result === "ok") findStay.close();

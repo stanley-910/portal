@@ -6,7 +6,7 @@ import { cursorUrl, memberColor, type CursorShape } from "@/components/paper-atl
 import { cn } from "@/lib/utils";
 
 import type { Hub } from "@/lib/transport/hubs/types";
-import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type RemoteFlight, type ShowTrip } from "./engine";
+import { GlobeEngine, type AgentSpot, type FlightState, type GlobeCursor, type GlobeMode, type GlobePin, type LandedTrip, type LatLng, type Layover, type RemoteFlight, type ShowTrip } from "./engine";
 import { GlobeObstacles } from "./free-area";
 import type { ThemeId } from "./palette";
 
@@ -30,6 +30,8 @@ export interface TripGlobeHandle {
   onFrame(cb: () => void): () => void;
   /** Draws other members' planes and routes. Replaces the previous list; planes move steadily between updates. */
   setRemoteFlights(flights: RemoteFlight[]): void;
+  /** The connections on your own landed legs, one list per leg in order; each route touches down at its connections. */
+  setLayovers(legs: (readonly Layover[] | null | undefined)[]): void;
   /** Other members' pointers, by id; null `at` hides one. Replaces the previous list. Their shadows are drawn here. */
   setRemoteCursors(cursors: { id: string; at: LatLng | null; shape?: CursorShape }[]): void;
   /** Where another member's pointer is on screen and the matrix [a, b, c, d] that lays it on the ground there. */
@@ -296,6 +298,7 @@ export function TripGlobe({
       project: (ll) => engineRef.current?.project(ll) ?? null,
       routePoint: (from, to, t) => engineRef.current?.routePoint(from, to, t) ?? null,
       setRemoteFlights: (flights) => engineRef.current?.setRemoteFlights(flights),
+      setLayovers: (legs) => engineRef.current?.setLayovers(legs),
       setRemoteCursors: (cursors) => engineRef.current?.setRemoteCursors(cursors),
       remoteCursor: (id) => engineRef.current?.remoteCursor(id) ?? null,
       setPins: (list) => {

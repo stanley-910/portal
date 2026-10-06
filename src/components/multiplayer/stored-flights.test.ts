@@ -22,6 +22,14 @@ describe("storedFlights", () => {
     expect(storedFlights(plan("missing"))[0].vehicle).toBe("flight");
   });
 
+  it("routes a leg through its chosen option's connections, and direct until one is chosen", () => {
+    const yvr = { code: "YVR", lat: 49.19, lng: -123.18 };
+    const base = plan("o1");
+    const connecting = { ...base, legs: { l1: { ...base.legs.l1, search: { offers: [{ ...offer("o1", "flight"), layovers: [yvr] }] } } } };
+    expect(storedFlights(connecting)[0].layovers).toEqual([yvr]);
+    expect(storedFlights({ ...connecting, legs: { l1: { ...connecting.legs.l1, chosen: null } } })[0]).not.toHaveProperty("layovers");
+  });
+
   it("tints each leg in its drawer's colour slot, ink when they've left", () => {
     expect(storedFlights(plan(null))[0].color).toBe(2);
     expect(storedFlights({ ...plan(null), members: {} })[0].color).toBeNull();

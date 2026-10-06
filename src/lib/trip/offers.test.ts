@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Offer } from "@/lib/transport/types";
 
-import { isBookable, keepOffers, shownOffers, toStoredOffer, webUrlOrNull } from "./offers";
+import { isBookable, keepOffers, layoversOf, shownOffers, toStoredOffer, webUrlOrNull } from "./offers";
 
 const offer = (bookingUrl?: string): Offer => ({
   id: "travelpayouts:CX1",
@@ -80,6 +80,33 @@ describe("toStoredOffer flights", () => {
 
   it("leaves them out when a segment lacks one", () => {
     expect(toStoredOffer(offer())).not.toHaveProperty("flights");
+  });
+});
+
+describe("layovers", () => {
+  // Seattle to Montréal through Vancouver: the globe routes the leg through YVR rather than straight across
+  const connecting = (): Offer => {
+    const o = offer();
+    const leg = o.segments[0];
+    o.segments = [
+      { ...leg, to: { name: "Vancouver", lat: 49.19, lng: -123.18, iata: "YVR" } },
+      { ...leg, from: { name: "Vancouver", lat: 49.19, lng: -123.18, iata: "YVR" } },
+    ];
+    return o;
+  };
+
+  it("lists where an option connects, in order, by its code", () => {
+    expect(layoversOf(connecting())).toEqual([{ code: "YVR", lat: 49.19, lng: -123.18 }]);
+    expect(toStoredOffer(connecting()).layovers).toEqual([{ code: "YVR", lat: 49.19, lng: -123.18 }]);
+  });
+
+  it("names a station without a code, and leaves out a direct option's or an unplaced connection", () => {
+    const o = connecting();
+    o.segments[0] = { ...o.segments[0], to: { name: "Nagoya", lat: 35.17, lng: 136.88 } };
+    expect(layoversOf(o)).toEqual([{ code: "Nagoya", lat: 35.17, lng: 136.88 }]);
+    expect(toStoredOffer(offer())).not.toHaveProperty("layovers");
+    o.segments[0] = { ...o.segments[0], to: { name: "Somewhere", lat: 0, lng: 0 } };
+    expect(toStoredOffer(o)).not.toHaveProperty("layovers");
   });
 });
 
