@@ -7,7 +7,7 @@ import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/tran
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GLYPH } from "@/components/ticket-search/glyphs";
 import { CITY_LABELS } from "./cities";
-import { CITY_LOCK_FROM, HUB_REACH, LOCK_FROM, lockAt, lockTargets, lockTick, reachCities, type LockTarget } from "./hub-lock";
+import { CITY_LOCK_FROM, FLYING_REACH, HUB_REACH, LOCK_FROM, lockAt, lockTargets, lockTick, reachCities, type LockTarget } from "./hub-lock";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
@@ -2791,7 +2791,9 @@ export class GlobeEngine {
    * a hub once zoomed in on a country. A new lock ticks.
    */
   private lockOn(x: number | null, y: number | null) {
-    const next = x === null || y === null ? null : lockAt(this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets, x, y, this.lock);
+    // flying, the pull is much weaker, so the plane sweeps on and only settles where it's brought right up
+    const next = x === null || y === null ? null : lockAt(this.zoom() >= LOCK_FROM[3] ? this.lockables : this.cityTargets, x, y,
+      this.lock, this.mode === "flying" ? FLYING_REACH : 1);
     if (next?.id === this.lock?.id) return;
     this.lock = next;
     this.lockT = this.t;

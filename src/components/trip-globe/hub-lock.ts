@@ -99,17 +99,25 @@ export function lockTargets(zoom: number, place: (hub: Hub) => { x: number; y: n
 }
 
 /**
- * What the pointer at (x, y) is locked on: the held target until the pointer is past its release, else the best placed
- * within its catch (the nearest, bigger places counting a little nearer), else none.
+ * How much of its reach a target keeps while a plane is being flown: much less, so the plane sweeps on across the
+ * globe and only settles on a place it's brought right up to.
  */
-export function lockAt(targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null): LockTarget | null {
+export const FLYING_REACH = 0.35;
+
+/**
+ * What the pointer at (x, y) is locked on: the held target until the pointer is past its release, else the best placed
+ * within its catch (the nearest, bigger places counting a little nearer), else none. `scale` shrinks every reach
+ * (FLYING_REACH while flying).
+ */
+export function lockAt(targets: readonly LockTarget[], x: number, y: number, held: LockTarget | null, scale = 1): LockTarget | null {
   const d = (t: LockTarget) => Math.hypot(t.x - x, t.y - y);
-  const score = (t: LockTarget) => d(t) - t.importance * t.reach.importancePx;
+  const score = (t: LockTarget) => d(t) - t.importance * t.reach.importancePx * scale;
   let best: LockTarget | null = null;
-  for (const t of targets) if (d(t) <= t.reach.catch && (!best || score(t) < score(best))) best = t;
+  for (const t of targets) if (d(t) <= t.reach.catch * scale && (!best || score(t) < score(best))) best = t;
   // the held one stays until the pointer is past its release, or another is clearly better placed
   const kept = held && targets.find((t) => t.id === held.id);
-  if (kept && d(kept) <= kept.reach.release && (!best || best === kept || score(best) > score(kept) - kept.reach.importancePx)) return kept;
+  if (kept && d(kept) <= kept.reach.release * scale &&
+    (!best || best === kept || score(best) > score(kept) - kept.reach.importancePx * scale)) return kept;
   return best;
 }
 

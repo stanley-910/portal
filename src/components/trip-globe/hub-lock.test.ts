@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Hub } from "@/lib/transport/hubs/types";
 import {
-  CITY_GRIP_FAR, CITY_GRIP_NEAR, CITY_LOCK_FROM, CITY_REACH_MIN, CITY_RELEASE, CITY_SHARE, cityReach, LOCK_CATCH, LOCK_FROM,
+  CITY_GRIP_FAR, CITY_GRIP_NEAR, CITY_LOCK_FROM, FLYING_REACH, CITY_REACH_MIN, CITY_RELEASE, CITY_SHARE, cityReach, LOCK_CATCH, LOCK_FROM,
   LOCK_RELEASE, LOCK_SPACING, lockAt, lockTargets, reachCities, type LockTarget,
 } from "./hub-lock";
 
@@ -102,5 +102,17 @@ describe("locking on to cities", () => {
     expect(pair[0].reach.catch).toBe(CITY_REACH_MIN);
     expect(id(lockAt(pair, 7, 0, null))).toBe("city:Capital");
     expect(id(lockAt(pair, 4, 0, null))).toBe("city:Town");
+  });
+});
+
+describe("locking on while flying", () => {
+  it("pulls from much nearer, so the plane sweeps past", () => {
+    const targets = lockTargets(1, (h) => ({ x: (h as Hub & { x: number }).x, y: 0 }), [
+      { id: "airport:SEA", mode: "flight", code: "SEA", name: "SEA", city: "Seattle", lat: 0, lng: 0, importance: 3, source: "test", x: 100 } as Hub,
+    ]);
+    const catchPx = targets[0].reach.catch;
+    expect(lockAt(targets, 100 + catchPx - 1, 0, null)?.id).toBe("airport:SEA");
+    expect(lockAt(targets, 100 + catchPx - 1, 0, null, FLYING_REACH)).toBeNull();
+    expect(lockAt(targets, 100 + catchPx * FLYING_REACH - 1, 0, null, FLYING_REACH)?.id).toBe("airport:SEA");
   });
 });
