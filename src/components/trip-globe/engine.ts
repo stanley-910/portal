@@ -164,9 +164,11 @@ const MARKER_GLYPHS: Record<Hub["mode"], Path2D> =
     : { flight: new Path2D(GLYPH.flight), train: new Path2D(GLYPH.train), ferry: new Path2D(GLYPH.ferry) };
 const MARKER_LIFT = 5;
 // px the lock's tether starts out from the hub (just past its ring) and stops short of the pointer
-const LOCK_TETHER_FROM = 11;
+const LOCK_TETHER_FROM = 12;
 const LOCK_TETHER_GAP = 4;
-const CITY_MARKED = 6; // px: a city whose dot has a hub marker this close shows the marker alone
+/** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
+const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
+const CITY_MARKED = 12; // px: a hub marker this close to a city's dot stands in for it, the name beside the marker // px: a city whose dot has a hub marker this close shows the marker alone
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
 const TAG_GAP = 0.2;
@@ -467,6 +469,8 @@ export class GlobeEngine {
   private cityBoxes: number[][] = [];
   // each placed city name's dot, by the same index as cityBoxes
   private cityDots: number[][] = [];
+  // 1 where a hub's marker stands in for the city's dot (cityNames)
+  private cityMarked = new Uint8Array(CITIES.length);
   private cityPoint = screenPoint();
   private placedNames: number[][] = [];
   private nameWon = new Uint8Array(NAMES.length);
@@ -604,7 +608,8 @@ export class GlobeEngine {
    * A stop whose pins are being dragged: where they stood, the pointer (CSS px) their heads stay under, and the ground
    * below them, where they'd land.
    */
-  private lift: { stop: string; from: Vec3; x: number; y: number; at: Vec3; snap: Hub | null } | null = null;
+  // a stop's pins being carried: the pointer, its offset from their ground point when picked up, where they'd land
+  private lift: { stop: string; from: Vec3; x: number; y: number; dx: number; dy: number; at: Vec3; snap: Hub | null } | null = null;
   // Zoomed in, the hubs the pointer can lock on (hub-lock.ts) where they are on screen, the view they were placed
   // for, the hub it's locked on and when that last changed. Each hub's point on the globe, worked out once.
   private lockables: LockTarget[] = [];
@@ -1821,15 +1826,18 @@ export class GlobeEngine {
   }
 
   /**
-   * Picks up a stop's pins by their heads at screen point (x, y), CSS px, and carries them there: they rise off the
-   * ground, casting their shadows, with their heads kept under the pointer, and the routes into and out of the stop
-   * follow them. Call again as the pointer moves. Returns where they'd land, or null off the globe.
+   * Picks up a stop's pins at screen point (x, y), CSS px, and carries them: they rise off the ground, casting their
+   * shadows, and the routes into and out of the stop follow them. Where they'd land keeps the offset from the pointer
+   * it had when they were picked up, so picking them up moves nothing until the pointer does. Call again as the pointer
+   * moves. Returns where they'd land, or null off the globe.
    */
   liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
     if (this.lift?.stop !== stop) {
       const pin = [...this.pins.values()].find((p) => p.stop === stop && p.h !== Infinity);
       if (!pin) return null;
-      this.lift = { stop, from: pin.g, x, y, at: pin.g, snap: null };
+      const foot = this.cam && this.proj(pin.g);
+      const grab = foot && foot.vis ? { dx: x - foot.x, dy: y - foot.y } : { dx: 0, dy: 0 };
+      this.lift = { stop, from: pin.g, x, y, ...grab, at: pin.g, snap: null };
     }
     Object.assign(this.lift, { x, y });
     this.aimLift();
@@ -1871,24 +1879,13 @@ export class GlobeEngine {
   }
 
   /**
-   * Puts a lifted stop's pins on the ground point whose pins' heads, at their current height, sit under the pointer:
-   * start under the pointer, then step back by how far the head stands off its ground point on screen.
+   * Puts a lifted stop's pins on the ground point the pointer holds them by: the same offset from it as when they were
+   * picked up, however high they've risen since.
    */
   private aimLift() {
     const lift = this.lift;
-    const c = this.cam;
-    if (!lift || !c) return;
-    const pin = [...this.pins.values()].find((p) => p.stop === lift.stop);
-    const h = Math.max(pin?.h ?? 0, 0);
-    const size = S_PLANE * this.planeScale * PIN_SCALE;
-    let g = this.pick(lift.x, lift.y);
-    for (let i = 0; g && i < 3; i++) {
-      const axis = norm(add(mul(g, Math.cos(PIN_LEAN)), mul(tangent(c.U, g), Math.sin(PIN_LEAN))));
-      const head = this.proj(add(g, mul(axis, (h + PIN_HEAD_Z) * size)));
-      const foot = this.proj(g);
-      if (!head || !foot) break;
-      g = this.pick(lift.x - (head.x - foot.x), lift.y - (head.y - foot.y)) ?? g;
-    }
+    if (!lift || !this.cam) return;
+    const g = this.pick(lift.x - lift.dx, lift.y - lift.dy);
     if (g) lift.at = g;
     // zoomed in, they lock on to a hub near the ground under them and hang over it, every frame they're carried
     const foot = this.proj(lift.at);
@@ -1904,6 +1901,8 @@ export class GlobeEngine {
 
   /** How high a route end at v reaches: a little way up a raised pin's needle there, lifted or dropping, else the ground. */
   private liftAlt(v: Vec3): number {
+    // carried, routes meet the ground where the pins will land, the middle of the ring that marks it
+    if (this.lift && angle(this.lift.at, v) < 1e-6) return 0;
     for (const p of this.pins.values()) {
       if (p.h === Infinity || p.h <= 0 || angle(p.g, v) >= 1e-6) continue;
       return p.h * S_PLANE * this.planeScale * PIN_SCALE * Math.cos(PIN_LEAN) * ROUTE_LIFT;
@@ -3569,8 +3568,11 @@ export class GlobeEngine {
         this.cityFade[i] = this.cityPlaced[i] = 0;
         continue;
       }
-      this.cityX[i] = p.x;
-      this.cityY[i] = p.y;
+      // a hub's marker right by the city stands in for its dot, and the name hangs off the marker instead
+      const stand = this.lockables.find((m) => Math.abs(m.x - p.x) < CITY_MARKED && Math.abs(m.y - p.y) < CITY_MARKED);
+      this.cityMarked[i] = stand ? 1 : 0;
+      this.cityX[i] = stand ? stand.x : p.x;
+      this.cityY[i] = stand ? stand.y : p.y;
       this.cityFacing[i] = facing;
       cands.push(i);
     }
@@ -3588,7 +3590,7 @@ export class GlobeEngine {
     // a hub's marker on a name: the name tries its other side first. One right by the city's dot stands in for it
     const markers = this.lockables;
     const marked = (b: number[], x: number, y: number) => markers.some((m) =>
-      (Math.abs(m.x - x) >= CITY_MARKED || Math.abs(m.y - y) >= CITY_MARKED) &&
+      !standsIn(m, x, y) &&
       m.x > b[0] - MARKER_GLYPH / 2 && m.x < b[2] + MARKER_GLYPH / 2 && m.y > b[1] - MARKER_GLYPH / 2 && m.y < b[3] + MARKER_GLYPH / 2);
     const dots = this.cityDots;
     dots.length = 0;
@@ -3641,7 +3643,7 @@ export class GlobeEngine {
       // world cities get a bigger dot, as they get a bigger name. A hub's marker right by it stands in for it, so the
       // two don't read as a pair of dots
       const big = c.rank < 2 ? 0.6 : 0;
-      const marked = this.lockables.some((m) => Math.abs(m.x - x) < CITY_MARKED && Math.abs(m.y - y) < CITY_MARKED);
+      const marked = this.cityMarked[i] === 1;
       if (!marked) {
         ctx.beginPath();
         ctx.arc(x, y, (c.capital ? 3.4 : 2.4) + big, 0, Math.PI * 2);
@@ -3726,7 +3728,7 @@ export class GlobeEngine {
       const r = size / 2;
       // a marker a city's name had to sit on gives way to it, unless it's standing in for the city's dot
       if (!locked && this.cityBoxes.some((o, i) => x > o[0] - r && x < o[2] + r && y > o[1] - r && y < o[3] + r &&
-        (Math.abs(x - this.cityDots[i][0]) >= CITY_MARKED || Math.abs(y - this.cityDots[i][1]) >= CITY_MARKED))) continue;
+        !standsIn({ x, y }, this.cityDots[i][0], this.cityDots[i][1]))) continue;
       const lift = locked ? MARKER_LIFT : 0;
       const gy = y - lift;
       if (locked) {
@@ -3783,41 +3785,31 @@ export class GlobeEngine {
   }
 
   /**
-   * The ring round a hub the pointer is locked on, lying on the ground, with a dot on the hub, and a short dashed
-   * tether from the ring out to the pointer (or the pins it carries), so it's clear which hub a click lands on.
+   * The short dashed tether from the hub the pointer is locked on (its marker, lifted on its disc) out to the pointer,
+   * or to the pins it carries, so it's clear which hub a click or drop lands on wherever the pointer is.
    */
-  private lockRing(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint) {
+  private lockTether(ctx: CanvasRenderingContext2D, p: ScreenPoint) {
     const P = this.P;
-    ctx.save();
     const aim = this.lift ? { x: this.lift.x, y: this.lift.y } : this.hasPointer ? { x: this.mx, y: this.my } : null;
-    const d = aim ? Math.hypot(aim.x - p.x, aim.y - p.y) : 0;
-    if (aim && d > LOCK_TETHER_FROM + LOCK_TETHER_GAP + 2) {
-      const ux = (aim.x - p.x) / d, uy = (aim.y - p.y) / d;
-      ctx.beginPath();
-      ctx.moveTo(p.x + ux * LOCK_TETHER_FROM, p.y + uy * LOCK_TETHER_FROM);
-      ctx.lineTo(aim.x - ux * LOCK_TETHER_GAP, aim.y - uy * LOCK_TETHER_GAP);
-      ctx.lineCap = "round";
-      // over a paper halo, like the routes, so it reads on land and sea
-      ctx.lineWidth = 4.5;
-      ctx.globalAlpha = 0.85;
-      ctx.strokeStyle = P.paper;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.setLineDash([3, 2.5]); // dash-lock
-      ctx.lineWidth = 1.8;
-      ctx.strokeStyle = P.ink;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    const from = { x: p.x, y: p.y - MARKER_LIFT };
+    const d = aim ? Math.hypot(aim.x - from.x, aim.y - from.y) : 0;
+    if (!aim || d <= LOCK_TETHER_FROM + LOCK_TETHER_GAP + 2) return;
+    const ux = (aim.x - from.x) / d, uy = (aim.y - from.y) / d;
+    ctx.save();
     ctx.beginPath();
-    this.groundCircle(ctx, n, p.x, p.y, 9);
-    ctx.lineWidth = 1.5;
+    ctx.moveTo(from.x + ux * LOCK_TETHER_FROM, from.y + uy * LOCK_TETHER_FROM);
+    ctx.lineTo(aim.x - ux * LOCK_TETHER_GAP, aim.y - uy * LOCK_TETHER_GAP);
+    ctx.lineCap = "round";
+    // over a paper halo, like the routes, so it reads on land and sea
+    ctx.lineWidth = 4.5;
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = P.paper;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([3, 2.5]); // dash-lock
+    ctx.lineWidth = 1.8;
     ctx.strokeStyle = P.ink;
     ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-    ctx.fillStyle = P.ink;
-    ctx.fill();
     ctx.restore();
   }
 
@@ -4098,14 +4090,10 @@ export class GlobeEngine {
       this.startMark(ctx, this.placeMark.v, pm.x, pm.y, P.ink);
       this.tag(ctx, pm.x, pm.y - 30, this.placeMark.name, pm);
     }
-    // the hub the pointer is locked on: a ring on the ground round it, named under it
-    const locked = this.lock && this.hubPoint(this.lock);
-    const lp = locked && this.proj(locked);
-    if (locked && lp && lp.vis) this.lockRing(ctx, locked, lp);
-    if (this.mode === "idle" && this.hoverName) {
-      if (locked && lp && lp.vis) this.tag(ctx, lp.x, lp.y + 26, this.hoverName, lp);
-      else this.tag(ctx, this.mx, this.my + 30, this.hoverName);
-    }
+    // the hub the pointer is locked on: a tether from its marker to the pointer, which keeps its label
+    const lp = this.lock && this.proj(this.hubPoint(this.lock));
+    if (lp && lp.vis) this.lockTether(ctx, lp);
+    if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
@@ -4200,8 +4188,6 @@ export class GlobeEngine {
         const at = this.underPlane(pl, pp);
         this.tag(ctx, at.x, at.y, this.hoverName);
       }
-      // flying onto a hub it's locked on: the ring under the plane
-      if (locked && lp && lp.vis) this.lockRing(ctx, locked, lp);
     } else if (this.mode === "landed") {
       ripple(pl.n, pp, this.tLand);
       const left = this.planeLeft(this.tLand);
