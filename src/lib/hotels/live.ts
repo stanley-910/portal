@@ -1,7 +1,7 @@
 import "server-only";
 
 import { searchDuffelStays } from "./duffel";
-import { searchLiteStays } from "./liteapi";
+import { listLiteStays, searchLiteStays } from "./liteapi";
 import { rankStays, searchHotels } from "./search";
 import type { HotelSearchQuery } from "./types";
 
@@ -18,5 +18,8 @@ export async function searchAvailableHotels(query: HotelSearchQuery, signal?: Ab
     return rankStays(preferred, query);
   }
   const other = await alternative;
-  return other?.length ? rankStays(other, query) : searchHotels(query);
+  if (other?.length) return rankStays(other, query);
+  // no rate anywhere: real hotels from the listings, priced as estimates, before the made-up typical stays
+  const listed = await listLiteStays(query, combined).catch(() => null);
+  return listed?.length ? rankStays(listed, query) : searchHotels(query);
 }

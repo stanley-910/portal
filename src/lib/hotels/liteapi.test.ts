@@ -5,7 +5,7 @@ vi.mock("@/lib/env.server", () => ({ env: credentials }));
 
 import { GET } from "@/app/api/hotels/search/route";
 import fixture from "./fixtures/liteapi.json";
-import { mapLiteStay } from "./liteapi-map";
+import { mapLiteListing, mapLiteStay } from "./liteapi-map";
 import { searchHotels } from "./search";
 import type { HotelSearchQuery } from "./types";
 
@@ -57,6 +57,22 @@ describe("LiteAPI quote mapping", () => {
   });
 });
 
+describe("LiteAPI listings", () => {
+  const listed = { id: "lp1", name: "Example Hotel Ginza", hotelTypeId: 204, stars: 4, latitude: 35.67, longitude: 139.76, main_photo: "https://static.example/1.jpg" };
+
+  it("keeps the real place and photo but prices it as a typical estimate, linking to a search for it by name", () => {
+    const stay = mapLiteListing(listed, query)!;
+    expect(stay).toMatchObject({ id: "liteapi:lp1", name: "Example Hotel Ginza", stars: 4, freshness: "estimated", photoUrl: "https://static.example/1.jpg", pricePerNight: { amount: 156, currency: "USD" } });
+    expect(new URL(stay.bookingUrl!).searchParams.get("ss")).toBe("Example Hotel Ginza, Tokyo");
+  });
+
+  it("reads hostel types as hostels and drops places outside the asked filter or removed", () => {
+    expect(mapLiteListing({ ...listed, hotelTypeId: 264, stars: 2 }, { ...query, filter: "hostel" })).toMatchObject({ kind: "hostel", bedsPerRoom: 4 });
+    expect(mapLiteListing({ ...listed, stars: 3 }, query)).toBeNull();
+    expect(mapLiteListing({ ...listed, deletedAt: "2026-01-01" }, query)).toBeNull();
+  });
+});
+
 describe("hotel route with optional live sources", () => {
   it("returns mapped live rates through the actual route without another seller's booking link", async () => {
     fetchMock.mockResolvedValueOnce(Response.json(fixture.rates)).mockResolvedValueOnce(Response.json(fixture.detail));
@@ -71,13 +87,27 @@ describe("hotel route with optional live sources", () => {
     expect(JSON.parse(init!.body as string)).toMatchObject({ checkin: query.checkIn, checkout: query.checkOut, guestNationality: "HK", occupancies: [{ adults: 2 }, { adults: 1 }] });
     expect(fetchMock.mock.calls[1][1]?.signal).toBe(init?.signal);
   });
-  it.each(["missing key", "sandbox key", "missing nationality", "hostel"])("keeps old estimates without network for %s", async (condition) => {
-    if (condition === "missing key") credentials.LITEAPI_API_KEY = undefined;
+  it("keeps old estimates without network for a missing key", async () => {
+    credentials.LITEAPI_API_KEY = undefined;
+    const { hotels } = await (await GET(request())).json();
+    expect(hotels).toEqual(searchHotels(query));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it.each(["sandbox key", "missing nationality", "hostel"])("asks for no rates with a %s, only the listings", async (condition) => {
     if (condition === "sandbox key") credentials.LITEAPI_API_KEY = "sand_test";
     const changes: Partial<HotelSearchQuery> = condition === "missing nationality" ? { guestNationality: undefined } : condition === "hostel" ? { filter: "hostel" } : {};
+    fetchMock.mockResolvedValueOnce(Response.json({ data: [] }));
     const { hotels } = await (await GET(request(changes))).json();
     expect(hotels).toEqual(searchHotels({ ...query, ...changes }));
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0][0])).toContain("/v3.0/data/hotels?");
+  });
+  it("shows real listed hotels as estimates when there's no rate", async () => {
+    credentials.LITEAPI_API_KEY = "sand_test";
+    fetchMock.mockResolvedValueOnce(Response.json({ data: [{ id: "lp1", name: "Example Hotel Ginza", hotelTypeId: 204, stars: 4, latitude: 35.67, longitude: 139.76, main_photo: "https://static.example/1.jpg" }] }));
+    const { hotels } = await (await GET(request())).json();
+    expect(hotels).toHaveLength(1);
+    expect(hotels[0]).toMatchObject({ name: "Example Hotel Ginza", freshness: "estimated", photoUrl: "https://static.example/1.jpg", source: "LiteAPI listing" });
   });
   it("does not expose a Duffel test-token quote as live", async () => {
     credentials.DUFFEL_ACCESS_TOKEN = "duffel_test_fixture";
@@ -95,7 +125,8 @@ describe("hotel route with optional live sources", () => {
     fetchMock.mockResolvedValueOnce(Response.json(body));
     const { hotels } = await (await GET(request())).json();
     expect(hotels).toEqual(searchHotels(query));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // the rates, then the listings, which this mock leaves empty
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
   it("drops malformed rows without losing a valid hotel", async () => {
     fetchMock.mockResolvedValueOnce(Response.json({ data: [{ broken: true }, ...fixture.rates.data] })).mockResolvedValueOnce(Response.json(fixture.detail));

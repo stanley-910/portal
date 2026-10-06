@@ -244,7 +244,11 @@ A Duffel test token proves API wiring only. A missing cached fare is not evidenc
 `/api/hotels/search` runs optional Duffel Stays and LiteAPI searches in parallel within a shared 8-second deadline, preferring
 Duffel when it has matching hotels. `LITEAPI_API_KEY` is an optional **server-only** key from an owner-approved
 LiteAPI account. No key, missing guest nationality, sandbox credentials/results, provider errors, timeout, empty
-inventory or invalid quotes preserve the existing local hotel/hostel estimates. No account or key is needed to search.
+inventory or invalid quotes fall back to LiteAPI's hotel listings: real hotels and hostels near the centre with their
+photo, from `/v3.0/data/hotels`, which a sandbox key (`sand_…`) can read and which needs no nationality. They carry no
+rate, so each is priced at the typical nightly rate for its kind and shows as estimated, with a Booking.com search for
+it by name (`listLiteStays`). Only when that fails too do the local typical stays show. No account or key is needed to
+search.
 
 LiteAPI covers coordinate-based hotel searches in Hong Kong, Shanghai, Seoul, Tokyo and elsewhere, subject to actual
 inventory and account access. The hotel panel's optional guest-nationality selector supplies the required ISO-2

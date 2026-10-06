@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { roomsFor, type LiveStay } from "./duffel-map";
-import { matches, nightsBetween } from "./search";
+import { bookingUrl, matches, nightsBetween, typicalNightly, type CatalogStay } from "./search";
 import type { HotelSearchQuery } from "./types";
 
 // Official v3 rates / hotel detail schemas and examples are linked in findings/stays.md.
@@ -79,6 +79,49 @@ export function mapLiteStay(raw: unknown, detail: unknown, query: HotelSearchQue
     pricePerNight: { amount: Math.round(total / rooms / nightsBetween(query.checkIn, query.checkOut) * 100) / 100, currency: "USD" },
     freshness: "live", source: "LiteAPI", sourceUrl: "https://liteapi.travel/",
     quote: { checkIn: query.checkIn, checkOut: query.checkOut, occupants: query.occupants, quotedAt, guestNationality: query.guestNationality },
+  };
+  return matches(stay, query.filter) ? stay : null;
+}
+
+/** LiteAPI's hotel types for hostels; everything else it lists in a star search is a hotel. */
+export const LITE_HOSTEL_TYPES = [203, 264];
+
+const listedSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(1),
+  hotelTypeId: z.number().int().optional(),
+  stars: z.number().int().optional(),
+  latitude: z.number().finite().min(-90).max(90),
+  longitude: z.number().finite().min(-180).max(180),
+  main_photo: z.string().optional().catch(undefined),
+  deletedAt: z.string().nullish(),
+});
+
+/**
+ * A real hotel from LiteAPI's listings, without a rate for these dates: the place, its stars and photo are real, the
+ * price is our typical one for its kind, so it shows as estimated and links to a search for it by name.
+ */
+export function mapLiteListing(raw: unknown, query: HotelSearchQuery): CatalogStay | null {
+  const parsed = listedSchema.safeParse(raw);
+  if (!parsed.success || parsed.data.deletedAt) return null;
+  const h = parsed.data;
+  const kind = h.hotelTypeId !== undefined && LITE_HOSTEL_TYPES.includes(h.hotelTypeId) ? "hostel" : "hotel";
+  const stars = h.stars && h.stars >= 2 && h.stars <= 5 ? (h.stars as 2 | 3 | 4 | 5) : undefined;
+  const photoUrl = photoOf(h);
+  const stay: CatalogStay = {
+    id: `liteapi:${h.id}`,
+    name: h.name,
+    city: query.city,
+    lat: h.latitude,
+    lng: h.longitude,
+    kind,
+    ...(kind === "hotel" && stars ? { stars } : {}),
+    bedsPerRoom: kind === "hostel" ? 4 : 2,
+    pricePerNight: { amount: typicalNightly(query.city, kind, stars), currency: "USD" },
+    freshness: "estimated",
+    ...(photoUrl ? { photoUrl } : {}),
+    bookingUrl: bookingUrl({ city: query.city, place: h.name }, query.checkIn, query.checkOut, query.occupants),
+    source: "LiteAPI listing", sourceUrl: "https://liteapi.travel/",
   };
   return matches(stay, query.filter) ? stay : null;
 }

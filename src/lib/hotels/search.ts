@@ -8,14 +8,15 @@ import type { HotelFilter, HotelResult, HotelSearchQuery } from "./types";
  */
 export type CatalogStay = Omit<HotelResult, "distanceKm" | "score" | "rooms" | "totalPrice" | "nights">;
 
-const bookingUrl = (
-  hotel: Pick<CatalogStay, "city">,
+/** A Booking.com search for the stay's dates and party: the city for a typical stay, the place itself when it's real. */
+export const bookingUrl = (
+  hotel: Pick<CatalogStay, "city"> & { place?: string },
   checkIn: string,
   checkOut: string,
   occupants: number,
 ) => {
   const params = new URLSearchParams({
-    ss: hotel.city,
+    ss: hotel.place ? `${hotel.place}, ${hotel.city}` : hotel.city,
     checkin: checkIn,
     checkout: checkOut,
     group_adults: String(occupants),
@@ -58,6 +59,13 @@ const sameCity = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 export function centre(query: HotelSearchQuery) {
   const label = CITY_LABELS.find(([name]) => sameCity(name, query.city));
   return label ? { lat: label[1], lng: label[2] } : { lat: query.lat, lng: query.lng };
+}
+
+/** A typical nightly room rate (a dorm bed for hostels) in USD: the catalogue's for its cities, else the rough model's. */
+export function typicalNightly(city: string, kind: CatalogStay["kind"], stars?: CatalogStay["stars"]): number {
+  const known = CATALOG.find((h) => sameCity(h.city, city) && h.kind === kind && (kind === "hostel" || h.stars === stars));
+  if (known) return known.pricePerNight.amount;
+  return kind === "hostel" ? 32 : 58 + (stars ?? 3) * 24;
 }
 
 /** Rough stays around the centre for cities the catalogue doesn't cover, named by kind only. */

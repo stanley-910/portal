@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("./duffel", () => ({ searchDuffelStays: vi.fn() }));
-vi.mock("./liteapi", () => ({ searchLiteStays: vi.fn() }));
+vi.mock("./liteapi", () => ({ searchLiteStays: vi.fn(), listLiteStays: vi.fn() }));
 import { searchDuffelStays } from "./duffel";
-import { searchLiteStays } from "./liteapi";
+import { listLiteStays, searchLiteStays } from "./liteapi";
 import { searchAvailableHotels } from "./live";
 import type { HotelSearchQuery } from "./types";
 import type { LiveStay } from "./duffel-map";
@@ -27,5 +27,17 @@ describe("preferred hotel latency", () => {
     vi.mocked(searchDuffelStays).mockRejectedValue(new Error("offline"));
     vi.mocked(searchLiteStays).mockResolvedValue([stay]);
     expect((await searchAvailableHotels(query))[0].id).toBe(stay.id);
+  });
+  it("falls back to real listed hotels, priced as estimates, when no source has a rate", async () => {
+    vi.mocked(searchDuffelStays).mockResolvedValue(null);
+    vi.mocked(searchLiteStays).mockResolvedValue(null);
+    vi.mocked(listLiteStays).mockResolvedValue([{ ...stay, id: "liteapi:listed", freshness: "estimated" }]);
+    expect((await searchAvailableHotels(query))[0].id).toBe("liteapi:listed");
+  });
+  it("uses the typical stays when the listings are unavailable too", async () => {
+    vi.mocked(searchDuffelStays).mockResolvedValue(null);
+    vi.mocked(searchLiteStays).mockResolvedValue(null);
+    vi.mocked(listLiteStays).mockResolvedValue(null);
+    expect((await searchAvailableHotels(query))[0].id).toMatch(/^tokyo-/);
   });
 });

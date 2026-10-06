@@ -11,10 +11,10 @@ what exists, what it does today, and what wiring it needs. Remove an entry once 
   now redirects to `/?trips`. Not yet seen end to end with a real account, as the dev worktree has no Supabase; check
   it signed in, including leaving and deleting a trip from it.
 
-- **Hotel photos in the mock data.** Duffel Stays and LiteAPI results both carry the hotel's photo (Duffel's first
-  photo; LiteAPI's `main_photo`, else its first gallery image). The mock hotels have none, as there are no licensed
-  images to bundle, so the playground never shows a stay row with a photo. Needs: images we're allowed to ship, if the
-  row with a photo should be visible without keys.
+- **Hotel photos without a key.** With `LITEAPI_API_KEY` set (a sandbox key is enough), stays show LiteAPI's real
+  hotels with photos. Without it, the bundled typical stays have none, as there are no licensed images to ship, so
+  the playground never shows a stay row with a photo. Needs: images we're allowed to ship, if that row should be
+  visible without a key.
 - **Fading past trips on the real globe.** The Library prototype fades a past trip's routes and pins by styling the
   playground's flat globe. The WebGL globe has no "archived" look for a route or pin yet. Needs: a flag on
   `RemoteFlight` and `GlobePin` that the engine draws faded.
