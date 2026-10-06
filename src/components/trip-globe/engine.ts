@@ -170,8 +170,7 @@ const LOCK_TETHER_GAP = 4;
 /** Whether a marker is the one a city's name hangs off (its anchor, kept at float32 precision, is the marker's spot). */
 const standsIn = (m: { x: number; y: number }, x: number, y: number) => Math.abs(m.x - x) < 0.5 && Math.abs(m.y - y) < 0.5;
 const LOCK_POP = 0.18; // s a lock's rings take to snap in
-const CITY_MARKED = 12;
-const CITY_READ_FOR = 1; // s a city's name counts as read after a plane covers it // px: a hub marker this close to a city's dot stands in for it, the name beside the marker // px: a city whose dot has a hub marker this close shows the marker alone
+const CITY_MARKED = 12; // px: a hub marker this close to a city's dot stands in for it, the name beside the marker
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
 const TAG_GAP = 0.2;
@@ -479,8 +478,6 @@ export class GlobeEngine {
   private cityDots: number[][] = [];
   // 1 where a hub's marker stands in for the city's dot (cityNames)
   private cityMarked = new Uint8Array(CITIES.length);
-  // when each city's name was last printed in full, so a name the plane has just covered can still be locked on to
-  private cityReadAt = new Float64Array(CITIES.length).fill(-Infinity);
 
   private cityPoint = screenPoint();
   private placedNames: number[][] = [];
@@ -2767,15 +2764,11 @@ export class GlobeEngine {
     out.length = 0;
     const zoom = this.zoom();
     if (zoom < CITY_LOCK_FROM || zoom >= LOCK_FROM[3]) return;
-    const t = this.t;
     CITIES.forEach((c, i) => {
-      // how fully its size prints at this zoom and facing us (as cityNames draws it), and how far its name has faded in;
-      // a name a plane flying over has just hidden still counts for a moment, since you've just read it
+      // how fully its size prints at this zoom and facing us (as cityNames draws it), and how far its name has faded in
       const ink = smooth(0.22, 0.4, this.cityFacing[i]) * smooth(CITY_FROM[c.rank], Math.min(1, CITY_FROM[c.rank] + CITY_FADE), zoom);
-      if (ink >= CITY_PRINTED.ink && this.cityFade[i] >= CITY_PRINTED.placed) this.cityReadAt[i] = t;
       const need = this.lock?.id === `city:${i}` ? CITY_HELD : CITY_PRINTED;
-      const read = this.cityFade[i] >= need.placed || t - this.cityReadAt[i] < CITY_READ_FOR;
-      if (ink < need.ink || !read) return;
+      if (ink < need.ink || this.cityFade[i] < need.placed) return;
       const p = this.proj(c.v);
       if (!p || !p.vis) return;
       // world cities count most; each one's reach waits on where the others are
@@ -3510,6 +3503,9 @@ export class GlobeEngine {
         const slack = priority ? 4 : 0;
         if (placed.some((b) => box[0] + slack < b[2] && box[2] - slack > b[0] && box[1] + slack < b[3] && box[3] - slack > b[1])) continue;
         if (keepClear.some((c) => c.x > box[0] - 30 && c.x < box[2] + 30 && c.y > box[1] - 22 && c.y < box[3] + 34)) continue;
+        // cities come first: a country's name across a city's gives way (the cities placed last time, since cities no
+        // longer give way to countries, so this settles in a frame)
+        if (this.cityBoxes.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) continue;
         placed.push(box);
         won[sp.i] = 1;
       }
@@ -3585,7 +3581,7 @@ export class GlobeEngine {
    * first as you zoom in. A city gives way to country names, planes and bigger cities, and tries its name on the left
    * when the right is taken.
    */
-  private cityNames(ctx: CanvasRenderingContext2D, keepClear: { x: number; y: number }[], t: number) {
+  private cityNames(ctx: CanvasRenderingContext2D, t: number) {
     const zoom = this.zoom();
     if (zoom < CITY_FROM[0]) {
       if (this.cityShown) {
@@ -3628,23 +3624,15 @@ export class GlobeEngine {
       cands.push(i);
     }
 
-    // 2. place them biggest first, so a city always outranks a smaller neighbour that got there first; each against
-    // country names, planes and the cities already placed
+    // 2. place them biggest first, so a city always outranks a smaller neighbour that got there first; each against the
+    // cities already placed
     const boxes = this.cityBoxes;
     boxes.length = 0;
-    const countries = this.placedNames;
-    // names on neighbouring lines need less air than names side by side, which would read as one
-    // a plane only moves a name off it when it's over the words: over the city's dot, the name stays, so you can see
-    // the city you're bringing it down on; over the words, the name tries its other side
-    const words = (b: number[], left: number) => (left ? [b[0], b[1], b[2] - 11, b[3]] : [b[0] + 11, b[1], b[2], b[3]]);
-    // a country's name only rules out a city's where it would cross the city's words, not the margin round its dot
-    const hits = (b: number[], gap: number, clear = true, left = 0) =>
-      countries.some((o) => { const w = words(b, left); return w[0] < o[2] && w[2] > o[0] && w[1] < o[3] && w[3] > o[1]; }) ||
-      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]) ||
-      (clear && keepClear.some((c) => {
-        const w = words(b, left);
-        return c.x > w[0] - 10 && c.x < w[2] + 10 && c.y > w[1] - 10 && c.y < w[3] + 14;
-      }));
+    // names on neighbouring lines need less air than names side by side, which would read as one. Only other city names
+    // count: a country's name across a city's gives way to it (countryNames), and planes don't move city names at all,
+    // since the label under a plane already names the place it's over
+    const hits = (b: number[], gap: number) =>
+      boxes.some((o) => b[0] - gap < o[2] && b[2] + gap > o[0] && b[1] - gap / 2 < o[3] && b[3] + gap / 2 > o[1]);
     // a hub's marker on a name: the name tries its other side first. One right by the city's dot stands in for it
     const markers = this.lockables;
     const marked = (b: number[], x: number, y: number) => markers.some((m) =>
@@ -3670,10 +3658,7 @@ export class GlobeEngine {
       // clear of markers if a side is, else wherever it fits: the markers under it give way (drawMarkers)
       const sides = this.cityLeft[i] ? [1, 0] : [0, 1];
       const box = (left: number) => (left ? [x - w - 9, y - hh, x + 4, y + hh] : [x - 4, y - hh, x + w + 9, y + hh]);
-      // a plane over the words moves the name to its other side, but never hides it: a city you're flying onto or past
-      // stays named (and lockable). Other names and markers still win their places as before
-      const left = sides.find((l) => !hits(box(l), gap, true, l) && !marked(box(l), x, y)) ??
-        sides.find((l) => !hits(box(l), gap, true, l)) ?? sides.find((l) => !hits(box(l), gap, false, l));
+      const left = sides.find((l) => !hits(box(l), gap) && !marked(box(l), x, y)) ?? sides.find((l) => !hits(box(l), gap));
       if (left !== undefined) {
         boxes.push(box(left));
         dots.push([x, y]);
@@ -4189,7 +4174,7 @@ export class GlobeEngine {
       layer.clearRect(0, 0, labels.width, labels.height);
       layer.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.countryNames(layer, clear, t);
-      this.cityNames(layer, clear, t);
+      this.cityNames(layer, t);
       this.labelsKey = labelKey;
       this.labelsDirty = false;
     } else { this.nameT = this.cityT = t; }
