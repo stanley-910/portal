@@ -59,6 +59,20 @@ While idle or flying, the globe shows the nearest bundled airport, station or fe
 
 A hub's country is metadata about the hub. It's not a claim that the pointer is inside that country.
 
+## Locking on to a hub
+
+Zoomed in, the pointer locks on to an airport, station or ferry terminal near it (`hub-lock.ts`), and what it does
+there lands on that hub and snaps the leg's end to it, so that leg searches exactly that hub: a click taking off or
+landing, a right-click stop, and a stop's pins dropped there. Zoomed out it never locks, and a click searches the hubs
+around where it lands. So how precise a search is follows how far in you are.
+
+- Large hubs lock from zoom 0.45 (0 is the whole globe, 1 the closest), major ones from 0.75, regional ones from 0.92.
+- Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 16 px and holds
+  it until it's 28 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
+- Locked, a ring lies round the hub and the label names it (`SEA · Seattle`); flying, the plane sits on it.
+- Where the device can, a lock ticks (`navigator.vibrate`, Android). Browsers on macOS give a page no way to the
+  trackpad's Taptic Engine, so on a Mac the lock is visual only.
+
 ## Coverage and provenance
 
 The snapshot has **4,008 airports worldwide** (233 country and territory codes), **34 train stations**, **23 ferry terminals**

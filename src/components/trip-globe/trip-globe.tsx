@@ -45,10 +45,11 @@ export interface TripGlobeHandle {
   /**
    * Picks up a stop's pins by their heads at screen point (x, y), CSS px, and carries them, its routes following; call
    * again as the pointer moves. Returns where they'd land, with its nearest hub and name, or null off the globe.
+   * Zoomed in, they lock on to a hub near the pointer and land on it (`snapped`).
    */
-  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null } | null;
+  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null;
   /** Where a lifted stop's pins would land now, or null when none is lifted. */
-  landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null } | null;
+  landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null;
   /** Drops a lifted stop's pins onto `at`, or back where they stood when null. */
   dropStop(stop: string, at: LatLng | null): void;
   /** The ground under a screen point (CSS px from the globe's corner), its nearest hub and the name printed there. */

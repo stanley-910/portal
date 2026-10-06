@@ -75,7 +75,8 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
             who={said.charAt(0).toUpperCase() + said.slice(1)}
             onOpen={() => onOpen(legs?.find((l) => l.to.id === stop.id)?.id)}
             onMove={(place) => {
-              const result = moveStop(stop.id, stopFromPoint(place.at, place.hub));
+              // pins dropped on a hub snap every leg's end there to it
+              const result = moveStop(stop.id, stopFromPoint(place.at, place.hub), place.snapped ? place.hub?.id ?? null : null);
               return result === "ok" ? null : REFUSED[result];
             }}
           />
@@ -85,8 +86,8 @@ export function RiderPins({ globe, onOpen }: { globe: RefObject<TripGlobeHandle 
   );
 }
 
-/** Where dropped pins land: the point under them and its nearest hub. */
-export type PinDrop = { at: LatLng; hub: Hub | null };
+/** Where dropped pins land: the point under them and its nearest hub, or the hub they locked on to (`snapped`). */
+export type PinDrop = { at: LatLng; hub: Hub | null; snapped?: boolean };
 
 /**
  * An unseen button over a stop's pins: their riders' names on a label while pointed at, the plan on a click. Dragged,

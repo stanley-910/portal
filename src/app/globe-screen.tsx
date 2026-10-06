@@ -174,10 +174,11 @@ export function GlobeScreen({ person, openTrips = false }: { person: Person | nu
   /** Moves stop `i` (where leg `i` ends) to where its pin was dropped: the trip lands again there, keeping its dates. */
   const moveStop = (i: number, place: PinDrop): string | null => {
     if (!legs) return "The trip has gone.";
-    // the other stops keep the hubs they were snapped to; this one lets go of its own
+    // the other stops keep the hubs they were snapped to; this one lets go of its own, or takes the hub it was dropped on
     const points = tripPoints(legs);
     const was = points[i + 1];
-    points[i + 1] = { lat: place.at.lat, lng: place.at.lng };
+    const snap = place.snapped ? place.hub : null;
+    points[i + 1] = { lat: place.at.lat, lng: place.at.lng, arrive: snap, leave: snap };
     pinKeys.current.set(placeKey(place.at), pinKeys.current.get(placeKey(was)) ?? `you:${placeKey(was)}`);
     pipDates.current = soloTrip.slice(0, legs.length).map((l) => l.date);
     globe.current?.showTrip(points, "quiet");

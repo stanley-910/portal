@@ -2,9 +2,10 @@
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { recordTiming } from "@/lib/performance";
 import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
-import { HoverHubResolver, nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { CITY_LABELS } from "./cities";
+import { lockAt, lockTargets, lockTick, type LockTarget } from "./hub-lock";
 import { COUNTRY_LABELS } from "./countries";
 import { COUNTRY_TYPE, HALFTONE_PITCH, PALETTES, type Palette, type ThemeId } from "./palette";
 import { placeName } from "./place-name";
@@ -569,7 +570,14 @@ export class GlobeEngine {
    * A stop whose pins are being dragged: where they stood, the pointer (CSS px) their heads stay under, and the ground
    * below them, where they'd land.
    */
-  private lift: { stop: string; from: Vec3; x: number; y: number; at: Vec3 } | null = null;
+  private lift: { stop: string; from: Vec3; x: number; y: number; at: Vec3; snap: Hub | null } | null = null;
+  // Zoomed in, the hubs the pointer can lock on (hub-lock.ts) where they are on screen, the view they were placed
+  // for, the hub it's locked on and when that last changed. Each hub's point on the globe, worked out once.
+  private lockables: LockTarget[] = [];
+  private lockablesKey = "";
+  private lock: Hub | null = null;
+  private lockT = -Infinity;
+  private hubPoints = new Map<string, Vec3>();
 
   // other members' pointers: drawn a moment behind their presence, flat on the ground with a shadow like ours
   /** Tags placed on the overlay this frame, so a place is named once and names don't pile up. */
@@ -897,8 +905,9 @@ export class GlobeEngine {
     if (this.mode === "flying") {
       const hit = this.pick(x, y);
       // a right click on the globe ends a leg there and flies on to the next
+      const lock = this.lock;
       if (right) {
-        if (hit && !this.nearOrigin(x, y)) this.addStop(hit);
+        if (hit && !this.nearOrigin(x, y)) this.addStop(lock ? this.hubPoint(lock) : hit, lock ? { arrive: lock, leave: lock } : undefined);
         return;
       }
       // a click on the stop the plane just left lands the trip there; a click hard on the heels of takeoff is the
@@ -909,7 +918,7 @@ export class GlobeEngine {
       }
       if (this.t - this.tTake < 0.25) return;
       // any other click lands the trip there; off the globe, it lands at the last stop, or cancels without one
-      if (hit) this.land(hit);
+      if (hit) this.land(lock ? this.hubPoint(lock) : hit, lock ? { arrive: lock } : undefined);
       else if (this.via.length) this.finish();
       else this.cancel();
       return;
@@ -990,7 +999,8 @@ export class GlobeEngine {
       return;
     }
     const hit = this.pick(x, y);
-    if (hit) this.takeoff(hit);
+    const lock = this.lock;
+    if (hit) this.takeoff(lock ? this.hubPoint(lock) : hit, false, lock ? { leave: lock } : undefined);
     else if (this.mode === "landed") this.cancel();
   }
 
@@ -1763,25 +1773,34 @@ export class GlobeEngine {
    * ground, casting their shadows, with their heads kept under the pointer, and the routes into and out of the stop
    * follow them. Call again as the pointer moves. Returns where they'd land, or null off the globe.
    */
-  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null } | null {
+  liftStop(stop: string, x: number, y: number): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
     if (this.lift?.stop !== stop) {
       const pin = [...this.pins.values()].find((p) => p.stop === stop && p.h !== Infinity);
       if (!pin) return null;
-      this.lift = { stop, from: pin.g, x, y, at: pin.g };
+      this.lift = { stop, from: pin.g, x, y, at: pin.g, snap: null };
     }
     Object.assign(this.lift, { x, y });
     this.aimLift();
+    // dropped near a hub, zoomed in, the pins go onto it: the ground under them locks on as the pointer would
+    const foot = this.cam && this.proj(this.lift.at);
+    this.lockOn(foot && foot.vis ? foot.x : null, foot && foot.vis ? foot.y : null);
+    this.lift.snap = this.lock;
+    if (this.lock) this.lift.at = this.hubPoint(this.lock);
     this.glDirty = true;
     this.hudDirty = true;
     return this.landing(stop);
   }
 
-  /** Where a lifted stop's pins would land now: the ground under them, its nearest hub and name. */
-  landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null } | null {
+  /**
+   * Where a lifted stop's pins would land now: the ground under them, its nearest hub and name. `snapped` when they're
+   * locked on that hub, which the stop's legs then search exactly.
+   */
+  landing(stop: string): { at: LatLng; hub: Hub | null; name: string | null; snapped: boolean } | null {
     if (this.lift?.stop !== stop) return null;
     const at = toLatLng(this.lift.at);
-    const hub = nearestPreviewHub(at);
-    return { at, hub, name: hub && placeName(at, hub) };
+    const snap = this.lift.snap;
+    const hub = snap ?? nearestPreviewHub(at);
+    return { at, hub, name: snap ? hubPreviewLabel(snap) : hub && placeName(at, hub), snapped: !!snap };
   }
 
   /**
@@ -2518,8 +2537,10 @@ export class GlobeEngine {
           }
           if (held) at = slerp(origin, hit, MAGNET_LEAN);
         }
-        // glide for a moment after the magnet catches or lets go, rather than jumping
-        pl.n = t - this.magnetT < MAGNET_EASE && !this.reduceMotion ? slerp(pl.n, at, k(30)) : at;
+        // locked on a hub, the plane sits on it
+        if (!this.magnet && this.lock) at = this.hubPoint(this.lock);
+        // glide for a moment after the magnet or a lock catches or lets go, rather than jumping
+        pl.n = t - Math.max(this.magnetT, this.lockT) < MAGNET_EASE && !this.reduceMotion ? slerp(pl.n, at, k(30)) : at;
         pl.f = tangent(lerp(tangent(pl.f, hit), fT, k(14)), hit);
         const turn = Math.atan2(dot(cross(fPrev, pl.f), hit), dot(fPrev, pl.f)) / Math.max(dt, 1e-3);
         pl.bank += (clamp(-turn * 0.08, -0.6, 0.6) - pl.bank) * k(6);
@@ -2573,9 +2594,12 @@ export class GlobeEngine {
     this.sim(dt, t);
     this.cam = this.camera();
     this.hover = this.hasPointer && !this.down?.drag && !this.pinch ? this.pick(this.mx, this.my) : null;
+    this.placeLockables();
+    // carried pins lock on where they hang (liftStop), not where the pointer was before
+    if (!this.lift) this.lockOn(this.hover ? this.mx : null, this.hover ? this.my : null);
     // Use the surface raycast after the camera moves, not the elevated plane's
     // normal or a clamped horizon point. Pan/zoom under a still cursor also updates.
-    this.updatePreview(this.mode === "landed" ? null : this.hover, ts);
+    this.updatePreview(this.mode === "landed" ? null : this.lock ? this.hubPoint(this.lock) : this.hover, ts);
     const ownMoved = this.updateCursor(dt, t);
     const shadowMoved = this.updateRemoteCursors(dt, t) || ownMoved;
     const changed = this.sceneChanged();
@@ -2630,12 +2654,43 @@ export class GlobeEngine {
     }
   };
 
+  /** A hub's point on the globe. */
+  private hubPoint(hub: Hub): Vec3 {
+    let v = this.hubPoints.get(hub.id);
+    if (!v) this.hubPoints.set(hub.id, (v = vecOf(hub.lat * D2R, hub.lng * D2R)));
+    return v;
+  }
+
+  /** Places the hubs the pointer can lock on for this view, once per view. */
+  private placeLockables() {
+    const key = `${this.lon0},${this.lat0},${this.range},${this.W},${this.H}`;
+    if (key === this.lockablesKey) return;
+    this.lockablesKey = key;
+    this.lockables = lockTargets(this.zoom(), (hub) => {
+      const p = this.proj(this.hubPoint(hub));
+      return p && p.vis && p.x >= 0 && p.y >= 0 && p.x <= this.W && p.y <= this.H ? { x: p.x, y: p.y } : null;
+    });
+  }
+
+  /** Locks on to the hub near screen point (x, y), or lets go (null). A new lock ticks. */
+  private lockOn(x: number | null, y: number | null) {
+    const next = x === null || y === null ? null : lockAt(this.lockables, x, y, this.lock);
+    if (next?.id === this.lock?.id) return;
+    this.lock = next;
+    this.lockT = this.t;
+    this.hudDirty = true;
+    if (next) lockTick();
+  }
+
   private updatePreview(point: Vec3 | null, nowMs: number) {
     const ll = point ? toLatLng(point) : null;
-    const next = this.hoverResolver.resolve(ll, nowMs);
+    // locked on, the preview is that hub, not whichever the throttled lookup last found
+    const next = ll && this.lock ? this.lock : this.hoverResolver.resolve(ll, nowMs);
     // the label names the city, not the hub, so it can change while the hub stays; look it up as often as the hub
     let name = this.hoverName;
     if (!ll || !next) name = null;
+    // locked on, the label names the hub itself
+    else if (this.lock && next.id === this.lock.id) name = hubPreviewLabel(next);
     else if (next.id !== this.hoverHub?.id || (nowMs - this.hoverNameAt >= 80 &&
       (!this.hoverNamePoint || point!.some((v, i) => v !== this.hoverNamePoint![i])))) {
       this.hoverNamePoint = point && [...point];
@@ -3558,6 +3613,22 @@ export class GlobeEngine {
     ctx.ellipse(x, y, r, r * minor, rot, 0, Math.PI * 2);
   }
 
+  /** The ring round a hub the pointer is locked on, lying on the ground, with a dot on the hub. */
+  private lockRing(ctx: CanvasRenderingContext2D, n: Vec3, p: ScreenPoint) {
+    const P = this.P;
+    ctx.save();
+    ctx.beginPath();
+    this.groundCircle(ctx, n, p.x, p.y, 9);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = P.ink;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = P.ink;
+    ctx.fill();
+    ctx.restore();
+  }
+
   /** The route's start: a small ring at the foot of the line. */
   private startMark(ctx: CanvasRenderingContext2D, n: Vec3, x: number, y: number, stroke: string) {
     const P = this.P;
@@ -3795,7 +3866,14 @@ export class GlobeEngine {
       this.startMark(ctx, this.placeMark.v, pm.x, pm.y, P.ink);
       this.tag(ctx, pm.x, pm.y - 30, this.placeMark.name, pm);
     }
-    if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
+    // the hub the pointer is locked on: a ring on the ground round it, named under it
+    const locked = this.lock && this.hubPoint(this.lock);
+    const lp = locked && this.proj(locked);
+    if (locked && lp && lp.vis) this.lockRing(ctx, locked, lp);
+    if (this.mode === "idle" && this.hoverName) {
+      if (locked && lp && lp.vis) this.tag(ctx, lp.x, lp.y + 26, this.hoverName, lp);
+      else this.tag(ctx, this.mx, this.my + 30, this.hoverName);
+    }
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
@@ -3883,6 +3961,8 @@ export class GlobeEngine {
         const at = this.underPlane(pl, pp);
         this.tag(ctx, at.x, at.y, this.hoverName);
       }
+      // flying onto a hub it's locked on: the ring under the plane
+      if (locked && lp && lp.vis) this.lockRing(ctx, locked, lp);
     } else if (this.mode === "landed") {
       ripple(pl.n, pp, this.tLand);
       const left = this.planeLeft(this.tLand);

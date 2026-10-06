@@ -159,11 +159,11 @@ export function FakeGlobe({ ref, zoom = 0, onTakeoff, onLand, onCancel, onRouteC
       const place = placeOf(unproject({ x, y: y + PIN_STEM }));
       setLifted({ stop, at: place.at });
       state.current.lifted = { stop, at: place.at };
-      return place;
+      return { ...place, snapped: false };
     },
     landing: (stop) => {
       const l = state.current.lifted;
-      return l && l.stop === stop ? placeOf(l.at) : null;
+      return l && l.stop === stop ? { ...placeOf(l.at), snapped: false } : null;
     },
     dropStop(stop, at) {
       setLifted(null);

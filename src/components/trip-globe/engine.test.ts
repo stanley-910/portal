@@ -72,6 +72,20 @@ describe("globe hub preview lifecycle", () => {
     expect(leg.to.id).toBe("airport:HND");
     expect(leg.snapped).toEqual({ from: false, to: true });
   });
+  it("takes off, stops and lands on the hub it's locked on, snapping each leg's end there", () => {
+    const { globe, onLand } = engine();
+    const hub = (id: string, lat: number, lng: number) => ({ id: `airport:${id}`, mode: "flight" as const, code: id, iata: id, name: id, city: id, lat, lng, importance: 3, source: "test" });
+    const sea = hub("SEA", 47.45, -122.31), hnd = hub("HND", 35.55, 139.79);
+    // as clicks locked on SEA, then right-clicked on HND, then a click on open ground
+    globe["takeoff"](globe["hubPoint"](sea), false, { leave: sea });
+    globe["addStop"](globe["hubPoint"](hnd), { arrive: hnd, leave: hnd });
+    globe["land"](point(31.23, 121.47));
+    const [into, out] = onLand.mock.calls[0][0];
+    expect(into.from.id).toBe("airport:SEA");
+    expect(into.origin.lat).toBeCloseTo(47.45);
+    expect(into.snapped).toEqual({ from: true, to: true });
+    expect(out.snapped).toEqual({ from: true, to: false });
+  });
   it("only publishes preview changes, clearing immediately on pointer leave", () => {
     const { globe, onPreviewChange } = engine();
     const hkg = point(22.308, 113.918);
