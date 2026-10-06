@@ -151,6 +151,7 @@ const TAG_H = 21; // a name tag's height, px
 const MARKER_POP = 0.28;
 const MARKER_R = 4;
 const MARKER_LIFT = 5;
+const CITY_MARKED = 10; // px: a city whose dot has a hub marker this close shows the marker alone
 // A stop's tag keeps TAG_GAP of a pin's size on screen clear of the stop's pins or start ring, and never less than
 // TAG_GAP_MIN px, so it stays by its stop as you zoom out without touching the pin.
 const TAG_GAP = 0.2;
@@ -3584,16 +3585,20 @@ export class GlobeEngine {
       const y = this.cityY[i];
       ctx.globalAlpha = alpha;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // world cities get a bigger dot, as they get a bigger name
+      // world cities get a bigger dot, as they get a bigger name. A hub's marker right by it stands in for it, so the
+      // two don't read as a pair of dots
       const big = c.rank < 2 ? 0.6 : 0;
-      ctx.beginPath();
-      ctx.arc(x, y, (c.capital ? 3.4 : 2.4) + big, 0, Math.PI * 2);
-      ctx.fillStyle = P.paper;
-      ctx.fill();
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = P.ink;
-      ctx.stroke();
-      if (c.capital) {
+      const marked = this.lockables.some((m) => Math.abs(m.x - x) < CITY_MARKED && Math.abs(m.y - y) < CITY_MARKED);
+      if (!marked) {
+        ctx.beginPath();
+        ctx.arc(x, y, (c.capital ? 3.4 : 2.4) + big, 0, Math.PI * 2);
+        ctx.fillStyle = P.paper;
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = P.ink;
+        ctx.stroke();
+      }
+      if (c.capital && !marked) {
         ctx.beginPath();
         ctx.arc(x, y, 1.3 + big / 2, 0, Math.PI * 2);
         ctx.fillStyle = P.ink;
