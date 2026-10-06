@@ -78,7 +78,7 @@ locks. So how precise a search is follows how far in you are.
   it until it's 30 px away; between two in reach, the nearer wins, a bigger hub counting 4 px nearer per importance.
 - Each lockable hub shows as its mode's glyph in ink (a plane for an airport, the train for a station, the ferry for a
   terminal), so it never reads as a city's dot, popping up as it comes into reach; large airports print their code on the first side of it (right, left, under, over) that clears the
-  city names (a marker by a city's dot stands in for the dot, the name beside it). Locked, its glyph steps aside for the lock's rings,
+  city names (a marker by a city's dot stands in for the dot, the name beside it). Locked, its glyph sits inside the lock's rings, the label puts it before the name,
   a short dashed tether runs from it to the pointer (or the pins being carried), and the pointer's label names it
   (`SEA · Seattle`); flying, there's no tether, since
   the plane sits on it. Markers carry no fares: pricing one would mean a provider search per hub.

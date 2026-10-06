@@ -155,6 +155,7 @@ const S_PLANE = 0.085; // plane length fully zoomed out: about the size of a cur
 /** Two tags with the same name for places closer than this on screen, in px, name one place. */
 const TAG_SAME = 40;
 const TAG_H = 21; // a name tag's height, px
+const TAG_GLYPH = 11; // px, a hub's glyph before its name on a tag
 // Lockable hubs' markers (hub-lock.ts): how long one takes to pop up, and its size
 const MARKER_POP = 0.28;
 const MARKER_GLYPH = 10; // px, a large hub's glyph
@@ -3301,16 +3302,18 @@ export class GlobeEngine {
   }
 
   /** A name tag centred at x, y, for the place at `at` on screen (default x, y). */
-  private tag(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, at: { x: number; y: number } = { x, y }) {
+  /** A name tag centred on (x, y); `mode` puts that kind of hub's glyph before the name (a plane for an airport). */
+  private tag(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, at: { x: number; y: number } = { x, y }, mode?: Hub["mode"]) {
     const P = this.P;
     ctx.save();
     ctx.font = this.tagFont;
-    const maxTextWidth = Math.max(1, this.W - 30);
+    const icon = mode ? TAG_GLYPH + 5 : 0;
+    const maxTextWidth = Math.max(1, this.W - 30 - icon);
     if (ctx.measureText(text).width > maxTextWidth) {
       while (text.length > 1 && ctx.measureText(`${text}…`).width > maxTextWidth) text = text.slice(0, -1);
       text += "…";
     }
-    const w = Math.ceil(ctx.measureText(text).width) + 14;
+    const w = Math.ceil(ctx.measureText(text).width) + 14 + icon;
     const h = TAG_H;
     const lx = clamp(x - w / 2, 8, Math.max(8, this.W - w - 8));
     const ly0 = clamp(y - h / 2, 8, Math.max(8, this.H - h - 8));
@@ -3334,10 +3337,30 @@ export class GlobeEngine {
     ctx.lineWidth = 1.2;
     ctx.strokeStyle = P.ink;
     ctx.stroke();
+    if (mode) this.hubGlyph(ctx, mode, lx + 7 + TAG_GLYPH / 2, ly + h / 2, TAG_GLYPH, false);
     ctx.fillStyle = P.ink;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    ctx.fillText(text, lx + 7, ly + h / 2 + 0.5);
+    ctx.fillText(text, lx + 7 + icon, ly + h / 2 + 0.5);
+    ctx.restore();
+  }
+
+  /** A kind of hub's glyph in ink centred on (x, y), `size` px, a plane climbing up and to the right; `halo` over paper. */
+  private hubGlyph(ctx: CanvasRenderingContext2D, mode: Hub["mode"], x: number, y: number, size: number, halo: boolean) {
+    const glyph = MARKER_GLYPHS[mode];
+    ctx.save();
+    ctx.translate(x, y);
+    if (mode === "flight") ctx.rotate(-Math.PI / 4);
+    ctx.scale(size / 16, size / 16);
+    ctx.translate(-8, -8);
+    if (halo) {
+      ctx.lineWidth = 3.5;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = this.P.paper;
+      ctx.stroke(glyph);
+    }
+    ctx.fillStyle = this.P.ink;
+    ctx.fill(glyph, "evenodd");
     ctx.restore();
   }
 
@@ -3776,24 +3799,8 @@ export class GlobeEngine {
       if (!locked && this.cityBoxes.some((o, i) => x > o[0] - r && x < o[2] + r && y > o[1] - r && y < o[3] + r &&
         !standsIn({ x, y }, this.cityDots[i][0], this.cityDots[i][1]))) continue;
       // locked, the rings round it say so (lockRing); its glyph steps aside rather than crowd them and the plane
-      if (locked) continue;
-      const gy = y;
-      ctx.save();
-      ctx.translate(x, gy);
-      // a plane climbs away up and to the right, as on an airport sign
-      if (hub.mode === "flight") ctx.rotate(-Math.PI / 4);
-      ctx.scale(size / 16, size / 16);
-      ctx.translate(-8, -8);
-      const glyph = MARKER_GLYPHS[hub.mode];
-      if (!locked) {
-        ctx.lineWidth = 3.5;
-        ctx.lineJoin = "round";
-        ctx.strokeStyle = P.paper;
-        ctx.stroke(glyph);
-      }
-      ctx.fillStyle = P.ink;
-      ctx.fill(glyph, "evenodd");
-      ctx.restore();
+      // a plane climbs away up and to the right, as on an airport sign; locked, it stays, in the lock's rings
+      this.hubGlyph(ctx, hub.mode, x, y, size, true);
       // a large airport's code, where it fits; the locked one is named on the pointer's label instead
       if (locked || u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
       // beside it, else across from the name in the way, else under or over it: the first spot clear of the other
@@ -4232,7 +4239,9 @@ export class GlobeEngine {
       this.lockRing(ctx, this.hubPoint(this.lock!), lp, this.lock!.hub ? 11 : 7, t);
       this.lockTether(ctx, lp);
     }
-    if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName);
+    // the label says what kind of hub it's locked on: a plane for an airport, the train for a station
+    const lockMode = this.lock?.hub?.mode;
+    if (this.mode === "idle" && this.hoverName) this.tag(ctx, this.mx, this.my + 30, this.hoverName, undefined, lockMode);
 
     // other members' trips, under this viewer's own: their route, start ring and local hub labels
     for (const r of this.remotes.values()) {
@@ -4325,7 +4334,7 @@ export class GlobeEngine {
     if (this.mode === "flying") {
       if (pp && pp.vis && this.hoverName) {
         const at = this.underPlane(pl, pp);
-        this.tag(ctx, at.x, at.y, this.hoverName);
+        this.tag(ctx, at.x, at.y, this.hoverName, undefined, this.lock?.hub?.mode);
       }
     } else if (this.mode === "landed") {
       ripple(pl.n, pp, this.tLand);
