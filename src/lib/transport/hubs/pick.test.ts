@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { HUB_LIMITS } from "./limits";
-import { beyondReach, crossesModes, hubById, hubChoices } from "./pick";
+import { bestNearbyHub, beyondReach, crossesModes, hubById, hubChoices } from "./pick";
 import { distanceKm } from "./geo";
 
 const seattle = { lat: 47.6062, lng: -122.3321 };
@@ -13,6 +13,10 @@ describe("picking a stop's hub", () => {
     expect(hubs[0].code).toBe("SEA");
     expect(hubs.length).toBeGreaterThan(1);
     for (const hub of hubs) expect(distanceKm(seattle, hub)).toBeLessThanOrEqual(HUB_LIMITS.radiusKm[hub.mode]);
+  });
+  it("goes by the best-placed hub, not the nearest: SeaTac for central Seattle, not Boeing Field", () => {
+    expect(bestNearbyHub(seattle)?.code).toBe("SEA");
+    expect(bestNearbyHub({ lat: 0, lng: -140 })).toBeNull();
   });
   it("offers nothing nearby out at sea", () => {
     expect(hubChoices("", { lat: 0, lng: -140 })).toEqual([]);

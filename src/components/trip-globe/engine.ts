@@ -2,8 +2,8 @@
 // Two canvases: WebGL2 draws the printed globe and the paper plane; a 2D canvas on top draws the route, pins and tags.
 import { recordTiming } from "@/lib/performance";
 import { cursorLieMatrix, cursorOutline, type CursorLie, type CursorShape } from "@/components/paper-atlas/cursor";
-import { crossesModes } from "@/lib/transport/hubs/pick";
-import { HoverHubResolver, hubPreviewLabel, nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import { bestNearbyHub, crossesModes } from "@/lib/transport/hubs/pick";
+import { HoverHubResolver, hubPreviewLabel } from "@/lib/transport/hubs/preview";
 import type { Hub } from "@/lib/transport/hubs/types";
 import { GLYPH } from "@/components/ticket-search/glyphs";
 import { CITY_LABELS } from "./cities";
@@ -1283,7 +1283,7 @@ export class GlobeEngine {
     this.destinationHub = null;
     this.destinationSnap = NO_SNAP;
     this.originSnap = { arrive: snap.arrive ?? null, leave: snap.leave ?? null };
-    this.originHub = this.originSnap.leave ?? this.originSnap.arrive ?? nearestPreviewHub(toLatLng(o));
+    this.originHub = this.originSnap.leave ?? this.originSnap.arrive ?? bestNearbyHub(toLatLng(o));
     this.originName = this.originHub && placeName(toLatLng(o), this.originHub);
     this.pl = { n: o, f: tangent(cam.U, o), alt: 0, bank: 0, pitch: 0, ...parked("flight") };
     this.want = { vehicle: "flight", t: this.t, checked: -Infinity };
@@ -1308,7 +1308,7 @@ export class GlobeEngine {
     this.via.push({ v: this.origin!, hub: this.originHub, snap: this.originSnap, name: this.originName });
     this.origin = v;
     this.originSnap = { arrive: snap.arrive ?? null, leave: snap.leave ?? null };
-    this.originHub = this.originSnap.arrive ?? this.originSnap.leave ?? nearestPreviewHub(toLatLng(v));
+    this.originHub = this.originSnap.arrive ?? this.originSnap.leave ?? bestNearbyHub(toLatLng(v));
     this.originName = this.originHub && placeName(toLatLng(v), this.originHub);
     // the plane touches down and lifts off again, with the takeoff ripple, held to the stop by the magnet
     this.tTake = this.t;
@@ -1402,7 +1402,7 @@ export class GlobeEngine {
     pl.n = v;
     pl.f = tangent(pl.f, v);
     this.destinationSnap = { arrive: snap.arrive ?? null, leave: null };
-    this.destinationHub = this.destinationSnap.arrive ?? nearestPreviewHub(toLatLng(v));
+    this.destinationHub = this.destinationSnap.arrive ?? bestNearbyHub(toLatLng(v));
     this.destinationName = this.destinationHub && placeName(toLatLng(v), this.destinationHub);
     this.updatePreview(null, this.t * 1000);
     // light up the destination hub's country, or where the plane landed when no hub resolves
@@ -1831,7 +1831,7 @@ export class GlobeEngine {
     const p = this.cam ? this.pick(x, y) : null;
     if (!p) return null;
     const at = toLatLng(p);
-    const hub = nearestPreviewHub(at);
+    const hub = bestNearbyHub(at);
     return { at, hub, name: hub && placeName(at, hub) };
   }
 
@@ -1882,7 +1882,7 @@ export class GlobeEngine {
     if (this.lift?.stop !== stop) return null;
     const at = toLatLng(this.lift.at);
     const snap = this.lift.snap;
-    const hub = snap ?? nearestPreviewHub(at);
+    const hub = snap ?? bestNearbyHub(at);
     return { at, hub, name: snap ? hubPreviewLabel(snap) : hub && placeName(at, hub), snapped: !!snap };
   }
 
@@ -2078,10 +2078,10 @@ export class GlobeEngine {
       // Resolve fixed endpoint labels only when presence changes them, never in the draw loop.
       // Null is a valid cached result for points outside local hub coverage.
       const originHub = r && o.every((v, i) => v === r.o[i])
-        ? r.originHub : nearestPreviewHub(f.origin);
+        ? r.originHub : bestNearbyHub(f.origin);
       const destinationHub = !f.landed ? null
         : r?.landed && target.every((v, i) => v === r.target[i])
-          ? r.destinationHub : nearestPreviewHub(f.at);
+          ? r.destinationHub : bestNearbyHub(f.at);
       const originName = originHub && (r?.originHub === originHub ? r.originName : placeName(f.origin, originHub));
       const destinationName = destinationHub &&
         (r?.destinationHub === destinationHub ? r.destinationName : placeName(f.at, destinationHub));

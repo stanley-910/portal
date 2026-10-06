@@ -22,8 +22,7 @@ import type { Person } from "@/lib/identity";
 import { isBookable, layoversOf } from "@/lib/trip/offers";
 import { returnLegPick, soloSaveInput, type LegPick } from "@/lib/trip/solo-input";
 import type { End } from "@/lib/liveblocks/types";
-import { beyondReach, crossesModes, hubById } from "@/lib/transport/hubs/pick";
-import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import { bestNearbyHub, beyondReach, crossesModes, hubById } from "@/lib/transport/hubs/pick";
 import { stopFromPoint, unsnapped } from "@/lib/trip/stops";
 import type { Offer } from "@/lib/transport/types";
 import { PinTarget, type PinDrop } from "@/components/multiplayer/rider-pins";
@@ -79,10 +78,10 @@ const legPoints = (legs: { from: SnappableStop; to: SnappableStop }[]): TripPoin
 function snapLeg(leg: LandedTrip, end: End, hub: Hub | null): LandedTrip {
   const other = end === "from" ? "to" : "from";
   const snapped = { from: !!leg.snapped?.from, to: !!leg.snapped?.to, [end]: !!hub };
-  const next: LandedTrip = { ...leg, [end]: hub ?? nearestPreviewHub(end === "from" ? leg.origin : leg.destination) };
+  const next: LandedTrip = { ...leg, [end]: hub ?? bestNearbyHub(end === "from" ? leg.origin : leg.destination) };
   if (snapped[other] && crossesModes(hub, leg[other])) {
     snapped[other] = false;
-    next[other] = nearestPreviewHub(other === "from" ? leg.origin : leg.destination);
+    next[other] = bestNearbyHub(other === "from" ? leg.origin : leg.destination);
   }
   if (snapped.from || snapped.to) next.snapped = snapped;
   else delete next.snapped;

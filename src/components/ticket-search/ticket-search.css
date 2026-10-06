@@ -235,13 +235,14 @@
 
 /* Each end's hub, under its city (HubChip): its code, or its mode's glyph. Dashed while it's only the nearest hub,
    which the search looks around; solid and filled once snapped, which the search keeps to. */
-.ts .ts-hub-chip { position: relative; display: inline-flex; align-items: center; gap: 3px; height: 18px; min-width: 26px; box-sizing: border-box; margin-top: 1px; padding: 0 4px; font-family: var(--font-fell-sc); font-size: 11px; line-height: 13px; color: var(--ink-muted); background: transparent; border: var(--line-ink) dashed var(--control-border); border-radius: var(--radius-tag); }
+.ts .ts-hub-chip { position: relative; align-self: flex-start; display: inline-flex; align-items: center; gap: 3px; height: 18px; min-width: 26px; box-sizing: border-box; margin-top: 1px; padding: 0 4px; font-family: var(--font-fell-sc); font-size: 11px; line-height: 13px; color: var(--ink-muted); background: transparent; border: var(--line-ink) dashed var(--control-border); border-radius: var(--radius-tag); }
 .ts .ts-hub-chip::before { content: ""; position: absolute; inset: -13px -9px; }
 .ts .ts-hub-chip:hover { color: var(--ink); background: var(--control-hover); }
 .ts .ts-hub-chip[data-snapped] { color: var(--ink); border-style: solid; background: var(--control-hover); }
 .ts .ts-hub-chip[aria-expanded="true"] { color: var(--ink); background: var(--control-hover); }
 .ts-hub-glyph { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
 .ts-hub-chip .ts-hub-glyph { width: 11px; height: 11px; }
+.ts-place-end .ts-hub-chip { align-self: flex-end; }
 
 /* Picking a hub: a search field and the hubs it finds, under the route header */
 .ts-hubs { display: grid; gap: 4px; }

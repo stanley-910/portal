@@ -62,6 +62,13 @@ export function hubChoices(query: string, near: Coordinates): Hub[] {
     .map(({ hub }) => hub);
 }
 
+/**
+ * The hub a place goes by until someone picks one: the best placed near it, a big airport a little further off before
+ * a small one next door (SeaTac for central Seattle, not Boeing Field), as the picker lists them. Null outside every
+ * hub's reach.
+ */
+export const bestNearbyHub = (near: Coordinates): Hub | null => hubChoices("", near)[0] ?? null;
+
 /** A hub outside the area a search from `near` looks in: picking it means going somewhere else, not a nearby hub. */
 export const beyondReach = (near: Coordinates, hub: Hub): boolean => distanceKm(near, hub) > HUB_LIMITS.radiusKm[hub.mode];
 

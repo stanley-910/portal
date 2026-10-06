@@ -1,6 +1,5 @@
 import type { LandedTrip } from "@/components/trip-globe";
-import { hubById } from "@/lib/transport/hubs/pick";
-import { nearestPreviewHub } from "@/lib/transport/hubs/preview";
+import { bestNearbyHub, hubById } from "@/lib/transport/hubs/pick";
 import { distanceKm } from "@/lib/transport/hubs/geo";
 import { soloSaveSchema } from "./solo-schema";
 import type { LegPick } from "./solo-input";
@@ -16,7 +15,7 @@ export function restoreSolo(input: unknown) {
     const snapped = { from: !!hub(leg.from), to: !!hub(leg.to) };
     return {
       origin: leg.from, destination: leg.to,
-      from: hub(leg.from) ?? nearestPreviewHub(leg.from), to: hub(leg.to) ?? nearestPreviewHub(leg.to),
+      from: hub(leg.from) ?? bestNearbyHub(leg.from), to: hub(leg.to) ?? bestNearbyHub(leg.to),
       distanceKm: distanceKm(leg.from, leg.to), departDate: new Date(`${leg.date}T00:00`),
       ...(snapped.from || snapped.to ? { snapped } : {}),
     };
