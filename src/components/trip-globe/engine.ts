@@ -3842,7 +3842,10 @@ export class GlobeEngine {
    */
   private lockTether(ctx: CanvasRenderingContext2D, p: ScreenPoint, lifted: boolean) {
     const P = this.P;
-    const aim = this.lift ? { x: this.lift.x, y: this.lift.y } : this.hasPointer ? { x: this.mx, y: this.my } : null;
+    // flying, the plane is the pointer and sits on the lock itself; the system pointer is hidden, so a line to it would
+    // run out to nothing
+    const aim = this.lift ? { x: this.lift.x, y: this.lift.y }
+      : this.hasPointer && this.mode !== "flying" ? { x: this.mx, y: this.my } : null;
     const from = { x: p.x, y: p.y - (lifted ? MARKER_LIFT : 0) };
     const start = lifted ? LOCK_TETHER_FROM : LOCK_TETHER_CITY;
     const d = aim ? Math.hypot(aim.x - from.x, aim.y - from.y) : 0;

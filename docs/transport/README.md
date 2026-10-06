@@ -78,7 +78,7 @@ locks. So how precise a search is follows how far in you are.
   terminal), so it never reads as a city's dot, popping up as it comes into reach; large airports print their code on the first side of it (right, left, under, over) that clears the
   city names (a marker by a city's dot stands in for the dot, the name beside it). Locked, its marker lifts on a disc,
   a short dashed tether runs from it to the pointer (or the pins being carried), and the pointer's label names it
-  (`SEA · Seattle`); flying,
+  (`SEA · Seattle`); flying, there's no tether, since
   the plane sits on it. Markers carry no fares: pricing one would mean a provider search per hub.
 - Where the device can, a lock ticks (`navigator.vibrate`, Android). Browsers on macOS give a page no way to the
   trackpad's Taptic Engine, so on a Mac the lock is visual only.
