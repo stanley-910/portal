@@ -38,8 +38,9 @@ describe("locking on to hubs", () => {
     const seattle = { ...hub("SEATTLE", 2, 0), id: "city:seattle" };
     const vancouver = { ...hub("VANCOUVER", 3, 0, -170), id: "city:vancouver" };
     const cities = lockTargets(1, place, [seattle, vancouver]);
-    expect(lockAt(cities, 130, 0, null)).toBeNull();
-    expect(id(lockAt(cities, 130, 0, null, CITY_LOCK))).toBe("city:seattle");
+    expect(lockAt(cities, 90, 0, null)).toBeNull();
+    expect(id(lockAt(cities, 90, 0, null, CITY_LOCK))).toBe("city:seattle");
+    expect(lockAt(cities, 155, 0, null, CITY_LOCK)).toBeNull();
     expect(id(lockAt(cities, 0, -95, null, CITY_LOCK))).toBe("city:vancouver");
   });
   it("lets go of a hub that's no longer lockable, and takes the nearest of two, bigger ones counting nearer", () => {

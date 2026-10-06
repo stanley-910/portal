@@ -25,7 +25,7 @@ export const LOCK_IMPORTANCE_PX = 4;
  * The same for cities, which are far fewer and further apart on screen: anywhere round a named city locks on to it
  * until another is clearly nearer, a bigger city pulling from further.
  */
-export const CITY_LOCK = { catch: 150, release: 170, importancePx: 15 };
+export const CITY_LOCK = { catch: 100, release: 115, importancePx: 15 };
 
 /**
  * A place the pointer can lock on, where it is on screen: a hub (`hub`), or a city before the hubs show (no hub).

@@ -68,7 +68,7 @@ ferry terminal instead, and snaps the leg's end to it, so that leg searches exac
 locks. So how precise a search is follows how far in you are.
 
 - A city locks while its name is printed, a ring round its dot, until the hubs take over at zoom 0.82. Cities are few
-  and far apart, so one catches from 150 px and holds to 170 px, a bigger city counting 15 px nearer per rank step.
+  and far apart, so one catches from 100 px and holds to 115 px, a bigger city counting 15 px nearer per rank step.
 - Large hubs lock from zoom 0.82 (0 is the whole globe, 1 the closest), about when a country and its neighbours fill
   the view; major ones from 0.93, regional ones from 0.99.
 - Lockable hubs keep 18 px apart on screen, the more important first. The pointer catches one within 26 px and holds
