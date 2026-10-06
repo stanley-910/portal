@@ -31,8 +31,12 @@ export function stepLabel(tool: string, output: unknown = null): { doing: string
       };
     case "apply_meetup":
       return { doing: "Adding it to the trip", done: failed ? "Couldn't add it" : "Added it to the trip" };
-    case "book_leg":
-      return { doing: "Settling the fare", done: failed ? "Couldn't settle it" : (o as { status?: string }).status === "PRICE_CHANGED" ? "The fare moved" : "Checkout is up" };
+    case "book_leg": {
+      // shown before the result: quoting and booking look the same until it's back
+      const status = (o as { status?: string }).status;
+      const done = failed || status === "not_booked" ? "Couldn't book it" : status === "QUOTE" ? "Quoted the fare" : status === "PRICE_CHANGED" ? "The fare moved" : "Checkout is up";
+      return { doing: "Checking the fare", done };
+    }
     case "get_bill":
       return { doing: "Checking who's paid", done: "Checked who's paid" };
     case "cancel_booking":

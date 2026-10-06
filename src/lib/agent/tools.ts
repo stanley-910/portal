@@ -15,6 +15,7 @@ import { bookWithSaved, cancelSettle, settleLeg, type SavedBooking } from "@/lib
 import { liveblocks } from "@/lib/liveblocks/server";
 import type { LegBooking } from "@/lib/liveblocks/types";
 import { isBookable } from "@/lib/trip/offers";
+import { checkQuote, flightsLine, onFile, QUOTE_NOTE, QUOTE_REFUSAL, quoteRef, type QuoteTerms } from "@/lib/agent/quote";
 import { legEntry, OFFICIAL_ENTRY_REMINDER } from "@/lib/agent/entry";
 import { KIND } from "@/lib/agent/kind";
 import { describeRoute, describeRoutes, optimize } from "@/lib/agent/optimize";
@@ -34,6 +35,8 @@ export type ToolContext = {
   agentId: string;
   today: string;
   askedBy: string;
+  /** The message being answered: a booking quote only counts in a later turn than the one it was given in. */
+  turn: string;
   /** Reads Storage. Reads a moment apart may share one; a tool that changes the trip passes `fresh`. */
   load: (opts?: { fresh?: boolean }) => Promise<{ plan: PlanJson; handles: Handles }>;
   addCard: (card: ThreadCard) => Promise<void>;
@@ -263,24 +266,39 @@ export function agentTools(ctx: ToolContext) {
 
     book_leg: tool({
       description:
-        "Books a leg for its riders in the app. Picks the option when one is named (its number from get_leg_options; only options marked bookable), settles the group on it at today's fare, then books the asker's own seat with their saved details and saved card in one go, and posts a checkout card for anything left (their details or card if none is saved, a bank check, other riders' shares). Call it as soon as a rider asks to book: that's their go-ahead. A leg already being booked gets its card again, and the asker's seat finished if it can be. If the fare moved since it was found, it comes back PRICE_CHANGED: tell them the new price, and call again with accept_price once someone says go.",
+        "Books a leg for its riders in the app, in two steps. Without confirm it changes nothing and returns a quote: the flights, times, price per seat, and the asker's saved card and details, with a reference. Show them that and wait for their yes in a new message; then call again with confirm set to the reference, which settles the group on the option at today's fare, books the asker's own seat with their saved details and card, and posts a checkout card for anything left (other riders confirm their own seats there). A leg already being booked quotes the asker's own share the same way. If the fare moved, it comes back PRICE_CHANGED with a fresh quote at the new price to show them.",
       inputSchema: z.object({
         leg: z.string().describe("Leg handle from get_trip, e.g. L2"),
         option: z.number().int().min(1).max(8).optional().describe("Option number from get_leg_options, when they named one; omit to book the option already chosen"),
         accept_price: z.number().positive().optional().describe("The new per-seat price from PRICE_CHANGED, once they've agreed to it"),
+        confirm: z.string().optional().describe("The quote reference from your earlier message, once they've said yes to it in a new message"),
       }),
-      execute: async ({ leg, option, accept_price }) => {
+      execute: async ({ leg, option, accept_price, confirm }) => {
         if (Date.now() > ctx.until) return OUT_OF_TIME;
         const { plan, handles } = await ctx.load({ fresh: true });
         const legId = handles.id.get(leg);
         const l = legId ? plan.legs?.[legId] : undefined;
         if (!legId || !l) return { refused: "UNKNOWN_HANDLE", reason: `${leg} isn't in the trip.`, next: "Call get_trip and use its handles." };
         const asker = { id: ctx.askedBy, name: plan.members?.[ctx.askedBy]?.name ?? null, email: null };
+        const file = await onFile(asker.id);
+        // the quote, or the reason the reference given doesn't book yet
+        const gate = (terms: QuoteTerms, shown: Record<string, unknown>) => {
+          const check = confirm ? checkQuote(confirm, terms, ctx.turn) : null;
+          if (check === "ok") return null;
+          const ref = quoteRef(terms, ctx.turn);
+          return { status: "QUOTE", ...(check ? { not_booked: QUOTE_REFUSAL[check] } : {}), quote: { leg, ...shown, card: file.card, details: file.details }, reference: ref, note: QUOTE_NOTE(ref) };
+        };
         if (l.booking) {
-          const own = l.booking.seats[asker.id] ? await bookWithSaved(ctx.roomId, legId, asker) : null;
+          const seat = l.booking.seats[asker.id];
+          if (!seat) return { status: "already_settled", booking: bookingLine(l.booking, plan, handles), your_seat: "not on this leg" };
+          const flights = (l.booking.flights ?? []).map((f) => `${f.number} ${f.from}→${f.to} departs ${f.departingAt.slice(0, 16).replace("T", " ")}`).join("; ");
+          const share = `${seat.share.currency} ${seat.share.amount}`;
+          const quote = seat.paid ? null : gate({ rider: asker.id, leg: legId, flights, price: share, card: file.cardId }, { flights, your_share: share });
+          if (quote) return quote;
+          const own = await bookWithSaved(ctx.roomId, legId, asker);
           await ctx.addCard({ type: "checkout", legId });
           const now = (await ctx.load({ fresh: true })).plan.legs?.[legId]?.booking ?? l.booking;
-          return { status: "already_settled", booking: bookingLine(now, plan, handles), your_seat: own ? seatNote(own) : "not on this leg", note: "The checkout card is up again." };
+          return { status: "already_settled", booking: bookingLine(now, plan, handles), your_seat: seatNote(own), note: "The checkout card is up again." };
         }
         if (!l.riders.includes(asker.id)) return { refused: "NOT_A_RIDER", reason: "Only someone riding this leg can book it.", next: "Say a rider needs to ask, or add them with set_riders first." };
         let chosen = l.search.offers.find((o) => o.id === l.chosen) ?? null;
@@ -288,29 +306,45 @@ export function agentTools(ctx: ToolContext) {
           const pick = ranked(l.search.offers)[option - 1];
           if (!pick) return { refused: "UNKNOWN_OPTION", reason: `There's no option ${option}.`, next: "Call get_leg_options and use its numbers." };
           if (!isBookable(pick)) return { refused: "NOT_BOOKABLE", reason: "That option can't be bought in the app.", next: "Say it's booked on the provider's site, or offer a bookable option." };
-          await liveblocks().mutateStorage(ctx.roomId, ({ root }) => {
-            const live = root.get("legs").get(legId);
-            if (live && !live.get("booking")) live.set("chosen", pick.id);
-          });
           chosen = pick;
         }
         if (!chosen) return { refused: "NO_PICK", reason: "Nothing is chosen on this leg.", next: "Call get_leg_options and ask which bookable option they want, or book the one they named." };
         if (!isBookable(chosen)) return { refused: "NOT_BOOKABLE", reason: "The chosen option can't be bought in the app.", next: "Say it's booked on the provider's site, or offer a bookable option." };
-        const accept = accept_price !== undefined ? { amount: accept_price, currency: chosen.price?.currency ?? "USD" } : undefined;
+        const currency = chosen.price?.currency ?? "USD";
+        const perSeat = accept_price ?? chosen.price?.amount;
+        const price = perSeat !== undefined ? `${currency} ${perSeat}` : "price at checkout";
+        const flights = flightsLine(chosen);
+        const terms = (p: string): QuoteTerms => ({ rider: asker.id, leg: legId, flights, price: p, card: file.cardId });
+        const quote = gate(terms(price), { flights, price_per_seat: price, riders: l.riders.length, note_on_split: "Each rider pays their own share; nobody is charged until every seat is held." });
+        if (quote) return quote;
+        const pick = chosen;
+        if (pick.id !== l.chosen) {
+          await liveblocks().mutateStorage(ctx.roomId, ({ root }) => {
+            const live = root.get("legs").get(legId);
+            if (live && !live.get("booking")) live.set("chosen", pick.id);
+          });
+        }
+        const accept = accept_price !== undefined ? { amount: accept_price, currency } : undefined;
         const result = await settleLeg(ctx.roomId, legId, asker, accept);
         if (!result.ok) {
-          if ("now" in result) return { status: "PRICE_CHANGED", was: result.was, now: result.now, note: "Per seat. Say the new price and ask whether to go ahead; then call book_leg again with accept_price." };
+          if ("now" in result) {
+            const moved = `${result.now.currency} ${result.now.amount}`;
+            const ref = quoteRef(terms(moved), ctx.turn);
+            return { status: "PRICE_CHANGED", was: result.was, now: result.now, quote: { leg, flights, price_per_seat: moved, card: file.card, details: file.details }, reference: ref, note: `Per seat. Nothing was booked. ${QUOTE_NOTE(ref)} Pass accept_price ${result.now.amount} with it.` };
+          }
           return { refused: result.code, reason: result.message, next: result.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option from get_leg_options." : "Tell them plainly." };
         }
-        // their asking is the go-ahead: their own seat, with what they keep on file
+        // they said yes to this quote: their own seat, with what they keep on file
         const own = await bookWithSaved(ctx.roomId, legId, asker, accept);
         await ctx.addCard({ type: "checkout", legId });
         const after = (await ctx.load({ fresh: true })).plan.legs?.[legId]?.booking;
         return {
-          status: "settled",
-          booking: after ? bookingLine(after, plan, handles) : result.mode,
+          status: own.ok ? "settled" : "not_booked",
+          booking: after ? bookingLine(after, plan, handles) : "the settle was rolled back",
           your_seat: seatNote(own),
-          note: "The checkout card is up with the bill. Other riders confirm their own seats there; nobody is charged until every seat is held, then the airline books it. You can't enter details or pay for anyone else.",
+          note: own.ok
+            ? "The checkout card is up with the bill. Other riders confirm their own seats there; nobody is charged until every seat is held, then the airline books it. You can't enter details or pay for anyone else."
+            : "It didn't go through: say so plainly with the reason, and that nobody was charged. Never say it's booked or held.",
         };
       },
     }),
@@ -710,7 +744,7 @@ export function groupOps(
 
 /** What became of the asker's own seat, for Pip to say in a sentence. */
 export function seatNote(r: SavedBooking | { ok: false; message?: string; now?: unknown }): string {
-  if (!r.ok) return "now" in r ? "the fare moved before their card was held: say the new price from the card" : `not done: ${r.message ?? "it failed"}; they finish in the card`;
+  if (!r.ok) return "now" in r ? "the fare moved before their card was held: say the new price from the card" : `not done: ${r.message ?? "it failed"}`;
   if ("done" in r) {
     return r.done === "booked" ? "booked and paid; the reference is on the card"
       : r.done === "ticketed" ? "their ticket is bought (separate tickets)"

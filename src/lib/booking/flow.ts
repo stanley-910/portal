@@ -768,8 +768,11 @@ export async function bookWithSaved(roomId: string, legId: string, actor: Actor,
   }
 }
 
-async function done(roomId: string, legId: string): Promise<SavedBooking> {
-  const booking = (await readLeg(roomId, legId)).leg?.booking;
-  if (booking?.status === "booked") return { ok: true, done: "booked" };
+async function done(roomId: string, legId: string): Promise<SavedBooking | Failure> {
+  const { leg } = await readLeg(roomId, legId);
+  const booking = leg?.booking;
+  // the last hold buys the seats inline; a purchase that failed has already rolled the settle back
+  if (!booking) return { ok: false, code: "PAYMENT_FAILED", message: leg?.bookingNotice ?? "The booking didn't go through. Nobody was charged." };
+  if (booking.status === "booked") return { ok: true, done: "booked" };
   return { ok: true, done: booking?.mode === "separate" ? "ticketed" : "held" };
 }

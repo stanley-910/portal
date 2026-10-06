@@ -25,6 +25,7 @@ import { isBookable, toStoredOffer } from "@/lib/trip/offers";
 import { soloSaveInput } from "@/lib/trip/solo-input";
 import { saveSoloTrip } from "@/app/t/save-actions";
 import { bookWithSaved, settleLeg } from "@/lib/booking/flow";
+import { checkQuote, flightsLine, onFile, QUOTE_NOTE, QUOTE_REFUSAL, quoteRef, type QuoteTerms } from "@/lib/agent/quote";
 import { getAccountClaims } from "@/lib/supabase/server";
 import { tripRoomId } from "@/lib/liveblocks/types";
 import { seatNote } from "@/lib/agent/tools";
@@ -67,7 +68,7 @@ ${PERSONA}
 
 What you do: work out how to get between places. Put legs on their globe, search routes and fares, find where people coming from different places should meet.
 What you don't do: itineraries, sights, hotels, restaurants or reviews. Say so in one sentence if asked.
-You can book a leg for them in the app, as Pip does in a shared trip; you can't enter their details or pay for them.
+You can book a leg for them in the app once they've said yes to your quote, as Pip does in a shared trip; you can't enter their details or pay for them.
 
 How to work:
 - Whenever a message names where they're going and it isn't on their globe yet, call plan_trip first, straight away, with the stops in order and a date per leg: it puts the legs on their globe and each leg's card searches fares. Never ask whether to put it on the globe. If they give no date, use tomorrow and say so.
@@ -79,7 +80,7 @@ How to work:
 - For visa, passport or entry questions, call check_entry for each leg it's about (by its number on their globe), or for a place they name. It covers every passport they've saved. Never answer one from memory. Name the passport each requirement applies to ("on your US passport you need a visa; on your Canadian one it's visa-free for 30 days"). When their passports differ, say plainly which needs a visa or document and which doesn't, and which to travel on. If they've saved no passport, say so: they add them under Passports in the profile menu. Mention estimated rules as estimates, and end with the official-source reminder.
 - For "where should we meet", call find_meetup. Its card has a button that puts their own leg on the globe.
 - Dates: resolve "the 14th" or "next Friday" against today's date to YYYY-MM-DD.
-- When they ask to book, call book_leg straight away with the leg's number, and the option's number from search_routes if they named one (only options marked bookable; without one it takes the cheapest bookable fare). It saves the leg as a trip in their account and books their seat with their saved details and card in one go; the checkout card it posts shows where it stands and anything left for them, without leaving the globe. Don't ask first, and never say you can't book. Fares marked estimated, cached or timetable can't be bought in the app: say so and offer a bookable one.
+- When they ask to book, call book_leg without confirm, with the leg's number and the option's number from search_routes if they named one (only options marked bookable; without one it takes the cheapest bookable fare). It books nothing: it returns a quote. Show them the flights, departure and arrival times, price, and the card and details it would use, ask them to reply yes, and end with its reference. Never book in the same reply, even if they said "just book it" or asked you to check something first; every booking waits for their yes in a new message. When they say yes, call book_leg again with the same leg and option and confirm set to the reference: it saves the leg as a trip in their account and books their seat, and the checkout card it posts shows where it stands without leaving the globe. If it failed, say so plainly, never that it's booked or held. Never say you can't book. Fares marked estimated, cached or timetable can't be bought in the app: say so and offer a bookable one.
 - To keep a trip or bring friends in, they press Save trip on the card; once saved it's in their trips, and its link invites friends.
 - If a tool refuses, follow its "next" hint, or ask the one question you need.
 - Get every number from tools before you write; your words stream as you write them, so never correct yourself mid-reply.
@@ -108,7 +109,8 @@ const usd: Record<string, number> = { USD: 1, CNY: 0.138, HKD: 0.128, JPY: 0.006
 type Emit = (event: SoloEvent) => void;
 
 /** What one reply's tools share: the legs on the globe now (plan_trip replaces them) and the person's passports. */
-type SoloState = { trip: SoloLeg[]; nationalities: string[]; meetups: Map<string, MeetupOption> };
+/** `turn` names the message being answered: a booking quote only counts in a later one. */
+type SoloState = { trip: SoloLeg[]; nationalities: string[]; meetups: Map<string, MeetupOption>; turn: string };
 
 function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: AbortSignal) {
   const { meetups } = state;
@@ -170,14 +172,17 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
 
     book_leg: tool({
       description:
-        "Books one leg on their globe in the app: saves it as a trip in their account with the fare picked, settles it at today's fare and books their seat with their saved details and saved card in one go, then posts a checkout card in this chat showing where it stands and anything left for them (details or a card if none is saved, a bank check). Call it as soon as they ask to book: that's their go-ahead. Only fares marked bookable can be bought.",
+        "Books one leg on their globe in the app, in two steps. Without confirm it books nothing and returns a quote: the flights, times, price, and their saved card and details, with a reference. Show them that and wait for their yes in a new message; then call again with the same leg and option and confirm set to the reference, which saves the leg as a trip in their account, settles it at today's fare and books their seat with their saved details and card, then posts a checkout card showing where it stands and anything left for them. Only fares marked bookable can be bought.",
       inputSchema: z.object({
         leg: z.number().int().min(1).describe("The leg's number on their globe"),
         option: z.number().int().min(1).max(MAX_OPTIONS).optional().describe("The option's number from search_routes for this leg, when they named one; omit for the cheapest bookable fare"),
+        confirm: z.string().optional().describe("The quote reference from your earlier message, once they've said yes to it in a new message"),
       }),
-      execute: async ({ leg, option }) => {
+      execute: async ({ leg, option, confirm }) => {
         const onGlobe = state.trip[leg - 1];
         if (!onGlobe) return { refused: "UNKNOWN_LEG", next: `They have ${state.trip.length} legs; use one of those numbers.` };
+        const account = await getAccountClaims();
+        if (!account) return { refused: "SIGNED_OUT", next: "Say they need to sign in to book in the app." };
         emit({ t: "activity", label: "checking bookable fares", at: midpoint(onGlobe.from, onGlobe.to) });
         try {
           const result = await searchFromCoordinates(
@@ -189,32 +194,43 @@ function soloTools(emit: Emit, textAt: () => number, state: SoloState, signal: A
           const pick = option ? options[option - 1] : options.find((o) => isBookable(o.stored));
           if (!pick) return { refused: option ? "UNKNOWN_OPTION" : "NOTHING_BOOKABLE", next: option ? "Call search_routes and use its numbers." : "Say no fare on this leg can be bought in the app; the estimated ones book on the provider's site." };
           if (!isBookable(pick.stored)) return { refused: "NOT_BOOKABLE", next: "Say that fare can't be bought in the app, and offer a bookable one." };
+          const o = pick.stored;
+          const flights = flightsLine(o);
+          const price = o.price ? `${o.price.currency} ${o.price.amount}` : "price at checkout";
+          const file = await onFile(account.id);
+          const terms: QuoteTerms = { rider: account.id, leg: `${onGlobe.from.name}→${onGlobe.to.name} ${onGlobe.date}`, flights, price, card: file.cardId };
+          const check = confirm ? checkQuote(confirm, terms, state.turn) : null;
+          if (check !== "ok") {
+            const ref = quoteRef(terms, state.turn);
+            return { status: "QUOTE", ...(check ? { not_booked: QUOTE_REFUSAL[check] } : {}), quote: { leg, flights, price, card: file.card, details: file.details }, reference: ref, note: QUOTE_NOTE(ref) };
+          }
           emit({ t: "activity", label: "saving your trip", at: { lat: onGlobe.from.lat, lng: onGlobe.from.lng } });
           const saved = await saveSoloTrip(soloSaveInput(
             [{ from: onGlobe.from, to: onGlobe.to }],
-            [{ offer: pick.offer, offers: options.map((o) => o.offer), depart: onGlobe.date, stay: null }],
+            [{ offer: pick.offer, offers: options.map((x) => x.offer), depart: onGlobe.date, stay: null }],
           )).catch(() => ({ error: "failed" as const }));
           if ("error" in saved || !saved.legs[0]) return { refused: "SAVE_FAILED", next: "Say saving the trip failed; they can try Book on the leg's card." };
-          const o = pick.stored;
-          const fare = `${o.carrier ?? o.mode} ${o.depart.slice(11, 16)}→${o.arrive.slice(11, 16)}, ${o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : "price at checkout"}`;
-          // their asking is the go-ahead: settle at today's fare, then their seat with what they keep on file
+          // they said yes to this quote: settle at today's fare, then their seat with what they keep on file
           emit({ t: "activity", label: "booking your seat", at: { lat: onGlobe.to.lat, lng: onGlobe.to.lng } });
-          const account = await getAccountClaims();
           const roomId = tripRoomId(saved.id), legId = saved.legs[0];
-          let seat = "they finish in the card";
-          if (account) {
-            const actor = { id: account.id, name: account.name, email: account.email };
-            const settled = await settleLeg(roomId, legId, actor);
-            if (!settled.ok && "now" in settled) seat = "the fare moved since the search: the card shows the new price to accept";
-            else if (!settled.ok) return { refused: settled.code, reason: settled.message, next: settled.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option." : "Tell them plainly." };
-            else seat = seatNote(await bookWithSaved(roomId, legId, actor));
+          const actor = { id: account.id, name: account.name, email: account.email };
+          let seat: string, failed = false;
+          const settled = await settleLeg(roomId, legId, actor);
+          if (!settled.ok && "now" in settled) seat = "not booked: the fare moved since the quote, and the card shows the new price to accept";
+          else if (!settled.ok) return { refused: settled.code, reason: settled.message, next: settled.code === "OFFER_GONE" ? "Say that fare is gone and offer the next bookable option." : "Tell them plainly that nothing was booked." };
+          else {
+            const own = await bookWithSaved(roomId, legId, actor);
+            failed = !own.ok;
+            seat = seatNote(own);
           }
           emit({ t: "card", card: { type: "checkout", legId, tripId: saved.id } });
           return {
-            status: "checkout_up",
-            fare,
+            status: failed ? "not_booked" : "checkout_up",
+            fare: `${flights}, ${price}`,
             your_seat: seat,
-            note: "The checkout card is in the chat with where it stands; the leg is saved in their trips. Say in a sentence what happened to their seat; don't repeat the card.",
+            note: failed
+              ? "It didn't go through: say so plainly with the reason, and that nobody was charged. Never say it's booked or held."
+              : "The checkout card is in the chat with where it stands; the leg is saved in their trips. Say in a sentence what happened to their seat; don't repeat the card.",
           };
         } finally {
           emit({ t: "activity", label: null });
@@ -361,7 +377,8 @@ export async function runSolo(
 ) {
   const today = new Date().toISOString().slice(0, 10);
   let text = "";
-  const state: SoloState = { trip, nationalities, meetups: new Map() };
+  // the page holds the conversation, so its count of their messages numbers the turn
+  const state: SoloState = { trip, nationalities, meetups: new Map(), turn: `solo:${messages.filter((m) => m.role === "user").length}` };
   const deadline = AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]);
   const send = emit;
   emit = (event) => { if (!signal.aborted) send(event); };

@@ -91,10 +91,14 @@ whether to switch flights.
 - **Any rider can check out their own seat, guests included.** Guests give an email at checkout; it's where their
   ticket and booking link go. A rider can't pay for someone else's seat.
 - **Settling** needs a rider. Any rider can also undo a settle while nobody has paid yet.
-- **Pip books, each rider approves their own share.** A rider asks Pip ("book us on the 9:40") and `book_leg` picks
-  that option, settles at once and posts a checkout card in the thread. Pip can also read each member's bill
-  (`get_bill`) and cancel a settle nobody has paid for (`cancel_booking`). It can't enter anyone's details or pay:
-  every card hold is a click by the rider whose share it is, on the card.
+- **Pip quotes, the rider says yes, then Pip books.** A rider asks Pip ("book us on the 9:40") and `book_leg` first
+  books nothing: it returns the flights, times, price per seat and the rider's saved card and details, with a short
+  reference Pip ends its reply with. Only a later call with that reference, in a turn after the rider's reply, settles
+  and books their seat with what they keep on file (`src/lib/agent/quote.ts`). The reference is signed over the rider,
+  leg, flights, price and card and lasts 30 minutes, so a changed fare or card, or a quote used in the turn it was
+  given, gets a fresh quote instead of a booking. Pip can also read each member's bill (`get_bill`) and cancel a settle
+  nobody has paid for (`cancel_booking`). It can't enter anyone else's details or pay for them: other riders confirm
+  their own seats on the checkout card.
 
 ## Pip's checkout card
 
