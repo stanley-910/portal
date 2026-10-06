@@ -1,4 +1,4 @@
-import type { LatLng, RemoteFlight, Vehicle } from "@/components/trip-globe";
+import type { LatLng, Layover, RemoteFlight, Vehicle } from "@/components/trip-globe";
 
 /** The parts of trip storage a stored leg needs. */
 export type StoredPlan = {
@@ -8,7 +8,9 @@ export type StoredPlan = {
       readonly to: string;
       readonly createdBy: string;
       readonly chosen: string | null;
-      readonly search: { readonly offers: readonly { readonly id: string; readonly mode: Vehicle }[] };
+      readonly search: {
+        readonly offers: readonly { readonly id: string; readonly mode: Vehicle; readonly layovers?: readonly Layover[] }[];
+      };
     };
   };
   readonly stops: { readonly [id: string]: LatLng };
@@ -29,9 +31,12 @@ export function storedFlights(root: StoredPlan): RemoteFlight[] {
     const at = { lat: to.lat, lng: to.lng };
     // a hair past the end gives the heading; near enough on a great circle for a parked vehicle
     const ahead = { lat: at.lat + (at.lat - o.lat) * 0.01, lng: at.lng + (at.lng - o.lng) * 0.01 };
-    const vehicle = leg.search.offers.find((offer) => offer.id === leg.chosen)?.mode ?? "flight";
+    const chosen = leg.search.offers.find((offer) => offer.id === leg.chosen);
+    const vehicle = chosen?.mode ?? "flight";
     const drawer = root.members[leg.createdBy];
-    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true, vehicle, color: drawer ? drawer.color - 1 : null });
+    // the chosen option's connections bend the route through them; until one is chosen it's drawn direct
+    const layovers = chosen?.layovers?.length ? [...chosen.layovers] : undefined;
+    flights.push({ id: `leg:${id}`, origin: o, at, ahead, landed: true, vehicle, color: drawer ? drawer.color - 1 : null, ...(layovers ? { layovers } : {}) });
   }
   return flights;
 }

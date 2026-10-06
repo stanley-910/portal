@@ -95,7 +95,7 @@ const placeEnd = (hub: Hub | null, point: LatLng) => ({
  * row says where its data came from (its tooltip) and marks anything that isn't live.
  */
 function OptionList({
-  status, slow = false, rows, choice, currency, rates, onPick, onRetry, empty,
+  status, slow = false, rows, choice, currency, rates, onPick, onHover, onRetry, empty,
 }: {
   status: "idle" | "searching" | "failed" | "done";
   /** A provider is taking its time: still a search, not a failure. */
@@ -105,6 +105,8 @@ function OptionList({
   currency: Currency;
   rates: ExchangeRates | null;
   onPick: (index: number) => void;
+  /** The row under the pointer or focus, or null when it leaves. */
+  onHover?: (index: number | null) => void;
   onRetry: () => void;
   empty: ReactNode;
 }) {
@@ -146,6 +148,10 @@ function OptionList({
               aria-pressed={row === choice}
               title={row.source}
               onClick={() => onPick(i)}
+              onPointerEnter={() => onHover?.(i)}
+              onPointerLeave={() => onHover?.(null)}
+              onFocus={() => onHover?.(i)}
+              onBlur={() => onHover?.(null)}
             >
               <span className="ts-head">
                 <AirlineLogo code={row.offer.segments[0].carrierCode} />
@@ -173,6 +179,8 @@ export interface TicketSearchProps {
   initialPick?: LegPick;
   onDraft?: (draft: TicketDraft) => void;
   onSearchingChange?: (searching: boolean) => void;
+  /** The outbound option the globe draws this leg as: the one hovered, else the one picked. */
+  onPreview?: (offer: Offer | null) => void;
   trip: LandedTrip;
   globe: RefObject<TripGlobeHandle | null>;
   currency: Currency;
@@ -218,7 +226,7 @@ export interface TicketSearchProps {
 
 /** Search transport for a landed trip. Mount it with a `key` per trip so each trip starts fresh. */
 export function TicketSearch({
-  trip, globe, currency, rates, onAdd, initialDraft, initialPick, onDraft, onSearchingChange, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand, riders,
+  trip, globe, currency, rates, onAdd, initialDraft, initialPick, onDraft, onSearchingChange, onPreview, home, addedId, saving = false, error, savedHref, onBook, canBook = false, checkout, onDismiss, step, collapsed = false, onCollapse, onExpand, riders,
 }: TicketSearchProps) {
   const multi = !!step && step.count > 1;
   const next = !!step && step.index < step.count - 1;
@@ -249,6 +257,7 @@ export function TicketSearch({
   }, [depart, returnDate, tab, selected, hotelSelection, leg, backTab, backSelected, onDraft]);
   const searching = outbound.status === "searching" || back.status === "searching";
   useEffect(() => { onSearchingChange?.(searching); return () => onSearchingChange?.(false); }, [searching, onSearchingChange]);
+  const [hovered, setHovered] = useState<string | null>(null);
   const ends = endpoints(trip, outbound.result);
   const homeEnd = home && !samePoint(home.origin, trip.origin) ? placeEnd(home.from, home.origin) : ends.from;
 
@@ -281,6 +290,9 @@ export function TicketSearch({
   const activeTab = tabs.includes(tab) ? tab : "best";
   const rows = rowsFor(offers, activeTab, rates, selected);
   const choice = rows.find((row) => row.offer.id === selected) ?? rows[0];
+  const previewed = (hovered !== null ? rows.find((row) => row.offer.id === hovered) : undefined) ?? choice;
+  const previewedOffer = previewed?.offer ?? null;
+  useEffect(() => onPreview?.(previewedOffer), [previewedOffer, onPreview]);
   const roundTrip = returnDate !== null;
   const backOffers = roundTrip ? back.offers : [];
   const backTabs = visibleTabs(backOffers);
@@ -506,6 +518,7 @@ export function TicketSearch({
               currency={currency}
               rates={rates}
               onPick={(index) => setSelected(rows[index]?.offer.id ?? null)}
+              onHover={(index) => setHovered(index === null ? null : (rows[index]?.offer.id ?? null))}
               onRetry={outbound.retry}
               empty="No routes found."
             />

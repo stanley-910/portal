@@ -102,8 +102,12 @@ const LEGS = [
     to: "tyo",
     date: day(17),
     riders: ["g_sam"],
-    offers: [offer("br", "flight", "travelpayouts", "EVA Air", 17, "08:50", "13:05", 195, 412, "USD")],
-    chosen: "br",
+    // a connection, so the room shows a leg routed through one beside the direct legs and the trip's own stops
+    offers: [
+      { ...offer("mm", "flight", "travelpayouts", "Peach", 17, "07:20", "15:40", 440, 268, "USD"), stops: 1, layovers: [{ code: "OKA", lat: 26.1958, lng: 127.646 }] },
+      offer("br", "flight", "travelpayouts", "EVA Air", 17, "08:50", "13:05", 195, 412, "USD"),
+    ],
+    chosen: "mm",
     votes: {},
   },
   {

@@ -66,11 +66,18 @@ export interface FlightState {
   vehicle?: Vehicle;
 }
 
+/** Where a leg's fare changes planes (or trains) on the way: the connecting airport or station, by its code. */
+export interface Layover extends LatLng {
+  code: string;
+}
+
 /** Another member's flight. `id` is stable while they stay in the room. */
 export interface RemoteFlight extends FlightState {
   id: string;
   /** Their member colour slot (0 for `member-1`), which tints the route. Unset draws it in ink. */
   color?: number | null;
+  /** A landed leg's connections, in order: its route touches down at each on the way, as one line. */
+  layovers?: Layover[];
 }
 
 /**
@@ -286,7 +293,14 @@ interface RouteEnd {
   v: Vec3;
   alt: number;
   cut: number;
+  /** Connections the route touches down at on the way, in order. */
+  through?: readonly Vec3[];
 }
+
+/** A connection as drawn: where it is, and its code. */
+type Stopover = { v: Vec3; code: string };
+const stopovers = (list: readonly Layover[] | null | undefined): Stopover[] =>
+  (list ?? []).map((l) => ({ v: vecOf(l.lat * D2R, l.lng * D2R), code: l.code }));
 
 const screenPoint = (): ScreenPoint => ({ x: 0, y: 0, z: 0, vis: false });
 
@@ -510,6 +524,8 @@ export class GlobeEngine {
   private destinationHub: Hub | null = null;
   /** Stops before `origin`, from takeoff on: each click while flying ends a leg there and starts the next. */
   private via: { v: Vec3; hub: Hub | null; name: string | null }[] = [];
+  /** Connections on this viewer's own landed legs, by leg in order (`setLayovers`). */
+  private ownLayovers: Stopover[][] = [];
   // the plane is held at the stop it just left (only after a stop, not at takeoff), and when that last changed
   private magnet = false;
   private magnetT = -Infinity;
@@ -537,6 +553,7 @@ export class GlobeEngine {
     originName: string | null; destinationName: string | null;
     /** When Pip's saucer started drawing it out; -Infinity for a route that was simply there. */
     drawn: number;
+    layovers: Stopover[];
   }>();
 
   // planes that just left the room's flights (someone landed, or stopped): each settles and shrinks away from t0
@@ -985,19 +1002,24 @@ export class GlobeEngine {
    * stored or landed leg (its remote flight's id). Arcs and their ground tracks both count.
    */
   private onRoute(x: number, y: number): string | null {
-    const legs: [Vec3, Vec3, number, string][] = [];
+    // each leg as the hops it's drawn in: from stop to stop through its connections
+    const legs: [Vec3[], number, string][] = [];
     const origin = this.origin;
     const pl = this.pl;
     if (this.mode === "landed" && origin && pl) {
       const end = this.ownEnd(pl);
       const stops = [...this.via.map((s) => s.v), origin, end.v];
-      for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1], i === stops.length - 2 ? end.alt : 0, OWN_ROUTE]);
+      for (let i = 0; i < stops.length - 1; i++) {
+        const through = (this.ownLayovers[i] ?? []).map((l) => l.v);
+        legs.push([[stops[i], ...through, stops[i + 1]], i === stops.length - 2 ? end.alt : 0, OWN_ROUTE]);
+      }
     }
     // landed routes end at their stop, as drawn
-    for (const [id, r] of this.remotes) if (r.landed) legs.push([r.o, this.groundEnd(r.target), 0, id]);
-    for (const [from, to, alt, id] of legs) {
+    for (const [id, r] of this.remotes) if (r.landed) legs.push([[r.o, ...r.layovers.map((l) => l.v), this.groundEnd(r.target)], 0, id]);
+    for (const [hops, alt, id] of legs) for (let h = 1; h < hops.length; h++) {
+      const from = hops[h - 1], to = hops[h];
       for (const lift of [1, 0]) {
-        const pts = this.arc(from, to, lift, lift ? alt : 0, this.hitArc);
+        const pts = this.arc(from, to, lift, lift && h === hops.length - 1 ? alt : 0, this.hitArc);
         for (let j = 1; j < pts.length; j++) {
           const a = pts[j - 1];
           const b = pts[j];
@@ -1151,6 +1173,7 @@ export class GlobeEngine {
     this.origin = null;
     this.dest = null;
     this.via = [];
+    this.ownLayovers = [];
     this.pl = null;
     this.turn = null;
     this.originHub = this.destinationHub = null;
@@ -1168,6 +1191,7 @@ export class GlobeEngine {
     this.origin = o;
     this.dest = null;
     this.via = [];
+    this.ownLayovers = [];
     this.magnet = false;
     this.destinationHub = null;
     this.originHub = nearestPreviewHub(toLatLng(o));
@@ -1957,7 +1981,7 @@ export class GlobeEngine {
         (r?.destinationHub === destinationHub ? r.destinationName : placeName(f.at, destinationHub));
       const color = f.color ?? null;
       if (r) {
-        Object.assign(r, { o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName });
+        Object.assign(r, { o, target, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName, layovers: stopovers(f.layovers) });
         r.track.push(target, now);
         retarget(r.pl, vehicle);
       } else {
@@ -1970,12 +1994,22 @@ export class GlobeEngine {
         }
         const remote = {
           o, target, track, ft, landed: f.landed, color, originHub, destinationHub, originName, destinationName, drawn,
+          layovers: stopovers(f.layovers),
           pl: { n: target, f: ft, alt: 0, bank: 0, pitch: 0, ...parked(vehicle) },
         };
         this.remotes.set(f.id, remote);
         if (drawn === Infinity) this.held.push({ remote });
       }
     }
+  }
+
+  /**
+   * The connections on this viewer's own landed legs, one list per leg in order (empty or null for a direct one).
+   * Replaces the previous lists. Each leg's route touches down at its connections, marked smaller than a stop.
+   */
+  setLayovers(legs: (readonly Layover[] | null | undefined)[]) {
+    this.requestFrame();
+    this.ownLayovers = legs.map(stopovers);
   }
 
   /**
@@ -3542,6 +3576,34 @@ export class GlobeEngine {
     ctx.restore();
   }
 
+  /**
+   * A connection on a leg: a dot on the line, smaller than a start ring, and its code beside it with no tag box, so it
+   * reads as a change of planes on the way rather than a stop on the trip (which has pins and a boxed name).
+   */
+  private layoverMark(ctx: CanvasRenderingContext2D, l: Stopover, stroke: string) {
+    const p = this.proj(l.v);
+    if (!p || !p.vis) return;
+    const P = this.P;
+    ctx.save();
+    ctx.beginPath();
+    this.groundCircle(ctx, l.v, p.x, p.y, 2.6);
+    ctx.fillStyle = P.raised;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = stroke;
+    ctx.stroke();
+    ctx.font = this.tagFont.replace(/\d+px/, "10px");
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = P.paper;
+    ctx.strokeText(l.code, p.x + 6, p.y + 0.5);
+    ctx.fillStyle = P.ink;
+    ctx.fillText(l.code, p.x + 6, p.y + 0.5);
+    ctx.restore();
+  }
+
   /** Points along the great circle from a to b, lifted into an arc (lift 1) or on the ground (lift 0). */
   private arc(a: Vec3, b: Vec3, lift: number, endAlt: number, buffer: ArcBuffer) {
     const w = angle(a, b);
@@ -3584,16 +3646,25 @@ export class GlobeEngine {
    * end, the arc rises to its altitude and stops `cut` short of it; a landed leg comes down to its stop.
    */
   private route(
-    ctx: CanvasRenderingContext2D, origin: Vec3, { v: end, alt, cut }: RouteEnd, stroke: string, marching: boolean, t = 0, gone = 0, upTo = 1,
+    ctx: CanvasRenderingContext2D, origin: Vec3, { v: end, alt, cut, through = [] }: RouteEnd, stroke: string, marching: boolean, t = 0, gone = 0, upTo = 1,
   ) {
     const P = this.P;
     const view = `${this.lon0},${this.lat0},${this.range},${this.W},${this.H}`;
     if (view !== this.routeView) { this.routeView = view; this.routeGeometry.clear(); }
-    const key = `${origin}|${end}|${alt}`;
+    const key = `${origin}|${through.join("|")}|${end}|${alt}`;
     let geometry = this.routeGeometry.get(key);
     if (!geometry) {
       const copy = (points: (ScreenPoint | null)[]) => points.map((p) => p && ({ ...p, w: p.w && [...p.w] as Vec3 }));
-      geometry = { ground: copy(this.arc(origin, end, 0, 0, this.groundArc)), air: copy(this.arc(origin, end, 1, alt, this.airArc)) };
+      // one arc per hop, each coming down at its connection, joined into one line so its dashes run on through
+      const hops = [origin, ...through, end];
+      geometry = { ground: [], air: [] };
+      for (let h = 1; h < hops.length; h++) {
+        const last = h === hops.length - 1;
+        const ground = copy(this.arc(hops[h - 1], hops[h], 0, 0, this.groundArc));
+        const air = copy(this.arc(hops[h - 1], hops[h], 1, last ? alt : 0, this.airArc));
+        geometry.ground.push(...(h > 1 ? ground.slice(1) : ground));
+        geometry.air.push(...(h > 1 ? air.slice(1) : air));
+      }
       if (this.routeGeometry.size >= 128) this.routeGeometry.delete(this.routeGeometry.keys().next().value!);
       this.routeGeometry.set(key, geometry);
     }
@@ -3655,7 +3726,7 @@ export class GlobeEngine {
     for (const r of this.remotes.values()) {
       const target = this.lifted(r.target);
       const end: RouteEnd = r.landed
-        ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0 }
+        ? { v: this.groundEnd(target), alt: this.liftAlt(target), cut: 0, through: r.layovers.map((l) => l.v) }
         : { v: r.pl.n, alt: r.pl.alt, cut: S_PLANE * this.planeScale * ROUTE_CUT };
       const k = (t - r.drawn) / PIP_DRAW;
       this.route(ctx, this.lifted(r.o), end, this.routeColor(r.color), k < 1, t * 3, 0, k < 1 ? ease(Math.max(0, k)) : 1);
@@ -3668,10 +3739,12 @@ export class GlobeEngine {
         const raw = this.via[i + 1]?.v ?? origin;
         const next = this.lifted(raw);
         const upTo = this.ownDrawn(s.v, raw, t);
-        this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0 }, stroke, marching || upTo < 1, t, 0, upTo);
+        const through = this.mode === "landed" ? this.ownLayovers[i]?.map((l) => l.v) : undefined;
+        this.route(ctx, this.lifted(s.v), { v: this.groundEnd(next), alt: this.liftAlt(next), cut: 0, through }, stroke, marching || upTo < 1, t, 0, upTo);
       });
       const upTo = this.dest ? this.ownDrawn(origin, this.dest, t) : 1;
-      this.route(ctx, this.lifted(origin), this.ownEnd(pl), stroke, marching || upTo < 1, t, 0, upTo);
+      const last = this.mode === "landed" ? this.ownLayovers[this.via.length]?.map((l) => l.v) : undefined;
+      this.route(ctx, this.lifted(origin), { ...this.ownEnd(pl), through: last }, stroke, marching || upTo < 1, t, 0, upTo);
     }
     if (ctx === out) return;
     ctx.save();
@@ -3779,6 +3852,7 @@ export class GlobeEngine {
         if (!this.pinned(o)) this.startMark(ctx, o, op.x, op.y, stroke);
         if (r.originName) this.tag(ctx, op.x, this.tagAbove(o, op.y), r.originName, op);
       }
+      if (r.landed && t - r.drawn >= PIP_DRAW) for (const l of r.layovers) this.layoverMark(ctx, l, stroke);
       const at = r.landed && r.destinationName ? this.tagBelow(target) : null;
       // named for the stop, under its pins
       if (at && r.destinationName) this.tag(ctx, at.x, at.y, r.destinationName, this.proj(target) ?? at);
@@ -3832,6 +3906,12 @@ export class GlobeEngine {
       ctx.stroke();
       ctx.restore();
     };
+    if (this.mode === "landed") {
+      const stops = [...this.via.map((s) => s.v), origin, this.dest ?? pl.n];
+      this.ownLayovers.forEach((list, i) => {
+        if (stops[i + 1] && this.ownDrawn(stops[i], stops[i + 1], t) >= 1) for (const l of list) this.layoverMark(ctx, l, stroke);
+      });
+    }
     for (const s of this.via) {
       const sp = this.proj(s.v);
       if (!sp || !sp.vis) continue;
