@@ -3656,7 +3656,8 @@ export class GlobeEngine {
       seen.add(hub.id);
       let t0 = this.markerT.get(hub.id);
       if (t0 === undefined) this.markerT.set(hub.id, (t0 = this.reduceMotion ? -Infinity : t));
-      const u = clamp((t - t0) / MARKER_POP, 0, 1);
+      // reduced motion, every marker is up already, even one caught mid-pop when it was turned on
+      const u = this.reduceMotion ? 1 : clamp((t - t0) / MARKER_POP, 0, 1);
       if (u < 1) this.markersPopping = true;
       // up past full size and back, like a sticker pressed on
       const pop = u === 1 ? 1 : Math.max(0, 1 + 2.2 * (u - 1) ** 3 + 1.2 * (u - 1) ** 2);
@@ -3690,9 +3691,12 @@ export class GlobeEngine {
       if (locked || u < 1 || hub.importance < 3 || hub.mode !== "flight" || !/^[A-Z]{3}$/.test(hub.code)) continue;
       const w = ctx.measureText(hub.code).width;
       const box = { l: x + r + 3, t: y - 6, r: x + r + 3 + w, b: y + 6 };
-      // clear of the other codes and of the city names printed under them
+      // clear of the other codes, the other markers, and the country and city names printed under them
+      const under = (o: number[]) => box.l < o[2] && box.r > o[0] && box.t < o[3] && box.b > o[1];
       if (box.r > this.W || codes.some((o) => box.l < o.r + 8 && box.r > o.l - 8 && box.t < o.b + 4 && box.b > o.t - 4) ||
-        this.cityBoxes.some((o) => box.l < o[2] && box.r > o[0] && box.t < o[3] && box.b > o[1])) continue;
+        this.placedNames.some(under) || this.cityBoxes.some(under) ||
+        this.lockables.some((o) => o.hub !== hub && o.x > box.l - MARKER_R - 2 && o.x < box.r + MARKER_R + 2 &&
+          o.y > box.t - MARKER_R - 2 && o.y < box.b + MARKER_R + 2)) continue;
       codes.push(box);
       ctx.lineWidth = 3;
       ctx.strokeStyle = P.paper;
